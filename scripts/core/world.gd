@@ -12,7 +12,11 @@ signal leave_requested
 
 const STATE_RATE := 1.0 / 30.0
 const PROP_RATE := 1.0 / 30.0
-const MAX_DEBRIS := 220
+const MAX_DEBRIS := 200
+const NET_FRAGMENT_VOLUME := 0.05 # m^3; smaller fragments are local-only effects
+const SMALL_ISLAND := 6 # unsupported groups up to this many cells drop at once
+const BREAK_SHATTER := 0
+const BREAK_DROP := 1
 const MAX_SPAWNED_PER_PLAYER := 25
 const MAX_CORPSES := 12
 const RESPAWN_TIME := 3.0
@@ -45,6 +49,7 @@ var _sent_xforms := {} # prop id -> Transform3D last sent
 var _respawn_at := {} # player id -> time
 var _restock: Array = [] # [time, kind, Transform3D]
 var _debris: Array[int] = []
+var _crumbling := {} # Destructible -> next crumble time
 var _spawned_by := {} # player id -> Array[int]
 var _spawn_cd := {}
 var _pair_cd := {}
@@ -205,11 +210,14 @@ func _build_init_state() -> Dictionary:
 	var pr_list := []
 	for p: Prop in props.values():
 		if is_instance_valid(p):
-			pr_list.append([p.prop_id, p.kind, p.global_transform, p.size, p.color, p.team])
+			pr_list.append([p.prop_id, p.kind, p.global_transform, p.size, p.color, p.team, p.extra])
 	var broken := {}
 	for d in arena.destructibles:
 		if not d.broken_cells.is_empty():
 			broken[d.wall_id] = d.broken_cells
+	var wall_damage := {}
+	for d in arena.destructibles:
+		wall_damage[d.wall_id] = d.all_damage_bytes()
 	var guns := []
 	for pl: Player in players.values():
 		if pl.gun.held_kind != GravityGun.Kind.NONE:
@@ -221,6 +229,7 @@ func _build_init_state() -> Dictionary:
 		"players": pl_list,
 		"props": pr_list,
 		"broken": broken,
+		"wall_damage": wall_damage,
 		"scores": team_scores,
 		"guns": guns,
 	}
@@ -243,10 +252,13 @@ func _s_init(state: Dictionary) -> void:
 	for info in state.players:
 		_create_player(info)
 	for e in state.props:
-		_create_prop(e[0], e[1], e[2], e[3], e[4], e[5], false)
+		_create_prop(e[0], e[1], e[2], e[3], e[4], e[5], false, e[6])
 	for wall_id in state.broken:
 		if wall_id < arena.destructibles.size():
 			arena.destructibles[wall_id].remove_cells(state.broken[wall_id])
+	for wall_id in state.wall_damage:
+		if wall_id < arena.destructibles.size():
+			arena.destructibles[wall_id].set_all_damage(state.wall_damage[wall_id])
 	for g in state.guns:
 		var pl := get_player(g[0])
 		if pl:
@@ -340,6 +352,8 @@ func _physics_process(delta: float) -> void:
 	if not is_server:
 		return
 	mode_logic.tick(delta)
+	if not _crumbling.is_empty():
+		_server_crumble_tick()
 	var t := now()
 	for id in _respawn_at.keys():
 		if t >= _respawn_at[id]:
@@ -399,28 +413,28 @@ func _s_states(data: Array) -> void:
 
 # --- Props ------------------------------------------------------------------------
 
-func _create_prop(id: int, kind: String, xform: Transform3D, size: Vector3, color: Color, team: int, server: bool) -> Prop:
-	var p := Prop.create(self, id, kind, xform, size, color, team)
+func _create_prop(id: int, kind: String, xform: Transform3D, size: Vector3, color: Color, team: int, server: bool, extra := {}) -> Prop:
+	var p := Prop.create(self, id, kind, xform, size, color, team, extra)
 	p.setup_role(server)
 	props_root.add_child(p)
 	props[id] = p
 	return p
 
 
-func server_spawn_prop(kind: String, xform: Transform3D, size := Vector3.ZERO, color := Color(0, 0, 0, 0), team := 0, vel := Vector3.ZERO) -> Prop:
+func server_spawn_prop(kind: String, xform: Transform3D, size := Vector3.ZERO, color := Color(0, 0, 0, 0), team := 0, vel := Vector3.ZERO, extra := {}) -> Prop:
 	var id := _next_prop_id
 	_next_prop_id += 1
-	var p := _create_prop(id, kind, xform, size, color, team, true)
+	var p := _create_prop(id, kind, xform, size, color, team, true, extra)
 	p.linear_velocity = vel
 	_sent_xforms[id] = xform
-	_bc("_s_spawn_prop", [id, p.kind, xform, p.size, p.color, team])
+	_bc("_s_spawn_prop", [id, p.kind, xform, p.size, p.color, team, extra])
 	return p
 
 
 @rpc("authority", "call_remote", "reliable")
-func _s_spawn_prop(id: int, kind: String, xform: Transform3D, size: Vector3, color: Color, team: int) -> void:
+func _s_spawn_prop(id: int, kind: String, xform: Transform3D, size: Vector3, color: Color, team: int, extra: Dictionary) -> void:
 	if not props.has(id):
-		_create_prop(id, kind, xform, size, color, team, false)
+		_create_prop(id, kind, xform, size, color, team, false, extra)
 
 
 func server_despawn_prop(p: Prop) -> void:
@@ -516,9 +530,12 @@ func server_prop_impact(p: Prop, body: Node, rel: Vector3, speed: float) -> void
 	if not is_instance_valid(p) or not is_instance_valid(body) or p.exploded:
 		return
 	var t := now()
-	if speed > 4.0 and p.can_sound(t):
-		var bouncy := p.kind in ["ball", "beachball", "tire"]
-		server_fx("boing" if bouncy else "hit", p.global_position, rel, clampf(speed / 20.0, 0.1, 1.5))
+	if speed > 3.0 and p.can_sound(t):
+		var energy := 0.5 * p.mass * speed * speed
+		var dir := rel.normalized()
+		var contact := p.global_position + dir * p.size.length() * 0.3
+		var mat_name := "body" if body is Player else p.impact_material()
+		server_fx("impact:" + mat_name, contact, rel, clampf(energy / 6000.0, 0.03, 3.0), -dir)
 	if body is Player:
 		_prop_hits_player(p, body as Player, rel, speed)
 		return
@@ -531,15 +548,24 @@ func server_prop_impact(p: Prop, body: Node, rel: Vector3, speed: float) -> void
 	if p.explosive and speed > 13.0:
 		_schedule_explosion(p, 0.0)
 		return
-	if body.has_meta("destructible") and speed > 8.0:
+	if body.has_meta("destructible") and speed > 7.0:
 		var energy := 0.5 * p.mass * speed * speed
-		if energy > 1200.0:
+		if energy > 900.0:
 			var d: Destructible = body.get_meta("destructible")
 			var attacker := p.last_thrower if t - p.last_thrown_time < 6.0 else 0
-			var broke := server_damage_destructible(d, p.global_position, 0.7 + minf(p.mass / 120.0, 1.5), clampf(energy / 35.0, 0.0, 400.0), rel, attacker)
+			var broke := false
+			var extent := p.size.length() * 0.5
+			if p.mass < 12.0:
+				# Small fast projectile: concentrated punch, small hole, wide cracks.
+				broke = server_damage_destructible(d, p.global_position, 0.2 + extent * 0.4, clampf(energy / 30.0, 0.0, 220.0), rel, attacker, 1.0)
+			else:
+				# Heavy object: flatter profile, hole scales with size and mass.
+				broke = server_damage_destructible(d, p.global_position, clampf(0.45 + extent * 0.6 + p.mass / 400.0, 0.5, 1.9), clampf(energy / 28.0, 0.0, 480.0), rel, attacker, 3.0)
 			if broke:
 				# Keep most of the momentum: smash through rather than bounce.
 				p.linear_velocity = rel * 0.75
+	if p.kind == "shard" and speed > 13.0 and 0.5 * p.mass * speed * speed > 4000.0:
+		_server_split_fragment(p, rel)
 
 
 func _prop_hits_player(p: Prop, pl: Player, rel: Vector3, speed: float) -> void:
@@ -573,9 +599,13 @@ func _schedule_explosion(p: Prop, delay: float) -> void:
 	if delay <= 0.0:
 		server_explode(p)
 	else:
-		get_tree().create_timer(delay).timeout.connect(func():
-			if is_instance_valid(p):
-				server_explode(p))
+		get_tree().create_timer(delay).timeout.connect(_explode_by_id.bind(p.get_instance_id()))
+
+
+func _explode_by_id(id: int) -> void:
+	var p := instance_from_id(id) as Prop
+	if p and is_instance_valid(p) and not p.is_queued_for_deletion():
+		server_explode(p)
 
 
 func server_explode(p: Prop) -> void:
@@ -619,7 +649,7 @@ func server_explode(p: Prop) -> void:
 		server_damage_player(pl, 90.0 * f + 10.0, attacker, "explosion", pl.body_center(), to)
 	for d in arena.destructibles:
 		if d.global_position.distance_to(pos) < radius + 30.0 and not d.cells_near(pos, radius * 0.6).is_empty():
-			server_damage_destructible(d, pos, radius * 0.55, 220.0, Vector3.UP * 6.0, attacker)
+			server_damage_destructible(d, pos, radius * 0.6, 260.0, (d.global_position - pos).normalized() * 14.0 + Vector3.UP * 4.0, attacker, 2.0)
 	if p.has_meta("map_prop"):
 		_restock.append([t + 25.0, p.kind, p.home_transform])
 	server_despawn_prop(p)
@@ -627,48 +657,197 @@ func server_explode(p: Prop) -> void:
 
 # --- Destruction ------------------------------------------------------------------
 
+## Applies damage to a slab. `sharp` shapes the damage profile (see Destructible).
 ## Returns true if any cell broke.
-func server_damage_destructible(d: Destructible, point: Vector3, radius: float, amount: float, impulse: Vector3, _attacker: int) -> bool:
-	var broken := d.apply_damage(point, radius, amount)
+func server_damage_destructible(d: Destructible, point: Vector3, radius: float, amount: float, impulse: Vector3, _attacker: int, sharp := 2.0) -> bool:
+	var res := d.apply_damage(point, radius, amount, sharp)
+	var broken: PackedInt32Array = res.broken
+	var damaged: PackedInt32Array = res.damaged
+	var bytes := d.damage_bytes(damaged)
 	if broken.is_empty():
+		if not damaged.is_empty():
+			_bc_all("_s_wall_damage", [d.wall_id, damaged, bytes])
 		server_fx("chip", point, impulse, 0.5)
 		return false
-	_bc_all("_s_break", [d.wall_id, broken, point, impulse])
-	# Server turns broken cells into networked debris the gravity gun can use.
-	var size := d.cell_world_size()
-	var spawned := 0
-	for i in broken:
-		if spawned >= 30:
-			break
-		var center := d.cell_world(i)
-		var xf := Transform3D(d.global_transform.basis.orthonormalized(), center)
-		var near := center.distance_to(point) < radius + 1.0
-		var vel := impulse * 0.5 * rng.randf_range(0.6, 1.0) if near else Vector3.ZERO
-		var piece := server_spawn_prop("debris", xf, size * 0.94, d.color, 0, vel)
-		piece.angular_velocity = Vector3(rng.randf_range(-3, 3), rng.randf_range(-3, 3), rng.randf_range(-3, 3)) if near else Vector3.ZERO
-		_debris.append(piece.prop_id)
-		spawned += 1
+	_bc_all("_s_break", [d.wall_id, broken, point, impulse, damaged, bytes, BREAK_SHATTER])
+	_server_check_supports(d)
+	return true
+
+
+## Small unsupported pieces drop right away as one chunk; big ones crumble over time.
+func _server_check_supports(d: Destructible) -> void:
+	for isl in d.unsupported_islands():
+		if isl.size() <= SMALL_ISLAND:
+			_server_drop(d, isl)
+		elif not _crumbling.has(d):
+			_crumbling[d] = now() + 0.4
+
+
+func _server_drop(d: Destructible, isl: PackedInt32Array) -> void:
+	var c := d.island_center(isl)
+	_bc_all("_s_break", [d.wall_id, isl, d.global_transform * Vector3(c.x, c.y, 0), Vector3.ZERO, PackedInt32Array(), PackedByteArray(), BREAK_DROP])
+
+
+func _server_crumble_tick() -> void:
+	var t := now()
+	for d: Destructible in _crumbling.keys():
+		if t < _crumbling[d]:
+			continue
+		var big := false
+		for isl in d.unsupported_islands():
+			if isl.size() <= SMALL_ISLAND:
+				_server_drop(d, isl)
+				continue
+			big = true
+			# Crumble from the hole edges inward, and let the rest visibly strain.
+			var edge := d.edge_cells(isl)
+			for k in mini(2, edge.size()):
+				var cell := edge[rng.randi() % edge.size()]
+				if d.is_alive(cell):
+					_server_drop(d, PackedInt32Array([cell]))
+			var strained := d.strain(isl, 0.06)
+			_bc_all("_s_wall_damage", [d.wall_id, strained, d.damage_bytes(strained)])
+			var c := d.island_center(isl)
+			server_fx("creak", d.global_transform * Vector3(c.x, c.y, 0), Vector3.UP, 1.0)
+		if big:
+			_crumbling[d] = t + rng.randf_range(0.3, 0.55)
+		else:
+			_crumbling.erase(d)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_wall_damage(wall_id: int, list: PackedInt32Array, bytes: PackedByteArray) -> void:
+	if wall_id < arena.destructibles.size():
+		arena.destructibles[wall_id].set_damage(list, bytes)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_break(wall_id: int, cells: PackedInt32Array, point: Vector3, impulse: Vector3, damaged: PackedInt32Array, bytes: PackedByteArray, mode: int) -> void:
+	if wall_id >= arena.destructibles.size():
+		return
+	var d := arena.destructibles[wall_id]
+	d.set_damage(damaged, bytes)
+	var live := PackedInt32Array()
+	for i in cells:
+		if d.is_alive(i):
+			live.append(i)
+	if live.is_empty():
+		return
+	# Remove collision first so fragments don't spawn inside the wall.
+	d.remove_cells(live)
+	if mode == BREAK_DROP:
+		_drop_chunk(d, live, point)
+	else:
+		_shatter_cells(d, live, point, impulse)
+	var snd: String = d.matdef.sound
+	Sfx.play3d(snd, point, 4.0, rng.randf_range(0.8, 1.1))
+	fx.dust(point, d.color, clampf(live.size() * 0.5, 0.5, 3.0))
+	if local_player and local_player.global_position.distance_to(point) < 20.0:
+		local_player.shake(0.4 if mode == BREAK_SHATTER else 0.2)
+
+
+## Breaks cells into impact-biased fragments. Big fragments become networked props the
+## gravity gun can use (spawned by the server); small ones are local cosmetic debris.
+## Fragment shapes are seeded per cell, so every peer computes the same pieces.
+func _shatter_cells(d: Destructible, list: PackedInt32Array, point: Vector3, impulse: Vector3) -> void:
+	var local_pt3 := d.to_local2(point)
+	var local_pt := Vector2(local_pt3.x, local_pt3.y)
+	var basis := d.global_transform.basis.orthonormalized()
+	var speed := impulse.length()
+	var dir := impulse / speed if speed > 0.1 else -basis.z
+	var metric: Vector2 = d.matdef.get("grain", Vector2.ONE)
+	var net_spawned := 0
+	for i in list:
+		var frng := RandomNumberGenerator.new()
+		frng.seed = d.wall_id * 100003 + i * 31 + 7
+		var near := clampf(1.0 - d.centers[i].distance_to(local_pt) / 2.5, 0.0, 1.0)
+		var count := int(round(d.matdef.shatter * (0.5 + near * 1.3)))
+		var pieces := Fracture.shatter(d.cells[i], count, frng, local_pt if near > 0.2 else Vector2.INF, metric)
+		for piece in pieces:
+			var pc := Fracture.centroid(piece)
+			var local_poly := Fracture.translated(piece, -pc)
+			var pos := d.global_transform * Vector3(pc.x, pc.y, 0.0)
+			var away := (pos - point).normalized()
+			var vel := dir * speed * frng.randf_range(0.25, 0.6) * (0.4 + near) + away * frng.randf_range(1.0, 4.0) + Vector3.UP * frng.randf_range(0.5, 2.0)
+			var spin := Vector3(frng.randf_range(-6, 6), frng.randf_range(-6, 6), frng.randf_range(-6, 6))
+			var big := Fracture.area(piece) * d.thickness >= NET_FRAGMENT_VOLUME and d.material != "glass"
+			if big and net_spawned < 24:
+				net_spawned += 1
+				if is_server:
+					_spawn_fragment(d, [local_poly], Transform3D(basis, pos), vel, spin)
+			else:
+				fx.shard(local_poly, d.thickness, Transform3D(basis, pos), vel, spin, d.color, d.material)
+
+
+## An unsupported group of cells falls as one rigid chunk.
+func _drop_chunk(d: Destructible, list: PackedInt32Array, _point: Vector3) -> void:
+	if not is_server:
+		return
+	var c := d.island_center(list)
+	var polys := []
+	for i in list:
+		polys.append(Fracture.translated(d.cells[i], -c))
+	var basis := d.global_transform.basis.orthonormalized()
+	var spin := Vector3(rng.randf_range(-0.6, 0.6), rng.randf_range(-0.6, 0.6), rng.randf_range(-0.6, 0.6))
+	_spawn_fragment(d, polys, Transform3D(basis, d.global_transform * Vector3(c.x, c.y, 0.0)), Vector3.DOWN * 0.5, spin)
+
+
+func _spawn_fragment(d: Destructible, polys: Array, xf: Transform3D, vel: Vector3, spin: Vector3) -> void:
+	var extra := {"polys": polys, "t": d.thickness, "mat": d.material}
+	var piece := server_spawn_prop("shard", xf, Vector3.ZERO, d.color, 0, vel, extra)
+	piece.angular_velocity = spin
+	_track_debris(piece)
+
+
+func _track_debris(piece: Prop) -> void:
+	_debris.append(piece.prop_id)
 	while _debris.size() > MAX_DEBRIS:
 		var old := get_prop(_debris.pop_front())
 		if old and old.held_by == 0:
 			server_despawn_prop(old)
-	return true
 
 
-@rpc("authority", "call_remote", "reliable")
-func _s_break(wall_id: int, cells: PackedInt32Array, point: Vector3, impulse: Vector3) -> void:
-	if wall_id >= arena.destructibles.size():
+## A fragment hit hard enough splits again (fractal destruction).
+func _server_split_fragment(p: Prop, rel: Vector3) -> void:
+	var polys: Array = p.extra.get("polys", [])
+	var t: float = p.extra.get("t", 0.5)
+	var srng := RandomNumberGenerator.new()
+	srng.seed = p.prop_id * 92821
+	var out := []
+	for poly: PackedVector2Array in polys:
+		if Fracture.area(poly) > 0.22:
+			var through := Fracture.centroid(poly) + Vector2(srng.randf_range(-0.15, 0.15), srng.randf_range(-0.15, 0.15))
+			out.append_array(Fracture.split(poly, through, srng))
+		else:
+			out.append(poly)
+	if out.size() <= 1:
 		return
-	var d := arena.destructibles[wall_id]
-	var fx_count := 0
-	for i in cells:
-		if fx_count < 10 and d.is_alive(i):
-			fx.wall_break(d.cell_world(i), d.cell_world_size(), d.color, impulse)
-			fx_count += 1
-	d.remove_cells(cells)
-	Sfx.play3d("crack", point, 4.0, rng.randf_range(0.8, 1.1))
-	if local_player and local_player.global_position.distance_to(point) < 20.0:
-		local_player.shake(0.4)
+	var xf := p.global_transform
+	var vel := p.linear_velocity
+	var mat_name: String = p.extra.get("mat", "plaster")
+	var col := p.color
+	server_despawn_prop(p)
+	for poly: PackedVector2Array in out:
+		var pc := Fracture.centroid(poly)
+		var pos := xf * Vector3(pc.x, pc.y, 0.0)
+		var v := vel * 0.6 + (pos - xf.origin).normalized() * srng.randf_range(2.0, 5.0) + rel.normalized() * -2.0
+		var local := Fracture.translated(poly, -pc)
+		if Fracture.area(poly) * t >= NET_FRAGMENT_VOLUME:
+			var piece := server_spawn_prop("shard", Transform3D(xf.basis, pos), Vector3.ZERO, col, 0, v, {"polys": [local], "t": t, "mat": mat_name})
+			piece.angular_velocity = Vector3(srng.randf_range(-8, 8), srng.randf_range(-8, 8), srng.randf_range(-8, 8))
+			_track_debris(piece)
+		else:
+			server_fx_shard(local, t, Transform3D(xf.basis, pos), v, col, mat_name)
+	server_fx("crack", xf.origin, rel, 1.0)
+
+
+func server_fx_shard(poly: PackedVector2Array, t: float, xf: Transform3D, vel: Vector3, col: Color, mat_name: String) -> void:
+	_bc_all("_s_fx_shard", [poly, t, xf, vel, col, mat_name])
+
+
+@rpc("authority", "call_remote", "unreliable", 3)
+func _s_fx_shard(poly: PackedVector2Array, t: float, xf: Transform3D, vel: Vector3, col: Color, mat_name: String) -> void:
+	fx.shard(poly, t, xf, vel, Vector3(randf_range(-8, 8), randf_range(-8, 8), randf_range(-8, 8)), col, mat_name)
 
 
 # --- Damage, death, respawn -------------------------------------------------------
@@ -798,6 +977,11 @@ func _server_self_damage(pl: Player, amount: float, cause: String, point: Vector
 	if not pl.is_alive():
 		return
 	server_damage_player(pl, amount, 0, cause, point, vel)
+	if cause == "impact":
+		# Everyone hears and sees a body hitting the scenery.
+		server_fx("impact:body", point, vel, clampf(amount / 30.0, 0.2, 3.0), normal)
+		var hit_mat := "stone"
+		server_fx("impact:" + hit_mat, point, vel, clampf(amount / 40.0, 0.1, 2.5), normal)
 	if cause == "impact" and amount > 10.0:
 		# Extra splatter onto the surface that was hit.
 		server_fx("blood", point, vel, clampf(amount / 25.0, 0.5, 3.0), normal)
@@ -805,7 +989,7 @@ func _server_self_damage(pl: Player, amount: float, cause: String, point: Vector
 
 func report_break(pl: Player, d: Destructible, _cell: int, point: Vector3, speed: float, vel: Vector3) -> void:
 	if is_server:
-		server_damage_destructible(d, point, 1.0 + speed * 0.03, speed * 9.0, vel, pl.last_attacker)
+		server_damage_destructible(d, point, 0.85 + speed * 0.01, speed * 11.0, vel, pl.last_attacker, 4.0)
 	else:
 		_c_break.rpc_id(1, d.wall_id, point, speed, vel)
 
@@ -818,7 +1002,7 @@ func _c_break(wall_id: int, point: Vector3, speed: float, vel: Vector3) -> void:
 	if pl.global_position.distance_to(point) > 6.0:
 		return
 	speed = minf(speed, 80.0)
-	server_damage_destructible(arena.destructibles[wall_id], point, 1.0 + speed * 0.03, speed * 9.0, vel, pl.last_attacker)
+	server_damage_destructible(arena.destructibles[wall_id], point, 0.85 + speed * 0.01, speed * 11.0, vel, pl.last_attacker, 4.0)
 
 
 func report_player_bump(pl: Player, other: Player, vel: Vector3) -> void:
@@ -856,7 +1040,7 @@ func _server_bump(pl: Player, other: Player, vel: Vector3) -> void:
 	if speed > 10.0:
 		server_damage_player(other, (speed - 10.0) * 3.5, credit, "player", other.body_center(), rel)
 		server_damage_player(pl, (speed - 10.0) * 1.5, 0, "player", pl.body_center(), -rel)
-	server_fx("hit", other.body_center(), rel, clampf(speed / 20.0, 0.2, 1.5))
+	server_fx("impact:body", other.body_center(), rel, clampf(speed * speed * Player.MASS / 12000.0, 0.1, 3.0), -rel.normalized())
 
 
 func report_prop_push(pl: Player, p: Prop, vel: Vector3, point: Vector3) -> void:
@@ -907,8 +1091,11 @@ func _s_launch(id: int, vel: Vector3, replace: bool, ragdoll: float) -> void:
 	var pl := get_player(id)
 	if pl and pl.is_controlled_here():
 		pl.external_launch(vel, replace, ragdoll)
-		if pl == local_player and vel.length() > 18.0:
-			hud.yeet_text()
+		if pl == local_player:
+			pl.punch(clampf(vel.length() / 25.0, 0.0, 1.2))
+			pl.shake(clampf(vel.length() / 40.0, 0.0, 0.7))
+			if vel.length() > 18.0:
+				hud.yeet_text()
 
 
 func server_send_held(pl: Player, target: Vector3, holder_vel: Vector3, holder: int) -> void:
@@ -1068,6 +1255,16 @@ func server_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal :
 
 @rpc("authority", "call_remote", "unreliable", 3)
 func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vector3) -> void:
+	if kind.begins_with("impact:"):
+		var mat_name := kind.substr(7)
+		fx.impact(pos, normal, amount, mat_name)
+		Sfx.impact(mat_name, pos, amount)
+		if local_player and amount > 0.6:
+			var d := local_player.global_position.distance_to(pos)
+			local_player.shake(clampf(amount * 0.35 - d / 30.0, 0.0, 0.8))
+			if d < 6.0:
+				local_player.punch(clampf(amount * 0.3, 0.0, 0.6))
+		return
 	match kind:
 		"blood":
 			fx.blood(pos, normal, dir, amount)
@@ -1096,6 +1293,11 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 		"spawn":
 			fx.zap(pos)
 			Sfx.play3d("spawn", pos, -4.0)
+		"creak":
+			Sfx.play3d("creak", pos, 2.0, rng.randf_range(0.7, 1.1))
+			fx.dust(pos, Color(0.9, 0.85, 0.8), 0.4)
+		"crack":
+			Sfx.play3d("crack", pos, 0.0, rng.randf_range(1.0, 1.3))
 		"score":
 			fx.explosion(pos + Vector3.UP * 2.0, 3.0)
 			Sfx.play_ui("score", 0.0)

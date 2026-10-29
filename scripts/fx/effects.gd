@@ -102,7 +102,7 @@ func scorch(pos: Vector3, radius: float) -> void:
 
 # --- Particles & chunks ---------------------------------------------------------------
 
-func _burst(pos: Vector3, dir: Vector3, amount: int, mesh: Mesh, mat: Material, vmin: float, vmax: float, life: float, damp := 0.0) -> void:
+func _burst(pos: Vector3, dir: Vector3, amount: int, mesh: Mesh, mat: Material, vmin: float, vmax: float, life: float, damp := 0.0, align := false) -> void:
 	var p := CPUParticles3D.new()
 	p.one_shot = true
 	p.explosiveness = 1.0
@@ -122,6 +122,7 @@ func _burst(pos: Vector3, dir: Vector3, amount: int, mesh: Mesh, mat: Material, 
 	p.scale_amount_min = 0.6
 	p.scale_amount_max = 1.6
 	p.local_coords = false
+	p.particle_flag_align_y = align
 	add_child(p)
 	p.global_position = pos
 	p.emitting = true
@@ -156,23 +157,148 @@ func _chunk(pos: Vector3, size: Vector3, color: Color, vel: Vector3, life: float
 		var old = _chunks.pop_front()
 		if is_instance_valid(old):
 			old.queue_free()
-	var t := get_tree().create_timer(life + _rng.randf() * 2.0)
-	t.timeout.connect(func():
-		if is_instance_valid(rb):
-			var tw := rb.create_tween()
-			tw.tween_property(mi, "scale", Vector3.ONE * 0.001, 0.6)
-			tw.tween_callback(rb.queue_free)
-	)
+	get_tree().create_timer(life + _rng.randf() * 2.0).timeout.connect(_fade_body.bind(rb.get_instance_id()))
 
 
-func wall_break(pos: Vector3, cell_size: Vector3, color: Color, impulse: Vector3) -> void:
-	for i in 4:
-		var s := cell_size * _rng.randf_range(0.2, 0.4)
-		_chunk(pos + _rand_vec() * cell_size * 0.3, s, color, impulse * 0.4 + _rand_vec() * 4.0, 5.0)
+## Local-only fragment: an extruded polygon that tumbles, settles and fades.
+func shard(poly: PackedVector2Array, t: float, xf: Transform3D, vel: Vector3, spin: Vector3, color: Color, material: String) -> void:
+	var rb := RigidBody3D.new()
+	rb.collision_layer = Game.L_LIMBS
+	rb.collision_mask = Game.L_WORLD | Game.L_LIMBS | Game.L_PROPS
+	var a := Fracture.area(poly)
+	rb.mass = clampf(a * t * 80.0, 0.2, 20.0)
+	var cs := CollisionShape3D.new()
+	var shape := ConvexPolygonShape3D.new()
+	shape.points = Fracture.prism_points(poly, t)
+	cs.shape = shape
+	rb.add_child(cs)
+	var mi := MeshInstance3D.new()
+	mi.mesh = Fracture.fragment_mesh([poly], t, Mats.slab(color, material), Mats.slab(color, material, true))
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if a > 0.05 else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	rb.add_child(mi)
+	add_child(rb)
+	rb.global_transform = xf
+	rb.linear_velocity = vel
+	rb.angular_velocity = spin
+	_chunks.append(rb)
+	if _chunks.size() > MAX_CHUNKS:
+		var old = _chunks.pop_front()
+		if is_instance_valid(old):
+			old.queue_free()
+	var life := (2.5 if material == "glass" else 5.0) + _rng.randf() * 3.0
+	get_tree().create_timer(life).timeout.connect(_fade_body.bind(rb.get_instance_id()))
+	if material == "glass" and _rng.randf() < 0.3:
+		_burst(xf.origin, vel, 3, _drop_mesh, Mats.glow(Color(0.8, 1.0, 1.0), 2.0), 1.0, 4.0, 0.5)
+
+
+## Physical hit: flash, dust ring along the surface, flicked bits/sparks per material.
+## `strength` ~ 0.05 (tap) .. 3 (huge).
+func impact(pos: Vector3, normal: Vector3, strength: float, material: String) -> void:
+	var s := clampf(strength, 0.0, 3.0)
+	if s < 0.08:
+		return
+	var n := normal.normalized() if normal.length() > 0.01 else Vector3.UP
+	if s > 0.5:
+		_flash(pos + n * 0.1, 0.25 + s * 0.25)
+	if material != "rubber" and material != "glass":
+		_ring(pos + n * 0.05, n, 0.6 + s * 1.2, _dust_color(material))
+	var count := int(4 + s * 14)
+	match material:
+		"metal":
+			var spark := BoxMesh.new()
+			spark.size = Vector3(0.02, 0.22, 0.02)
+			_burst(pos, n, count, spark, Mats.glow(Color(1.0, 0.75, 0.35), 6.0), 4.0, 10.0 + s * 6.0, 0.45, 2.0, true)
+		"wood":
+			var splinter := BoxMesh.new()
+			splinter.size = Vector3(0.03, 0.18, 0.03)
+			_burst(pos, n, count, splinter, Mats.plastic(Color(0.75, 0.55, 0.35), 0.8), 2.0, 6.0 + s * 4.0, 0.9, 0.5, true)
+		"body":
+			pass # blood/confetti handles bodies
+		"rubber":
+			_ring(pos + n * 0.05, n, 0.4 + s * 0.6, Color(1, 1, 1))
+		_:
+			var bit := BoxMesh.new()
+			bit.size = Vector3(0.07, 0.06, 0.07)
+			_burst(pos, n, count, bit, Mats.plastic(_dust_color(material).darkened(0.15), 0.9), 2.0, 5.0 + s * 4.0, 0.9)
+	if s > 0.6:
+		dust(pos, _dust_color(material), s)
+
+
+func _dust_color(material: String) -> Color:
+	match material:
+		"wood":
+			return Color(0.85, 0.7, 0.5)
+		"metal":
+			return Color(0.75, 0.75, 0.8)
+		"body":
+			return Color(0.95, 0.85, 0.8)
+	return Color(0.9, 0.86, 0.8)
+
+
+func _flash(pos: Vector3, size: float) -> void:
+	var mi := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.5
+	sm.height = 1.0
+	sm.radial_segments = 12
+	sm.rings = 6
+	mi.mesh = sm
+	var mat := Mats.glow(Color(1.0, 0.95, 0.85), 4.0, true).duplicate() as StandardMaterial3D
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+	mi.global_position = pos
+	mi.scale = Vector3.ONE * size * 0.4
+	var tw := mi.create_tween().set_parallel(true)
+	tw.tween_property(mi, "scale", Vector3.ONE * size, 0.08)
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.1)
+	tw.chain().tween_callback(mi.queue_free)
+
+
+## Expanding flat dust ring hugging the hit surface.
+func _ring(pos: Vector3, n: Vector3, radius: float, color: Color) -> void:
+	var mi := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.55
+	tm.outer_radius = 1.0
+	tm.rings = 24
+	tm.ring_segments = 6
+	mi.mesh = tm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(color.lightened(0.2), 0.3)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+	var side := n.cross(Vector3.UP if absf(n.y) < 0.95 else Vector3.RIGHT).normalized()
+	mi.global_transform = Transform3D(Basis(side, n, side.cross(n)).scaled(Vector3(0.2, 0.15, 0.2)), pos)
+	var tw := mi.create_tween().set_parallel(true)
+	tw.tween_property(mi, "scale", Vector3(radius, 0.35, radius), 0.4).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.45)
+	tw.chain().tween_callback(mi.queue_free)
+
+
+## Shrinks a debris body away and frees it (by id: the body may already be gone).
+func _fade_body(id: int) -> void:
+	var rb := instance_from_id(id) as RigidBody3D
+	if rb == null or not is_instance_valid(rb) or rb.is_queued_for_deletion():
+		return
+	var tw := rb.create_tween()
+	for c in rb.get_children():
+		if c is MeshInstance3D:
+			tw.parallel().tween_property(c, "scale", Vector3.ONE * 0.001, 0.7)
+	tw.tween_callback(rb.queue_free)
+
+
+func dust(pos: Vector3, color: Color, amount: float) -> void:
 	var m := SphereMesh.new()
-	m.radius = 0.25
-	m.height = 0.5
-	_burst(pos, impulse.normalized() + Vector3.UP * 0.3, 10, m, Mats.plastic(color.lightened(0.3), 1.0), 1.0, 4.0, 0.9, 3.0)
+	m.radius = 0.35
+	m.height = 0.7
+	m.radial_segments = 8
+	m.rings = 4
+	var mat := Mats.plastic(color.lightened(0.35), 1.0)
+	_burst(pos, Vector3.UP, int(6 + amount * 6), m, mat, 0.5, 3.0 + amount, 1.4, 3.5)
 
 
 func explosion(pos: Vector3, radius: float) -> void:

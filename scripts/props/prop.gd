@@ -16,6 +16,7 @@ const DEFS := {
 	"tire": {"shape": "cyl", "size": Vector3(0.6, 0.38, 0.6), "mass": 20.0, "color": Color(0.12, 0.12, 0.14), "bounce": 0.8, "label": "Tire"},
 	"cone": {"shape": "cone", "size": Vector3(0.3, 0.8, 0.3), "mass": 3.0, "color": Color(1.0, 0.5, 0.1), "bounce": 0.3, "label": "Cone"},
 	"debris": {"shape": "box", "size": Vector3(1, 1, 1), "mass": 30.0, "color": Color(0.7, 0.7, 0.7), "bounce": 0.05, "label": "Debris"},
+	"shard": {"shape": "shard", "size": Vector3(1, 1, 0.5), "mass": 20.0, "color": Color(0.9, 0.85, 0.7), "bounce": 0.05, "label": "Fragment"},
 	"flag": {"shape": "flag", "size": Vector3(0.12, 2.4, 0.12), "mass": 12.0, "color": Color(1, 1, 1), "bounce": 0.1, "label": "Flag"},
 }
 
@@ -31,6 +32,7 @@ var explosive := false
 var is_server := true
 var spawned_by := 0
 var spawn_time := 0.0
+var extra := {} # kind-specific data (fragment polygons, thickness, material)
 
 # Server-side gameplay state.
 var held_by := 0 # player id or 0
@@ -52,13 +54,14 @@ var _since_snapshot := 0.0
 var world: Node
 
 
-static func create(p_world: Node, id: int, p_kind: String, xform: Transform3D, p_size := Vector3.ZERO, p_color := Color(0, 0, 0, 0), p_team := 0) -> Prop:
+static func create(p_world: Node, id: int, p_kind: String, xform: Transform3D, p_size := Vector3.ZERO, p_color := Color(0, 0, 0, 0), p_team := 0, p_extra := {}) -> Prop:
 	var p := Prop.new()
 	p.world = p_world
 	p.prop_id = id
 	p.kind = p_kind if DEFS.has(p_kind) else "crate"
 	p.name = "R%d" % id
 	p.team = p_team
+	p.extra = p_extra
 	var def: Dictionary = DEFS[p.kind]
 	p.size = p_size if p_size != Vector3.ZERO else def.size
 	p.color = p_color if p_color.a > 0.0 else def.color
@@ -78,6 +81,9 @@ func _build(def: Dictionary) -> void:
 	var m: float = def.mass
 	if kind == "debris":
 		m = clampf(size.x * size.y * size.z * 45.0, 4.0, 120.0)
+	if kind == "shard":
+		_build_shard()
+		return
 	mass = m
 	continuous_cd = mass < 10.0
 	var pm := PhysicsMaterial.new()
@@ -150,6 +156,39 @@ func _build(def: Dictionary) -> void:
 		mesh.material_override = mat
 	add_child(shape_node)
 	add_child(mesh)
+
+
+## Irregular fragment of a destructible: one or more extruded polygons.
+func _build_shard() -> void:
+	var polys: Array = extra.get("polys", [])
+	var t: float = extra.get("t", 0.5)
+	var mat_name: String = extra.get("mat", "plaster")
+	var md := Fracture.mat(mat_name)
+	var total := 0.0
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for poly: PackedVector2Array in polys:
+		total += Fracture.area(poly)
+		for v in poly:
+			lo = lo.min(v)
+			hi = hi.max(v)
+		var cs := CollisionShape3D.new()
+		var shape := ConvexPolygonShape3D.new()
+		shape.points = Fracture.prism_points(poly, t)
+		cs.shape = shape
+		add_child(cs)
+	size = Vector3(maxf(hi.x - lo.x, 0.1), maxf(hi.y - lo.y, 0.1), t)
+	mass = clampf(total * t * md.density, 2.0, 500.0)
+	continuous_cd = mass < 10.0
+	var pm := PhysicsMaterial.new()
+	pm.bounce = 0.05
+	pm.friction = 0.8
+	pm.rough = true
+	physics_material_override = pm
+	angular_damp = 0.4
+	var mi := MeshInstance3D.new()
+	mi.mesh = Fracture.fragment_mesh(polys, t, Mats.slab(color, mat_name), Mats.slab(color, mat_name, true))
+	add_child(mi)
 
 
 func _add_crate_trim(parent: MeshInstance3D) -> void:
@@ -303,6 +342,23 @@ func _on_body_entered(body: Node) -> void:
 	var speed := rel.length()
 	# Deferred: we are inside the physics flush, where adding/removing bodies is not allowed.
 	world.call_deferred("server_prop_impact", self, body, rel, speed)
+
+
+## Surface material for impact sounds and particles.
+func impact_material() -> String:
+	match kind:
+		"crate", "crate_big", "plank":
+			return "wood"
+		"barrel", "boom_barrel", "anvil", "flag":
+			return "metal"
+		"ball", "beachball", "tire", "cone":
+			return "rubber"
+		"couch":
+			return "soft"
+		"shard":
+			var m: String = extra.get("mat", "plaster")
+			return m if m in ["wood", "metal", "glass"] else "stone"
+	return "stone"
 
 
 func can_sound(now: float) -> bool:

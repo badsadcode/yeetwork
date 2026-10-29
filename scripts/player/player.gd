@@ -120,6 +120,8 @@ var _tilt := 0.0
 var _prev_grounded := true
 var _view_third_person := false
 var _corpse: Node3D
+var _punch := 0.0
+var _base_fov := 0.0
 
 # Remote interpolation.
 var _net_pos := Vector3.ZERO
@@ -442,9 +444,15 @@ func _do_jump() -> void:
 
 func _on_landed() -> void:
 	_landing_dip = clampf(-velocity.y * 0.01, 0.0, 0.25)
+	var fall := -velocity.y
+	if fall > 9.0 and world and world.fx:
+		var s := clampf((fall - 9.0) / 14.0, 0.1, 1.2)
+		world.fx.impact(global_position + Vector3.UP * 0.05, Vector3.UP, s, "stone")
+		Sfx.impact("soft", global_position, s)
+		shake(s * 0.4)
 	if model:
 		model.squash(0.2)
-	if _air_time > 0.3:
+	if _air_time > 0.3 and fall <= 9.0:
 		Sfx.play3d("land", global_position, -10.0, randf_range(0.9, 1.1))
 
 
@@ -733,7 +741,7 @@ func _move_and_collide_events() -> void:
 				var d: Destructible = other.get_meta("destructible")
 				world.report_break(self, d, other.get_meta("cell"), col.get_position(), impact, pre)
 				# Fly on through: ignore the cells we are about to smash.
-				for c in d.cells_near(col.get_position(), 1.6):
+				for c in d.cells_near(col.get_position(), 1.1):
 					var b := d.cell_body(c)
 					if b:
 						_add_temp_exception(b, 0.6)
@@ -804,6 +812,11 @@ func _expire_exceptions() -> void:
 
 func shake(amount: float) -> void:
 	_shake = maxf(_shake, amount)
+
+
+## Brief FOV kick for hits you feel (getting launched, big nearby impacts).
+func punch(amount: float) -> void:
+	_punch = maxf(_punch, amount)
 
 
 # --- Networking -------------------------------------------------------------------
@@ -923,4 +936,8 @@ func _update_camera(delta: float) -> void:
 		shake_off = Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * s * 0.06
 	camera.rotation = Vector3(shake_off.x, shake_off.y, _cam_roll)
 	var speed_fov := clampf((horizontal_speed() - MAX_SPEED) * 1.1, 0.0, 22.0)
-	camera.fov = lerpf(camera.fov, Game.fov + speed_fov, 1.0 - exp(-5.0 * delta))
+	_punch = lerpf(_punch, 0.0, 1.0 - exp(-9.0 * delta))
+	if _base_fov <= 0.0:
+		_base_fov = Game.fov
+	_base_fov = lerpf(_base_fov, Game.fov + speed_fov, 1.0 - exp(-5.0 * delta))
+	camera.fov = clampf(_base_fov + _punch * 9.0, 20.0, 150.0)

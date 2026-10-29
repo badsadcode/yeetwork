@@ -71,12 +71,12 @@ static func _center(a: Arena) -> void:
 
 static func _approach(a: Arena, s: int) -> void:
 	# Chasm with a breakable bridge and narrow solid ledges along the edges.
-	a.breakable(Vector3(s * 53.0, -0.25, 0), a.breakable_basis_floor_x(), 6, 6, Vector2(1, 1), 0.5, ["left", "right"], Color(0.4, 0.85, 0.8), 70.0)
+	a.breakable(Vector3(s * 53.0, -0.25, 0), a.breakable_basis_floor_x(), Vector2(6, 6), 0.5, ["left", "right"], "wood", Color(0.85, 0.62, 0.4))
 	for sz in [-1, 1]:
 		a.box(Vector3(s * 53.0, -0.75, sz * 15.0), Vector3(6, 1.5, 2), C_ROCK.lightened(0.15))
 	# Breakable cover walls in no-man's land.
 	for sz in [-1, 1]:
-		a.breakable(Vector3(s * 28.0, 1.5, sz * 7.0), a.breakable_basis_wall_x(), 6, 3, Vector2(1, 1), 0.6, ["bottom"])
+		a.breakable(Vector3(s * 28.0, 1.5, sz * 7.0), a.breakable_basis_wall_x(), Vector2(6, 3), 0.6, ["bottom"], "brick", Color(0.92, 0.58, 0.45))
 		a.box(Vector3(s * 40.0, 1.0, sz * 11.0), Vector3(3, 2, 3), C_STONE)
 		# Pads near each tower fling you toward the center hill.
 		a.jump_pad(Vector3(s * 45.0, 0, sz * 12.0), Vector3(-s * 13.0, 14.0, -sz * 2.0))
@@ -95,7 +95,7 @@ static func _tower(a: Arena, s: int) -> void:
 	a.box(Vector3(s * 70.0, 3, 4.75), Vector3(1, 6, 4.5), stone)
 	a.box(Vector3(s * 70.0, 5.25, 0), Vector3(1, 1.5, 5), stone)
 	a.box(Vector3(s * 70.0, 10.5, 0), Vector3(1, 9, 14), stone)
-	a.breakable(Vector3(s * 70.0, 17.5, 0), a.breakable_basis_wall_x(), 14, 5, Vector2(1, 1), 1.0, ["bottom", "top"])
+	a.breakable(Vector3(s * 70.0, 17.5, 0), a.breakable_basis_wall_x(), Vector2(14, 5), 0.3, ["bottom", "top", "left", "right"], "glass")
 	a.box(Vector3(s * 70.0, 31, 0), Vector3(1, 22, 14), stone)
 	# Level 1 floor (top at y = 15) with a 4x4 shaft hole at (79, 4).
 	a.box(Vector3(s * 76.25, 14.5, -2.5), Vector3(11.5, 1, 9), stone.darkened(0.1))

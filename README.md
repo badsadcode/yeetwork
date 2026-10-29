@@ -60,10 +60,29 @@ knocked down (tumbling ragdoll state). Thrown players smash through breakable wa
 bowl over other players (the thrower gets the credit) and splat against scenery. Death
 spawns a full joint-based ragdoll corpse.
 
-**Destruction.** Every cream-colored panel breaks: walls, bridges, tunnel roofs, base
-windows. Cells take damage from fast props, launched players, punts and explosions.
-Unsupported pieces collapse, so bridges fall into the acid. Broken cells become
-gravity-gun-ready debris that stays in the map. Explosive barrels chain-react.
+**Destruction.** Every breakable slab (walls, bridges, tunnel roofs, windows) is cut into a
+seeded irregular Voronoi pattern of cells with noisy, jagged outlines. When cells break,
+the slab mesh and collision are rebuilt, so holes are real geometry you can fly through.
+- **Impacts leave different damage.** Fast small objects punch small holes ringed by
+  cracks. Heavy props tear holes that scale with their size and mass. A launched player
+  leaves a person-sized hole. Explosions make craters.
+- **Damage accumulates.** Surviving cells near a hit show cracks, chips and dents, and
+  repeated hits enlarge holes.
+- **Fragments.** Broken cells shatter into impact-biased fragments. Big fragments become
+  physical objects for everyone: grab them, throw them, break other walls with them.
+  Fragments thrown hard enough split again. Small splinters are local effects that fade.
+- **Gradual collapse.** Small unsupported pieces drop as one chunk. Large unsupported
+  sections creak, strain and crumble from the hole edges inward before falling.
+- **Materials.** Plaster, concrete, brick (brick-shaped chunks), wood (plank-like splinters
+  along the grain), glass (many shards, used for windows) and metal (very tough) each
+  break differently and sound different.
+- Explosive barrels chain-react.
+
+**Impacts you can feel.** Sounds are synthesized in layers (transient, material body, and a
+sub-bass thud for heavy hits) with several variants each, and they scale with impact
+energy. They play through a compressor and light reverb. Hits also produce dust rings,
+sparks (metal), splinters (wood), grit (stone), impact flashes, camera shake and FOV
+punches.
 
 **Blood and gore.** Directional splatter particles and persistent decals sprayed along
 the impact direction. The intensity setting has three levels: *Off* (confetti instead),
@@ -134,8 +153,9 @@ godot --headless --path . -- --host --map prime --mode ctf --bots 0 --test
 # Headless soak test: quit after N seconds and print a summary
 godot --headless --path . -- --host --bots 8 --autotest 60
 
-# Save screenshots from fixed viewpoints
+# Save screenshots from fixed viewpoints, or a scripted destruction showcase
 godot --path . -- --host --map facing --bots 6 --tour /tmp/shots
+godot --path . -- --host --map prime --bots 0 --tour /tmp/shots --tour-mode destruction
 ```
 
 ## Characters and Kenney assets

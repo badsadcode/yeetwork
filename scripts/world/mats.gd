@@ -23,6 +23,49 @@ static func world(color: Color, roughness := 0.75, metallic := 0.0, emission := 
 	return m
 
 
+## Destructible slab outer faces (cracks from vertex damage) and fracture faces.
+static func slab(color: Color, material: String, inner := false) -> Material:
+	var key := "slab%s_%s_%s" % [color.to_html(), material, inner]
+	if _cache.has(key):
+		return _cache[key]
+	var m: Material
+	if material == "glass":
+		var g := StandardMaterial3D.new()
+		g.albedo_color = Color(0.75, 0.95, 1.0, 0.28) if not inner else Color(0.85, 1.0, 1.0, 0.6)
+		g.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		g.roughness = 0.05
+		g.metallic_specular = 0.9
+		g.rim_enabled = true
+		g.rim = 0.4
+		g.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m = g
+	else:
+		var sm := ShaderMaterial.new()
+		sm.shader = preload("res://scripts/world/world_surface.gdshader")
+		var c := color
+		var rough := 0.7
+		var metal := 0.0
+		match material:
+			"wood":
+				rough = 0.8
+			"metal":
+				rough = 0.35
+				metal = 0.6
+			"concrete":
+				rough = 0.85
+		if inner:
+			c = color.darkened(0.18).lerp(Color(1.0, 0.75, 0.55), 0.18)
+		sm.set_shader_parameter("base_color", c)
+		sm.set_shader_parameter("roughness_value", rough)
+		sm.set_shader_parameter("metallic_value", metal)
+		sm.set_shader_parameter("use_vertex_damage", not inner)
+		sm.set_shader_parameter("inner", inner)
+		sm.set_shader_parameter("panel_size", 1.0 if material == "brick" else 2.0)
+		m = sm
+	_cache[key] = m
+	return m
+
+
 ## Soft toy/clay-like plastic, used for characters and props.
 static func plastic(color: Color, roughness := 0.45, emission := 0.0) -> StandardMaterial3D:
 	var key := "p%s_%.2f_%.2f" % [color.to_html(), roughness, emission]

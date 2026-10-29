@@ -524,7 +524,7 @@ func _punt(origin: Vector3, dir: Vector3) -> void:
 	if not hit.is_empty():
 		var col: Node = hit.collider
 		if col.has_meta("destructible"):
-			w.server_damage_destructible(col.get_meta("destructible"), hit.position, 1.2, 45.0, dir * 10.0, player.player_id)
+			w.server_damage_destructible(col.get_meta("destructible"), hit.position, 0.8, 45.0, dir * 10.0, player.player_id, 2.0)
 			affected += 1
 		elif affected == 0 and _boost_cd <= 0.0 and origin.distance_to(hit.position) < 3.5:
 			# Gravity jump: push yourself off the surface.

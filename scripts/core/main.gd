@@ -4,13 +4,14 @@ extends Node
 ##
 ## Command line (after `--`):  --host  --join <ip>  --mode sandbox|ctf|dodgeball
 ##   --bots <n>  --port <n>  --name <name>  --autotest <seconds>  (quit after N seconds)
-##   --map prime|facing  --test (gameplay smoke tests)  --tour <dir>  (save screenshots from fixed viewpoints, then quit)
+##   --map prime|facing  --test (gameplay smoke tests)  --tour <dir> [--tour-mode destruction]  (save screenshots from fixed viewpoints, then quit)
 
 var menu: MainMenu
 var world: World
 var _autotest := -1.0
 var _autotest_elapsed := 0.0
 var _tour_dir := ""
+var _tour_mode := ""
 var _test := false
 
 
@@ -58,6 +59,9 @@ func _handle_cmdline() -> bool:
 				_test = true
 			"--tour":
 				_tour_dir = next
+				i += 1
+			"--tour-mode":
+				_tour_mode = next
 				i += 1
 		i += 1
 	match action:
@@ -147,7 +151,8 @@ func _start_world(server: bool) -> void:
 		t.set("world", world)
 		add_child(t)
 	if _tour_dir != "":
-		var tour: Node = load("res://scripts/core/dev_tour.gd").new()
+		var script_path := "res://scripts/core/dev_destruction.gd" if _tour_mode == "destruction" else "res://scripts/core/dev_tour.gd"
+		var tour: Node = load(script_path).new()
 		tour.set("world", world)
 		tour.set("out_dir", _tour_dir)
 		add_child(tour)

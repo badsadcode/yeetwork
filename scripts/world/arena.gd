@@ -111,11 +111,12 @@ func light(pos: Vector3, color: Color, range_m: float, energy := 2.0, shadows :=
 	add_child(l)
 
 
-func breakable(center: Vector3, basis: Basis, nx: int, ny: int, cell: Vector2, thickness: float, anchors: Array, color := C_BREAK, hp := 100.0) -> Destructible:
+## A breakable slab of `size` meters (local X by local Y) and `thickness` along local Z.
+func breakable(center: Vector3, basis: Basis, slab_size: Vector2, thickness: float, anchors: Array, material := "plaster", color := C_BREAK, hp_scale := 1.0) -> Destructible:
 	var d := Destructible.new()
 	d.transform = Transform3D(basis, center)
 	add_child(d)
-	d.setup(destructibles.size(), nx, ny, cell, thickness, color, anchors, hp)
+	d.setup(destructibles.size(), slab_size, thickness, color, anchors, material, hp_scale)
 	destructibles.append(d)
 	return d
 
@@ -332,8 +333,8 @@ func _tower() -> void:
 func _bridges() -> void:
 	# East/west bridges link the ring to each base; north/south link it to the balconies.
 	for s in [-1, 1]:
-		breakable(Vector3(s * 22.0, 5.75, 0), breakable_basis_floor_x(), 28, 4, Vector2(1, 1), 0.5, ["left", "right"], Color(0.35, 0.85, 0.8), 70.0)
-		breakable(Vector3(0, 5.75, s * 17.0), breakable_basis_floor_z(), 18, 4, Vector2(1, 1), 0.5, ["left", "right"], Color(0.35, 0.85, 0.8), 70.0)
+		breakable(Vector3(s * 22.0, 5.75, 0), breakable_basis_floor_x(), Vector2(28, 4), 0.5, ["left", "right"], "concrete", Color(0.35, 0.85, 0.8), 0.6)
+		breakable(Vector3(0, 5.75, s * 17.0), breakable_basis_floor_z(), Vector2(18, 4), 0.5, ["left", "right"], "concrete", Color(0.35, 0.85, 0.8), 0.6)
 
 
 func _base(s: int) -> void:
@@ -343,10 +344,10 @@ func _base(s: int) -> void:
 	box(Vector3(s * 50.0, 5.5, 0), Vector3(28, 1, 24), tc.lerp(C_FLOOR, 0.55))
 	# Breakable hall walls: shortcuts from the ramps straight into the hall.
 	for sz in [-1, 1]:
-		breakable(Vector3(s * 51.0, 2.5, sz * 11.5), Basis.IDENTITY, 13, 5, Vector2(2, 1), 1.0, ["bottom", "top"])
+		breakable(Vector3(s * 51.0, 2.5, sz * 11.5), Basis.IDENTITY, Vector2(26, 5), 1.0, ["bottom", "top"], "brick", Color(0.92, 0.58, 0.45))
 	glow_strip(Vector3(s * 36.02, 5.5, 0), Vector3(0.1, 0.3, 24), tc, 3.0)
 	# Breakable window wall at the deck front with low parapets either side.
-	breakable(Vector3(s * 37.0, 7.5, 0), breakable_basis_wall_x(), 12, 3, Vector2(1, 1), 0.5, ["bottom"])
+	breakable(Vector3(s * 37.0, 7.5, 0), breakable_basis_wall_x(), Vector2(12, 3), 0.25, ["bottom", "left", "right"], "glass")
 	box(Vector3(s * 37.0, 6.5, 9), Vector3(1, 1, 6), C_WALL)
 	box(Vector3(s * 37.0, 6.5, -9), Vector3(1, 1, 6), C_WALL)
 	# Ramps up to the deck on both flanks.
@@ -403,14 +404,14 @@ func _side_lane(sz: int) -> void:
 	spawn_points[0].append(Vector3(0, 6.2, sz * 29.0))
 	# Breakable lane walls (also good for wall running).
 	for sx in [-1, 1]:
-		breakable(Vector3(sx * 25.0, 4, sz * 20.0), Basis.IDENTITY, 9, 4, Vector2(2, 2), 0.8, ["bottom"])
+		breakable(Vector3(sx * 25.0, 4, sz * 20.0), Basis.IDENTITY, Vector2(18, 8), 0.8, ["bottom"])
 		# Solid wall-run panels near the pit.
 		box(Vector3(sx * 25.0, 2.5, sz * 8.0), Vector3(14, 5, 0.8), C_STEEL)
 		glow_strip(Vector3(sx * 25.0, 5.02, sz * 8.0), Vector3(14, 0.06, 0.82), Color(0.5, 0.8, 1.0), 2.0)
 		# Tunnels with breakable roofs.
 		box(Vector3(sx * 30.0, 2, sz * 27.5), Vector3(12, 4, 1), C_WALL)
 		box(Vector3(sx * 30.0, 2, sz * 32.5), Vector3(12, 4, 1), C_WALL)
-		breakable(Vector3(sx * 30.0, 4.25, sz * 30.0), breakable_basis_floor_x(), 6, 3, Vector2(2, 2), 0.5, ["left", "right"])
+		breakable(Vector3(sx * 30.0, 4.25, sz * 30.0), breakable_basis_floor_x(), Vector2(12, 6), 0.5, ["left", "right"], "wood", Color(0.85, 0.62, 0.4))
 		light(Vector3(sx * 30.0, 2.5, sz * 30.0), Color(1.0, 0.75, 0.5), 9.0, 1.8)
 		# Catwalk along the outer wall, served by a lift.
 		box(Vector3(sx * 27.0, 9.5, sz * 38.0), Vector3(26, 1, 4), C_STEEL)
