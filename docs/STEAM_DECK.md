@@ -54,9 +54,11 @@ gravity-gun shots and catches much easier.
 | Gravity gun: grab, pull, catch | L2 (left trigger) |
 | Throw (hold to charge) / punt | R2 (right trigger) |
 | Freeze held prop | R1 / X |
+| Push / pull held object | D-pad up / down (while holding) |
+| Rotate held prop | Hold LB + right stick |
 | Spawn prop (sandbox) / pick prop | Y / D-pad left & right |
-| Third-person camera | D-pad up |
-| Respawn | D-pad down |
+| Third-person camera | D-pad up (when not holding) |
+| Respawn | D-pad down (when not holding) |
 | Scoreboard / menu | View (☰ left) / Menu (≡ right) |
 
 Typing a name or an IP address: press **STEAM + X** for the on-screen keyboard. The menus

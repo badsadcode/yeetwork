@@ -417,8 +417,11 @@ func add_kill(victim: Player, killer: Player, cause: String) -> void:
 	l.custom_minimum_size = Vector2(540, 0)
 	_killfeed.add_child(l)
 	_fade_out(l, 6.0)
+	# queue_free() only takes effect at frame end, so detach first or this never ends.
 	while _killfeed.get_child_count() > 6:
-		_killfeed.get_child(0).queue_free()
+		var old := _killfeed.get_child(0)
+		_killfeed.remove_child(old)
+		old.queue_free()
 	if victim == world.local_player:
 		_death_label.text = ("Yeeted by %s!" % killer.display_name if killer and killer != victim else "You got yeeted!") + "\nRespawning..."
 	elif killer == world.local_player:
@@ -442,7 +445,9 @@ func show_message(text: String, color: Color, big: bool) -> void:
 	_messages.add_child(l)
 	_fade_out(l, 3.5)
 	while _messages.get_child_count() > 4:
-		_messages.get_child(0).queue_free()
+		var old := _messages.get_child(0)
+		_messages.remove_child(old)
+		old.queue_free()
 
 
 func _fade_out(n: CanvasItem, after: float) -> void:

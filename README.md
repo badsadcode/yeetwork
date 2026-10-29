@@ -41,7 +41,9 @@ no binary assets to import.
 | Gravity gun: grab, pull, catch | Hold left mouse |
 | Throw held object (hold to charge) / punt | Right mouse |
 | Freeze held prop (sandbox building) | F |
-| Spawn prop (sandbox) / pick prop | Q / 1-9 or mouse wheel |
+| Push / pull held object | Mouse wheel (while holding) |
+| Rotate held prop | Hold E + move mouse |
+| Spawn prop (sandbox) / pick prop | Q / 1-9 or mouse wheel (when not holding) |
 | Third-person camera | V |
 | Scoreboard | Tab |
 | Respawn | K |
@@ -53,9 +55,9 @@ Gamepads work too (sticks, triggers for the gun, A jump, B crouch).
 
 **Gravity gun.** Grab, carry, pull, push and throw. Pulled objects lock on and come to
 you even if your aim drifts. Holding the trigger catches incoming objects, including
-dodgeballs. You can grab players: teammates for up to 6 s, enemies only briefly, and
-throw them across the map. Hold the throw button to **charge** a throw: the object shakes and the beam goes
-white-hot, and a full charge yeets about 1.8× as hard. Punt everything in a cone. Punt a
+dodgeballs. Push or pull what you hold, and rotate props to line up a build or a shot. You can grab players: teammates for up to 6 s, enemies only briefly, and
+throw them across the map. Hold the throw button to **charge** a throw: the object shakes and the crackling
+electric arc goes white-hot, and a full charge yeets about 1.8× as hard. Punt everything in a cone. Punt a
 wall right in front of you to gravity-jump. Thrown objects inherit your velocity, so moving fast means throwing hard.
 
 **Movement.** Quake-style ground and air acceleration (strafe jumping, bunny hopping),
