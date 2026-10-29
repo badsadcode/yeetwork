@@ -6,7 +6,8 @@ extends Node
 ##   --bots <n>  --bot-skill 0|1|2  --port <n>  --name <name>  --autotest <seconds>  (quit after N seconds)
 ##   --screenshot <png> (save a screenshot after 2.5 s, then quit)
 ##   --map prime|facing|<map name in res://maps>  --validate (check a map, then quit)  --test (gameplay smoke tests)  --tour <dir> [--tour-mode destruction|charge|water]  (save screenshots from fixed viewpoints, then quit)
-##   --graphics 0|1|2 (quality preset for this run: low / medium / high)
+##   --graphics 0|1|2 (quality preset for this run: low / medium / high)  --paused (open the pause menu)
+##   --water-style classic|sculpted  --sea calm|lake|ocean|stormy (ocean sea state, sculpted water)
 
 var menu: MainMenu
 var world: World
@@ -86,10 +87,15 @@ func _handle_cmdline(execute := true) -> bool:
 			"--tour-mode":
 				_tour_mode = next
 				i += 1
+			"--water-style":
+				Game.water_style = "sculpted" if next == "sculpted" else "classic"
+				i += 1
+			"--sea":
+				Game.sea_override = next
+				i += 1
 			"--graphics":
 				# Quality preset for this run only (not saved): 0 low (Steam Deck), 1 medium, 2 high.
-				Game.graphics = clampi(int(next), 0, 2)
-				Game.apply_graphics()
+				Game.set_graphics_preset(int(next))
 				i += 1
 		i += 1
 	if not execute:
@@ -127,7 +133,7 @@ func _report_and_quit() -> void:
 		var broken := 0
 		for d in world.arena.destructibles:
 			broken += d.broken_cells.size()
-		print("AUTOTEST server=%s players=%d alive=%d props=%d broken_cells=%d splashes=%d scores=%s" % [world.is_server, world.players.size(), alive, world.props.size(), broken, Liquid.splash_count, world.team_scores])
+		print("AUTOTEST server=%s players=%d alive=%d props=%d broken_cells=%d splashes=%d water=%s scores=%s" % [world.is_server, world.players.size(), alive, world.props.size(), broken, Liquid.splash_count, Liquid.style, world.team_scores])
 		for p in world.players.values():
 			print("  %s hp=%.0f frags=%d deaths=%d score=%d pos=%s" % [p.display_name, p.hp, p.frags, p.deaths, p.score, p.global_position.snapped(Vector3.ONE * 0.1)])
 	else:
@@ -202,6 +208,8 @@ func _start_world(server: bool) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if _validate:
 		_run_validation.call_deferred()
+	if "--paused" in OS.get_cmdline_user_args():
+		world.hud.set_paused.call_deferred(true) # open the pause menu (screenshots)
 	if _test:
 		var t: Node = load("res://tests/test_runner.gd").new()
 		t.set("world", world)

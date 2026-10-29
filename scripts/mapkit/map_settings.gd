@@ -29,6 +29,8 @@ extends Node
 ## props float on the waves).
 @export var ocean := false
 @export var ocean_level := -4.0
+## Sea state with the "sculpted" water style: calm, lake, ocean or stormy.
+@export_enum("calm", "lake", "ocean", "stormy") var ocean_preset := "ocean"
 ## Players and props below this height die / respawn.
 @export var kill_height := -40.0
 ## Areas (XZ rectangles in world space) bots should walk around, e.g. pits.

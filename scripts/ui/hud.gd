@@ -214,10 +214,11 @@ func _build_scoreboard() -> void:
 
 func _build_pause() -> void:
 	_pause = PanelContainer.new()
-	_pause.set_anchors_preset(Control.PRESET_CENTER)
-	_pause.position = Vector2(-240, -330)
-	_pause.custom_minimum_size = Vector2(480, 0)
-	_pause.add_theme_stylebox_override("panel", _panel_style(0.92))
+	_pause.theme = UiTheme.get_theme()
+	_pause.anchor_left = 0.18
+	_pause.anchor_right = 0.82
+	_pause.anchor_top = 0.05
+	_pause.anchor_bottom = 0.95
 	_pause.visible = false
 	_root.add_child(_pause)
 	var v := VBoxContainer.new()
@@ -233,18 +234,31 @@ func _build_pause() -> void:
 		host_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		host_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(host_info)
-	v.add_child(SettingsForm.build_settings_controls())
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_child(row)
 	var resume := Button.new()
 	resume.text = "Resume"
-	resume.custom_minimum_size.y = 44
+	resume.theme_type_variation = "YellowButton"
+	resume.custom_minimum_size = Vector2(220, 56)
 	resume.pressed.connect(func(): set_paused(false))
 	_resume_button = resume
-	v.add_child(resume)
+	row.add_child(resume)
 	var leave := Button.new()
 	leave.text = "Leave match"
-	leave.custom_minimum_size.y = 44
+	leave.theme_type_variation = "RedButton"
+	leave.custom_minimum_size = Vector2(220, 56)
 	leave.pressed.connect(func(): leave_pressed.emit())
-	v.add_child(leave)
+	row.add_child(leave)
+	# Settings scroll inside the panel (the graphics details make the list long).
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(scroll)
+	var form := SettingsForm.build_settings_controls()
+	form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(form)
 
 
 ## Private network addresses of this machine (what friends on the same network type in).

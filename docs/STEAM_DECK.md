@@ -69,7 +69,10 @@ work with the D-pad, A to select, and B to close the pause menu.
 ### Performance
 On the Deck the game automatically uses **Graphics: Low**. That's 75% resolution with
 FSR upscaling, no SDFGI or SSIL, and simplified fog. **Medium** is available in the
-settings if you want prettier lighting. In the Deck's quick menu (**…** button) a
+settings if you want prettier lighting. Under *Graphics details* (Options, or the pause
+menu) every part can be set on its own: resolution, upscaler, anti-aliasing, shadows,
+lighting, ambient occlusion, fog, bloom, water, glass, VSync and a frame rate cap. A
+**40 FPS** cap there (or in the Deck's quick menu) saves battery. In the Deck's quick menu (**…** button) a
 **60 FPS / 60 Hz** limit gives smooth play. Use 40-45 FPS for longer battery life.
 
 ## 3. Playing together

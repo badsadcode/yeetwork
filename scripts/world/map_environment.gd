@@ -8,23 +8,34 @@ extends RefCounted
 ##   halloween - purple dusk, orange horizon, big moon, thick fog (spooky mode)
 
 
-## Quality tiers on top of a preset. Low (Steam Deck) drops the expensive GI and fog
-## passes and compensates with a little more ambient so the look stays bright.
+## Quality options (Game.gfx) on top of a preset. Without full GI the ambient light gets a
+## little boost so the look stays bright; without volumetric fog, spooky maps keep a haze.
 static func apply_quality(env: Environment, preset: String) -> void:
-	var q: int = Game.graphics if Game.graphics >= 0 else 2
-	env.sdfgi_enabled = q >= 2
-	env.ssil_enabled = q >= 1
-	env.ssao_enabled = true
-	env.ssao_detail = 0.3 if q >= 2 else 0.0
-	env.glow_enabled = true
+	var g: Dictionary = Game.gfx if not Game.gfx.is_empty() else Game.GFX_PRESETS[2]
+	env.sdfgi_enabled = g.gi >= 2
+	env.ssil_enabled = g.gi >= 1
+	env.ssao_enabled = g.ssao
+	env.ssao_detail = 0.3 if g.gi >= 2 else 0.0
+	env.glow_enabled = g.glow
 	var fog_d: float = env.get_meta("vol_fog", env.volumetric_fog_density)
 	env.set_meta("vol_fog", fog_d)
-	env.volumetric_fog_enabled = q >= 1 and fog_d > 0.0
+	env.volumetric_fog_enabled = g.fog and fog_d > 0.0
 	var amb: float = env.get_meta("ambient", env.ambient_light_energy)
 	env.set_meta("ambient", amb)
-	env.ambient_light_energy = amb * (1.0 if q >= 2 else 1.25)
-	if q == 0 and preset in ["halloween", "night"]:
-		env.fog_density = maxf(env.fog_density, 0.012) # keep the spooky haze without volumetrics
+	env.ambient_light_energy = amb * (1.0 if g.gi >= 2 else 1.25)
+	var depth_fog: float = env.get_meta("depth_fog", env.fog_density)
+	env.set_meta("depth_fog", depth_fog)
+	env.fog_density = depth_fog
+	if not g.fog and preset in ["halloween", "night"]:
+		env.fog_density = maxf(depth_fog, 0.012) # keep the spooky haze without volumetrics
+
+
+## Sun shadow quality from Game.gfx (shadows: 0 off, 1 low, 2 high).
+static func apply_sun(sun: DirectionalLight3D) -> void:
+	var s: int = Game.gfx.get("shadows", 2)
+	sun.shadow_enabled = s > 0
+	sun.directional_shadow_max_distance = 160.0 if s >= 2 else 90.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if s >= 2 else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 
 
 ## Returns [WorldEnvironment, sun, fill] ready to add to the scene. `settings` may be a
@@ -171,10 +182,8 @@ static func build(preset: String, settings: Node = null) -> Array[Node]:
 	sun.light_color = sun_color
 	sun.light_energy = sun_energy * sun_scale
 	sun.light_angular_distance = 2.0 # soft penumbras
-	sun.shadow_enabled = true
 	sun.shadow_blur = 1.8
-	sun.directional_shadow_max_distance = 160.0 if Game.graphics >= 1 else 90.0
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if Game.graphics >= 1 else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	apply_sun(sun)
 	# Cool bounce/fill from the opposite side so shadows read blue rather than grey.
 	var fill := DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-25, sun_rot.y + 180.0, 0)

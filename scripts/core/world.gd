@@ -88,6 +88,7 @@ func start(server: bool) -> void:
 	if server:
 		mode = Game.mode
 		Game.spooky = Game.halloween_active()
+		Liquid.style = Game.water_style
 		_build_arena(Game.map)
 		mode_logic = _make_mode(mode)
 		mode_logic.setup(self)
@@ -100,12 +101,12 @@ func start(server: bool) -> void:
 		_start_ambience()
 		multiplayer.peer_connected.connect(_on_peer_connected)
 		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
-		_server_add_player(1, Game.player_name, false)
+		_server_add_player(1, Game.player_name, false, Game.look())
 		for i in Game.bot_count:
 			_server_add_bot()
 		hud.on_mode_changed()
 	else:
-		_c_hello.rpc_id(1, Game.player_name, Game.VERSION)
+		_c_hello.rpc_id(1, Game.player_name, Game.VERSION, Game.look())
 
 
 func _start_ambience() -> void:
@@ -244,7 +245,7 @@ func _on_peer_disconnected(peer: int) -> void:
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func _c_hello(pname: String, version: String) -> void:
+func _c_hello(pname: String, version: String, look: Dictionary) -> void:
 	if not is_server:
 		return
 	var peer := multiplayer.get_remote_sender_id()
@@ -255,7 +256,7 @@ func _c_hello(pname: String, version: String) -> void:
 	pname = pname.strip_edges().substr(0, 20)
 	if pname.is_empty():
 		pname = "Yeeter"
-	_server_add_player(peer, pname, false)
+	_server_add_player(peer, pname, false, look)
 	_s_init.rpc_id(peer, _build_init_state())
 	ready_peers.append(peer)
 	server_message("%s joined the chaos" % pname, Color(0.7, 1.0, 0.7))
@@ -283,6 +284,7 @@ func _build_init_state() -> Dictionary:
 	return {
 		"mode": mode,
 		"spooky": Game.spooky,
+		"water_style": Liquid.style,
 		"map": map_key,
 		"time": net_time(),
 		"players": pl_list,
@@ -297,7 +299,7 @@ func _build_init_state() -> Dictionary:
 func _player_info(pl: Player) -> Dictionary:
 	return {
 		"id": pl.player_id, "owner": pl.owner_peer, "bot": pl.is_bot, "name": pl.display_name,
-		"team": pl.team, "color": pl.color, "hat": pl.hat, "frags": pl.frags, "deaths": pl.deaths,
+		"team": pl.team, "color": pl.color, "hat": pl.hat, "face": pl.face, "skin": pl.skin, "frags": pl.frags, "deaths": pl.deaths,
 		"score": pl.score, "pos": pl.global_position, "yaw": pl.yaw, "hp": pl.hp, "alive": pl.is_alive(),
 	}
 
@@ -306,6 +308,7 @@ func _player_info(pl: Player) -> Dictionary:
 func _s_init(state: Dictionary) -> void:
 	mode = state.mode
 	Game.spooky = state.get("spooky", false)
+	Liquid.style = state.get("water_style", "classic")
 	_start_ambience()
 	_build_arena(state.map)
 	_time_offset = state.time - now()
@@ -327,15 +330,25 @@ func _s_init(state: Dictionary) -> void:
 	hud.on_mode_changed()
 
 
-func _server_add_player(peer: int, pname: String, bot: bool) -> Player:
+## look: the player's character choices (Game.look()); empty for bots, -1 means random.
+func _server_add_player(peer: int, pname: String, bot: bool, look := {}) -> Player:
 	var id := peer
 	if bot:
 		id = _next_bot_id
 		_next_bot_id += 1
 	var team := mode_logic.pick_team(players)
+	var color := mode_logic.player_color(team, players.size())
+	var fav := int(look.get("color", -1))
+	if team == Game.TEAM_NONE and fav >= 0:
+		color = Game.FFA_COLORS[fav % Game.FFA_COLORS.size()] # favourite colour (free-for-all only)
+	var hat := int(look.get("hat", -1))
+	if hat < 0 or hat >= CharacterModel.HAT_COUNT:
+		hat = CharacterModel.random_hat(rng, Game.spooky)
+	var face := int(look.get("face", (rng.randi() % CharacterModel.FACE_NAMES.size()) if bot and rng.randf() < 0.4 else 0))
 	var info := {
 		"id": id, "owner": 1 if bot else peer, "bot": bot, "name": pname, "team": team,
-		"color": mode_logic.player_color(team, players.size()), "hat": (CharacterModel.NORMAL_HATS + rng.randi() % 2) if Game.spooky and rng.randf() < 0.75 else rng.randi() % CharacterModel.NORMAL_HATS,
+		"color": color, "hat": hat, "face": clampi(face, 0, CharacterModel.FACE_NAMES.size() - 1),
+		"skin": clampi(int(look.get("skin", -1)), -1, CharacterModel.SKINS.size() - 1),
 		"frags": 0, "deaths": 0, "score": 0, "pos": Vector3.ZERO, "yaw": 0.0, "hp": 100.0, "alive": true,
 	}
 	var pl := _create_player(info)
@@ -1485,6 +1498,7 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 			Sfx.play3d("splat", pos, -2.0 + amount * 2.0, rng.randf_range(0.8, 1.2))
 		"explosion":
 			fx.explosion(pos, amount)
+			Liquid.disturb(pos, 3.0)
 			Sfx.play3d("boom", pos, 6.0, rng.randf_range(0.8, 1.0))
 			if local_player:
 				var d := local_player.global_position.distance_to(pos)

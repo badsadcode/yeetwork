@@ -3,7 +3,7 @@ extends Node
 
 signal settings_changed
 
-const VERSION := "0.1.0"
+const VERSION := "0.2.0"
 const DEFAULT_PORT := 24642
 const MAX_PLAYERS := 16
 
@@ -41,6 +41,18 @@ const FFA_COLORS := [
 
 const SETTINGS_PATH := "user://settings.cfg"
 
+## What each graphics preset sets. Keys:
+##   scale: 3D resolution (0.5-1)   upscaler: 0 bilinear, 1 FSR 1, 2 FSR 2
+##   aa: 0 off, 1 FXAA, 2 MSAA 2x, 3 MSAA 4x, 4 TAA   shadows: 0 off, 1 low, 2 high
+##   gi: 0 off, 1 SSIL, 2 SSIL + SDFGI   ssao, fog (volumetric), glow: on/off
+##   water: 0 low, 1 medium, 2 high   glass: 0 simple, 1 refraction, 2 + reflections
+##   vsync: on/off   max_fps: 0 = unlimited
+const GFX_PRESETS := [
+	{"scale": 0.75, "upscaler": 1, "aa": 1, "shadows": 1, "gi": 0, "ssao": true, "fog": false, "glow": true, "water": 0, "glass": 1, "vsync": true, "max_fps": 0},
+	{"scale": 0.9, "upscaler": 1, "aa": 1, "shadows": 2, "gi": 1, "ssao": true, "fog": true, "glow": true, "water": 1, "glass": 2, "vsync": true, "max_fps": 0},
+	{"scale": 1.0, "upscaler": 0, "aa": 2, "shadows": 2, "gi": 2, "ssao": true, "fog": true, "glow": true, "water": 2, "glass": 2, "vsync": true, "max_fps": 0},
+]
+
 # Player settings (persisted).
 var player_name := "Yeeter"
 var mouse_sensitivity := 0.0022
@@ -49,12 +61,19 @@ var gore_level := 1 # 0 = off, 1 = silly, 2 = extreme
 var auto_bhop := true
 var always_run := false
 var bot_skill := 1 # 0 = easy, 1 = normal, 2 = hard
-var graphics := -1 # 0 = low, 1 = medium, 2 = high; -1 = pick automatically
+var graphics := -1 # preset: 0 = low, 1 = medium, 2 = high, 3 = custom; -1 = pick automatically
+## Detailed graphics options (see GFX_PRESETS); a preset fills them in, players can tweak each.
+var gfx := {}
 var stick_sensitivity := 1.0
 var invert_y := false
 var halloween := 1 # 0 = off, 1 = auto (mid October - early November), 2 = always
 var third_person := false
 var master_volume := 0.8
+# Character look (-1 = random). The shirt colour applies in free-for-all modes only.
+var look_hat := -1
+var look_face := 0
+var look_skin := -1
+var look_color := -1
 
 # Session config (set by the menu before a match starts).
 var mode: int = Mode.SANDBOX
@@ -63,6 +82,10 @@ var autostart := false
 var spooky := false # Halloween theme active for the current match (decided by the server) # set by a map scene run with F6 (playtest)
 var _map_cache: Array = []
 var bot_count := 3
+## Water look the host picks: "classic" or "sculpted" (see Liquid.style).
+var water_style := "classic"
+## Session override of every ocean's sea state (--sea calm|lake|ocean|stormy), not saved.
+var sea_override := ""
 var join_address := "127.0.0.1"
 var port := DEFAULT_PORT
 var is_hosting := true
@@ -74,7 +97,17 @@ func _ready() -> void:
 	load_settings()
 	if graphics < 0:
 		graphics = 0 if is_steam_deck() else 2
+	if graphics <= 2 or gfx.is_empty():
+		var saved := gfx
+		gfx = GFX_PRESETS[clampi(graphics, 0, 2)].duplicate()
+		if graphics == 3:
+			gfx.merge(saved, true)
 	apply_graphics()
+
+
+## The character choices sent to the server when joining.
+func look() -> Dictionary:
+	return {"hat": look_hat, "face": look_face, "skin": look_skin, "color": look_color}
 
 
 ## Steam sets SteamDeck=1 for games launched on the Deck; SteamOS sets SteamOS=1.
@@ -82,31 +115,42 @@ func is_steam_deck() -> bool:
 	return OS.get_environment("SteamDeck") == "1" or OS.get_environment("SteamOS") == "1"
 
 
-## Viewport-level quality (resolution scale, AA, shadow atlas). The environment side is
-## handled by MapEnvironment and re-applied on settings_changed.
+## Switches to a graphics preset (0 low, 1 medium, 2 high): all detailed options follow.
+func set_graphics_preset(preset: int) -> void:
+	graphics = clampi(preset, 0, 2)
+	gfx = GFX_PRESETS[graphics].duplicate()
+	apply_graphics()
+
+
+## Changes one detailed graphics option; the preset becomes "custom".
+func set_gfx(key: String, value: Variant) -> void:
+	gfx[key] = value
+	graphics = 3
+	for i in GFX_PRESETS.size():
+		if GFX_PRESETS[i] == gfx:
+			graphics = i
+	apply_graphics()
+
+
+## Viewport-level quality (resolution, upscaler, AA, shadow atlas, frame pacing). The
+## environment and lights are handled by MapEnvironment and re-applied on settings_changed;
+## water and glass read gfx when they are built.
 func apply_graphics() -> void:
 	var vp := get_viewport()
-	if vp == null:
+	if vp == null or gfx.is_empty():
 		return
-	match graphics:
-		0:
-			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR
-			vp.scaling_3d_scale = 0.75
-			vp.msaa_3d = Viewport.MSAA_DISABLED
-			vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
-			RenderingServer.directional_shadow_atlas_set_size(2048, true)
-		1:
-			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR
-			vp.scaling_3d_scale = 0.9
-			vp.msaa_3d = Viewport.MSAA_DISABLED
-			vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
-			RenderingServer.directional_shadow_atlas_set_size(4096, true)
-		_:
-			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
-			vp.scaling_3d_scale = 1.0
-			vp.msaa_3d = Viewport.MSAA_2X
-			vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
-			RenderingServer.directional_shadow_atlas_set_size(4096, true)
+	var aa: int = gfx.aa
+	var scale: float = gfx.scale
+	vp.scaling_3d_mode = [Viewport.SCALING_3D_MODE_BILINEAR, Viewport.SCALING_3D_MODE_FSR, Viewport.SCALING_3D_MODE_FSR2][clampi(gfx.upscaler, 0, 2)]
+	if scale >= 0.999 and gfx.upscaler == 1:
+		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR # FSR 1 at 100% only blurs
+	vp.scaling_3d_scale = scale
+	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X, Viewport.MSAA_DISABLED][clampi(aa, 0, 4)]
+	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if aa in [1, 2, 3] else Viewport.SCREEN_SPACE_AA_DISABLED
+	vp.use_taa = aa == 4 or gfx.upscaler == 2 # FSR 2 needs TAA-style jitter
+	RenderingServer.directional_shadow_atlas_set_size(4096 if gfx.shadows >= 2 else 2048, true)
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if gfx.vsync else DisplayServer.VSYNC_DISABLED)
+	Engine.max_fps = int(gfx.max_fps)
 
 
 func save_settings() -> void:
@@ -120,14 +164,21 @@ func save_settings() -> void:
 	cfg.set_value("match", "bot_skill", bot_skill)
 	cfg.set_value("match", "halloween", halloween)
 	cfg.set_value("video", "graphics", graphics)
+	for k in gfx:
+		cfg.set_value("video_detail", k, gfx[k])
 	cfg.set_value("player", "stick_sensitivity", stick_sensitivity)
 	cfg.set_value("player", "invert_y", invert_y)
 	cfg.set_value("player", "third_person", third_person)
 	cfg.set_value("audio", "volume", master_volume)
+	cfg.set_value("look", "hat", look_hat)
+	cfg.set_value("look", "face", look_face)
+	cfg.set_value("look", "skin", look_skin)
+	cfg.set_value("look", "color", look_color)
 	cfg.set_value("net", "address", join_address)
 	cfg.set_value("net", "port", port)
 	cfg.set_value("match", "mode", mode)
 	cfg.set_value("match", "bots", bot_count)
+	cfg.set_value("match", "water_style", water_style)
 	cfg.set_value("match", "map", map)
 	cfg.save(SETTINGS_PATH)
 	apply_graphics()
@@ -147,14 +198,24 @@ func load_settings() -> void:
 	bot_skill = cfg.get_value("match", "bot_skill", bot_skill)
 	halloween = cfg.get_value("match", "halloween", halloween)
 	graphics = cfg.get_value("video", "graphics", graphics)
+	if cfg.has_section("video_detail"):
+		gfx = GFX_PRESETS[2].duplicate()
+		for k in cfg.get_section_keys("video_detail"):
+			if gfx.has(k):
+				gfx[k] = cfg.get_value("video_detail", k)
 	stick_sensitivity = cfg.get_value("player", "stick_sensitivity", stick_sensitivity)
 	invert_y = cfg.get_value("player", "invert_y", invert_y)
 	third_person = cfg.get_value("player", "third_person", third_person)
 	master_volume = cfg.get_value("audio", "volume", master_volume)
+	look_hat = cfg.get_value("look", "hat", look_hat)
+	look_face = cfg.get_value("look", "face", look_face)
+	look_skin = cfg.get_value("look", "skin", look_skin)
+	look_color = cfg.get_value("look", "color", look_color)
 	join_address = cfg.get_value("net", "address", join_address)
 	port = cfg.get_value("net", "port", port)
 	mode = cfg.get_value("match", "mode", mode)
 	bot_count = cfg.get_value("match", "bots", bot_count)
+	water_style = cfg.get_value("match", "water_style", water_style)
 	var m = cfg.get_value("match", "map", map)
 	map = m if m is String else "facing"
 	apply_audio()

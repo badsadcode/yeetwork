@@ -67,6 +67,8 @@ var display_name := "Player"
 var team := 0
 var color := Color.WHITE
 var hat := 0
+var face := 0
+var skin := -1
 
 # Gameplay (server authoritative, replicated).
 var hp := 100.0
@@ -148,6 +150,8 @@ func setup(p_world: Node, info: Dictionary) -> void:
 	team = info.team
 	color = info.color
 	hat = info.get("hat", 0)
+	face = info.get("face", 0)
+	skin = info.get("skin", -1)
 	frags = info.get("frags", 0)
 	deaths = info.get("deaths", 0)
 	score = info.get("score", 0)
@@ -174,7 +178,7 @@ func _ready() -> void:
 
 	model = CharacterModel.new()
 	add_child(model)
-	model.setup(color, hat, player_id)
+	model.setup(color, hat, player_id, face, skin)
 
 	_head = Node3D.new()
 	_head.position.y = EYE_STAND
@@ -1033,6 +1037,7 @@ func _update_underwater() -> void:
 	if near:
 		if liq != _underwater_liquid:
 			_underwater_liquid = liq
+			_underwater_mat.shader = liq.underwater_shader()
 			var u := liq.wave_uniforms()
 			for key in u:
 				_underwater_mat.set_shader_parameter(key, u[key])
@@ -1042,7 +1047,7 @@ func _update_underwater() -> void:
 			_underwater_mat.set_shader_parameter("glow_color", liq.params.glow_color)
 			_underwater_mat.set_shader_parameter("sun_dir", liq.sun_dir())
 			_underwater_mat.set_shader_parameter("shaft_noise", Liquid.shaft_noise())
-			_underwater_mat.set_shader_parameter("shaft_steps", [5, 8, 12][clampi(Game.graphics, 0, 2)])
+			_underwater_mat.set_shader_parameter("shaft_steps", [5, 8, 12][Liquid.water_quality()])
 		_underwater_mat.set_shader_parameter("wave_time", Liquid.wave_time())
 	_underwater.visible = near
 	Sfx.set_underwater(under)

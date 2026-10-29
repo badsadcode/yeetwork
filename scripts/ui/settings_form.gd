@@ -20,15 +20,7 @@ static func build_settings_controls() -> GridContainer:
 	inv.button_pressed = Game.invert_y
 	inv.toggled.connect(func(on): Game.invert_y = on)
 	_row(g, "Invert Y", inv)
-	var gfx := OptionButton.new()
-	for item in ["Low (Steam Deck)", "Medium", "High"]:
-		gfx.add_item(item)
-	gfx.selected = clampi(Game.graphics, 0, 2)
-	gfx.item_selected.connect(func(i):
-		Game.graphics = i
-		Game.apply_graphics()
-		Game.settings_changed.emit())
-	_row(g, "Graphics", gfx)
+	_graphics_rows(g)
 	var gore := OptionButton.new()
 	for item in ["Off (confetti)", "Silly", "EXTREME"]:
 		gore.add_item(item)
@@ -52,6 +44,89 @@ static func build_settings_controls() -> GridContainer:
 	skill.item_selected.connect(func(i): Game.bot_skill = i)
 	_row(g, "Bot skill (host)", skill)
 	return g
+
+
+const SCALES := [0.5, 0.6, 0.67, 0.75, 0.85, 0.9, 1.0]
+const FPS_CAPS := [0, 30, 40, 60, 90, 120, 144]
+
+
+## Graphics preset plus every detailed option. Picking a preset updates the details;
+## changing a detail turns the preset into "Custom".
+static func _graphics_rows(g: GridContainer) -> void:
+	var refresh: Array[Callable] = []
+	var preset := OptionButton.new()
+	for item in ["Low (Steam Deck)", "Medium", "High", "Custom"]:
+		preset.add_item(item)
+	preset.set_item_disabled(3, true)
+	_row(g, "Graphics", preset)
+	var sync := func():
+		preset.selected = clampi(Game.graphics, 0, 3)
+		for f in refresh:
+			f.call()
+	preset.item_selected.connect(func(i):
+		if i <= 2:
+			Game.set_graphics_preset(i)
+			sync.call()
+			Game.settings_changed.emit())
+	var head := Label.new()
+	head.text = "Graphics details"
+	head.add_theme_color_override("font_color", Color(1.0, 0.8, 0.25))
+	g.add_child(head)
+	g.add_child(Control.new())
+	var opt := func(title: String, key: String, items: Array, values: Array) -> void:
+		var o := OptionButton.new()
+		for item in items:
+			o.add_item(item)
+		_row(g, title, o)
+		var show := func():
+			var i := values.find(Game.gfx.get(key))
+			if i < 0: # e.g. a resolution typed into the settings file: pick the closest
+				i = 0
+				for j in values.size():
+					if absf(float(values[j]) - float(Game.gfx.get(key, 0))) < absf(float(values[i]) - float(Game.gfx.get(key, 0))):
+						i = j
+			o.selected = i
+		show.call()
+		refresh.append(show)
+		o.item_selected.connect(func(i):
+			Game.set_gfx(key, values[i])
+			sync.call()
+			Game.settings_changed.emit())
+	var check := func(title: String, key: String, text: String) -> void:
+		var c := CheckBox.new()
+		c.text = text
+		_row(g, title, c)
+		var show := func(): c.set_pressed_no_signal(bool(Game.gfx.get(key)))
+		show.call()
+		refresh.append(show)
+		c.toggled.connect(func(on):
+			Game.set_gfx(key, on)
+			sync.call()
+			Game.settings_changed.emit())
+	var pct := []
+	for v in SCALES:
+		pct.append("%d%%" % roundi(v * 100.0))
+	opt.call("Resolution", "scale", pct, SCALES)
+	opt.call("Upscaler", "upscaler", ["Bilinear", "AMD FSR 1", "AMD FSR 2"], [0, 1, 2])
+	opt.call("Anti-aliasing", "aa", ["Off", "FXAA", "MSAA 2x", "MSAA 4x", "TAA"], [0, 1, 2, 3, 4])
+	opt.call("Shadows", "shadows", ["Off", "Low", "High"], [0, 1, 2])
+	opt.call("Lighting", "gi", ["Basic", "Bounce light (SSIL)", "Full GI (SDFGI + SSIL)"], [0, 1, 2])
+	check.call("Ambient occlusion", "ssao", "Soft contact shadows (SSAO)")
+	check.call("Volumetric fog", "fog", "Light shafts in the air")
+	check.call("Bloom", "glow", "Glow around bright lights")
+	opt.call("Water", "water", ["Low", "Medium", "High"], [0, 1, 2])
+	opt.call("Glass", "glass", ["Simple", "Refraction", "Refraction + reflections"], [0, 1, 2])
+	check.call("VSync", "vsync", "Sync to the display (no tearing)")
+	var caps := ["Unlimited"]
+	for v in FPS_CAPS.slice(1):
+		caps.append("%d FPS" % v)
+	opt.call("Frame rate cap", "max_fps", caps, FPS_CAPS)
+	var note := Label.new()
+	note.text = "Water detail and glass apply from the next match."
+	note.add_theme_font_size_override("font_size", 14)
+	g.add_child(Control.new())
+	g.add_child(note)
+	sync.call()
 
 
 static func _row(g: GridContainer, text: String, control: Control) -> void:

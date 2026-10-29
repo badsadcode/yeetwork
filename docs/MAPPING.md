@@ -72,7 +72,7 @@ Design around these numbers:
 | Solid floor | slate blue `#6B789E` |
 | Solid wall | lavender `#C7B3DB` |
 | Steel (platforms, ramps) | `#809ECC` |
-| **Breakable** | cream `#F2DBA8` (plaster), terracotta (brick), warm wood, glass |
+| **Breakable** | cream `#F2DBA8` (plaster), terracotta (brick), warm wood, glass (refracting, cracks show) |
 | Movement aids (pads, lifts) | green glow (automatic) |
 | Hazard | acid green, lava orange (automatic) |
 | Water | teal (automatic) |
@@ -96,6 +96,7 @@ All kit nodes preview themselves in the editor. In game they become the real thi
 | Map Name, Author, Description | shown in the menu and HUD |
 | Sky | `sunset`, `day`, `night`, `space` |
 | Sun Rotation Degrees, Sun Energy Scale, Ambient Scale | tweak the preset |
+| Ocean Preset | sea state with the *Sculpted* water style: `calm`, `lake`, `ocean`, `stormy` |
 | Ocean, Ocean Level | surround the map with an animated sea whose surface sits at *Ocean Level*. Players who fall in sink and drown; wooden and rubber props float. Put your floors above it, and an island's sides look best reaching a few metres below it |
 | Kill Height | anything below dies or respawns. Keep it ≥ 3 m below your lowest floor |
 | Avoid Areas | XZ rectangles bots walk around (pits). `Rect2(x, z, width, depth)` |
@@ -165,6 +166,8 @@ A destructible wall, floor or bridge. In game it fractures into irregular pieces
   floor under it looks bottomless.
 - **Damage** applies to acid and lava.
 - Liquids can't be rotated; only the box's position counts.
+- Water uses the host's water style: *Classic*, or *Sculpted* (sharper waves, ripples and
+  wakes; pools are a calm sea state).
 
 ### Anything else
 - **CSG nodes** (`CSGBox3D`, `CSGCylinder3D`, `CSGCombiner3D`...) with *Use Collision*

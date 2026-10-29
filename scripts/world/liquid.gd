@@ -44,6 +44,35 @@ const OCEAN := {
 ## Keys of a preset that drive the underwater pass, not the surface shader.
 const VIEW_KEYS := ["fog", "visibility", "shafts"]
 
+## "Sculpted" water (liquid_sculpted.gdshader) sea states. Pools use calm; an ocean uses
+## its map's MapSettings.ocean_preset. Merged over the water preset.
+const SCULPTED := {
+	"calm": {
+		"wave_height": 0.18, "wave_length": 0.22, "wave_speed": 0.7, "choppiness": 0.6, "crest_sharpness": 1.2,
+		"asymmetry": 0.1, "ripple_intensity": 1.3, "spread": 1.6, "wind_angle": 0.3, "foam_amount": 0.3, "roughness_value": 0.02,
+	},
+	"lake": {
+		"wave_height": 0.45, "wave_length": 0.4, "wave_speed": 0.85, "choppiness": 0.8, "crest_sharpness": 1.4,
+		"asymmetry": 0.2, "ripple_intensity": 1.0, "spread": 1.0, "wind_angle": 0.3, "foam_amount": 0.5, "roughness_value": 0.03,
+	},
+	"ocean": {
+		"wave_height": 1.0, "wave_length": 1.0, "wave_speed": 1.0, "choppiness": 1.0, "crest_sharpness": 1.7,
+		"asymmetry": 0.35, "ripple_intensity": 1.0, "spread": 0.9, "wind_angle": 0.3, "foam_amount": 1.0, "roughness_value": 0.035,
+	},
+	"stormy": {
+		"wave_height": 1.7, "wave_length": 1.15, "wave_speed": 1.25, "choppiness": 1.2, "crest_sharpness": 2.1,
+		"asymmetry": 0.5, "ripple_intensity": 1.4, "spread": 1.5, "wind_angle": 0.3, "foam_amount": 1.8, "roughness_value": 0.06,
+		"shallow_color": Color(0.12, 0.4, 0.44), "deep_color": Color(0.02, 0.12, 0.18), "scatter_color": Color(0.22, 0.62, 0.52),
+		"fog": Color(0.04, 0.22, 0.26), "visibility": 11.0,
+	},
+}
+const SCULPTED_KEYS := ["wind_angle", "spread", "choppiness", "crest_sharpness", "asymmetry", "ripple_intensity"]
+## Water style of the match: "classic" (liquid.gdshader) or "sculpted" (liquid_sculpted.gdshader).
+## The host decides (Game.water_style) and clients get it with the match state.
+static var style := "classic"
+## How many interaction ripples (impacts, wakes, explosions) a sculpted liquid keeps.
+const RIPPLE_SLOTS := 32
+
 static var all: Array[Liquid] = []
 ## Splashes seen on this peer (reported by --autotest).
 static var splash_count := 0
@@ -66,6 +95,12 @@ var _splash_budget := 6.0
 var _splash_time := 0.0
 ## Grid spacing of the surface mesh; waves too short for it are left out.
 var _spacing := 0.5
+## Sculpted water: sea state (calm, lake, ocean, stormy; empty picks one) and ripples.
+var sea := ""
+var sculpted := false
+var _ripples := PackedVector4Array()
+var _ripple_i := 0
+var _wake_timer := 0.0
 
 
 static func create(p_kind: String, center: Vector3, p_size: Vector3, p_damage := 22.0) -> Liquid:
@@ -77,10 +112,11 @@ static func create(p_kind: String, center: Vector3, p_size: Vector3, p_damage :=
 	return l
 
 
-static func create_ocean(level: float) -> Liquid:
+static func create_ocean(level: float, p_sea := "ocean") -> Liquid:
 	var l := Liquid.new()
 	l.kind = "water"
 	l.ocean = true
+	l.sea = p_sea
 	l.size = Vector3(5000, 40, 5000) # to the camera's far plane: no gap before the horizon
 	l.position = Vector3(0, level, 0)
 	return l
@@ -90,8 +126,13 @@ func _ready() -> void:
 	params = PRESETS[kind].duplicate()
 	if ocean:
 		params.merge(OCEAN, true)
+	sculpted = style == "sculpted" and kind == "water"
+	if sculpted:
+		if not SCULPTED.has(sea):
+			sea = "ocean" if ocean else "calm"
+		params.merge(SCULPTED[sea], true)
 	material = ShaderMaterial.new()
-	material.shader = preload("res://scripts/world/liquid.gdshader")
+	material.shader = preload("res://scripts/world/liquid_sculpted.gdshader") if sculpted else preload("res://scripts/world/liquid.gdshader")
 	_textures()
 	for key in params:
 		if key not in VIEW_KEYS:
@@ -99,16 +140,22 @@ func _ready() -> void:
 	material.set_shader_parameter("normal_a", _normal_a)
 	material.set_shader_parameter("normal_b", _normal_b)
 	material.set_shader_parameter("foam_noise", _foam_noise)
-	material.set_shader_parameter("ssr_steps", [8, 12, 16][clampi(Game.graphics, 0, 2)])
+	var q := water_quality()
+	material.set_shader_parameter("ssr_steps", [6, 12, 16][q])
+	Game.settings_changed.connect(_on_settings_changed)
 	if ocean:
-		_spacing = 0.75 if Game.graphics != 0 else 1.4
+		_spacing = 0.75 if q != 0 else 1.4
 		_build_ocean_mesh()
 	else:
-		_spacing = 0.5 if Game.graphics != 0 else 0.9
+		_spacing = 0.5 if q != 0 else 0.9
 		_add_plane(Vector2(size.x, size.z), Vector3.ZERO, int(size.x / _spacing), int(size.z / _spacing))
 	var u := wave_uniforms()
 	for key in u:
 		material.set_shader_parameter(key, u[key])
+	if sculpted:
+		material.set_shader_parameter("normal_step", _spacing)
+		_ripples.resize(RIPPLE_SLOTS)
+		material.set_shader_parameter("ripples", _ripples)
 	volume = TriggerVolume.new()
 	add_child(volume)
 	volume.position = Vector3(0, -size.y * 0.5 + 0.25, 0)
@@ -130,22 +177,50 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	all.erase(self)
+	if Game.settings_changed.is_connected(_on_settings_changed):
+		Game.settings_changed.disconnect(_on_settings_changed)
+
+
+## Water quality option: 0 low, 1 medium, 2 high (mesh detail applies from the next match).
+static func water_quality() -> int:
+	return clampi(int(Game.gfx.get("water", 2)), 0, 2)
+
+
+func _on_settings_changed() -> void:
+	material.set_shader_parameter("ssr_steps", [6, 12, 16][water_quality()])
 
 
 func _process(delta: float) -> void:
 	material.set_shader_parameter("wave_time", wave_time())
 	if ocean:
 		_spray(delta)
+	if sculpted:
+		_wakes(delta)
 
 
-## Uniforms of liquid_waves.gdshaderinc for this liquid (also fed to the underwater pass).
+## Uniforms of the waves include for this liquid (also fed to the underwater pass).
 func wave_uniforms() -> Dictionary:
-	return {
+	var u := {
 		"surface_y": global_position.y, "wave_height": params.wave_height,
 		"wave_length": params.wave_length, "wave_speed": params.wave_speed,
 		"min_wavelength": _spacing * 2.8, "fade_center": Vector2.ZERO, "fade_inner": FADE_INNER if ocean else 1000000.0,
 		"fade_outer": FADE_OUTER if ocean else 2000000.0,
 	}
+	if sculpted:
+		for k in SCULPTED_KEYS:
+			u[k] = params[k]
+		u.wave_count = _wave_count()
+	return u
+
+
+## The underwater pass shader matching this liquid's waves.
+func underwater_shader() -> Shader:
+	return preload("res://scripts/world/underwater_sculpted.gdshader") if sculpted else preload("res://scripts/world/underwater.gdshader")
+
+
+## Sculpted waves summed (Low quality skips the smallest ripples).
+func _wave_count() -> int:
+	return 8 if water_quality() == 0 else 12
 
 
 ## Shared wave clock: wall-clock based so every machine sees the same waves.
@@ -179,6 +254,8 @@ static func _group(p: Vector2, i: float, t: float) -> float:
 
 ## Returns Vector4(offset x, offset y, offset z, crest 0..1) for the rest point p.
 func _gerstner(p: Vector2, t: float) -> Vector4:
+	if sculpted:
+		return _sculpted(p, t)
 	var amp_scale: float = params.wave_height * _fade(p)
 	var min_wl := _spacing * 2.8
 	var off := Vector3.ZERO
@@ -198,6 +275,95 @@ func _gerstner(p: Vector2, t: float) -> Vector4:
 		total += a
 	var crest := clampf(off.y / total * 0.5 + 0.5, 0.0, 1.0) if total > 0.0001 else 0.0
 	return Vector4(off.x, off.y, off.z, crest)
+
+
+# --- CPU copy of liquid_waves_sculpted.gdshaderinc ---------------------------------
+
+const SWAVES := [
+	Vector4(0.0, 31.0, 0.022, 0.0), Vector4(-0.35, 19.7, 0.02, 1.3), Vector4(0.5, 13.3, 0.018, 2.1),
+	Vector4(0.2, 9.1, 0.016, 4.0), Vector4(-0.8, 6.7, 0.014, 0.7), Vector4(1.1, 4.9, 0.012, 5.2),
+	Vector4(-0.15, 3.6, 0.01, 3.3), Vector4(0.7, 2.7, 0.009, 1.9), Vector4(-1.3, 2.0, 0.008, 4.6),
+	Vector4(1.6, 1.5, 0.007, 2.8), Vector4(0.4, 1.1, 0.006, 0.4), Vector4(-0.6, 0.8, 0.005, 3.7),
+]
+
+
+static func _sculpted_group(p: Vector2, i: float, t: float) -> float:
+	var a := p.dot(Vector2(0.017, 0.011) * (1.0 + 0.29 * i)) + i * 2.3 - t * 0.09
+	var b := p.dot(Vector2(-0.009, 0.021)) - i * 1.1 + t * 0.06
+	return 0.625 + 0.375 * sin(a) * sin(b)
+
+
+func _sculpted(p: Vector2, t: float) -> Vector4:
+	var amp_scale: float = params.wave_height * _fade(p)
+	var min_wl := _spacing * 2.8
+	var off_y := 0.0
+	var hor := Vector2.ZERO
+	var total := 0.0
+	var chop_sum := 0.0
+	for i in _wave_count():
+		var w: Vector4 = SWAVES[i]
+		var wl: float = w.y * params.wave_length
+		var res := smoothstep(min_wl, min_wl * 1.5, wl)
+		if res <= 0.0:
+			continue
+		var ang: float = params.wind_angle + w.x * params.spread
+		var d := Vector2(cos(ang), sin(ang))
+		var k := TAU / wl
+		var c := sqrt(9.8 / k) * float(params.wave_speed)
+		var a: float = w.z * wl * amp_scale * res * _sculpted_group(p, i, t) * (float(params.ripple_intensity) if i >= 7 else 1.0)
+		var f := k * (d.dot(p) - c * t) + w.w
+		var u: float = f + params.asymmetry * 0.5 * sin(f)
+		var s := 0.5 + 0.5 * sin(u)
+		off_y += a * (2.0 * pow(s, params.crest_sharpness) - 1.0)
+		hor += d * a * cos(u)
+		chop_sum += k * a
+		total += a
+	var chop: float = params.choppiness * minf(1.0, 0.92 / maxf(chop_sum * params.choppiness, 0.0001))
+	var crest := clampf(off_y / total * 0.5 + 0.5, 0.0, 1.0) if total > 0.0001 else 0.0
+	return Vector4(hor.x * chop, off_y, hor.y * chop, crest)
+
+
+# --- Interaction (sculpted water) ---------------------------------------------------
+
+## An expanding ripple (and foam ring) on a sculpted liquid. Strength ~0.2 (a wake) to 2
+## (a big splash); 2.5+ churns the water like an explosion. Visual only, on this peer.
+func add_ripple(pos: Vector3, strength: float) -> void:
+	if not sculpted:
+		return
+	_ripples[_ripple_i] = Vector4(pos.x, pos.z, wave_time(), strength)
+	_ripple_i = (_ripple_i + 1) % RIPPLE_SLOTS
+	material.set_shader_parameter("ripples", _ripples)
+
+
+## Disturbs any liquid close to pos (explosions): ripples, foam and churned water.
+static func disturb(pos: Vector3, strength: float) -> void:
+	for l: Liquid in all:
+		if is_instance_valid(l) and l.contains_xz(pos) and absf(pos.y - l.global_position.y) < 5.0:
+			l.add_ripple(pos, strength)
+
+
+## Wakes: anything moving along the surface leaves a trail of small ripples.
+func _wakes(delta: float) -> void:
+	_wake_timer -= delta
+	if _wake_timer > 0.0:
+		return
+	_wake_timer = 0.12
+	var made := 0
+	for body in volume.get_overlapping_bodies():
+		var v := Vector3.ZERO
+		var center := (body as Node3D).global_position
+		if body is Player:
+			v = (body as Player).velocity
+			center.y += 0.9
+		elif body is Prop:
+			v = (body as Prop).motion_velocity()
+		var speed := Vector2(v.x, v.z).length()
+		if speed < 1.5 or absf(center.y - height_at(center.x, center.z)) > 1.2:
+			continue
+		add_ripple(center, clampf(speed / 10.0, 0.15, 0.6))
+		made += 1
+		if made >= 4:
+			return
 
 
 ## World height of the surface at (x, z).
@@ -388,7 +554,7 @@ func _spray(delta: float) -> void:
 	_spray_timer -= delta
 	if _spray_timer > 0.0:
 		return
-	_spray_timer = 0.12 if Game.graphics != 0 else 0.3
+	_spray_timer = 0.12 if water_quality() != 0 else 0.3
 	var cam := get_viewport().get_camera_3d()
 	if cam == null or _world == null or _world.get("fx") == null:
 		return
@@ -423,6 +589,7 @@ func splash(pos: Vector3, speed: float) -> void:
 	_splash_budget -= 1.0
 	splash_count += 1
 	var at_surface := Vector3(pos.x, height_at(pos.x, pos.z), pos.z)
+	add_ripple(at_surface, clampf(speed / 7.0, 0.3, 2.0))
 	var strength := clampf(speed / 14.0, 0.25, 2.0)
 	_world.fx.splash(at_surface, strength, params.shallow_color, kind)
 	Sfx.play3d("splash" if kind == "water" else "sizzle", at_surface, -4.0 + strength * 4.0, randf_range(0.85, 1.1) / sqrt(strength))

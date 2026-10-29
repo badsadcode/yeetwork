@@ -26,11 +26,24 @@ static func world(color: Color, roughness := 0.75, metallic := 0.0, emission := 
 
 ## Destructible slab outer faces (cracks from vertex damage) and fracture faces.
 static func slab(color: Color, material: String, inner := false) -> Material:
-	var key := "slab%s_%s_%s" % [color.to_html(), material, inner]
+	var glass_q := 0
+	if material == "glass":
+		glass_q = 2 if Engine.is_editor_hint() else clampi(int(Game.gfx.get("glass", 2)), 0, 2)
+	var key := "slab%s_%s_%s_%d" % [color.to_html(), material, inner, glass_q]
 	if _cache.has(key):
 		return _cache[key]
 	var m: Material
-	if material == "glass":
+	if material == "glass" and glass_q > 0:
+		# Refracting glass (glass.gdshader); "reflections" adds screen-space reflections.
+		var gm := ShaderMaterial.new()
+		gm.shader = preload("res://scripts/world/glass.gdshader")
+		gm.set_shader_parameter("inner", inner)
+		gm.set_shader_parameter("use_vertex_damage", not inner)
+		gm.set_shader_parameter("reflections", glass_q >= 2)
+		gm.set_shader_parameter("ssr_steps", 10)
+		gm.set_shader_parameter("ssr_distance", 25.0)
+		m = gm
+	elif material == "glass":
 		var g := StandardMaterial3D.new()
 		g.albedo_color = Color(0.75, 0.95, 1.0, 0.28) if not inner else Color(0.85, 1.0, 1.0, 0.06)
 		g.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA

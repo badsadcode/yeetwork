@@ -205,7 +205,7 @@ func _build_scene_map(path: String) -> void:
 		kill_y = settings.kill_height
 		avoid_rects.assign(settings.avoid_areas)
 		if settings.ocean:
-			add_child(Liquid.create_ocean(settings.ocean_level))
+			add_child(Liquid.create_ocean(settings.ocean_level, Game.sea_override if Game.sea_override != "" else settings.ocean_preset))
 	if not _has_class(root, "WorldEnvironment") and not _has_class(root, "DirectionalLight3D"):
 		environment_preset(settings.sky if settings else "sunset", settings)
 	_collect(root)
@@ -332,6 +332,11 @@ func environment_preset(preset: String, settings: Node = null) -> void:
 			Game.settings_changed.connect(func():
 				if is_instance_valid(we):
 					MapEnvironment.apply_quality(we.environment, preset))
+		elif n is DirectionalLight3D and (n as DirectionalLight3D).shadow_enabled:
+			var sun := n as DirectionalLight3D
+			Game.settings_changed.connect(func():
+				if is_instance_valid(sun):
+					MapEnvironment.apply_sun(sun))
 	if Game.spooky:
 		_spooky_extras()
 

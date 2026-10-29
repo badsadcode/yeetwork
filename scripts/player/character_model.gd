@@ -5,8 +5,12 @@ extends Node3D
 ## Faces -Z. Parts are siblings under `body` so the death ragdoll can copy them.
 
 const SKINS := [Color(1.0, 0.85, 0.7), Color(0.93, 0.72, 0.55), Color(0.75, 0.55, 0.4), Color(0.5, 0.36, 0.26), Color(1.0, 0.8, 0.55)]
-const HAT_COUNT := 9
-const NORMAL_HATS := 7 # hats 7+ are Halloween costumes
+const SKIN_NAMES := ["Peach", "Tan", "Caramel", "Cocoa", "Honey"]
+const HAT_NAMES := ["Hair tuft", "Party cone", "Top hat", "Propeller beanie", "Antenna", "Horns", "Bucket", "Pumpkin head", "Witch hat", "Baseball cap", "Crown", "Chef hat", "Viking helmet"]
+const HAT_COUNT := 13
+const SPOOKY_HATS := [7, 8] # Halloween costumes
+## Head attachments, worn together with any hat (except the pumpkin head, which covers the face).
+const FACE_NAMES := ["Nothing", "Round glasses", "Shades", "Mustache", "Clown nose", "Headphones", "Bow", "Monocle", "Eyepatch"]
 
 ## Collision specs used by the ragdoll: part -> [shape, radius, height, offset].
 const PART_SPECS := {
@@ -21,6 +25,9 @@ const PART_SPECS := {
 var body: Node3D
 var parts := {}
 var gun_socket: Node3D
+## The meshes of the hat and of the head extra (children of the head), e.g. for exporting.
+var hat_nodes: Array[Node3D] = []
+var face_nodes: Array[Node3D] = []
 var _pupils: Array[MeshInstance3D] = []
 var _propeller: Node3D
 var _phase := 0.0
@@ -35,10 +42,23 @@ var _time := 0.0
 var _first_person := false
 
 
-func setup(shirt: Color, hat: int, seed_value: int) -> void:
+## A random everyday hat (or, in spooky mode, mostly Halloween costumes).
+static func random_hat(rng: RandomNumberGenerator, spooky: bool) -> int:
+	if spooky and rng.randf() < 0.75:
+		return SPOOKY_HATS[rng.randi() % SPOOKY_HATS.size()]
+	var hat := rng.randi() % HAT_COUNT
+	while hat in SPOOKY_HATS:
+		hat = rng.randi() % HAT_COUNT
+	return hat
+
+
+## skin_index < 0 picks a skin tone from the seed. face: index into FACE_NAMES.
+func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value * 7919 + 17
 	var skin: Color = SKINS[rng.randi() % SKINS.size()]
+	if skin_index >= 0:
+		skin = SKINS[skin_index % SKINS.size()]
 	var pants := Color(0.2, 0.22, 0.35).lerp(shirt.darkened(0.6), 0.3)
 	var shoe := Color(0.95, 0.95, 0.95)
 
@@ -60,7 +80,15 @@ func setup(shirt: Color, hat: int, seed_value: int) -> void:
 		_pupils.append(pupil)
 		_sphere(head, 0.07, Color(1.0, 0.5, 0.55), Vector3(sx * 0.22, -0.08, -0.26), Vector3(1, 0.6, 0.4))
 	_sphere(head, 0.08, Color(0.35, 0.1, 0.12), Vector3(0, -0.15, -0.31), Vector3(1.4, 0.55, 0.5))
+	var n := head.get_child_count()
 	_build_hat(head, hat, shirt, rng)
+	for i in range(n, head.get_child_count()):
+		hat_nodes.append(head.get_child(i))
+	n = head.get_child_count()
+	if hat % HAT_COUNT != 7:
+		_build_face(head, face, shirt)
+	for i in range(n, head.get_child_count()):
+		face_nodes.append(head.get_child(i))
 
 	for sx in [-1, 1]:
 		var arm := _part("arm_l" if sx < 0 else "arm_r", Vector3(sx * 0.43, 0.38, 0))
@@ -172,9 +200,96 @@ func _build_hat(head: Node3D, hat: int, shirt: Color, rng: RandomNumberGenerator
 			var cone := _cyl(head, 0.26, 0.6, black, Vector3(0.04, 0.58, 0.02), 0.0)
 			cone.rotation.z = -0.25
 			_cyl(head, 0.265, 0.07, Color(0.6, 0.25, 0.9), Vector3(0, 0.33, 0))
+		9: # Baseball cap, peak forward.
+			_sphere(head, 0.35, accent, Vector3(0, 0.1, 0.01), Vector3(1.02, 0.72, 1.02))
+			var peak := _cyl(head, 0.22, 0.03, accent.darkened(0.25), Vector3(0, 0.2, -0.3))
+			peak.scale = Vector3(1.0, 1.0, 0.75)
+			_sphere(head, 0.045, Color.WHITE, Vector3(0, 0.36, 0), Vector3.ONE)
+		10: # Crown.
+			var gold := Color(1.0, 0.8, 0.2)
+			var band := _cyl(head, 0.26, 0.14, gold, Vector3(0, 0.36, 0))
+			band.material_override = Mats.plastic(gold, 0.2)
+			for i in 5:
+				var a := i * TAU / 5.0
+				var spike := _cyl(head, 0.06, 0.16, gold, Vector3(sin(a) * 0.22, 0.5, cos(a) * 0.22), 0.0)
+				spike.material_override = Mats.plastic(gold, 0.2)
+				_sphere(head, 0.035, [Color(1, 0.2, 0.3), Color(0.2, 0.6, 1)][i % 2], Vector3(sin(a) * 0.24, 0.37, cos(a) * 0.24), Vector3.ONE)
+		11: # Chef hat.
+			_cyl(head, 0.26, 0.2, Color.WHITE, Vector3(0, 0.38, 0))
+			for i in 5:
+				var a := i * TAU / 5.0
+				_sphere(head, 0.16, Color.WHITE, Vector3(sin(a) * 0.12, 0.56, cos(a) * 0.12), Vector3.ONE)
+			_sphere(head, 0.17, Color.WHITE, Vector3(0, 0.62, 0), Vector3.ONE)
+		12: # Viking helmet.
+			var steel := Color(0.72, 0.75, 0.8)
+			_sphere(head, 0.36, steel, Vector3(0, 0.17, 0), Vector3(1.03, 0.72, 1.03)).material_override = Mats.plastic(steel, 0.3)
+			_cyl(head, 0.36, 0.06, Color(0.55, 0.35, 0.2), Vector3(0, 0.24, 0))
+			for sx in [-1, 1]:
+				var horn := _cyl(head, 0.07, 0.34, Color(0.98, 0.94, 0.82), Vector3(sx * 0.4, 0.33, 0), 0.0)
+				horn.rotation.z = -sx * 0.9
 		_:
 			# Tuft of hair.
 			_sphere(head, 0.14, shirt.darkened(0.4), Vector3(0.05, 0.33, 0.02), Vector3(1.2, 0.7, 1))
+
+
+func _build_face(head: Node3D, face: int, shirt: Color) -> void:
+	var black := Color(0.07, 0.07, 0.09)
+	match face % FACE_NAMES.size():
+		1: # Round glasses.
+			for sx in [-1, 1]:
+				_ring(head, 0.14, 0.022, black, Vector3(sx * 0.13, 0.07, -0.39))
+				var arm := _box(head, Vector3(0.02, 0.02, 0.3), black, Vector3(sx * 0.31, 0.08, -0.2))
+				arm.rotation.y = sx * 0.35
+			_box(head, Vector3(0.06, 0.02, 0.02), black, Vector3(0, 0.09, -0.42))
+		2: # Shades: dark glossy lenses over the googly eyes.
+			for sx in [-1, 1]:
+				var lens := _sphere(head, 0.14, black, Vector3(sx * 0.14, 0.07, -0.38), Vector3(1.15, 0.8, 0.35))
+				lens.material_override = Mats.plastic(black, 0.08)
+				var arm := _box(head, Vector3(0.025, 0.025, 0.3), black, Vector3(sx * 0.31, 0.09, -0.2))
+				arm.rotation.y = sx * 0.35
+			_box(head, Vector3(0.08, 0.03, 0.03), black, Vector3(0, 0.1, -0.43))
+		3: # Mustache.
+			var brown := shirt.darkened(0.65).lerp(Color(0.3, 0.18, 0.1), 0.6)
+			for sx in [-1, 1]:
+				var m := _sphere(head, 0.09, brown, Vector3(sx * 0.075, -0.07, -0.34), Vector3(1.3, 0.5, 0.6))
+				m.rotation.z = sx * 0.3
+		4: # Clown nose.
+			_sphere(head, 0.075, Color(1.0, 0.12, 0.15), Vector3(0, -0.03, -0.38), Vector3.ONE).material_override = Mats.plastic(Color(1.0, 0.12, 0.15), 0.15)
+		5: # Headphones.
+			var dark := Color(0.15, 0.15, 0.2)
+			for i in 7:
+				var a := -PI * 0.5 + i * PI / 6.0
+				var seg := _box(head, Vector3(0.09, 0.05, 0.1), dark, Vector3(sin(a) * 0.39, cos(a) * 0.39, 0.0))
+				seg.rotation.z = -a
+			for sx in [-1, 1]:
+				var cup := _cyl(head, 0.13, 0.09, shirt.lightened(0.2), Vector3(sx * 0.37, 0.0, 0.0))
+				cup.rotation.z = PI * 0.5
+		6: # Bow on the side of the head.
+			var pink := Color(1.0, 0.4, 0.65)
+			for sx in [-1, 1]:
+				var loop := _sphere(head, 0.1, pink, Vector3(0.2 + sx * 0.1, 0.3, -0.05), Vector3(1.2, 0.8, 0.5))
+				loop.rotation.z = sx * 0.4
+			_sphere(head, 0.05, pink.darkened(0.2), Vector3(0.2, 0.3, -0.06), Vector3.ONE)
+		7: # Monocle on the right eye.
+			var gold := Color(1.0, 0.8, 0.25)
+			_ring(head, 0.15, 0.02, gold, Vector3(0.13, 0.07, -0.4)).material_override = Mats.plastic(gold, 0.2)
+			_box(head, Vector3(0.012, 0.25, 0.012), gold, Vector3(0.24, -0.1, -0.36))
+		8: # Pirate eyepatch over the left eye, strap around the head.
+			_sphere(head, 0.13, black, Vector3(-0.13, 0.07, -0.37), Vector3(1.0, 0.9, 0.35))
+			var strap := _ring(head, 0.37, 0.018, black, Vector3(0, 0.1, 0))
+			strap.rotation = Vector3(0, 0, -0.35)
+
+
+## A thin ring facing forward (-Z): glasses rims, monocle, straps.
+func _ring(parent: Node3D, r: float, thickness: float, color: Color, pos: Vector3) -> MeshInstance3D:
+	var m := TorusMesh.new()
+	m.inner_radius = r - thickness
+	m.outer_radius = r
+	m.rings = 24
+	m.ring_segments = 8
+	var mi := _mesh(parent, m, color, pos)
+	mi.rotation.x = PI * 0.5
+	return mi
 
 
 func set_first_person(fp: bool) -> void:

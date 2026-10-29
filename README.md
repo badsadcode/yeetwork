@@ -14,6 +14,7 @@ characters and spectacularly unfortunate accidents.
 | ![Yeetwork Prime](docs/screenshots/prime_overview.jpg) | ![Tower](docs/screenshots/facing_tower.jpg) |
 | ![Sea](docs/screenshots/water_sea.jpg) | ![Underwater](docs/screenshots/water_underwater.jpg) |
 | ![Waterline](docs/screenshots/water_waterline.jpg) | ![Lava](docs/screenshots/water_lava.jpg) |
+| ![Menu](docs/screenshots/menu.jpg) | ![Character](docs/screenshots/menu_character.jpg) |
 
 ## Downloads: Windows, Linux & Steam Deck
 
@@ -26,12 +27,14 @@ The step-by-step install and multiplayer guide is in **[docs/STEAM_DECK.md](docs
 
 1. Install **Godot 4.7** (standard build, no .NET needed).
 2. Open `project.godot` and press **F5** (or run `godot --path .`).
-3. In the menu pick a name, mode, map and bot count, then **HOST / PLAY**.
-   Friends on your network (or with the port forwarded) use **JOIN** with your IP.
-   The default port is `24642` (UDP).
+3. In the menu: **PLAY** (pick mode, map, bots and water style, then *Start match*),
+   **JOIN** (a friend's address), **CHARACTER** (name, hat, head extra, skin, shirt) and
+   **OPTIONS** (controls, sound and graphics). Friends on your network (or with the port
+   forwarded) join with your IP. The default port is `24642` (UDP).
 
-Everything (geometry, materials, characters, sounds) is generated in code, so there are
-no binary assets to import.
+Geometry, materials, characters and sounds are generated in code. The only assets are the
+menu art and font (`assets/`): the title background and logo, button and frame art made by
+`tools/make_ui_art.py`, and the Lilita One font (SIL Open Font License, `assets/fonts/OFL.txt`).
 
 ## Controls
 
@@ -69,7 +72,12 @@ CPM-style air control, crouch slides with slope gravity, wall running, wall jump
 ramp jumps that keep upward momentum, slope landings that turn falls into speed,
 jump pads, lifts, acid that bounces you, gravity jumps, and swimming.
 
-**Water, acid and lava.** Liquids have Gerstner waves that roll in irregular sets, foam
+**Water, acid and lava.** Two water styles, picked by the host on the Play page:
+*Classic*, and *Sculpted*, which has sharper ridged crests, broad troughs, foam that
+stretches with the waves, ripples and foam rings where things hit the water, wakes behind
+anything moving through it and churned whitewater after explosions. Sculpted seas come in
+calm, lake, ocean and stormy states (`MapSettings → Ocean Preset`).
+Liquids have Gerstner waves that roll in irregular sets, foam
 where crests fold over and along shores, sun glints, light glowing through thin crests,
 refraction with depth absorption (red fades first), caustics, and screen-space
 reflections. With your eyes at the surface the view splits above and below the
@@ -150,6 +158,15 @@ menu, or in Pumpkin Smash, every map gets:
 play CTF and dodgeball, and regularly fall off the map. *Bot skill* in settings (host)
 picks Easy, Normal (default) or Hard. Hard is the original sharpshooter.
 
+**Glass.** Windows refract what is behind them (with a touch of colour dispersion), tint
+more at grazing angles, reflect the world and the sky, and show white cracks as they take
+damage.
+
+**Graphics options.** Low (Steam Deck), Medium and High presets, plus every detail on its
+own: resolution, upscaler (FSR 1 / FSR 2), anti-aliasing, shadows, lighting (SSIL, SDFGI),
+ambient occlusion, volumetric fog, bloom, water quality, glass quality, VSync and a frame
+rate cap. Available in the menu and in the pause menu.
+
 **Look.** Stylized PBR with a custom triplanar surface shader (soft panels, warm-to-cool
 height gradients), a warm key sun, cool fill light, SDFGI and SSIL bounce lighting, soft
 SSAO, AgX tonemapping, subsurface-scattered skin and a custom space sky. There is no
@@ -184,12 +201,16 @@ scripts/props/    prop.gd (networked physics objects)
 scripts/world/    arena.gd (+ Prime layout), map_facing.gd, destructible.gd, mats.gd,
                   world_surface.gdshader, space_sky.gdshader, trigger_volume.gd, lift.gd,
                   liquid.gd + liquid.gdshader + liquid_waves.gdshaderinc (water, acid, lava),
-                  underwater.gdshader (full-screen underwater pass)
+                  liquid_sculpted.gdshader + liquid_waves_sculpted.gdshaderinc (sculpted water),
+                  underwater*.gdshader (full-screen underwater pass), glass.gdshader,
+                  ssr.gdshaderinc (screen-space reflections for water and glass)
 scripts/modes/    mode_base.gd (sandbox), mode_ctf.gd, mode_dodgeball.gd
 scripts/fx/       effects.gd (blood, decals, explosions, debris), sfx.gd (synthesized sounds)
 scripts/bots/     bot_brain.gd
-scripts/ui/       hud.gd, main_menu.gd, settings_form.gd
+scripts/ui/       hud.gd, main_menu.gd, settings_form.gd, ui_theme.gd, character_preview.gd
 tests/            test_runner.gd (gameplay smoke tests)
+tools/            make_ui_art.py (menu button/frame art), glb_to_blend.py (characters .blend)
+art/              source art for Blender (ignored by Godot)
 ```
 
 ## Development
@@ -219,12 +240,41 @@ godot --path . -- --host --map courtyard --bots 0 --tour /tmp/shots --tour-mode 
 
 # Any of these with a graphics preset for one run (0 = Low / Steam Deck, 1 = Medium, 2 = High)
 godot --path . -- --host --map courtyard --graphics 0
+
+# Water style and sea state for a match (the host's choice reaches every client)
+godot --path . -- --host --map courtyard --water-style sculpted --sea stormy
+
+# Every hat and head extra in a line-up; the menu on a given page; the pause menu
+godot --path . -- --host --map prime --bots 0 --tour /tmp/shots --tour-mode looks
+godot --path . -- --menu-page character --screenshot /tmp/menu.png
+godot --path . -- --host --paused --screenshot /tmp/pause.png
 ```
 
-## Characters and Kenney assets
+## Characters
 
-Characters are built procedurally in a toy-like style in the spirit of Kenney's
-characters: big heads, googly eyes, stubby limbs and silly hats. They work with the
-procedural animation and the joint-based ragdoll. To swap in real Kenney models (CC0),
-drop the `.glb` files into `assets/characters/` and replace the part meshes built in
-`CharacterModel.setup()`. The ragdoll copies whatever meshes sit under each part node.
+Characters are built in code in a toy-like style in the spirit of Kenney's characters: big
+heads, googly eyes, stubby limbs, procedural animation and a joint-based ragdoll
+(`scripts/player/character_model.gd`).
+
+**Customize yours** in the menu's *Character* page (saved with your settings, sent to the
+server when you join):
+- **Hat**: hair tuft, party cone, top hat, propeller beanie, antenna, horns, bucket,
+  pumpkin head, witch hat, baseball cap, crown, chef hat, viking helmet (or random).
+- **Head extra**: round glasses, shades, mustache, clown nose, headphones, bow, monocle,
+  eyepatch.
+- **Skin** tone and a favourite **shirt** colour (free-for-all modes; teams wear team colours).
+
+**Blender:** `art/characters/characters.blend` holds the same parts: the body, every hat
+and every head extra, each in its own collection and already sitting on the head (toggle
+the eye icons to compose a character). It is made from the game's own code, so it matches
+exactly:
+
+```bash
+# 1. Export the procedural parts to glTF
+godot --path . -- --host --map prime --bots 0 --tour /tmp/chars --tour-mode characters
+# 2. Organize them into the .blend (and render a preview)
+blender --background --python tools/glb_to_blend.py -- /tmp/chars/characters.glb art/characters/characters.blend /tmp/chars/preview.png
+```
+
+`art/` is ignored by Godot (it is source art). To use edited parts in the game, export them
+as `.glb` into `assets/` and replace the matching part in `CharacterModel`.
