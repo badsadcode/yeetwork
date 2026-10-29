@@ -1524,6 +1524,19 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 			Sfx.play3d("punt", pos, 0.0, rng.randf_range(0.9, 1.1))
 		"throw":
 			Sfx.play3d("throw", pos, -2.0 + amount * 3.0, rng.randf_range(0.9, 1.2) / maxf(amount * 0.8, 1.0))
+			# An energy trail behind whatever just got thrown (the nearest prop or player).
+			var thrown: Node3D = null
+			var best := 2.5
+			for p: Prop in props.values():
+				if is_instance_valid(p) and p.global_position.distance_to(pos) < best:
+					best = p.global_position.distance_to(pos)
+					thrown = p
+			for pl: Player in players.values():
+				if pl.body_center().distance_to(pos) < best:
+					best = pl.body_center().distance_to(pos)
+					thrown = pl
+			if thrown:
+				EnergyTrail.follow(fx, thrown, Color(0.3, 0.62, 1.0).lerp(Color(0.85, 0.92, 1.0), clampf(amount - 1.0, 0.0, 1.0)), amount)
 			if amount > 1.4:
 				# Charged yeet: a deep whump and a shockwave off the muzzle.
 				Sfx.play3d("punt", pos, 2.0, 0.75)

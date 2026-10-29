@@ -59,6 +59,13 @@ var _beam: MeshInstance3D
 var _beam_mat: ShaderMaterial
 var _arc_mesh: ImmediateMesh
 var _arc_light: OmniLight3D
+## Charging: motes sucked into the muzzle and little arcs crackling around it.
+var _charge_motes: CPUParticles3D
+var _charge_mesh: ImmediateMesh
+var _charge_arcs: MeshInstance3D
+var _charge_mat: ShaderMaterial
+var _charge_reroll := 0.0
+var _charge_paths: Array = []
 var _hum: AudioStreamPlayer3D
 var _arc_paths: Array = [] # [main bolt, branches..., end bursts] (re-rolled ~16x/s)
 var _arc_seed := 0
@@ -78,6 +85,7 @@ var _vm_visible := true
 
 func _ready() -> void:
 	_build_world_model()
+	_build_charge_fx()
 	# Electric arc: camera-facing ribbons rebuilt every frame (see _draw_arc).
 	_arc_mesh = ImmediateMesh.new()
 	_beam = MeshInstance3D.new()
@@ -240,6 +248,7 @@ func kick(amount: float) -> void:
 
 
 func update_visuals(delta: float) -> void:
+	_update_charge_fx(delta)
 	var target := held_node()
 	if target and is_instance_valid(target) and player.is_alive():
 		var from := muzzle_position()
@@ -274,6 +283,91 @@ func update_visuals(delta: float) -> void:
 		var pulse := 1.0 + visual_charge() * 0.8 + sin(Time.get_ticks_msec() * (0.02 + visual_charge() * 0.06 if vis_kind != Kind.NONE else 0.005)) * 0.25
 		if _vm_core:
 			_vm_core.scale = Vector3.ONE * pulse
+
+
+func _build_charge_fx() -> void:
+	_charge_motes = CPUParticles3D.new()
+	_charge_motes.top_level = true
+	_charge_motes.local_coords = false
+	_charge_motes.amount = 28
+	_charge_motes.lifetime = 0.32
+	_charge_motes.emitting = false
+	_charge_motes.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE_SURFACE
+	_charge_motes.emission_sphere_radius = 0.5
+	_charge_motes.gravity = Vector3.ZERO
+	_charge_motes.radial_accel_min = -42.0 # sucked into the core
+	_charge_motes.radial_accel_max = -30.0
+	_charge_motes.tangential_accel_min = 8.0 # swirling as they go
+	_charge_motes.tangential_accel_max = 14.0
+	_charge_motes.particle_flag_align_y = true
+	var mm := BoxMesh.new()
+	mm.size = Vector3(0.012, 0.07, 0.012)
+	_charge_motes.mesh = mm
+	_charge_motes.material_override = Mats.glow(_beam_color().lightened(0.45), 7.0)
+	var curve := Curve.new()
+	curve.add_point(Vector2(0, 0.4))
+	curve.add_point(Vector2(0.6, 1.0))
+	curve.add_point(Vector2(1, 0.2))
+	_charge_motes.scale_amount_curve = curve
+	add_child(_charge_motes)
+	_charge_mesh = ImmediateMesh.new()
+	_charge_arcs = MeshInstance3D.new()
+	_charge_arcs.top_level = true
+	_charge_arcs.mesh = _charge_mesh
+	_charge_arcs.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_charge_mat = ShaderMaterial.new()
+	_charge_mat.shader = preload("res://scripts/fx/arc.gdshader")
+	_charge_arcs.material_override = _charge_mat
+	_charge_arcs.visible = false
+	add_child(_charge_arcs)
+
+
+## Energy gathering while a throw charges: more motes, faster, and arcs leaping between the
+## core and a ring in front of it, all growing with the charge.
+func _update_charge_fx(delta: float) -> void:
+	var ch := visual_charge()
+	var on := ch > 0.02 and player.is_alive()
+	_charge_motes.emitting = on
+	_charge_arcs.visible = on
+	if not on:
+		return
+	var fp := _viewmodel != null and _viewmodel.visible
+	var muzzle := muzzle_position()
+	var r := (0.16 if fp else 0.45) * (1.2 - ch * 0.4)
+	_charge_motes.global_position = muzzle
+	_charge_motes.emission_sphere_radius = r * 2.2
+	_charge_motes.speed_scale = 0.8 + ch * 1.4
+	_charge_motes.scale_amount_min = (0.4 if fp else 1.0) * (0.6 + ch)
+	_charge_motes.scale_amount_max = _charge_motes.scale_amount_min * 1.6
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	_charge_reroll -= delta
+	var aim := player.aim_direction()
+	var side := aim.cross(Vector3.UP).normalized()
+	if side.length() < 0.1:
+		side = Vector3.RIGHT
+	var up := side.cross(aim).normalized()
+	if _charge_reroll <= 0.0 or _charge_paths.is_empty():
+		_charge_reroll = 0.05
+		_charge_paths.clear()
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
+		for i in 2 + int(ch * 4.0):
+			var a := rng.randf() * TAU
+			var end := muzzle + (side * cos(a) + up * sin(a)) * r + aim * r * rng.randf_range(0.2, 0.9)
+			_charge_paths.append(_jag(PackedVector3Array([muzzle, end]), 0.5, 2, rng))
+	_charge_mesh.clear_surfaces()
+	_charge_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	var col := _beam_color().lerp(Color(0.9, 0.95, 1.0), ch)
+	var w := (0.006 if fp else 0.016) * (1.0 + ch)
+	for path: PackedVector3Array in _charge_paths:
+		for i in path.size() - 1:
+			_ribbon(path[i], path[i + 1], w * 3.0, Color(col, 0.35 * ch), 0.0, cam.global_position, _charge_mesh)
+			_ribbon(path[i], path[i + 1], w, Color(col, ch), 1.0, cam.global_position, _charge_mesh)
+	_charge_mesh.surface_end()
+	_charge_arcs.global_transform = Transform3D.IDENTITY
+	_charge_mat.set_shader_parameter("energy", 2.0 + ch * 2.5)
 
 
 func _beam_color() -> Color:
@@ -408,15 +502,16 @@ func _glow_sprite(p: Vector3, size: float, col: Color, cam: Camera3D) -> void:
 
 
 ## One camera-facing quad between two points (UV.y across, UV.x = hot core amount).
-func _ribbon(a: Vector3, b: Vector3, width: float, col: Color, hot: float, cam_pos: Vector3) -> void:
+func _ribbon(a: Vector3, b: Vector3, width: float, col: Color, hot: float, cam_pos: Vector3, into: ImmediateMesh = null) -> void:
+	var m := into if into else _arc_mesh
 	var seg := b - a
 	var side := seg.cross(cam_pos - a).normalized() * width
-	_arc_mesh.surface_set_color(col)
-	_arc_mesh.surface_set_uv2(Vector2.ZERO)
+	m.surface_set_color(col)
+	m.surface_set_uv2(Vector2.ZERO)
 	var quad := [[a - side, 0.0], [a + side, 1.0], [b + side, 1.0], [a - side, 0.0], [b + side, 1.0], [b - side, 0.0]]
 	for q in quad:
-		_arc_mesh.surface_set_uv(Vector2(hot, q[1]))
-		_arc_mesh.surface_add_vertex(q[0])
+		m.surface_set_uv(Vector2(hot, q[1]))
+		m.surface_add_vertex(q[0])
 
 
 func on_owner_died() -> void:

@@ -16,11 +16,11 @@ func _ready() -> void:
 	pl.set_physics_process(false)
 	world.hud.visible = false
 	# Lagoon: standing on the north side of the ring, looking along it (open sky).
-	_look(Vector3(17, 1.8, 6), Vector3(17, 3.0, -13))
+	_look(Vector3(17, 1.8, -3), Vector3(17, 4.0, -13))
 	await _wait(0.8)
 	var fx: Effects = world.fx
 	fx.explosion(Vector3(17, 1.0, -13), 7.5)
-	for t in [0.12, 0.35, 0.8, 1.5, 2.4]:
+	for t in [0.12, 0.35, 0.8, 1.5, 2.4, 3.2]:
 		await _until(t)
 		_shot("boom_%.2f" % t)
 	_t0 = -1.0
@@ -48,10 +48,16 @@ func _ready() -> void:
 	await _wait(0.6)
 	_shot("arc_hold", false)
 	world.gun_action(pl, GravityGun.Action.THROW)
-	await _wait(1.0)
+	await _wait(0.45)
+	_shot("charge_half", false)
+	await _wait(0.55)
 	_shot("arc_charged", false)
 	world.gun_action(pl, GravityGun.Action.THROW_RELEASE)
 	world.gun_action(pl, GravityGun.Action.GRAB_END)
+	for t in [0.25, 0.4]:
+		await _until(t)
+		_shot("throw_trail_%.2f" % t, false)
+	_t0 = -1.0
 	pl.set_physics_process(false)
 	# Water on the lens, drying.
 	_look(Vector3(-17, 1.8, -8), Vector3(0, 1.0, 0))

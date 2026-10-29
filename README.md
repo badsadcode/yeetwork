@@ -186,11 +186,15 @@ own: resolution, upscaler (FSR 1 / FSR 2), anti-aliasing, shadows, lighting (SSI
 ambient occlusion, volumetric fog, bloom, water quality, glass quality, explosions, clouds,
 VSync and a frame rate cap. Available in the menu and in the pause menu.
 
-**Effects.** Dust, smoke, mist and whitewater are soft cloud-noise puffs with colour
-gradients over their life that erode into wisps and fade softly into the ground (dust kicks
-up on landings, runs and slides). Explosions are ray-marched volumetric fireballs that cool
-into rolling smoke (*Explosions: Simple* uses billboard puffs instead). The gravity gun's
-arc is branching lightning with a soft blue glow and starbursts at both ends. Coming out of
+**Effects.** Dust, smoke, mist and whitewater are dense cauliflower puffs: clusters of
+round lobes, each lit like a little sphere (warm tops, cool undersides), coloured by a
+gradient over their life and fading softly into the ground (dust kicks up on landings, runs
+and slides). Explosions burst into a cauliflower mushroom (cap, stem and a ring of fire
+along the ground) that brakes hard, then rises and fades from white-hot through orange
+and ember red to grey smoke, while rock chunks and ember streaks fly out; on Medium/High a
+ray-marched volumetric fire core burns inside. The gravity gun's arc is branching lightning
+with a soft blue glow and starbursts at both ends; charging a throw draws swirling motes
+and crackling arcs into the muzzle, and thrown things leave a short glowing energy trail. Coming out of
 the water leaves drops on the lens: beads that refract and disperse the light, and teardrop
 runners that slide down leaving wet trails.
 

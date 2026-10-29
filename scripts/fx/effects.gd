@@ -227,7 +227,7 @@ func _puff_material(heat: float) -> ShaderMaterial:
 func dust_ring(pos: Vector3, n: Vector3, strength: float, color: Color) -> void:
 	var c := color.lightened(0.25)
 	puffs(pos + n * 0.15, n, int(6 + strength * 10), [Color(c, 0.75), Color(c, 0.55), Color(c, 0.0)],
-		0.9 + strength * 0.5, 1.6 + strength * 0.9, 0.5, 1.5 + strength, 0.9 + strength * 0.4,
+		1.4 + strength * 0.8, 2.4 + strength * 1.3, 0.5, 1.5 + strength, 1.0 + strength * 0.4,
 		85.0, Vector3(0, 0.4, 0), 4.0, 0.0, 0.25, 2.2, 6.0 + strength * 6.0)
 
 
@@ -434,7 +434,7 @@ func spark(pos: Vector3, color: Color) -> void:
 func dust(pos: Vector3, color: Color, amount: float) -> void:
 	var c := color.lightened(0.3)
 	puffs(pos, Vector3.UP, int(6 + amount * 6), [Color(c, 0.85), Color(c.darkened(0.1), 0.6), Color(c, 0.0)],
-		1.6, 2.6 + amount * 0.6, 0.5, 3.0 + amount, 1.8, 70.0, Vector3(0, 0.5, 0), 3.5, 0.0, 0.4 + amount * 0.2, 2.4)
+		2.4, 3.8 + amount * 0.8, 0.5, 3.0 + amount, 1.8, 70.0, Vector3(0, 0.5, 0), 3.5, 0.0, 0.4 + amount * 0.2, 2.0)
 
 
 func explosion(pos: Vector3, radius: float) -> void:
@@ -449,20 +449,28 @@ func explosion(pos: Vector3, radius: float) -> void:
 	tw.tween_callback(flash.queue_free)
 	var k := radius / 7.5
 	var q: int = Game.gfx.get("explosions", 2)
+	# Fast burst, hard braking (high damping: the lobes stop within ~0.3 s), then a slow
+	# rise and fade through white-hot, yellow, orange, ember red, smoky purple-brown, grey.
+	var fire := [Color(1.0, 0.97, 0.82, 1.0), Color(1.0, 0.82, 0.3, 1.0), Color(1.0, 0.5, 0.12, 1.0), Color(0.75, 0.2, 0.08, 0.95),
+		Color(0.32, 0.18, 0.2, 0.85), Color(0.36, 0.33, 0.35, 0.55), Color(0.42, 0.4, 0.42, 0.0)]
+	# The cap: hot cauliflower lobes thrown up and out, braking into a mushroom top.
+	puffs(pos + Vector3.UP * radius * 0.2, Vector3.UP, [14, 20, 26][q], fire, 5.5 * k, 8.5 * k, 9.0 * k, 16.0 * k, 3.4, 45.0,
+		Vector3(0, 1.0, 0), 34.0 * k, 1.0, 1.2 * k, 1.45, 0.0)
+	# The stem: a narrower column under the cap.
+	puffs(pos, Vector3.UP, [6, 9, 12][q], fire, 3.0 * k, 4.4 * k, 6.0 * k, 10.0 * k, 3.0, 8.0, Vector3(0, 0.8, 0), 20.0 * k, 0.8, 0.5 * k, 1.35)
+	# A low ring of fire rolling out along the ground.
+	puffs(pos, Vector3.UP, [6, 8, 10][q], fire, 3.6 * k, 5.4 * k, 10.0 * k, 16.0 * k, 2.2, 88.0, Vector3(0, 0.3, 0), 40.0 * k, 1.0, 0.8 * k, 1.4)
+	dust_ring(pos - Vector3.UP * 0.4, Vector3.UP, 3.0, Color(0.6, 0.55, 0.5))
+	# Debris: rock chunks tumbling out of the cloud, and glowing ember streaks.
+	var rock := BoxMesh.new()
+	rock.size = Vector3(0.22, 0.18, 0.2)
+	_burst(pos + Vector3.UP * 0.5, Vector3.UP, [10, 14, 20][q], rock, Mats.plastic(Color(0.25, 0.2, 0.2), 0.9), 8.0 * k, 20.0 * k, 1.8, 0.3)
+	var ember := BoxMesh.new()
+	ember.size = Vector3(0.04, 0.5, 0.04)
+	_burst(pos + Vector3.UP * 0.5, Vector3.UP, [16, 26, 36][q], ember, Mats.glow(Color(1.0, 0.65, 0.2), 6.0), 9.0 * k, 24.0 * k, 1.2, 1.0, true)
 	if q > 0 and _noise3d:
-		_volume_explosion(pos, radius, 20 if q == 1 else 36)
-		dust_ring(pos - Vector3.UP * 0.4, Vector3.UP, 2.5, Color(0.6, 0.55, 0.5))
-		_burst(pos, Vector3.UP, 30, _drop_mesh, Mats.glow(Color(1.0, 0.7, 0.2), 4.0), 6.0, 18.0, 0.8)
-		scorch(pos, radius * 0.5)
-		return
-	# Low quality: billboard puffs. Fireball: hot core cooling to orange, red and soot.
-	puffs(pos, Vector3.UP, 24, [Color(1.0, 0.95, 0.7, 1.0), Color(1.0, 0.55, 0.15, 0.95), Color(0.55, 0.15, 0.08, 0.8), Color(0.12, 0.1, 0.1, 0.0)],
-		8.0 * k, 12.0 * k, 4.0, 10.0 * k, 1.4, 180.0, Vector3(0, 4.0, 0), 3.0, 1.0, 2.5 * k, 1.6)
-	# Rolling smoke that rises and lingers.
-	puffs(pos + Vector3.UP * 0.5, Vector3.UP, 12, [Color(0.3, 0.27, 0.28, 0.0), Color(0.32, 0.29, 0.3, 0.85), Color(0.45, 0.42, 0.44, 0.5), Color(0.55, 0.52, 0.55, 0.0)],
-		4.5 * k, 7.5 * k, 1.5, 5.0 * k, 3.2, 70.0, Vector3(0, 2.2, 0), 2.0, 0.0, 1.5 * k, 2.4)
-	dust_ring(pos - Vector3.UP * 0.4, Vector3.UP, 2.5, Color(0.6, 0.55, 0.5))
-	_burst(pos, Vector3.UP, 30, _drop_mesh, Mats.glow(Color(1.0, 0.7, 0.2), 4.0), 6.0, 18.0, 0.8)
+		# Medium/High: a short ray-marched fire core inside the cap.
+		_volume_explosion(pos + Vector3.UP * radius * 0.25, radius * 0.6, 20 if q == 1 else 32)
 	scorch(pos, radius * 0.5)
 
 
@@ -483,9 +491,9 @@ func _volume_explosion(pos: Vector3, radius: float, steps: int) -> void:
 	var r := radius * 0.8
 	mi.scale = Vector3.ONE * r
 	var tw := mi.create_tween().set_parallel(true)
-	tw.tween_method(func(v: float): m.set_shader_parameter("progress", v), 0.0, 1.0, 2.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
-	tw.tween_property(mi, "scale", Vector3.ONE * r * 1.45, 2.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tw.tween_property(mi, "global_position", pos + Vector3.UP * radius * 0.7, 2.6).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_SINE)
+	tw.tween_method(func(v: float): m.set_shader_parameter("progress", v), 0.0, 1.0, 1.2).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(mi, "scale", Vector3.ONE * r * 1.5, 1.2).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(mi, "global_position", pos + Vector3.UP * radius * 0.9, 1.2).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_SINE)
 	tw.chain().tween_callback(mi.queue_free)
 
 
@@ -559,6 +567,6 @@ func ground_dust(pos: Vector3, strength: float, trail := Vector3.ZERO) -> void:
 	var c := Color(0.92, 0.88, 0.82)
 	if trail.length() > 0.1:
 		puffs(pos + Vector3.UP * 0.1, -trail.normalized() + Vector3.UP * 0.4, 2, [Color(c, 0.6), Color(c, 0.0)],
-			0.4, 0.7, 0.5, 1.5, 0.8, 30.0, Vector3(0, 0.4, 0), 3.0, 0.0, 0.15, 2.0)
+			0.7, 1.1, 0.5, 1.5, 0.8, 30.0, Vector3(0, 0.4, 0), 3.0, 0.0, 0.15, 1.8)
 	else:
 		dust_ring(pos, Vector3.UP, strength, c)
