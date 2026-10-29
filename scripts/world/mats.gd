@@ -31,7 +31,7 @@ static func slab(color: Color, material: String, inner := false) -> Material:
 	var m: Material
 	if material == "glass":
 		var g := StandardMaterial3D.new()
-		g.albedo_color = Color(0.75, 0.95, 1.0, 0.28) if not inner else Color(0.85, 1.0, 1.0, 0.6)
+		g.albedo_color = Color(0.75, 0.95, 1.0, 0.28) if not inner else Color(0.85, 1.0, 1.0, 0.06)
 		g.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		g.roughness = 0.05
 		g.metallic_specular = 0.9
