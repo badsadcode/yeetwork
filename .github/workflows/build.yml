@@ -28,9 +28,10 @@ jobs:
             godot --headless -- --map "$m" --validate
           done
       - name: Ship check (High Seas rides the swell, players and cargo stay aboard)
+        timeout-minutes: 6
         run: |
           for sea in calm stormy; do
-            godot --headless -- --host --map highseas --bots 0 --spooky off --tour x --tour-mode ship --sea "$sea"
+            timeout 120 godot --headless -- --host --map highseas --bots 0 --spooky off --tour x --tour-mode ship --sea "$sea"
           done
 
   export:
