@@ -216,7 +216,7 @@ func _ready() -> void:
 		camera = Camera3D.new()
 		camera.fov = Game.fov
 		camera.near = 0.05
-		camera.far = 800.0
+		camera.far = 2500.0
 		_arm.add_child(camera)
 		camera.make_current()
 		_underwater = MeshInstance3D.new()
@@ -1040,6 +1040,9 @@ func _update_underwater() -> void:
 			_underwater_mat.set_shader_parameter("visibility", liq.params.visibility)
 			_underwater_mat.set_shader_parameter("shafts", liq.params.shafts)
 			_underwater_mat.set_shader_parameter("glow_color", liq.params.glow_color)
+			_underwater_mat.set_shader_parameter("sun_dir", liq.sun_dir())
+			_underwater_mat.set_shader_parameter("shaft_noise", Liquid.shaft_noise())
+			_underwater_mat.set_shader_parameter("shaft_steps", [5, 8, 12][clampi(Game.graphics, 0, 2)])
 		_underwater_mat.set_shader_parameter("wave_time", Liquid.wave_time())
 	_underwater.visible = near
 	Sfx.set_underwater(under)

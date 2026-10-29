@@ -6,6 +6,7 @@ extends Node
 ##   --bots <n>  --bot-skill 0|1|2  --port <n>  --name <name>  --autotest <seconds>  (quit after N seconds)
 ##   --screenshot <png> (save a screenshot after 2.5 s, then quit)
 ##   --map prime|facing|<map name in res://maps>  --validate (check a map, then quit)  --test (gameplay smoke tests)  --tour <dir> [--tour-mode destruction|charge|water]  (save screenshots from fixed viewpoints, then quit)
+##   --graphics 0|1|2 (quality preset for this run: low / medium / high)
 
 var menu: MainMenu
 var world: World
@@ -84,6 +85,11 @@ func _handle_cmdline(execute := true) -> bool:
 				i += 1
 			"--tour-mode":
 				_tour_mode = next
+				i += 1
+			"--graphics":
+				# Quality preset for this run only (not saved): 0 low (Steam Deck), 1 medium, 2 high.
+				Game.graphics = clampi(int(next), 0, 2)
+				Game.apply_graphics()
 				i += 1
 		i += 1
 	if not execute:
