@@ -16,7 +16,11 @@ const L_TRIGGERS := 16
 
 enum Mode { SANDBOX, CTF, DODGEBALL }
 const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball"]
-const MAP_NAMES := ["Yeetwork Prime", "Facing Yeets"]
+const BUILTIN_MAPS := [
+	{"key": "facing", "name": "Facing Yeets"},
+	{"key": "prime", "name": "Yeetwork Prime"},
+]
+const MAPS_DIR := "res://maps"
 
 const TEAM_NONE := 0
 const TEAM_RED := 1
@@ -48,7 +52,9 @@ var master_volume := 0.8
 
 # Session config (set by the menu before a match starts).
 var mode: int = Mode.SANDBOX
-var map := 1
+var map := "facing" # built-in key or a map scene path under res://maps
+var autostart := false # set by a map scene run with F6 (playtest)
+var _map_cache: Array = []
 var bot_count := 3
 var join_address := "127.0.0.1"
 var port := DEFAULT_PORT
@@ -94,8 +100,57 @@ func load_settings() -> void:
 	port = cfg.get_value("net", "port", port)
 	mode = cfg.get_value("match", "mode", mode)
 	bot_count = cfg.get_value("match", "bots", bot_count)
-	map = clampi(cfg.get_value("match", "map", map), 0, MAP_NAMES.size() - 1)
+	var m = cfg.get_value("match", "map", map)
+	map = m if m is String else "facing"
 	apply_audio()
+
+
+## Built-in maps plus every scene in res://maps (made with the Map Kit).
+func list_maps() -> Array:
+	if not _map_cache.is_empty():
+		return _map_cache
+	var out := BUILTIN_MAPS.duplicate(true)
+	var dir := DirAccess.open(MAPS_DIR)
+	if dir:
+		var files := []
+		for f in dir.get_files():
+			f = f.trim_suffix(".remap")
+			if f.ends_with(".tscn") or f.ends_with(".scn"):
+				files.append(f)
+		files.sort()
+		for f in files:
+			var path: String = MAPS_DIR + "/" + f
+			out.append({"key": path, "name": _scene_map_name(path)})
+	_map_cache = out
+	return out
+
+
+func map_display_name(key: String) -> String:
+	for m in list_maps():
+		if m.key == key:
+			return m.name
+	return key.get_file().get_basename().capitalize()
+
+
+func _scene_map_name(path: String) -> String:
+	var packed := load(path) as PackedScene
+	if packed:
+		var root := packed.instantiate()
+		var n := _find_map_name(root)
+		root.free()
+		if n != "":
+			return n
+	return path.get_file().get_basename().capitalize()
+
+
+func _find_map_name(n: Node) -> String:
+	if n.get_script() and n.get("map_name") != null:
+		return n.get("map_name")
+	for c in n.get_children():
+		var r := _find_map_name(c)
+		if r != "":
+			return r
+	return ""
 
 
 func apply_audio() -> void:

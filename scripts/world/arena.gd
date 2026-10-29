@@ -31,11 +31,14 @@ var avoid_rects: Array[Rect2] = [] # XZ areas bots should route around
 var _spinners: Array[Node3D] = []
 
 
-func build(p_world: Node, map_id: int) -> void:
+func build(p_world: Node, map_key: String) -> void:
 	world = p_world
 	name = "Arena"
-	if map_id == 1:
+	if map_key == "facing":
 		MapFacing.build(self)
+		return
+	if map_key.ends_with(".tscn") or map_key.ends_with(".scn"):
+		_build_scene_map(map_key)
 		return
 	avoid_rects.append(Rect2(-15.5, -15.5, 31, 31))
 	_environment()
@@ -147,10 +150,167 @@ func jump_pad(pos: Vector3, velocity: Vector3) -> void:
 	light(pos + Vector3(0, 1.5, 0), C_PAD, 6.0, 1.5)
 
 
-func lift(a: Vector3, b: Vector3, period: float, phase: float) -> void:
+func lift(a: Vector3, b: Vector3, period: float, phase: float, size := Vector3(3, 0.5, 3)) -> void:
 	var l := Lift.new()
 	add_child(l)
-	l.setup(world, a, b, Vector3(3, 0.5, 3), period, phase, C_STEEL)
+	l.setup(world, a, b, size, period, phase, C_STEEL)
+
+
+## Glowing team pedestal + flag base registration for Capture the Flag.
+func flag_stand(team: int, stand: Vector3) -> void:
+	var tc := Game.team_color(team)
+	flag_stands[team] = stand + Vector3(0, 0.4, 0)
+	var ped := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 1.4
+	cm.bottom_radius = 1.6
+	cm.height = 0.4
+	ped.mesh = cm
+	ped.position = stand + Vector3(0, 0.2, 0)
+	ped.material_override = Mats.glow(tc, 2.0)
+	add_child(ped)
+	light(stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
+
+
+## Acid pool (with glowing surface), kill volume or wind volume.
+func hazard(kind: String, xf: Transform3D, size: Vector3, damage := 22.0, wind := Vector3.ZERO) -> void:
+	var t := TriggerVolume.new()
+	t.transform = xf
+	add_child(t)
+	match kind:
+		"kill":
+			t.setup(TriggerVolume.Kind.KILL, size)
+		"wind":
+			t.setup(TriggerVolume.Kind.WIND, size, wind)
+		_:
+			t.setup(TriggerVolume.Kind.ACID, size, Vector3.ZERO, damage)
+			var surface := MeshInstance3D.new()
+			var pm := PlaneMesh.new()
+			pm.size = Vector2(size.x, size.z)
+			surface.mesh = pm
+			surface.transform = xf * Transform3D(Basis.IDENTITY, Vector3(0, size.y * 0.3, 0))
+			var acid_mat := StandardMaterial3D.new()
+			acid_mat.albedo_color = Color(0.4, 1.0, 0.2, 0.75)
+			acid_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			acid_mat.emission_enabled = true
+			acid_mat.emission = C_ACID
+			acid_mat.emission_energy_multiplier = 1.4
+			acid_mat.roughness = 0.05
+			surface.material_override = acid_mat
+			surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			add_child(surface)
+			light(xf.origin + Vector3.UP * (size.y * 0.5 + 2.0), C_ACID, maxf(size.x, size.z) * 0.9, 2.5)
+
+
+# --- Scene maps (made with the Map Kit) ---------------------------------------------
+
+func _build_scene_map(path: String) -> void:
+	var packed := load(path) as PackedScene
+	if packed == null:
+		push_error("Could not load map %s" % path)
+		environment_preset("sunset")
+		box(Vector3(0, -0.5, 0), Vector3(40, 1, 40), C_FLOOR)
+		spawn_points[0].append(Vector3(0, 0.2, 0))
+		return
+	var root := packed.instantiate()
+	add_child(root)
+	var settings := _find_settings(root)
+	if settings:
+		kill_y = settings.kill_height
+		avoid_rects.assign(settings.avoid_areas)
+	if not _has_class(root, "WorldEnvironment") and not _has_class(root, "DirectionalLight3D"):
+		environment_preset(settings.sky if settings else "sunset", settings)
+	_collect(root)
+
+
+func _find_settings(n: Node) -> MapSettings:
+	if n is MapSettings:
+		return n
+	for c in n.get_children():
+		var s := _find_settings(c)
+		if s:
+			return s
+	return null
+
+
+func _has_class(n: Node, cls: String) -> bool:
+	if n.is_class(cls):
+		return true
+	for c in n.get_children():
+		if _has_class(c, cls):
+			return true
+	return false
+
+
+## Converts Map Kit nodes into gameplay objects. Tree order is deterministic, so every
+## peer assigns the same destructible ids.
+func _collect(n: Node) -> void:
+	for c in n.get_children():
+		_collect(c)
+	if n is BreakableSlab:
+		var b := n as BreakableSlab
+		breakable(b.global_position, b.slab_basis(), b.size, b.thickness, b.anchors(), b.material, b.color, b.hp_scale)
+		b.queue_free()
+	elif n is SpawnPoint:
+		spawn_points[(n as SpawnPoint).team].append((n as Node3D).global_position + Vector3.UP * 0.2)
+	elif n is FlagStand:
+		flag_stand((n as FlagStand).team_id(), (n as Node3D).global_position)
+	elif n is PropSpawn:
+		var ps := n as PropSpawn
+		initial_props.append([ps.kind, Transform3D(ps.global_transform.basis.orthonormalized(), ps.global_position)])
+	elif n is JumpPadNode:
+		var jp := n as JumpPadNode
+		jump_pad(jp.global_position, jp.launch_velocity())
+	elif n is LiftPlatform:
+		var lp := n as LiftPlatform
+		lift(lp.global_position, lp.global_position + lp.global_transform.basis * lp.travel, lp.period, lp.phase, lp.size)
+	elif n is HazardVolume:
+		var hv := n as HazardVolume
+		hazard(hv.kind, Transform3D(hv.global_transform.basis.orthonormalized(), hv.global_position), hv.size, hv.damage, hv.wind)
+	elif n is CSGShape3D:
+		var csg := n as CSGShape3D
+		if csg.is_root_shape() and csg.use_collision:
+			csg.collision_layer = Game.L_WORLD
+			csg.collision_mask = 0
+
+
+## Problems a map author should fix. Needs a physics frame to have run.
+func validate() -> Array[String]:
+	var out: Array[String] = []
+	if spawn_points[0].size() < 4:
+		out.append("Only %d 'Any' spawn points (want 4+ for free-for-all)." % spawn_points[0].size())
+	for t in [1, 2]:
+		if spawn_points[t].is_empty():
+			out.append("No %s spawn points (team modes will use 'Any' spawns)." % Game.TEAM_NAMES[t])
+	if not flag_stands.has(1) or not flag_stands.has(2):
+		out.append("CTF needs one Red and one Blue FlagStand.")
+	var cells := 0
+	for d in destructibles:
+		cells += d.cells.size()
+	if cells > 4000:
+		out.append("%d breakable cells in total; above ~4000 performance suffers." % cells)
+	var space := get_world_3d().direct_space_state
+	var lowest := INF
+	for team in spawn_points:
+		for p: Vector3 in spawn_points[team]:
+			var q := PhysicsRayQueryParameters3D.create(p + Vector3.UP * 0.5, p + Vector3.DOWN * 4.0, Game.L_WORLD)
+			var hit := space.intersect_ray(q)
+			if hit.is_empty():
+				out.append("Spawn at %s has no floor within 4 m." % p.snapped(Vector3.ONE * 0.1))
+			else:
+				lowest = minf(lowest, hit.position.y)
+			var params := PhysicsShapeQueryParameters3D.new()
+			var cap := CapsuleShape3D.new()
+			cap.radius = 0.35
+			cap.height = 1.6
+			params.shape = cap
+			params.transform = Transform3D(Basis.IDENTITY, p + Vector3.UP * 1.0)
+			params.collision_mask = Game.L_WORLD
+			if not space.intersect_shape(params, 1).is_empty():
+				out.append("Spawn at %s is inside geometry." % p.snapped(Vector3.ONE * 0.1))
+	if lowest < INF and kill_y > lowest - 3.0:
+		out.append("kill_height %.1f is too close to the floor (lowest spawn floor %.1f)." % [kill_y, lowest])
+	return out
 
 
 func breakable_basis_floor_x() -> Basis:
@@ -171,93 +331,12 @@ func breakable_basis_wall_x() -> Basis:
 # --- Layout ---------------------------------------------------------------------
 
 func _environment(space := false) -> void:
-	# Cinematic stylized lighting: warm key sun, cool sky fill, soft GI bounce.
-	var env := Environment.new()
-	var sky := Sky.new()
-	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.22, 0.42, 0.92)
-	sky_mat.sky_horizon_color = Color(1.0, 0.74, 0.55)
-	sky_mat.sky_curve = 0.12
-	sky_mat.ground_horizon_color = Color(0.95, 0.72, 0.62)
-	sky_mat.ground_bottom_color = Color(0.25, 0.28, 0.45)
-	sky_mat.sun_angle_max = 25.0
-	sky_mat.sun_curve = 0.08
-	sky_mat.sky_energy_multiplier = 1.0
-	sky.sky_material = sky_mat
-	if space:
-		var sm := ShaderMaterial.new()
-		sm.shader = preload("res://scripts/world/space_sky.gdshader")
-		sky.sky_material = sm
-	env.background_mode = Environment.BG_SKY
-	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.55
-	env.ambient_light_sky_contribution = 0.85
-	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-	env.tonemap_mode = Environment.TONE_MAPPER_AGX
-	env.tonemap_exposure = 1.0
-	env.tonemap_white = 8.0
-	env.ssao_enabled = true
-	env.ssao_radius = 2.2
-	env.ssao_intensity = 1.1
-	env.ssao_power = 1.3
-	env.ssao_detail = 0.3
-	env.ssao_light_affect = 0.15
-	env.ssil_enabled = true
-	env.ssil_radius = 6.0
-	env.ssil_intensity = 1.2
-	env.sdfgi_enabled = true
-	env.sdfgi_use_occlusion = true
-	env.sdfgi_bounce_feedback = 0.6
-	env.sdfgi_energy = 1.1
-	env.sdfgi_cascades = 4
-	env.glow_enabled = true
-	env.glow_intensity = 0.5
-	env.glow_strength = 0.9
-	env.glow_bloom = 0.06
-	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
-	env.glow_hdr_threshold = 1.0
-	env.fog_enabled = true
-	env.fog_light_color = Color(0.85, 0.82, 0.95)
-	env.fog_density = 0.0006
-	env.fog_aerial_perspective = 0.25
-	env.fog_sky_affect = 0.0
-	env.volumetric_fog_enabled = true
-	env.volumetric_fog_density = 0.0022
-	env.volumetric_fog_albedo = Color(1.0, 0.9, 0.82)
-	env.volumetric_fog_anisotropy = 0.5
-	env.volumetric_fog_sky_affect = 0.1
-	env.adjustment_enabled = true
-	env.adjustment_saturation = 1.22
-	env.adjustment_contrast = 1.1
-	if space:
-		# Space is dark: rely on a tinted ambient so shadows stay readable and cool.
-		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-		env.ambient_light_color = Color(0.45, 0.42, 0.75)
-		env.ambient_light_energy = 0.7
-		env.fog_enabled = false
-		env.volumetric_fog_density = 0.0012
-	var we := WorldEnvironment.new()
-	we.environment = env
-	add_child(we)
+	environment_preset("space" if space else "sunset")
 
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-42, 38, 0)
-	sun.light_color = Color(1.0, 0.82, 0.6)
-	sun.light_energy = 2.4
-	sun.light_angular_distance = 2.0 # soft penumbras
-	sun.shadow_enabled = true
-	sun.shadow_blur = 1.8
-	sun.directional_shadow_max_distance = 160.0
-	add_child(sun)
-	# Cool bounce/fill from the opposite side so shadows read blue rather than grey.
-	var fill := DirectionalLight3D.new()
-	fill.rotation_degrees = Vector3(-25, 38 + 180, 0)
-	fill.light_color = Color(0.55, 0.7, 1.0)
-	fill.light_energy = 0.25
-	fill.light_specular = 0.2
-	fill.shadow_enabled = false
-	add_child(fill)
+
+func environment_preset(preset: String, settings: Node = null) -> void:
+	for n in MapEnvironment.build(preset, settings):
+		add_child(n)
 
 
 func _floor_and_pit() -> void:
@@ -362,18 +441,7 @@ func _base(s: int) -> void:
 	light(Vector3(s * 56.0, 3.8, 0), Color(1, 0.9, 0.8), 12.0, 1.6)
 	glow_strip(Vector3(s * 50.0, 4.98, 0), Vector3(20, 0.04, 0.3), tc.lerp(Color.WHITE, 0.6), 3.0)
 	# Flag stand.
-	var stand := Vector3(s * 52.0, 6.0, 0)
-	flag_stands[team] = stand + Vector3(0, 0.4, 0)
-	var ped := MeshInstance3D.new()
-	var cm := CylinderMesh.new()
-	cm.top_radius = 1.4
-	cm.bottom_radius = 1.6
-	cm.height = 0.4
-	ped.mesh = cm
-	ped.position = stand + Vector3(0, 0.2, 0)
-	ped.material_override = Mats.glow(tc, 2.0)
-	add_child(ped)
-	light(stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
+	flag_stand(team, Vector3(s * 52.0, 6.0, 0))
 	# Spawns on the deck and in the hall.
 	for i in 6:
 		var z := -8.0 + i * 3.2
@@ -503,4 +571,11 @@ func random_spawn(team: int, rng: RandomNumberGenerator) -> Vector3:
 	var list: Array = spawn_points.get(team, [])
 	if list.is_empty():
 		list = spawn_points[0]
+	if list.is_empty():
+		for k in spawn_points:
+			if not spawn_points[k].is_empty():
+				list = spawn_points[k]
+				break
+	if list.is_empty():
+		return Vector3(0, 2, 0)
 	return list[rng.randi() % list.size()]

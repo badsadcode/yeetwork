@@ -101,6 +101,8 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   with two team towers. Launch shafts lead to a sniper floor with a breakable window
   and to the roof (which has anvils for dropping on people). There is a central hill
   and breakable bridges over chasms. Falling off is death.
+- **Courtyard**: the Map Kit example map. Team decks, a breakable gate, an acid trench
+  with a wooden bridge, a catwalk with a lift and an updraft.
 - **Yeetwork Prime**: a vertical 90s arena. An acid pit sits around a central tower,
   with breakable bridges to each base, side lanes with wall-run walls, tunnels,
   catwalks with lifts, and quarter pipes for slope boosting.
@@ -112,6 +114,18 @@ play CTF and dodgeball, and regularly fall off the map.
 height gradients), a warm key sun, cool fill light, SDFGI and SSIL bounce lighting, soft
 SSAO, AgX tonemapping, subsurface-scattered skin and a custom space sky. There is no
 cel shading and there are no outlines.
+
+## Making maps
+
+Arenas are built in the Godot editor with the **Map Kit**: drop-in nodes for blocks,
+breakable slabs, spawns, flags, props, jump pads, lifts, hazards and lighting presets.
+Save a scene in `res://maps/` and it appears in the map list. Press **F6** on it to
+playtest with bots. The full guide is in **[docs/MAPPING.md](docs/MAPPING.md)**, and
+`maps/courtyard.tscn` is a complete example.
+
+```bash
+godot --headless --path . -- --map courtyard --validate
+```
 
 ## Networking
 

@@ -3,7 +3,7 @@ extends Area3D
 ## Jump pads, acid and wind. Players are affected by the peer that controls them;
 ## props are affected on the server only.
 
-enum Kind { JUMP_PAD, ACID, WIND }
+enum Kind { JUMP_PAD, ACID, WIND, KILL }
 
 var kind: int = Kind.JUMP_PAD
 var launch_velocity := Vector3.ZERO
@@ -53,6 +53,9 @@ func _affect_player(pl: Player, delta: float, now: float) -> void:
 			Sfx.play3d("sizzle", pl.global_position, 0.0, randf_range(0.9, 1.2))
 		Kind.WIND:
 			pl.velocity += launch_velocity * delta
+		Kind.KILL:
+			if pl.is_alive():
+				pl.report_hazard_damage(1000.0, "void")
 
 
 func _affect_prop(p: Prop, delta: float, now: float) -> void:
@@ -71,3 +74,6 @@ func _affect_prop(p: Prop, delta: float, now: float) -> void:
 			p.linear_velocity = Vector3(randf_range(-4, 4), 13.0, randf_range(-4, 4))
 		Kind.WIND:
 			p.linear_velocity += launch_velocity * delta
+		Kind.KILL:
+			if p.world:
+				p.world.server_prop_fell_out(p)

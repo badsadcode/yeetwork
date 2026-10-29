@@ -332,6 +332,7 @@ func add_kill(victim: Player, killer: Player, cause: String) -> void:
 	var text := ""
 	var base := cause.split(":")[0]
 	var obj := cause.split(":")[1].replace("_", " ") if cause.contains(":") else "thing"
+	obj = {"shard": "chunk of wall", "boom barrel": "boom barrel", "crate big": "big crate"}.get(obj, obj)
 	var verbs: Array = KILL_VERBS.get(base, ["{k} yeeted {v}"])
 	var verb: String = verbs[randi() % verbs.size()]
 	if cause == "suicide":

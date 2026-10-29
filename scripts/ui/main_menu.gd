@@ -94,9 +94,12 @@ func _ready() -> void:
 	_mode.selected = Game.mode
 	_field(grid, "Mode", _mode)
 	_map = OptionButton.new()
-	for m in Game.MAP_NAMES:
-		_map.add_item(m)
-	_map.selected = Game.map
+	var maps := Game.list_maps()
+	for i in maps.size():
+		_map.add_item(maps[i].name)
+		_map.set_item_metadata(i, maps[i].key)
+		if maps[i].key == Game.map:
+			_map.selected = i
 	_field(grid, "Map", _map)
 	_bots = SpinBox.new()
 	_bots.min_value = 0
@@ -172,7 +175,7 @@ func _button(parent: Control, text: String) -> Button:
 func _store() -> void:
 	Game.player_name = _name.text.strip_edges() if not _name.text.strip_edges().is_empty() else "Yeeter"
 	Game.mode = _mode.selected
-	Game.map = _map.selected
+	Game.map = _map.get_item_metadata(_map.selected) if _map.selected >= 0 else "facing"
 	Game.bot_count = int(_bots.value)
 	Game.port = int(_port.value)
 	Game.join_address = _address.text.strip_edges()

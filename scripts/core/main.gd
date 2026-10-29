@@ -4,7 +4,7 @@ extends Node
 ##
 ## Command line (after `--`):  --host  --join <ip>  --mode sandbox|ctf|dodgeball
 ##   --bots <n>  --port <n>  --name <name>  --autotest <seconds>  (quit after N seconds)
-##   --map prime|facing  --test (gameplay smoke tests)  --tour <dir> [--tour-mode destruction]  (save screenshots from fixed viewpoints, then quit)
+##   --map prime|facing|<map name in res://maps>  --validate (check a map, then quit)  --test (gameplay smoke tests)  --tour <dir> [--tour-mode destruction]  (save screenshots from fixed viewpoints, then quit)
 
 var menu: MainMenu
 var world: World
@@ -13,17 +13,23 @@ var _autotest_elapsed := 0.0
 var _tour_dir := ""
 var _tour_mode := ""
 var _test := false
+var _validate := false
 
 
 func _ready() -> void:
 	multiplayer.server_disconnected.connect(func(): leave("Disconnected from server"))
 	multiplayer.connection_failed.connect(func(): leave("Could not connect"))
 	multiplayer.connected_to_server.connect(_on_connected)
-	if not _handle_cmdline():
+	if Game.autostart:
+		# Playtest launched from a map scene (F6).
+		Game.autostart = false
+		_handle_cmdline(false)
+		host()
+	elif not _handle_cmdline():
 		show_menu("")
 
 
-func _handle_cmdline() -> bool:
+func _handle_cmdline(execute := true) -> bool:
 	var args := OS.get_cmdline_user_args()
 	var action := ""
 	var i := 0
@@ -41,7 +47,8 @@ func _handle_cmdline() -> bool:
 				Game.mode = {"sandbox": Game.Mode.SANDBOX, "ctf": Game.Mode.CTF, "dodgeball": Game.Mode.DODGEBALL}.get(next, Game.Mode.SANDBOX)
 				i += 1
 			"--map":
-				Game.map = {"prime": 0, "facing": 1}.get(next, 0)
+				# Built-in key ("prime", "facing"), a map file name in res://maps, or a path.
+				Game.map = next if next in ["prime", "facing"] or next.begins_with("res://") else "res://maps/%s.tscn" % next.trim_suffix(".tscn")
 				i += 1
 			"--bots":
 				Game.bot_count = int(next)
@@ -57,6 +64,9 @@ func _handle_cmdline() -> bool:
 				i += 1
 			"--test":
 				_test = true
+			"--validate":
+				_validate = true
+				action = "host"
 			"--tour":
 				_tour_dir = next
 				i += 1
@@ -64,6 +74,8 @@ func _handle_cmdline() -> bool:
 				_tour_mode = next
 				i += 1
 		i += 1
+	if not execute:
+		return false
 	match action:
 		"host":
 			host()
@@ -97,6 +109,24 @@ func _report_and_quit() -> void:
 	else:
 		print("AUTOTEST no world")
 	get_tree().quit()
+
+
+func _run_validation() -> void:
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var issues: Array[String] = world.arena.validate()
+	var cells := 0
+	for d in world.arena.destructibles:
+		cells += d.cells.size()
+	print("MAP VALIDATION: %s" % Game.map_display_name(world.map_key))
+	print("  spawns any/red/blue: %d/%d/%d, flags: %d, props: %d, breakables: %d (%d cells), kill height: %.1f" % [
+		world.arena.spawn_points[0].size(), world.arena.spawn_points[1].size(), world.arena.spawn_points[2].size(),
+		world.arena.flag_stands.size(), world.arena.initial_props.size(), world.arena.destructibles.size(), cells, world.arena.kill_y])
+	if issues.is_empty():
+		print("  OK - no problems found")
+	for i in issues:
+		print("  WARNING: " + i)
+	get_tree().quit(1 if not issues.is_empty() else 0)
 
 
 func show_menu(status: String) -> void:
@@ -146,6 +176,8 @@ func _start_world(server: bool) -> void:
 	world.leave_requested.connect(func(): leave(""))
 	world.start(server)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if _validate:
+		_run_validation.call_deferred()
 	if _test:
 		var t: Node = load("res://tests/test_runner.gd").new()
 		t.set("world", world)

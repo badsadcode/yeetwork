@@ -1,3 +1,4 @@
+@tool
 class_name Fracture
 extends RefCounted
 ## 2D fracture geometry for slab-like destructibles (walls, floors, bridges) and their

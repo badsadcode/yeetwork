@@ -30,7 +30,7 @@ var players_root: Node3D
 var props_root: Node3D
 var mode_logic: ModeBase
 var mode: int = Game.Mode.SANDBOX
-var map_id := 0
+var map_key := "facing"
 var is_server := false
 var rng := RandomNumberGenerator.new()
 var players := {} # id -> Player
@@ -103,12 +103,12 @@ func start(server: bool) -> void:
 		_c_hello.rpc_id(1, Game.player_name, Game.VERSION)
 
 
-func _build_arena(id: int) -> void:
-	map_id = id
+func _build_arena(key: String) -> void:
+	map_key = key
 	arena = Arena.new()
 	add_child(arena)
 	move_child(arena, 0)
-	arena.build(self, id)
+	arena.build(self, key)
 
 
 func _make_mode(m: int) -> ModeBase:
@@ -121,7 +121,7 @@ func _make_mode(m: int) -> ModeBase:
 
 
 func mode_name() -> String:
-	return "%s · %s" % [Game.MODE_NAMES[mode], Game.MAP_NAMES[map_id]]
+	return "%s · %s" % [Game.MODE_NAMES[mode], Game.map_display_name(map_key)]
 
 
 func is_team_mode() -> bool:
@@ -224,7 +224,7 @@ func _build_init_state() -> Dictionary:
 			guns.append([pl.player_id, pl.gun.held_kind, pl.gun.held_id])
 	return {
 		"mode": mode,
-		"map": map_id,
+		"map": map_key,
 		"time": net_time(),
 		"players": pl_list,
 		"props": pr_list,
@@ -504,6 +504,8 @@ func _s_props(buf: PackedFloat32Array) -> void:
 
 
 func server_prop_fell_out(p: Prop) -> void:
+	if p.is_queued_for_deletion() or not props.has(p.prop_id):
+		return
 	if mode_logic.on_prop_fell_out(p):
 		return
 	if p.has_meta("map_prop"):

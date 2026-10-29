@@ -40,7 +40,13 @@ func _process(delta: float) -> void:
 	if pl == null or pl.camera == null:
 		return
 	if _i < 0:
-		SHOTS = SHOTS_FACING if world.map_id == 1 else SHOTS_PRIME
+		match world.map_key:
+			"facing":
+				SHOTS = SHOTS_FACING
+			"prime":
+				SHOTS = SHOTS_PRIME
+			_:
+				SHOTS = _generic_shots()
 		pl.process_mode = Node.PROCESS_MODE_DISABLED
 		pl.model.visible = false
 		_next()
@@ -57,6 +63,28 @@ func _process(delta: float) -> void:
 			get_tree().quit()
 			return
 		_next()
+
+
+## Viewpoints derived from a Map Kit map's spawn points.
+func _generic_shots() -> Array:
+	var pts: Array = []
+	for k in world.arena.spawn_points:
+		pts.append_array(world.arena.spawn_points[k])
+	var box := AABB(pts[0], Vector3.ZERO)
+	for p in pts:
+		box = box.expand(p)
+	var c := box.get_center()
+	var e := box.size * 0.5
+	var shots := [
+		["overview", c + Vector3(-e.x * 1.15, 16, e.z * 1.35), c, 6.0],
+		["overview_b", c + Vector3(e.x * 1.1, 11, -e.z * 1.15), c, 2.5],
+	]
+	var red: Array = world.arena.spawn_points[1]
+	if not red.is_empty():
+		shots.append(["from_red_base", red[0] + Vector3(0, 1.7, 0), c + Vector3(0, 1.5, 0), 2.5])
+	shots.append(["action", Vector3.ZERO, Vector3.ZERO, 2.5])
+	shots.append(["action2", Vector3.ZERO, Vector3.ZERO, 2.5])
+	return shots
 
 
 func _next() -> void:
@@ -76,7 +104,7 @@ func _build_lineup() -> void:
 		world.add_child(m)
 		var col: Color = Game.FFA_COLORS[i % Game.FFA_COLORS.size()]
 		m.setup(col, i, i + 3)
-		var base := Vector3(-60.0, 0.0, 0.0) if world.map_id == 1 else Vector3(-48.0, 6.0, 0.0)
+		var base := Vector3(-60.0, 0.0, 0.0) if world.map_key == "facing" else Vector3(-48.0, 6.0, 0.0)
 		m.global_position = base + Vector3(0, 0, -4.5 + i * 1.5)
 		for k in 30:
 			m.animate(0.05, Vector3.ZERO, Player.F_GROUNDED, -PI * 0.5 + (i - 3) * 0.15, false)

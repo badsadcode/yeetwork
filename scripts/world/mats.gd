@@ -1,3 +1,4 @@
+@tool
 class_name Mats
 extends RefCounted
 ## Procedural textures and a material cache shared by the arena, props and characters.
