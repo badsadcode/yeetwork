@@ -209,18 +209,15 @@ func _run() -> void:
 		check("ctf capture", world.team_scores.get(Game.TEAM_RED, 0) == before_score + 1, "red score %d" % world.team_scores.get(Game.TEAM_RED, 0))
 		check("ctf flag returned home", blue.global_position.distance_to(blue.home_transform.origin) < 1.0, "flag at %s" % blue.global_position.snapped(Vector3.ONE * 0.1))
 
-	# 13. Props shatter: a crate hurled at a wall bursts into board fragments.
-	var shards_before := 0
-	for p: Prop in world.props.values():
-		if is_instance_valid(p) and p.kind == "shard":
-			shards_before += 1
+	# 13. Props shatter: a crate hurled at a wall bursts into board fragments. Count only
+	# fragments newer than the crate (the debris cap may remove older ones meanwhile).
 	var box: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, Vector3(-58, 2.0, 30)))
 	var box_id := box.prop_id
 	await ticks(2)
 	box.linear_velocity = Vector3(-40, 0, 0)
 	await ticks(30)
-	var shards_after := 0
+	var boards := 0
 	for p: Prop in world.props.values():
-		if is_instance_valid(p) and p.kind == "shard":
-			shards_after += 1
-	check("crate shatters into boards", world.get_prop(box_id) == null and shards_after > shards_before, "crate gone: %s, board props %d -> %d" % [world.get_prop(box_id) == null, shards_before, shards_after])
+		if is_instance_valid(p) and p.kind == "shard" and p.prop_id > box_id:
+			boards += 1
+	check("crate shatters into boards", world.get_prop(box_id) == null and boards > 0, "crate gone: %s, new board props %d" % [world.get_prop(box_id) == null, boards])
