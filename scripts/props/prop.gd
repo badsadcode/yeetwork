@@ -4,14 +4,14 @@ extends RigidBody3D
 ## move a frozen kinematic copy toward them.
 
 const DEFS := {
-	"crate": {"shape": "box", "size": Vector3(1, 1, 1), "mass": 25.0, "color": Color(0.95, 0.62, 0.25), "bounce": 0.15, "label": "Crate"},
-	"crate_big": {"shape": "box", "size": Vector3(1.7, 1.7, 1.7), "mass": 70.0, "color": Color(0.85, 0.5, 0.2), "bounce": 0.1, "label": "Big Crate"},
-	"barrel": {"shape": "cyl", "size": Vector3(0.42, 1.15, 0.42), "mass": 40.0, "color": Color(0.2, 0.6, 1.0), "bounce": 0.2, "label": "Barrel"},
+	"crate": {"shape": "box", "size": Vector3(1, 1, 1), "mass": 25.0, "color": Color(0.95, 0.62, 0.25), "bounce": 0.15, "label": "Crate", "fragile": 9000.0, "breaks_into": "boards"},
+	"crate_big": {"shape": "box", "size": Vector3(1.7, 1.7, 1.7), "mass": 70.0, "color": Color(0.85, 0.5, 0.2), "bounce": 0.1, "label": "Big Crate", "fragile": 26000.0, "breaks_into": "boards"},
+	"barrel": {"shape": "cyl", "size": Vector3(0.42, 1.15, 0.42), "mass": 40.0, "color": Color(0.2, 0.6, 1.0), "bounce": 0.2, "label": "Barrel", "fragile": 15000.0, "breaks_into": "staves"},
 	"boom_barrel": {"shape": "cyl", "size": Vector3(0.42, 1.15, 0.42), "mass": 35.0, "color": Color(1.0, 0.18, 0.15), "bounce": 0.2, "label": "Boom Barrel", "explosive": true},
 	"ball": {"shape": "sphere", "size": Vector3(0.36, 0.36, 0.36), "mass": 4.0, "color": Color(1.0, 0.3, 0.55), "bounce": 0.75, "label": "Dodgeball"},
 	"beachball": {"shape": "sphere", "size": Vector3(0.95, 0.95, 0.95), "mass": 2.0, "color": Color(1.0, 0.92, 0.25), "bounce": 0.85, "label": "Beach Ball", "damp": 0.6},
 	"anvil": {"shape": "box", "size": Vector3(0.55, 0.5, 1.0), "mass": 300.0, "color": Color(0.25, 0.27, 0.32), "bounce": 0.0, "label": "Anvil", "metal": true},
-	"plank": {"shape": "box", "size": Vector3(3.2, 0.16, 0.55), "mass": 15.0, "color": Color(0.8, 0.6, 0.38), "bounce": 0.1, "label": "Plank"},
+	"plank": {"shape": "box", "size": Vector3(3.2, 0.16, 0.55), "mass": 15.0, "color": Color(0.8, 0.6, 0.38), "bounce": 0.1, "label": "Plank", "fragile": 5000.0, "breaks_into": "split"},
 	"couch": {"shape": "couch", "size": Vector3(2.0, 0.9, 0.95), "mass": 60.0, "color": Color(0.6, 0.35, 0.95), "bounce": 0.25, "label": "Couch"},
 	"tire": {"shape": "cyl", "size": Vector3(0.6, 0.38, 0.6), "mass": 20.0, "color": Color(0.12, 0.12, 0.14), "bounce": 0.8, "label": "Tire"},
 	"cone": {"shape": "cone", "size": Vector3(0.3, 0.8, 0.3), "mass": 3.0, "color": Color(1.0, 0.5, 0.1), "bounce": 0.3, "label": "Cone"},

@@ -692,6 +692,8 @@ func server_break_prop(p: Prop, rel: Vector3) -> void:
 	server_despawn_prop(p)
 	if kind.begins_with("pumpkin"):
 		server_fx("pumpkin", xf.origin, rel, 2.0 if kind == "pumpkin_gold" else 1.0)
+	elif def.has("breaks_into"):
+		_server_scatter_pieces(_prop_pieces(kind, def, p.size, p.prop_id), xf, vel, rel, col, "metal" if def.breaks_into == "staves" else "wood")
 	elif def.shape == "outline":
 		var mat_name: String = def.get("shatter", "concrete")
 		var srng := RandomNumberGenerator.new()
@@ -708,6 +710,79 @@ func server_break_prop(p: Prop, rel: Vector3) -> void:
 			else:
 				server_fx_shard(local, thickness, Transform3D(basis, pos), v, col, mat_name)
 		server_fx("impact:" + ("wood" if mat_name == "wood" else "stone"), xf.origin, rel, 1.5, Vector3.UP)
+
+
+## Breaks a prop into flat pieces: [poly (local 2D), thickness, Transform3D in prop space].
+## Crates burst into boards, barrels into staves and lids, planks snap in two.
+func _prop_pieces(kind: String, def: Dictionary, size: Vector3, seed_value: int) -> Array:
+	var prng := RandomNumberGenerator.new()
+	prng.seed = seed_value * 4421
+	var out := []
+	match def.breaks_into:
+		"boards":
+			var s := size.x
+			var t := 0.08 * s
+			for axis in 3:
+				for side in [-1.0, 1.0]:
+					var n := Vector3.ZERO
+					n[axis] = side
+					var up := Vector3.UP if axis != 1 else Vector3.FORWARD
+					var x := up.cross(n).normalized()
+					var y := n.cross(x).normalized()
+					var face := Transform3D(Basis(x, y, n), n * (s * 0.5 - t * 0.5))
+					for k in 2:
+						var y0 := -s * 0.5 + k * s * 0.5
+						var rect := PackedVector2Array([Vector2(-s * 0.5, y0), Vector2(s * 0.5, y0), Vector2(s * 0.5, y0 + s * 0.48), Vector2(-s * 0.5, y0 + s * 0.48)])
+						for piece in Fracture.shatter(rect, prng.randi_range(1, 2), prng, Vector2.INF, Vector2(0.35, 1.0)):
+							out.append([piece, t, face])
+		"staves":
+			var r := size.x
+			var h := size.y
+			var count := 8
+			var w := TAU * r / count
+			for i in count:
+				var a := i * TAU / count
+				var n := Vector3(cos(a), 0, sin(a))
+				var x := Vector3.UP.cross(n).normalized()
+				var rect := PackedVector2Array([Vector2(-w * 0.5, -h * 0.5), Vector2(w * 0.5, -h * 0.5), Vector2(w * 0.5, h * 0.5), Vector2(-w * 0.5, h * 0.5)])
+				out.append([rect, 0.06, Transform3D(Basis(x, Vector3.UP, n), n * (r - 0.03))])
+			for side in [-1.0, 1.0]:
+				var lid := PackedVector2Array()
+				for i in 8:
+					lid.append(Vector2.from_angle(i * TAU / 8.0) * r * 0.95)
+				out.append([lid, 0.06, Transform3D(Basis(Vector3.RIGHT, Vector3(0, 0, -1), Vector3.UP), Vector3.UP * side * (h * 0.5 - 0.03))])
+		"split":
+			var rect := PackedVector2Array([Vector2(-size.x * 0.5, -size.z * 0.5), Vector2(size.x * 0.5, -size.z * 0.5), Vector2(size.x * 0.5, size.z * 0.5), Vector2(-size.x * 0.5, size.z * 0.5)])
+			var cut := Vector2(prng.randf_range(-size.x * 0.2, size.x * 0.2), 0)
+			for piece in Fracture.split(rect, cut, prng):
+				out.append([piece, size.y, Transform3D(Basis(Vector3.RIGHT, Vector3(0, 0, -1), Vector3.UP), Vector3.ZERO)])
+	return out
+
+
+## Spawns prop pieces flying outward. The biggest few are networked (grabbable); the rest
+## are local splinters.
+func _server_scatter_pieces(pieces: Array, xf: Transform3D, vel: Vector3, rel: Vector3, col: Color, mat_name: String) -> void:
+	pieces.sort_custom(func(a, b): return Fracture.area(a[0]) * a[1] > Fracture.area(b[0]) * b[1])
+	var srng := RandomNumberGenerator.new()
+	srng.randomize()
+	var basis := xf.basis.orthonormalized()
+	for i in pieces.size():
+		var poly: PackedVector2Array = pieces[i][0]
+		var t: float = pieces[i][1]
+		var local_xf: Transform3D = pieces[i][2]
+		var pc := Fracture.centroid(poly)
+		var piece_xf := Transform3D(basis, xf.origin) * local_xf * Transform3D(Basis.IDENTITY, Vector3(pc.x, pc.y, 0))
+		var out_dir := (piece_xf.origin - xf.origin).normalized()
+		var v := vel * 0.4 + out_dir * srng.randf_range(3.0, 7.0) + Vector3.UP * srng.randf_range(1.0, 4.0) - rel.normalized() * 1.5
+		var local := Fracture.translated(poly, -pc)
+		if i < 4 and Fracture.area(poly) * t >= 0.006:
+			var frag := server_spawn_prop("shard", piece_xf, Vector3.ZERO, col, 0, v, {"polys": [local], "t": t, "mat": mat_name})
+			frag.angular_velocity = Vector3(srng.randf_range(-9, 9), srng.randf_range(-9, 9), srng.randf_range(-9, 9))
+			_track_debris(frag)
+		else:
+			server_fx_shard(local, t, piece_xf, v, col, mat_name)
+	server_fx("impact:" + mat_name, xf.origin, rel, 1.4, Vector3.UP)
+	server_fx("crack" if mat_name != "metal" else "impact:metal", xf.origin, rel, 1.0)
 
 
 func server_explode(p: Prop) -> void:
@@ -758,9 +833,13 @@ func server_explode(p: Prop) -> void:
 	for d in arena.destructibles:
 		if d.global_position.distance_to(pos) < radius + 30.0 and not d.cells_near(pos, radius * 0.6).is_empty():
 			server_damage_destructible(d, pos, radius * 0.6, 260.0, (d.global_position - pos).normalized() * 14.0 + Vector3.UP * 4.0, attacker, 2.0)
+	var shrapnel := _prop_pieces("barrel", {"breaks_into": "staves"}, p.size, p.prop_id)
+	var bxf := p.global_transform
+	var bcol := p.color
 	if p.has_meta("map_prop"):
 		_restock.append([t + 25.0, p.kind, p.home_transform])
 	server_despawn_prop(p)
+	_server_scatter_pieces(shrapnel, bxf, Vector3.UP * 6.0, Vector3.DOWN * 20.0, bcol, "metal")
 
 
 # --- Destruction ------------------------------------------------------------------

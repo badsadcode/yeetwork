@@ -61,6 +61,18 @@ func _ready() -> void:
 	await _wait(1.0)
 	_shot("09_through_holes")
 
+	# Props shatter: a crate and a barrel smashed into the wall.
+	_cam(Vector3(24, 2.6, -25.5), Vector3(28, 1.5, -20.5))
+	var sc: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, Vector3(26, 1.8, -23)))
+	var sb: Prop = world.server_spawn_prop("barrel", Transform3D(Basis.IDENTITY, Vector3(30, 1.8, -23)))
+	await _wait(0.1)
+	sc.linear_velocity = Vector3(0, 1, 40)
+	sb.linear_velocity = Vector3(0, 1, 42)
+	await _wait(0.12)
+	_shot("09b_props_shatter")
+	await _wait(1.2)
+	_shot("09c_props_after")
+
 	# Glass window at the red base deck.
 	_cam(Vector3(-29, 8.0, 3.5), Vector3(-37, 7.5, 0))
 	await _wait(1.5)

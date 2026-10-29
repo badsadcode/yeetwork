@@ -189,7 +189,11 @@ func _run() -> void:
 	world.gun_action(pl, GravityGun.Action.GRAB_END)
 
 	# 11. Fall damage from height.
-	await reset(Vector3(-45, 40, -24), 0.0)
+	# Clear any debris from earlier tests under the drop point first.
+	for p: Prop in world.props.values():
+		if is_instance_valid(p) and Vector2(p.global_position.x, p.global_position.z).distance_to(Vector2(-40, 25)) < 4.0:
+			world.server_despawn_prop(p)
+	await reset(Vector3(-40, 40, 25), 0.0)
 	await ticks(150)
 	check("fall damage", pl.hp < 100.0, "hp %.0f" % pl.hp)
 
@@ -204,3 +208,19 @@ func _run() -> void:
 		await ticks(10)
 		check("ctf capture", world.team_scores.get(Game.TEAM_RED, 0) == before_score + 1, "red score %d" % world.team_scores.get(Game.TEAM_RED, 0))
 		check("ctf flag returned home", blue.global_position.distance_to(blue.home_transform.origin) < 1.0, "flag at %s" % blue.global_position.snapped(Vector3.ONE * 0.1))
+
+	# 13. Props shatter: a crate hurled at a wall bursts into board fragments.
+	var shards_before := 0
+	for p: Prop in world.props.values():
+		if is_instance_valid(p) and p.kind == "shard":
+			shards_before += 1
+	var box: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, Vector3(-58, 2.0, 30)))
+	var box_id := box.prop_id
+	await ticks(2)
+	box.linear_velocity = Vector3(-40, 0, 0)
+	await ticks(30)
+	var shards_after := 0
+	for p: Prop in world.props.values():
+		if is_instance_valid(p) and p.kind == "shard":
+			shards_after += 1
+	check("crate shatters into boards", world.get_prop(box_id) == null and shards_after > shards_before, "crate gone: %s, board props %d -> %d" % [world.get_prop(box_id) == null, shards_before, shards_after])

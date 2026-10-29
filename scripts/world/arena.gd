@@ -466,6 +466,8 @@ func _base(s: int) -> void:
 		box(Vector3(s * 60.0, 12, sz * 10.0), Vector3(3, 12, 3), C_WALL)
 		glow_strip(Vector3(s * 60.0, 12, sz * 8.48), Vector3(0.4, 11, 0.06), tc, 3.5)
 		light(Vector3(s * 58.0, 14, sz * 8.0), tc, 16.0, 2.0)
+	# Tough metal shutter hanging over the hall mouth: dents long before it breaks.
+	breakable(Vector3(s * 36.6, 4.25, 0), breakable_basis_wall_x(), Vector2(22, 1.5), 0.3, ["top"], "metal", Color(0.6, 0.64, 0.72))
 	# Hall lighting.
 	light(Vector3(s * 44.0, 3.8, 0), tc.lerp(Color.WHITE, 0.5), 14.0, 2.2)
 	light(Vector3(s * 56.0, 3.8, 0), Color(1, 0.9, 0.8), 12.0, 1.6)

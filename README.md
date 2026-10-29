@@ -76,6 +76,9 @@ the slab mesh and collision are rebuilt, so holes are real geometry you can fly 
 - **Materials.** Plaster, concrete, brick (brick-shaped chunks), wood (plank-like splinters
   along the grain), glass (many shards, used for windows) and metal (very tough) each
   break differently and sound different.
+- **Props shatter too.** Crates burst into plank boards, barrels into staves and lids,
+  planks snap in two, and explosive barrels throw metal shrapnel. Gravestones and coffins
+  break into fragments of their own shape. The biggest pieces stay grabbable.
 - Explosive barrels chain-react.
 
 **Impacts you can feel.** Sounds are synthesized in layers (transient, material body, and a
