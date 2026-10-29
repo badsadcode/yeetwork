@@ -10,6 +10,8 @@ const KILL_VERBS := {
 	"prop": ["{k} yeeted a {o} at {v}", "{k} introduced {v} to a {o}", "{v} caught {k}'s {o} with their face"],
 	"explosion": ["{k} exploded {v}", "{k} sent {v} to the moon", "{k} made {v} go boom"],
 	"acid": ["{k} dunked {v} in acid", "{k} gave {v} an acid bath"],
+	"lava": ["{k} fondued {v}", "{k} gave {v} a lava bath"],
+	"drown": ["{k} sent {v} to sleep with the fishes", "{k} threw {v} overboard"],
 	"void": ["{k} yeeted {v} out of the world", "{k} sent {v} into the void"],
 	"player": ["{k} body-slammed {v}", "{k} bowled over {v}"],
 	"dodgeball": ["{k} dodgeballed {v}"],
@@ -405,6 +407,10 @@ func add_kill(victim: Player, killer: Player, cause: String) -> void:
 				text = "%s forgot how doors work" % victim.display_name
 			"acid":
 				text = "%s went for a swim" % victim.display_name
+			"lava":
+				text = "%s tested the lava" % victim.display_name
+			"drown":
+				text = "%s sleeps with the fishes" % victim.display_name
 			"void":
 				text = "%s fell out of the world" % victim.display_name
 			"explosion":

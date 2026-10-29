@@ -16,7 +16,9 @@
 script = ExtResource("1_settings")
 map_name = "Courtyard"
 author = "Yeetwork Map Kit"
-description = "Example map: two team decks, a breakable gate, an acid trench and a catwalk."
+description = "Example map: two team decks on a sea fort, a breakable gate, an acid trench and a catwalk."
+ocean = true
+ocean_level = -3.0
 sky = "day"
 kill_height = -20.0
 avoid_areas = Array[Rect2]([Rect2(-6, 10, 12, 8)])

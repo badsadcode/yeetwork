@@ -1,14 +1,16 @@
 class_name TriggerVolume
 extends Area3D
-## Jump pads, acid and wind. Players are affected by the peer that controls them;
+## Jump pads, acid, water and wind. Players are affected by the peer that controls them;
 ## props are affected on the server only.
 
-enum Kind { JUMP_PAD, ACID, WIND, KILL }
+enum Kind { JUMP_PAD, ACID, WIND, KILL, WATER }
 
 var kind: int = Kind.JUMP_PAD
 var launch_velocity := Vector3.ZERO
 var strength := 0.0
 var _cooldowns := {}
+## The Liquid this volume belongs to (acid / lava / water), for surface height and splashes.
+var liquid: Liquid
 
 
 func setup(p_kind: int, size: Vector3, p_velocity := Vector3.ZERO, p_strength := 0.0) -> void:
@@ -23,6 +25,19 @@ func setup(p_kind: int, size: Vector3, p_velocity := Vector3.ZERO, p_strength :=
 	shape.size = size
 	cs.shape = shape
 	add_child(cs)
+	body_entered.connect(_on_body_entered)
+
+
+func _on_body_entered(body: Node3D) -> void:
+	if liquid == null:
+		return
+	var v := Vector3.ZERO
+	if body is Player:
+		v = (body as Player).velocity
+	elif body is RigidBody3D:
+		v = (body as RigidBody3D).linear_velocity
+	if v.length() > 2.5:
+		liquid.splash(body.global_position, v.length())
 
 
 func _physics_process(delta: float) -> void:
@@ -49,13 +64,36 @@ func _affect_player(pl: Player, delta: float, now: float) -> void:
 				return
 			_cooldowns[pl] = now
 			pl.external_launch(Vector3(randf_range(-3, 3), 15.0, randf_range(-3, 3)), false, 0.8)
-			pl.report_hazard_damage(strength, "acid")
+			pl.report_hazard_damage(strength, "lava" if liquid and liquid.kind == "lava" else "acid")
 			Sfx.play3d("sizzle", pl.global_position, 0.0, randf_range(0.9, 1.2))
 		Kind.WIND:
 			pl.velocity += launch_velocity * delta
 		Kind.KILL:
 			if pl.is_alive():
 				pl.report_hazard_damage(1000.0, "void")
+		Kind.WATER:
+			_swim(pl, delta)
+
+
+## Water: drag, buoyancy and swimming (hold jump to rise). The open ocean is too rough to
+## swim in: you sink and, deep enough, drown.
+func _swim(pl: Player, delta: float) -> void:
+	var depth := liquid.height_at(pl.global_position.x, pl.global_position.z) - pl.global_position.y
+	if depth <= 0.0:
+		return
+	var sub := clampf(depth / 1.5, 0.0, 1.0)
+	var drag := 2.6 if liquid.ocean else 1.8
+	pl.velocity *= exp(-drag * sub * delta)
+	if liquid.ocean:
+		pl.velocity.y += Player.GRAVITY * 0.8 * sub * delta
+		if depth > 6.0 and pl.is_alive():
+			pl.report_hazard_damage(1000.0, "drown")
+		return
+	pl.velocity.y += Player.GRAVITY * 1.12 * sub * delta
+	if pl.cmd.jump:
+		pl.velocity.y += 16.0 * sub * delta
+	elif pl.cmd.crouch:
+		pl.velocity.y -= 10.0 * sub * delta
 
 
 func _affect_prop(p: Prop, delta: float, now: float) -> void:
@@ -77,3 +115,22 @@ func _affect_prop(p: Prop, delta: float, now: float) -> void:
 		Kind.KILL:
 			if p.world:
 				p.world.server_prop_fell_out(p)
+		Kind.WATER:
+			_float(p, delta)
+
+
+## Wood, rubber and soft things float and bob on the waves; metal and stone sink.
+func _float(p: Prop, delta: float) -> void:
+	if p.held_by != 0:
+		return
+	var r := clampf(p.size.y * 0.5, 0.15, 1.0)
+	var depth := liquid.height_at(p.global_position.x, p.global_position.z) - p.global_position.y
+	var sub := clampf((depth + r) / (2.0 * r), 0.0, 1.0)
+	if sub <= 0.0:
+		return
+	var floaty := 0.55 if p.impact_material() in ["metal", "stone", "concrete", "brick", "glass"] else 1.75
+	p.linear_velocity.y += Player.GRAVITY * floaty * sub * delta
+	p.linear_velocity *= exp(-1.6 * sub * delta)
+	p.angular_velocity *= exp(-2.0 * sub * delta)
+	if liquid.ocean:
+		p.linear_velocity += Vector3(cos(0.3), 0, sin(0.3)) * 0.8 * sub * delta

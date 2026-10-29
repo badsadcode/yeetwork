@@ -97,6 +97,9 @@ var _capsule: CapsuleShape3D
 var _head: Node3D
 var _arm: SpringArm3D
 var camera: Camera3D
+var _underwater: MeshInstance3D
+var _underwater_mat: ShaderMaterial
+var _underwater_liquid: Liquid
 var _trail: CPUParticles3D
 var _eye_height := EYE_STAND
 var _air_time := 0.0
@@ -216,6 +219,19 @@ func _ready() -> void:
 		camera.far = 800.0
 		_arm.add_child(camera)
 		camera.make_current()
+		_underwater = MeshInstance3D.new()
+		var quad := QuadMesh.new()
+		quad.size = Vector2(2, 2)
+		_underwater.mesh = quad
+		_underwater_mat = ShaderMaterial.new()
+		_underwater_mat.shader = preload("res://scripts/world/underwater.gdshader")
+		_underwater_mat.render_priority = 100
+		_underwater.material_override = _underwater_mat
+		_underwater.extra_cull_margin = 16384.0
+		_underwater.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_underwater.position = Vector3(0, 0, -0.3)
+		_underwater.visible = false
+		camera.add_child(_underwater)
 		gun.build_viewmodel(camera)
 		_view_third_person = Game.third_person
 	_net_pos = global_position
@@ -1001,3 +1017,29 @@ func _update_camera(delta: float) -> void:
 	# Charging a throw narrows the view slightly: focus before the yeet.
 	var zoom := gun.visual_charge() * 7.0 if gun else 0.0
 	camera.fov = clampf(_base_fov + _punch * 9.0 - zoom, 20.0, 150.0)
+	_update_underwater()
+
+
+## Underwater view: tint, fog and the split waterline when the camera is at the surface.
+func _update_underwater() -> void:
+	var cam_pos := camera.global_position
+	var liq := Liquid.at(cam_pos, 1.0)
+	var near := false
+	var under := false
+	if liq:
+		var h := liq.height_at(cam_pos.x, cam_pos.z)
+		near = cam_pos.y < h + 0.6
+		under = cam_pos.y < h
+	if near:
+		if liq != _underwater_liquid:
+			_underwater_liquid = liq
+			var u := liq.wave_uniforms()
+			for key in u:
+				_underwater_mat.set_shader_parameter(key, u[key])
+			_underwater_mat.set_shader_parameter("fog_color", liq.params.fog)
+			_underwater_mat.set_shader_parameter("visibility", liq.params.visibility)
+			_underwater_mat.set_shader_parameter("shafts", liq.params.shafts)
+			_underwater_mat.set_shader_parameter("glow_color", liq.params.glow_color)
+		_underwater_mat.set_shader_parameter("wave_time", Liquid.wave_time())
+	_underwater.visible = near
+	Sfx.set_underwater(under)

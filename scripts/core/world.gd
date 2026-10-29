@@ -114,6 +114,7 @@ func _start_ambience() -> void:
 
 func _exit_tree() -> void:
 	Sfx.set_ambience("")
+	Sfx.set_underwater(false)
 
 
 ## Halloween dressing: some crates become jack-o'-lanterns, plus pumpkins, gravestones and

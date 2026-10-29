@@ -172,7 +172,7 @@ func flag_stand(team: int, stand: Vector3) -> void:
 	light(stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
 
 
-## Acid pool (with glowing surface), kill volume or wind volume.
+## Liquid pool (acid, lava or water), kill volume or wind volume.
 func hazard(kind: String, xf: Transform3D, size: Vector3, damage := 22.0, wind := Vector3.ZERO) -> void:
 	var t := TriggerVolume.new()
 	t.transform = xf
@@ -183,23 +183,9 @@ func hazard(kind: String, xf: Transform3D, size: Vector3, damage := 22.0, wind :
 		"wind":
 			t.setup(TriggerVolume.Kind.WIND, size, wind)
 		_:
-			t.setup(TriggerVolume.Kind.ACID, size, Vector3.ZERO, damage)
-			var surface := MeshInstance3D.new()
-			var pm := PlaneMesh.new()
-			pm.size = Vector2(size.x, size.z)
-			surface.mesh = pm
-			surface.transform = xf * Transform3D(Basis.IDENTITY, Vector3(0, size.y * 0.3, 0))
-			var acid_mat := StandardMaterial3D.new()
-			acid_mat.albedo_color = Color(0.4, 1.0, 0.2, 0.75)
-			acid_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			acid_mat.emission_enabled = true
-			acid_mat.emission = C_ACID
-			acid_mat.emission_energy_multiplier = 1.4
-			acid_mat.roughness = 0.05
-			surface.material_override = acid_mat
-			surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			add_child(surface)
-			light(xf.origin + Vector3.UP * (size.y * 0.5 + 2.0), C_ACID, maxf(size.x, size.z) * 0.9, 2.5)
+			# Liquids: the surface sits 30% of the way up the box; the Liquid makes its own volume.
+			t.queue_free()
+			add_child(Liquid.create(kind, xf.origin + Vector3(0, size.y * 0.3, 0), Vector3(size.x, size.y * 0.8, size.z), damage))
 
 
 # --- Scene maps (made with the Map Kit) ---------------------------------------------
@@ -218,6 +204,8 @@ func _build_scene_map(path: String) -> void:
 	if settings:
 		kill_y = settings.kill_height
 		avoid_rects.assign(settings.avoid_areas)
+		if settings.ocean:
+			add_child(Liquid.create_ocean(settings.ocean_level))
 	if not _has_class(root, "WorldEnvironment") and not _has_class(root, "DirectionalLight3D"):
 		environment_preset(settings.sky if settings else "sunset", settings)
 	_collect(root)
@@ -389,28 +377,7 @@ func _floor_and_pit() -> void:
 	for s in [-1, 1]:
 		glow_strip(Vector3(s * 14.0, 0.03, 0), Vector3(0.3, 0.06, 28.3), C_ACID, 2.0)
 		glow_strip(Vector3(0, 0.03, s * 14.0), Vector3(28.3, 0.06, 0.3), C_ACID, 2.0)
-	var acid := TriggerVolume.new()
-	acid.position = Vector3(0, -7.0, 0)
-	add_child(acid)
-	acid.setup(TriggerVolume.Kind.ACID, Vector3(28, 2.2, 28), Vector3.ZERO, 22.0)
-	var surface := MeshInstance3D.new()
-	var pm := PlaneMesh.new()
-	pm.size = Vector2(28, 28)
-	surface.mesh = pm
-	surface.position = Vector3(0, -6.4, 0)
-	var acid_mat := StandardMaterial3D.new()
-	acid_mat.albedo_color = Color(0.4, 1.0, 0.2, 0.75)
-	acid_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	acid_mat.emission_enabled = true
-	acid_mat.emission = C_ACID
-	acid_mat.emission_energy_multiplier = 1.4
-	acid_mat.roughness = 0.05
-	acid_mat.albedo_texture = Mats.grid_texture()
-	acid_mat.uv1_scale = Vector3(7, 7, 7)
-	surface.material_override = acid_mat
-	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(surface)
-	light(Vector3(0, -3, 0), C_ACID, 22.0, 3.0)
+	add_child(Liquid.create("acid", Vector3(0, -6.4, 0), Vector3(28, 1.6, 28), 22.0))
 
 
 func _outer_walls() -> void:

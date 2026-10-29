@@ -25,6 +25,10 @@ extends Node
 	set(v):
 		ambient_scale = v
 		_refresh_preview()
+## Surround the map with an animated ocean (players who fall in sink and drown, wooden
+## props float on the waves).
+@export var ocean := false
+@export var ocean_level := -4.0
 ## Players and props below this height die / respawn.
 @export var kill_height := -40.0
 ## Areas (XZ rectangles in world space) bots should walk around, e.g. pits.

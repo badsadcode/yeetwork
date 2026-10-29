@@ -5,7 +5,7 @@ extends Node
 ## Command line (after `--`):  --host  --join <ip>  --mode sandbox|ctf|dodgeball
 ##   --bots <n>  --bot-skill 0|1|2  --port <n>  --name <name>  --autotest <seconds>  (quit after N seconds)
 ##   --screenshot <png> (save a screenshot after 2.5 s, then quit)
-##   --map prime|facing|<map name in res://maps>  --validate (check a map, then quit)  --test (gameplay smoke tests)  --tour <dir> [--tour-mode destruction|charge]  (save screenshots from fixed viewpoints, then quit)
+##   --map prime|facing|<map name in res://maps>  --validate (check a map, then quit)  --test (gameplay smoke tests)  --tour <dir> [--tour-mode destruction|charge|water]  (save screenshots from fixed viewpoints, then quit)
 
 var menu: MainMenu
 var world: World
@@ -201,7 +201,7 @@ func _start_world(server: bool) -> void:
 		t.set("world", world)
 		add_child(t)
 	if _tour_dir != "":
-		var script_path := "res://scripts/core/dev_destruction.gd" if _tour_mode == "destruction" else "res://scripts/core/dev_charge.gd" if _tour_mode == "charge" else "res://scripts/core/dev_tour.gd"
+		var script_path := "res://scripts/core/dev_%s.gd" % _tour_mode if _tour_mode != "" else "res://scripts/core/dev_tour.gd"
 		var tour: Node = load(script_path).new()
 		tour.set("world", world)
 		tour.set("out_dir", _tour_dir)

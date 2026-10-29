@@ -43,6 +43,7 @@ func _ready() -> void:
 	_add("spawn", 0.25, _blip.bind(800.0, 300.0, 0.25, 0.3))
 	_add("slide", 0.45, _slide)
 	_add("sizzle", 0.6, _sizzle)
+	_add("splash", 0.9, _splash)
 	_add("death", 0.9, _death)
 	_add("score", 0.6, _score)
 	_add("squelch", 0.6, _squelch)
@@ -92,6 +93,11 @@ func _setup_buses() -> void:
 	rev.wet = 0.12
 	rev.dry = 1.0
 	AudioServer.add_bus_effect(idx, rev)
+	var lp := AudioEffectLowPassFilter.new()
+	lp.cutoff_hz = 900.0
+	lp.resonance = 0.3
+	AudioServer.add_bus_effect(idx, lp, 2)
+	AudioServer.set_bus_effect_enabled(idx, 2, false)
 	var lim := AudioEffectHardLimiter.new()
 	lim.ceiling_db = -0.5
 	AudioServer.add_bus_effect(0, lim)
@@ -387,6 +393,22 @@ func _slide(buf: PackedFloat32Array, _v: int) -> void:
 	_add_noise(buf, _lp_noise(buf.size(), 1500.0), 4.0, 0.3, 0.04)
 
 
+## Water: a bright slap, a hollow "plunk" and a few bubbles bloop up afterwards.
+func _splash(buf: PackedFloat32Array, v: int) -> void:
+	_add_noise(buf, _lp_noise(buf.size(), 3200.0 * _vr(v, 0.15)), 9.0, 0.75, 0.004)
+	_add_noise(buf, _lp_noise(buf.size(), 700.0), 4.0, 0.35, 0.02)
+	_drop(buf, 260.0 * _vr(v, 0.1), 90.0, 18.0, 14.0, 0.45)
+	for k in 6:
+		var start := int(RATE * _rng.randf_range(0.06, 0.5))
+		var f0 := _rng.randf_range(350.0, 900.0)
+		var length := _rng.randf_range(0.04, 0.09)
+		var phase := 0.0
+		for i in range(start, mini(start + int(length * RATE), buf.size())):
+			var t := float(i - start) / RATE
+			phase += TAU * f0 * (1.0 + t / length * 0.9) / RATE
+			buf[i] += sin(phase) * sin(PI * t / length) * 0.16 * exp(-float(start) / RATE * 2.0)
+
+
 func _sizzle(buf: PackedFloat32Array, _v: int) -> void:
 	var hp := _bp_noise(buf.size(), 4000.0)
 	for i in buf.size():
@@ -431,6 +453,13 @@ var _ambient: AudioStreamPlayer
 
 
 ## Looping background ambience ("" stops it).
+## Muffles everything while the camera is under a liquid.
+func set_underwater(on: bool) -> void:
+	var idx := AudioServer.get_bus_index("SFX")
+	if idx >= 0 and AudioServer.get_bus_effect_count(idx) > 2 and AudioServer.is_bus_effect_enabled(idx, 2) != on:
+		AudioServer.set_bus_effect_enabled(idx, 2, on)
+
+
 func set_ambience(sound: String, volume_db := -12.0) -> void:
 	if _ambient == null:
 		_ambient = AudioStreamPlayer.new()

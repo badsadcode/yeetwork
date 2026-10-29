@@ -402,3 +402,78 @@ func puff(pos: Vector3, normal: Vector3, color := Color(0.9, 0.9, 0.95)) -> void
 	m.radius = 0.15
 	m.height = 0.3
 	_burst(pos, normal, 6, m, Mats.plastic(color, 1.0), 1.0, 3.0, 0.5, 4.0)
+
+
+## Something hit a liquid: a crown of droplets, a whitewater column, a ring and mist.
+func splash(pos: Vector3, strength: float, color: Color, liquid := "water") -> void:
+	var glow := liquid != "water"
+	var drop := StandardMaterial3D.new()
+	drop.albedo_color = Color(color.lightened(0.55), 0.75)
+	drop.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	drop.roughness = 0.05
+	drop.metallic_specular = 0.9
+	if glow:
+		drop.emission_enabled = true
+		drop.emission = color
+		drop.emission_energy_multiplier = 2.5
+	var streak := CapsuleMesh.new()
+	streak.radius = 0.035
+	streak.height = 0.22
+	streak.radial_segments = 6
+	streak.rings = 1
+	_burst(pos + Vector3.UP * 0.1, Vector3.UP, int(14 + strength * 22), streak, drop, 3.0 + strength * 2.0, 6.0 + strength * 5.0, 1.1, 0.4, true)
+	var foam := Mats.plastic(Color(0.95, 0.98, 1.0) if not glow else color.lightened(0.4), 0.6, 1.5 if glow else 0.0)
+	var blob := SphereMesh.new()
+	blob.radius = 0.16
+	blob.height = 0.32
+	blob.radial_segments = 8
+	blob.rings = 4
+	_burst(pos, Vector3.UP, int(6 + strength * 8), blob, foam, 2.0 + strength, 4.0 + strength * 3.5, 0.8, 1.5)
+	_ring(pos + Vector3.UP * 0.05, Vector3.UP, 1.2 + strength * 2.2, Color(0.95, 0.98, 1.0) if not glow else color)
+	if strength > 0.8:
+		_ring(pos + Vector3.UP * 0.05, Vector3.UP, 2.5 + strength * 3.0, Color(0.95, 0.98, 1.0) if not glow else color)
+		spray(pos, Vector3.ZERO, strength)
+
+
+## Soft mist that drifts with the wind and fades (wave crests, big splashes).
+func spray(pos: Vector3, wind: Vector3, strength: float) -> void:
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 0.7
+	p.amount = int(5 + strength * 5)
+	p.lifetime = 1.6
+	var m := SphereMesh.new()
+	m.radius = 0.4
+	m.height = 0.8
+	m.radial_segments = 8
+	m.rings = 4
+	p.mesh = m
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(0.92, 0.97, 1.0)
+	p.material_override = mat
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(1, 1, 1, 0.45))
+	ramp.set_color(1, Color(1, 1, 1, 0.0))
+	p.color_ramp = ramp
+	var grow := Curve.new()
+	grow.add_point(Vector2(0, 0.4))
+	grow.add_point(Vector2(1, 1.6))
+	p.scale_amount_curve = grow
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.6 * strength
+	p.direction = (wind * 1.5 + Vector3.UP).normalized()
+	p.spread = 35.0
+	p.initial_velocity_min = 1.5
+	p.initial_velocity_max = 4.0 * strength
+	p.gravity = Vector3(0, -2.0, 0) + wind * 2.0
+	p.damping_min = 1.0
+	p.damping_max = 2.0
+	p.local_coords = false
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(p)
+	p.global_position = pos
+	p.emitting = true
+	get_tree().create_timer(2.2).timeout.connect(p.queue_free)
