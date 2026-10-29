@@ -4,7 +4,8 @@ You build Yeetwork arenas in the **Godot editor** as ordinary scenes, using a fe
 drop-in nodes for gameplay (spawns, flags, breakable walls, jump pads...). Any scene in
 `res://maps/` shows up in the game's map list automatically.
 
-The example map `maps/courtyard.tscn` uses every node type. Open it, look around,
+The example map `maps/courtyard.tscn` uses every node type; `maps/lagoon.tscn` shows water
+(a swimmable `water` HazardVolume and an ocean). Open it, look around,
 press **F6**, and you are playing it with bots.
 
 ---

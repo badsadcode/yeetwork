@@ -74,7 +74,6 @@ var look_hat := -1
 var look_face := 0
 var look_skin := -1
 var look_color := -1
-var look_outfit := 0
 ## Faces that blink and react (false: the classic, unchanging faces). Only changes what you see.
 var expressive_faces := true
 
@@ -110,7 +109,7 @@ func _ready() -> void:
 
 ## The character choices sent to the server when joining.
 func look() -> Dictionary:
-	return {"hat": look_hat, "face": look_face, "skin": look_skin, "color": look_color, "outfit": look_outfit}
+	return {"hat": look_hat, "face": look_face, "skin": look_skin, "color": look_color}
 
 
 ## Steam sets SteamDeck=1 for games launched on the Deck; SteamOS sets SteamOS=1.
@@ -150,7 +149,7 @@ func apply_graphics() -> void:
 	vp.scaling_3d_scale = scale
 	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X, Viewport.MSAA_DISABLED][clampi(aa, 0, 4)]
 	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if aa in [1, 2, 3] else Viewport.SCREEN_SPACE_AA_DISABLED
-	vp.use_taa = aa == 4 or gfx.upscaler == 2 # FSR 2 needs TAA-style jitter
+	vp.use_taa = aa == 4 and gfx.upscaler != 2 # FSR 2 brings its own temporal pass
 	RenderingServer.directional_shadow_atlas_set_size(4096 if gfx.shadows >= 2 else 2048, true)
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if gfx.vsync else DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = int(gfx.max_fps)
@@ -177,7 +176,6 @@ func save_settings() -> void:
 	cfg.set_value("look", "face", look_face)
 	cfg.set_value("look", "skin", look_skin)
 	cfg.set_value("look", "color", look_color)
-	cfg.set_value("look", "outfit", look_outfit)
 	cfg.set_value("look", "expressive", expressive_faces)
 	cfg.set_value("net", "address", join_address)
 	cfg.set_value("net", "port", port)
@@ -216,7 +214,6 @@ func load_settings() -> void:
 	look_face = cfg.get_value("look", "face", look_face)
 	look_skin = cfg.get_value("look", "skin", look_skin)
 	look_color = cfg.get_value("look", "color", look_color)
-	look_outfit = cfg.get_value("look", "outfit", look_outfit)
 	expressive_faces = cfg.get_value("look", "expressive", expressive_faces)
 	join_address = cfg.get_value("net", "address", join_address)
 	port = cfg.get_value("net", "port", port)

@@ -8,11 +8,14 @@ const SKINS := [Color(1.0, 0.85, 0.7), Color(0.93, 0.72, 0.55), Color(0.75, 0.55
 const SKIN_NAMES := ["Peach", "Tan", "Caramel", "Cocoa", "Honey"]
 const HAT_NAMES := ["Hair tuft", "Party cone", "Top hat", "Propeller beanie", "Antenna", "Horns", "Bucket", "Pumpkin head", "Witch hat", "Baseball cap", "Crown", "Chef hat", "Viking helmet", "Captain's dome"]
 const HAT_COUNT := 14
+## Hats players can pick (and random hats); the ones after are reserved for special bots.
+const PLAYER_HATS := 13
 const HAT_CAPTAIN := 13
 const SPOOKY_HATS := [7, 8] # Halloween costumes
 ## Head attachments, worn together with any hat (except the pumpkin head, which covers the face).
 const FACE_NAMES := ["Nothing", "Round glasses", "Shades", "Mustache", "Clown nose", "Headphones", "Bow", "Monocle", "Eyepatch"]
-## Outfits over the torso. The shirt colour (team colour in team modes) always shows.
+## Outfits over the torso (special bots only). The shirt colour (team colour in team modes)
+## always shows.
 const OUTFIT_NAMES := ["Shirt", "Captain's tunic"]
 
 ## Expressive faces: eye openness, pupil size, brow height and tilt (+ = angry, - = worried),
@@ -43,6 +46,8 @@ const PART_SPECS := {
 var body: Node3D
 var parts := {}
 var gun_socket: Node3D
+## Colours of this character (first-person hands use them).
+var skin_color := Color(1.0, 0.85, 0.7)
 ## The meshes of the hat and of the head extra (children of the head), e.g. for exporting.
 var hat_nodes: Array[Node3D] = []
 var face_nodes: Array[Node3D] = []
@@ -82,9 +87,9 @@ var _look_off := Vector2.ZERO
 static func random_hat(rng: RandomNumberGenerator, spooky: bool) -> int:
 	if spooky and rng.randf() < 0.75:
 		return SPOOKY_HATS[rng.randi() % SPOOKY_HATS.size()]
-	var hat := rng.randi() % HAT_COUNT
+	var hat := rng.randi() % PLAYER_HATS
 	while hat in SPOOKY_HATS:
-		hat = rng.randi() % HAT_COUNT
+		hat = rng.randi() % PLAYER_HATS
 	return hat
 
 
@@ -96,6 +101,7 @@ func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1,
 	var skin: Color = SKINS[rng.randi() % SKINS.size()]
 	if skin_index >= 0:
 		skin = SKINS[skin_index % SKINS.size()]
+	skin_color = skin
 	var pants := Color(0.2, 0.22, 0.35).lerp(shirt.darkened(0.6), 0.3)
 	var shoe := Color(0.95, 0.95, 0.95)
 

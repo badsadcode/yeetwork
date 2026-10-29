@@ -60,7 +60,9 @@ Gamepads work too (sticks, triggers for the gun, A jump, B crouch).
 
 ## What's in it
 
-**Gravity gun.** Grab, carry, pull, push and throw. Pulled objects lock on and come to
+**Gravity gun.** A chunky toy sci-fi gun with a glowing core and three claws, modelled in
+Blender (`art/gravity_gun/gravity_gun.blend`, built by `tools/make_gravity_gun.py`; its
+orange parts take your team colour). Grab, carry, pull, push and throw. Pulled objects lock on and come to
 you even if your aim drifts. Holding the trigger catches incoming objects, including
 dodgeballs. Push or pull what you hold, and rotate props to line up a build or a shot. You can grab players: teammates for up to 6 s, enemies only briefly, and
 throw them across the map. Hold the throw button to **charge** a throw: the object shakes and the crackling
@@ -150,6 +152,9 @@ menu, or in Pumpkin Smash, every map gets:
   and breakable bridges over chasms. Falling off is death.
 - **Courtyard**: the Map Kit example map, an island in the sea. Team decks, a breakable
   gate, an acid trench with a wooden bridge, a catwalk with a lift and an updraft.
+- **Lagoon**: a ring island around a swimmable lagoon out at sea. Dive off the tower,
+  float the junk, fight over the breakable piers to the glass-fronted team bases. The
+  place to see both water styles.
 - **Yeetwork Prime**: a vertical 90s arena. An acid pit sits around a central tower,
   with breakable bridges to each base, side lanes with wall-run walls, tunnels,
   catwalks with lifts, and quarter pipes for slope boosting.
@@ -209,7 +214,8 @@ scripts/fx/       effects.gd (blood, decals, explosions, debris), sfx.gd (synthe
 scripts/bots/     bot_brain.gd
 scripts/ui/       hud.gd, main_menu.gd, settings_form.gd, ui_theme.gd, character_preview.gd
 tests/            test_runner.gd (gameplay smoke tests)
-tools/            make_ui_art.py (menu button/frame art), glb_to_blend.py (characters .blend)
+tools/            make_ui_art.py (menu button/frame art), glb_to_blend.py (characters .blend),
+                  make_gravity_gun.py (the gun model: .blend and assets/models/gravity_gun.glb)
 art/              source art for Blender (ignored by Godot)
 ```
 
@@ -262,7 +268,6 @@ server when you join):
   pumpkin head, witch hat, baseball cap, crown, chef hat, viking helmet (or random).
 - **Head extra**: round glasses, shades, mustache, clown nose, headphones, bow, monocle,
   eyepatch.
-- **Outfit**: shirt, or the captain's tunic (dark shoulders, gold badge).
 - **Skin** tone and a favourite **shirt** colour (free-for-all modes; teams wear team colours).
 - **Faces**: *Expressive* faces blink, glance at what they grab or aim at, and react: an
   angry squint while charging a throw, focus while holding something, a scared "O" when
@@ -270,8 +275,8 @@ server when you join):
   kill, puffed cheeks underwater and X eyes when knocked out. *Classic* keeps the original
   faces exactly as they were. It only changes what you see (`--faces classic`).
 
-Look out for **Sir Yeetrick Stewart**, a tribute bot in the captain's dome and tunic, who
-always joins first.
+Look out for **Sir Yeetrick Stewart**, a tribute bot who always joins first, in a look of
+his own that players can't pick: the captain's dome and the captain's tunic.
 
 **Blender:** `art/characters/characters.blend` holds the same parts: the body (with the
 classic face), every hat, head extra and outfit, each in its own collection and already sitting on the head (toggle
@@ -287,3 +292,11 @@ blender --background --python tools/glb_to_blend.py -- /tmp/chars/characters.glb
 
 `art/` is ignored by Godot (it is source art). To use edited parts in the game, export them
 as `.glb` into `assets/` and replace the matching part in `CharacterModel`.
+
+## Blender
+
+`art/` holds the Blender sources (`characters/characters.blend`, `gravity_gun/gravity_gun.blend`),
+rebuilt by the scripts in `tools/`. For live work in Blender from Claude Code, the
+[Blender MCP](https://github.com/ahujasid/blender-mcp) add-on runs inside Blender (sidebar →
+*MCP for Blender* → *Connect*) and a project-local `.mcp.json` (not committed) starts the
+`blender-mcp` server.

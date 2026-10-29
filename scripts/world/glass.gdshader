@@ -65,17 +65,23 @@ void vertex() {
 	damage = use_vertex_damage ? COLOR.r : 0.0;
 }
 
+// Noise lookups are offset off the integer lattice: panes sit on whole-metre coordinates,
+// and sampling exactly on a cell boundary flickers between cells from frame to frame.
+const vec3 LATTICE_OFFSET = vec3(0.371, 0.213, 0.537);
+
 void fragment() {
+	vec3 wp = world_pos + LATTICE_OFFSET;
 	// Wavy pane: a gentle world-space bump, so neighbouring panes line up.
-	vec3 q = world_pos * 0.7;
+	vec3 q = wp * 0.7;
 	vec2 wob = vec2(value_noise(q) - 0.5, value_noise(q + 7.3) - 0.5) * waviness;
 	float crack = 0.0;
 	if (damage > 0.05) {
-		float mask = smoothstep(0.3, 0.6, value_noise(world_pos * 1.5) + damage * 0.5);
-		float e = crack_edges(world_pos * 3.0);
+		float mask = smoothstep(0.3, 0.6, value_noise(wp * 1.5) + damage * 0.5);
+		float e = crack_edges(wp * 3.0);
 		float width = damage * 0.05 * mask;
-		crack = 1.0 - smoothstep(width * 0.3, width, e);
-		wob += (vec2(hash(floor(world_pos * 3.0)), hash(floor(world_pos * 3.0) + 3.1)) - 0.5) * damage * 0.6;
+		float aa = fwidth(e); // soften thin lines by their on-screen size: no shimmer
+		crack = (1.0 - smoothstep(width * 0.3 - aa, width + aa, e)) * clamp(width / max(aa, 0.0001), 0.0, 1.0);
+		wob += (vec2(value_noise(wp * 3.0), value_noise(wp * 3.0 + 3.1)) - 0.5) * damage * 0.6;
 	}
 	vec3 n = normalize(NORMAL + vec3(wob, 0.0) * 0.25); // meshes have no tangents
 	NORMAL = n;

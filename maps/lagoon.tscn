@@ -1,0 +1,501 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/mapkit/map_settings.gd" id="1_settings"]
+[ext_resource type="Script" path="res://scripts/mapkit/arena_block.gd" id="2_block"]
+[ext_resource type="Script" path="res://scripts/mapkit/breakable_slab.gd" id="3_slab"]
+[ext_resource type="Script" path="res://scripts/mapkit/spawn_point.gd" id="4_spawn"]
+[ext_resource type="Script" path="res://scripts/mapkit/flag_stand.gd" id="5_flag"]
+[ext_resource type="Script" path="res://scripts/mapkit/prop_spawn.gd" id="6_prop"]
+[ext_resource type="Script" path="res://scripts/mapkit/jump_pad.gd" id="7_pad"]
+[ext_resource type="Script" path="res://scripts/mapkit/lift_platform.gd" id="8_lift"]
+[ext_resource type="Script" path="res://scripts/mapkit/hazard_volume.gd" id="9_hazard"]
+
+[node name="Lagoon" type="Node3D"]
+
+[node name="MapSettings" type="Node" parent="."]
+script = ExtResource("1_settings")
+map_name = "Lagoon"
+author = "Yeetwork Map Kit"
+description = "A ring island around a swimmable lagoon, out at sea: dive off the tower, float the junk, fight over the piers."
+sky = "day"
+ocean = true
+ocean_level = -2.0
+ocean_preset = "ocean"
+kill_height = -20.0
+avoid_areas = Array[Rect2]([Rect2(-15, -11, 30, 22), Rect2(-29, -9, 8, 18), Rect2(21, -9, 8, 18)])
+playtest_bots = 4
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="RingNorth" type="StaticBody3D" parent="Geometry"]
+position = Vector3(0, -2.5, -14)
+script = ExtResource("2_block")
+size = Vector3(42, 5, 6)
+color = Color(0.42, 0.47, 0.62, 1)
+
+[node name="RingSouth" type="StaticBody3D" parent="Geometry"]
+position = Vector3(0, -2.5, 14)
+script = ExtResource("2_block")
+size = Vector3(42, 5, 6)
+color = Color(0.42, 0.47, 0.62, 1)
+
+[node name="RingWest" type="StaticBody3D" parent="Geometry"]
+position = Vector3(-18, -2.5, 0)
+script = ExtResource("2_block")
+size = Vector3(6, 5, 22)
+color = Color(0.42, 0.47, 0.62, 1)
+
+[node name="RingEast" type="StaticBody3D" parent="Geometry"]
+position = Vector3(18, -2.5, 0)
+script = ExtResource("2_block")
+size = Vector3(6, 5, 22)
+color = Color(0.42, 0.47, 0.62, 1)
+
+[node name="LagoonFloor" type="StaticBody3D" parent="Geometry"]
+position = Vector3(0, -5.5, 0)
+script = ExtResource("2_block")
+size = Vector3(30, 1, 22)
+color = Color(0.93, 0.82, 0.6, 1)
+
+[node name="Beach" type="StaticBody3D" parent="Geometry"]
+position = Vector3(0, -1.5, 7.5)
+rotation = Vector3(-0.4, 0, 0)
+script = ExtResource("2_block")
+size = Vector3(8, 0.5, 8.2)
+color = Color(0.93, 0.82, 0.6, 1)
+
+[node name="TowerPillar" type="StaticBody3D" parent="Geometry"]
+position = Vector3(0, -0.5, 0)
+script = ExtResource("2_block")
+size = Vector3(3, 9, 3)
+color = Color(0.78, 0.7, 0.86, 1)
+
+[node name="TowerTop" type="StaticBody3D" parent="Geometry"]
+position = Vector3(0, 4.25, 0)
+script = ExtResource("2_block")
+size = Vector3(7, 0.5, 7)
+color = Color(0.5, 0.62, 0.8, 1)
+
+[node name="BoardBase" type="StaticBody3D" parent="Geometry"]
+position = Vector3(0, 1.5, -13.5)
+script = ExtResource("2_block")
+size = Vector3(6, 3, 3)
+color = Color(0.78, 0.7, 0.86, 1)
+
+[node name="DivingBoard" type="StaticBody3D" parent="Geometry"]
+position = Vector3(0, 2.85, -10.5)
+script = ExtResource("2_block")
+size = Vector3(1.6, 0.3, 4)
+color = Color(0.85, 0.6, 0.35, 1)
+
+[node name="ParapetNorth" type="StaticBody3D" parent="Geometry"]
+position = Vector3(0, 0.4, -16.6)
+script = ExtResource("2_block")
+size = Vector3(42, 0.8, 0.8)
+color = Color(0.78, 0.7, 0.86, 1)
+
+[node name="ParapetSouth" type="StaticBody3D" parent="Geometry"]
+position = Vector3(0, 0.4, 16.6)
+script = ExtResource("2_block")
+size = Vector3(42, 0.8, 0.8)
+color = Color(0.78, 0.7, 0.86, 1)
+
+[node name="RedIsland" type="StaticBody3D" parent="Geometry"]
+position = Vector3(-35, -2.5, 0)
+script = ExtResource("2_block")
+size = Vector3(14, 5, 20)
+color = Color(0.42, 0.47, 0.62, 1)
+
+[node name="RedBackWall" type="StaticBody3D" parent="Geometry"]
+position = Vector3(-41, 2.5, 0)
+script = ExtResource("2_block")
+size = Vector3(1, 5, 12)
+color = Color(0.78, 0.7, 0.86, 1)
+
+[node name="RedSideN" type="StaticBody3D" parent="Geometry"]
+position = Vector3(-38, 2.5, -6)
+script = ExtResource("2_block")
+size = Vector3(7, 5, 1)
+color = Color(0.78, 0.7, 0.86, 1)
+
+[node name="RedSideS" type="StaticBody3D" parent="Geometry"]
+position = Vector3(-38, 2.5, 6)
+script = ExtResource("2_block")
+size = Vector3(7, 5, 1)
+color = Color(0.78, 0.7, 0.86, 1)
+
+[node name="RedRoof" type="StaticBody3D" parent="Geometry"]
+position = Vector3(-38, 5.25, 0)
+script = ExtResource("2_block")
+size = Vector3(7.5, 0.5, 13)
+color = Color(1, 0.27, 0.33, 1)
+
+[node name="RedTrim" type="StaticBody3D" parent="Geometry"]
+position = Vector3(-34.6, 5, 0)
+script = ExtResource("2_block")
+size = Vector3(0.2, 0.3, 13)
+color = Color(1, 0.27, 0.33, 1)
+emission = 2.0
+
+[node name="BlueIsland" type="StaticBody3D" parent="Geometry"]
+position = Vector3(35, -2.5, 0)
+script = ExtResource("2_block")
+size = Vector3(14, 5, 20)
+color = Color(0.42, 0.47, 0.62, 1)
+
+[node name="BlueBackWall" type="StaticBody3D" parent="Geometry"]
+position = Vector3(41, 2.5, 0)
+script = ExtResource("2_block")
+size = Vector3(1, 5, 12)
+color = Color(0.78, 0.7, 0.86, 1)
+
+[node name="BlueSideN" type="StaticBody3D" parent="Geometry"]
+position = Vector3(38, 2.5, -6)
+script = ExtResource("2_block")
+size = Vector3(7, 5, 1)
+color = Color(0.78, 0.7, 0.86, 1)
+
+[node name="BlueSideS" type="StaticBody3D" parent="Geometry"]
+position = Vector3(38, 2.5, 6)
+script = ExtResource("2_block")
+size = Vector3(7, 5, 1)
+color = Color(0.78, 0.7, 0.86, 1)
+
+[node name="BlueRoof" type="StaticBody3D" parent="Geometry"]
+position = Vector3(38, 5.25, 0)
+script = ExtResource("2_block")
+size = Vector3(7.5, 0.5, 13)
+color = Color(0.25, 0.55, 1, 1)
+
+[node name="BlueTrim" type="StaticBody3D" parent="Geometry"]
+position = Vector3(34.6, 5, 0)
+script = ExtResource("2_block")
+size = Vector3(0.2, 0.3, 13)
+color = Color(0.25, 0.55, 1, 1)
+emission = 2.0
+
+[node name="Breakables" type="Node3D" parent="."]
+
+[node name="RedGlass" type="Node3D" parent="Breakables"]
+position = Vector3(-34.5, 2.5, 0)
+rotation = Vector3(0, 1.5708, 0)
+script = ExtResource("3_slab")
+size = Vector2(7, 4)
+thickness = 0.25
+material = "glass"
+anchor_bottom = true
+anchor_top = true
+anchor_left = false
+anchor_right = false
+
+[node name="RedPier0" type="Node3D" parent="Breakables"]
+script = ExtResource("3_slab")
+position = Vector3(-24.5, -0.25, -6)
+orientation = 1
+size = Vector2(9, 3)
+thickness = 0.5
+material = "wood"
+color = Color(0.78, 0.55, 0.32, 1)
+anchor_left = true
+anchor_right = true
+anchor_bottom = false
+
+[node name="RedPier1" type="Node3D" parent="Breakables"]
+script = ExtResource("3_slab")
+position = Vector3(-24.5, -0.25, 6)
+orientation = 1
+size = Vector2(9, 3)
+thickness = 0.5
+material = "wood"
+color = Color(0.78, 0.55, 0.32, 1)
+anchor_left = true
+anchor_right = true
+anchor_bottom = false
+
+[node name="BlueGlass" type="Node3D" parent="Breakables"]
+position = Vector3(34.5, 2.5, 0)
+rotation = Vector3(0, 1.5708, 0)
+script = ExtResource("3_slab")
+size = Vector2(7, 4)
+thickness = 0.25
+material = "glass"
+anchor_bottom = true
+anchor_top = true
+anchor_left = false
+anchor_right = false
+
+[node name="BluePier0" type="Node3D" parent="Breakables"]
+script = ExtResource("3_slab")
+position = Vector3(24.5, -0.25, -6)
+orientation = 1
+size = Vector2(9, 3)
+thickness = 0.5
+material = "wood"
+color = Color(0.78, 0.55, 0.32, 1)
+anchor_left = true
+anchor_right = true
+anchor_bottom = false
+
+[node name="BluePier1" type="Node3D" parent="Breakables"]
+script = ExtResource("3_slab")
+position = Vector3(24.5, -0.25, 6)
+orientation = 1
+size = Vector2(9, 3)
+thickness = 0.5
+material = "wood"
+color = Color(0.78, 0.55, 0.32, 1)
+anchor_left = true
+anchor_right = true
+anchor_bottom = false
+
+[node name="Spawns" type="Node3D" parent="."]
+
+[node name="Red0" type="Node3D" parent="Spawns"]
+position = Vector3(-37.5, 0, -3)
+script = ExtResource("4_spawn")
+team = 1
+
+[node name="Red1" type="Node3D" parent="Spawns"]
+position = Vector3(-37.5, 0, 3)
+script = ExtResource("4_spawn")
+team = 1
+
+[node name="Red2" type="Node3D" parent="Spawns"]
+position = Vector3(-39, 0, 0)
+script = ExtResource("4_spawn")
+team = 1
+
+[node name="Red3" type="Node3D" parent="Spawns"]
+position = Vector3(-31.5, 0, -7)
+script = ExtResource("4_spawn")
+team = 1
+
+[node name="Red4" type="Node3D" parent="Spawns"]
+position = Vector3(-31.5, 0, 7)
+script = ExtResource("4_spawn")
+team = 1
+
+[node name="Blue0" type="Node3D" parent="Spawns"]
+position = Vector3(37.5, 0, -3)
+script = ExtResource("4_spawn")
+team = 2
+
+[node name="Blue1" type="Node3D" parent="Spawns"]
+position = Vector3(37.5, 0, 3)
+script = ExtResource("4_spawn")
+team = 2
+
+[node name="Blue2" type="Node3D" parent="Spawns"]
+position = Vector3(39, 0, 0)
+script = ExtResource("4_spawn")
+team = 2
+
+[node name="Blue3" type="Node3D" parent="Spawns"]
+position = Vector3(31.5, 0, -7)
+script = ExtResource("4_spawn")
+team = 2
+
+[node name="Blue4" type="Node3D" parent="Spawns"]
+position = Vector3(31.5, 0, 7)
+script = ExtResource("4_spawn")
+team = 2
+
+[node name="Any0" type="Node3D" parent="Spawns"]
+position = Vector3(-12, 0, -14)
+script = ExtResource("4_spawn")
+
+[node name="Any1" type="Node3D" parent="Spawns"]
+position = Vector3(12, 0, -14)
+script = ExtResource("4_spawn")
+
+[node name="Any2" type="Node3D" parent="Spawns"]
+position = Vector3(-12, 0, 14)
+script = ExtResource("4_spawn")
+
+[node name="Any3" type="Node3D" parent="Spawns"]
+position = Vector3(12, 0, 14)
+script = ExtResource("4_spawn")
+
+[node name="Any4" type="Node3D" parent="Spawns"]
+position = Vector3(-18, 0, -6)
+script = ExtResource("4_spawn")
+
+[node name="Any5" type="Node3D" parent="Spawns"]
+position = Vector3(18, 0, 6)
+script = ExtResource("4_spawn")
+
+[node name="Any6" type="Node3D" parent="Spawns"]
+position = Vector3(-18, 0, 6)
+script = ExtResource("4_spawn")
+
+[node name="Any7" type="Node3D" parent="Spawns"]
+position = Vector3(18, 0, -6)
+script = ExtResource("4_spawn")
+
+[node name="Gameplay" type="Node3D" parent="."]
+
+[node name="RedFlag" type="Node3D" parent="Gameplay"]
+position = Vector3(-38, 0, 0)
+script = ExtResource("5_flag")
+team = 0
+
+[node name="BlueFlag" type="Node3D" parent="Gameplay"]
+position = Vector3(38, 0, 0)
+script = ExtResource("5_flag")
+team = 1
+
+[node name="PadToTowerW" type="Node3D" parent="Gameplay"]
+position = Vector3(-16, 0, 0)
+script = ExtResource("7_pad")
+target = Vector3(13.5, 4.5, 0)
+arc_height = 3.0
+
+[node name="PadToTowerE" type="Node3D" parent="Gameplay"]
+position = Vector3(16, 0, 0)
+script = ExtResource("7_pad")
+target = Vector3(-13.5, 4.5, 0)
+arc_height = 3.0
+
+[node name="PadToBoard" type="Node3D" parent="Gameplay"]
+position = Vector3(-6, 0, -14)
+script = ExtResource("7_pad")
+target = Vector3(6, 3, 2)
+arc_height = 2.0
+
+[node name="Lagoon" type="Node3D" parent="Gameplay"]
+position = Vector3(0, -2.1, 0)
+script = ExtResource("9_hazard")
+kind = "water"
+size = Vector3(30, 5, 22)
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Crate0" type="Node3D" parent="Props"]
+position = Vector3(-6, -0.3, -4)
+script = ExtResource("6_prop")
+kind = "crate"
+
+[node name="Crate1" type="Node3D" parent="Props"]
+position = Vector3(5, -0.3, 3)
+script = ExtResource("6_prop")
+kind = "crate"
+
+[node name="Cratebig2" type="Node3D" parent="Props"]
+position = Vector3(-9, -0.3, 6)
+script = ExtResource("6_prop")
+kind = "crate_big"
+
+[node name="Beachball3" type="Node3D" parent="Props"]
+position = Vector3(3, 0.2, -6)
+script = ExtResource("6_prop")
+kind = "beachball"
+
+[node name="Beachball4" type="Node3D" parent="Props"]
+position = Vector3(-4, 0.2, 2)
+script = ExtResource("6_prop")
+kind = "beachball"
+
+[node name="Barrel5" type="Node3D" parent="Props"]
+position = Vector3(8, -0.3, -5)
+script = ExtResource("6_prop")
+kind = "barrel"
+
+[node name="Plank6" type="Node3D" parent="Props"]
+position = Vector3(-2, -0.2, -8)
+script = ExtResource("6_prop")
+kind = "plank"
+
+[node name="Anvil7" type="Node3D" parent="Props"]
+position = Vector3(0, 5, 2)
+script = ExtResource("6_prop")
+kind = "anvil"
+
+[node name="Anvil8" type="Node3D" parent="Props"]
+position = Vector3(1.5, 5, -1.5)
+script = ExtResource("6_prop")
+kind = "anvil"
+
+[node name="Crate9" type="Node3D" parent="Props"]
+position = Vector3(-14, 0.6, -14)
+script = ExtResource("6_prop")
+kind = "crate"
+
+[node name="Crate10" type="Node3D" parent="Props"]
+position = Vector3(14, 0.6, 14)
+script = ExtResource("6_prop")
+kind = "crate"
+
+[node name="Boombarrel11" type="Node3D" parent="Props"]
+position = Vector3(-14, 0.6, 14)
+script = ExtResource("6_prop")
+kind = "boom_barrel"
+
+[node name="Boombarrel12" type="Node3D" parent="Props"]
+position = Vector3(14, 0.6, -14)
+script = ExtResource("6_prop")
+kind = "boom_barrel"
+
+[node name="Ball13" type="Node3D" parent="Props"]
+position = Vector3(-12, 0.6, 0)
+script = ExtResource("6_prop")
+kind = "ball"
+
+[node name="Ball14" type="Node3D" parent="Props"]
+position = Vector3(12, 0.6, 0)
+script = ExtResource("6_prop")
+kind = "ball"
+
+[node name="Tire15" type="Node3D" parent="Props"]
+position = Vector3(0, 0.6, 14)
+script = ExtResource("6_prop")
+kind = "tire"
+
+[node name="Couch16" type="Node3D" parent="Props"]
+position = Vector3(0, 0.6, -15)
+script = ExtResource("6_prop")
+kind = "couch"
+
+[node name="Cone17" type="Node3D" parent="Props"]
+position = Vector3(6, 0.6, 16)
+script = ExtResource("6_prop")
+kind = "cone"
+
+[node name="Crate18" type="Node3D" parent="Props"]
+position = Vector3(-35, 0.6, -8)
+script = ExtResource("6_prop")
+kind = "crate"
+
+[node name="Crate19" type="Node3D" parent="Props"]
+position = Vector3(35, 0.6, 8)
+script = ExtResource("6_prop")
+kind = "crate"
+
+[node name="Barrel20" type="Node3D" parent="Props"]
+position = Vector3(-33, 0.6, 8)
+script = ExtResource("6_prop")
+kind = "barrel"
+
+[node name="Barrel21" type="Node3D" parent="Props"]
+position = Vector3(33, 0.6, -8)
+script = ExtResource("6_prop")
+kind = "barrel"
+
+[node name="Lights" type="Node3D" parent="."]
+
+[node name="Tower" type="OmniLight3D" parent="Lights"]
+position = Vector3(0, 6.5, 0)
+light_color = Color(1, 0.85, 0.6, 1)
+light_energy = 2
+omni_range = 16
+
+[node name="RedBase" type="OmniLight3D" parent="Lights"]
+position = Vector3(-37, 4.2, 0)
+light_color = Color(1, 0.4, 0.45, 1)
+light_energy = 2.5
+omni_range = 12
+
+[node name="BlueBase" type="OmniLight3D" parent="Lights"]
+position = Vector3(37, 4.2, 0)
+light_color = Color(0.4, 0.55, 1, 1)
+light_energy = 2.5
+omni_range = 12

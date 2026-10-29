@@ -50,6 +50,9 @@ var _viewmodel: Node3D
 var _vm_muzzle: Node3D
 var _vm_claws: Array[Node3D] = []
 var _vm_core: MeshInstance3D
+## First-person gun placement (camera space) and size.
+const VM_POS := Vector3(0.27, -0.3, -0.3)
+const VM_SCALE := 0.4
 var _world_model: Node3D
 var _wm_muzzle: Node3D
 var _beam: MeshInstance3D
@@ -102,35 +105,31 @@ func _ready() -> void:
 
 # --- Visual construction ------------------------------------------------------------
 
+## The gun model (tools/make_gravity_gun.py, made in Blender). It points along -Z.
+const GUN_SCENE := preload("res://assets/models/gravity_gun.glb")
+## Where the grip is in the model, so a hand can hold it.
+const GRIP := Vector3(0.0, -0.25, 0.36)
+
+
+## Adds the gun model under parent, scaled, with the grip at the parent's origin. The orange
+## "Accent" parts take the team colour.
 func _gun_mesh(parent: Node3D, scale_f: float) -> Node3D:
-	var root := Node3D.new()
-	parent.add_child(root)
-	var accent := Color(1.0, 0.55, 0.1) if player.team == 0 else Game.team_color(player.team)
-	var dark := Color(0.18, 0.19, 0.24)
-	var parts := [
-		[Vector3(0.16, 0.16, 0.42), Vector3(0, 0, 0.05), dark],
-		[Vector3(0.2, 0.06, 0.3), Vector3(0, 0.1, 0.05), accent],
-		[Vector3(0.06, 0.16, 0.08), Vector3(0, -0.13, 0.15), dark],
-	]
-	for p in parts:
-		var mi := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = p[0] * scale_f
-		mi.mesh = bm
-		mi.position = p[1] * scale_f
-		mi.material_override = Mats.plastic(p[2], 0.35)
-		root.add_child(mi)
-	var barrel := MeshInstance3D.new()
-	var cm := CylinderMesh.new()
-	cm.top_radius = 0.07 * scale_f
-	cm.bottom_radius = 0.09 * scale_f
-	cm.height = 0.18 * scale_f
-	barrel.mesh = cm
-	barrel.rotation.x = PI * 0.5
-	barrel.position = Vector3(0, 0, -0.24) * scale_f
-	barrel.material_override = Mats.plastic(Color(0.75, 0.78, 0.85), 0.2)
-	root.add_child(barrel)
-	return root
+	var gun := GUN_SCENE.instantiate() as Node3D
+	gun.scale = Vector3.ONE * scale_f
+	gun.position = -GRIP * scale_f
+	parent.add_child(gun)
+	var accent := Color(1.0, 0.45, 0.08) if player.team == 0 else Game.team_color(player.team)
+	for mi in _all_geometry(gun):
+		var m := mi as MeshInstance3D
+		if m == null or m.mesh == null:
+			continue
+		for i in m.mesh.get_surface_count():
+			var mat := m.mesh.surface_get_material(i) as StandardMaterial3D
+			if mat and mat.resource_name == "Accent":
+				var tinted := mat.duplicate() as StandardMaterial3D
+				tinted.albedo_color = accent
+				m.set_surface_override_material(i, tinted)
+	return gun
 
 
 func _build_world_model() -> void:
@@ -139,44 +138,56 @@ func _build_world_model() -> void:
 	_world_model = Node3D.new()
 	_world_model.rotation.x = -PI * 0.5
 	player.model.gun_socket.add_child(_world_model)
-	_gun_mesh(_world_model, 0.8)
-	_wm_muzzle = Node3D.new()
-	_wm_muzzle.position = Vector3(0, 0, -0.3)
-	_world_model.add_child(_wm_muzzle)
+	var gun := _gun_mesh(_world_model, 0.5)
+	_wm_muzzle = gun.find_child("Muzzle", true, false) as Node3D
 
 
 func build_viewmodel(camera: Camera3D) -> void:
+	# Low on the right and close to the eye: the claws and core show, the back of the gun
+	# and the hands holding it run off the bottom of the screen.
 	_viewmodel = Node3D.new()
-	_viewmodel.position = Vector3(0.2, -0.19, -0.42)
-	_viewmodel.scale = Vector3.ONE * 0.3
+	_viewmodel.position = VM_POS
 	camera.add_child(_viewmodel)
-	_gun_mesh(_viewmodel, 1.0)
-	_vm_muzzle = Node3D.new()
-	_vm_muzzle.position = Vector3(0, 0, -0.42)
-	_viewmodel.add_child(_vm_muzzle)
-	_vm_core = MeshInstance3D.new()
-	var sm := SphereMesh.new()
-	sm.radius = 0.055
-	sm.height = 0.11
-	_vm_core.mesh = sm
-	_vm_core.position = Vector3(0, 0, -0.34)
-	_vm_core.material_override = Mats.glow(Color(0.5, 1.0, 1.0), 5.0)
-	_viewmodel.add_child(_vm_core)
+	var gun := _gun_mesh(_viewmodel, VM_SCALE)
+	gun.rotation = Vector3(0.06, 0.22, -0.08) # turned in toward the crosshair: its side shows
+	_vm_muzzle = gun.find_child("Muzzle", true, false) as Node3D
+	_vm_core = gun.find_child("Core", true, false) as MeshInstance3D
 	for i in 3:
-		var pivot := Node3D.new()
-		pivot.position = Vector3(0, 0, -0.32)
-		pivot.rotation.z = i * TAU / 3.0
-		_viewmodel.add_child(pivot)
-		var claw := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(0.025, 0.025, 0.22)
-		claw.mesh = bm
-		claw.position = Vector3(0, 0.09, -0.1)
-		claw.material_override = Mats.plastic(Color(0.85, 0.86, 0.9), 0.25)
-		pivot.add_child(claw)
-		_vm_claws.append(pivot)
+		var pivot := gun.find_child("ClawPivot%d" % i, true, false) as Node3D
+		if pivot and pivot.get_child_count() > 0:
+			_vm_claws.append(pivot)
+	_build_hands(gun)
 	for mi in _all_geometry(_viewmodel):
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## First-person hands in the player's skin and sleeve colours, holding the gun.
+func _build_hands(gun: Node3D) -> void:
+	var skin: Color = player.model.skin_color if player.model else Color(1.0, 0.85, 0.7)
+	var sleeve: Color = player.color
+	# Gun model space (unscaled): grip at GRIP, the drum's underside around z 0..-0.1.
+	for h in [[GRIP + Vector3(0.0, -0.02, 0.02), Vector3(0.3, -0.7, 0.65)]]:
+		var hand := Node3D.new()
+		hand.position = h[0]
+		gun.add_child(hand)
+		var fist := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 0.095
+		sm.height = 0.19
+		fist.mesh = sm
+		fist.scale = Vector3(1.0, 1.15, 1.25)
+		fist.material_override = Mats.skin(skin)
+		hand.add_child(fist)
+		var dir: Vector3 = (h[1] as Vector3).normalized()
+		var arm := MeshInstance3D.new()
+		var cm := CapsuleMesh.new()
+		cm.radius = 0.07
+		cm.height = 0.8
+		arm.mesh = cm
+		arm.material_override = Mats.plastic(sleeve, 0.45)
+		arm.position = dir * 0.42
+		arm.basis = Basis(Quaternion(Vector3.UP, dir))
+		hand.add_child(arm)
 
 
 func _all_geometry(n: Node) -> Array[GeometryInstance3D]:
@@ -254,14 +265,15 @@ func update_visuals(delta: float) -> void:
 			bob = sin(Time.get_ticks_msec() * 0.012) * clampf(player.horizontal_speed() / 10.0, 0.0, 1.0) * 0.012
 		var ch := visual_charge()
 		var jitter := Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * 0.004 * ch
-		_viewmodel.position = Vector3(0.2 + _sway.x * 0.1, -0.19 + bob - _sway.y * 0.1, -0.42 + _kick * 0.06 + ch * 0.07) + jitter
+		_viewmodel.position = VM_POS + Vector3(_sway.x * 0.1, bob - _sway.y * 0.1, _kick * 0.06 + ch * 0.07) + jitter
 		_viewmodel.rotation = Vector3(_kick * 0.5 - ch * 0.12, _sway.x, 0)
 		var open := (0.55 + visual_charge() * 0.35) if vis_kind != Kind.NONE else (0.25 if grab_active else 0.0)
 		for c in _vm_claws:
 			var claw := c.get_child(0) as Node3D
 			claw.rotation.x = lerpf(claw.rotation.x, open, 1.0 - exp(-12.0 * delta))
 		var pulse := 1.0 + visual_charge() * 0.8 + sin(Time.get_ticks_msec() * (0.02 + visual_charge() * 0.06 if vis_kind != Kind.NONE else 0.005)) * 0.25
-		_vm_core.scale = Vector3.ONE * pulse
+		if _vm_core:
+			_vm_core.scale = Vector3.ONE * pulse
 
 
 func _beam_color() -> Color:

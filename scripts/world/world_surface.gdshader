@@ -80,10 +80,14 @@ void fragment() {
 	float rough = roughness_value + (n - 0.5) * 0.12 - p * 0.05;
 	if (damage > 0.08) {
 		// Cracks appear in patches (masked by noise) and widen with damage.
-		float mask = smoothstep(0.35, 0.65, value_noise(world_pos * 1.3) + damage * 0.45);
-		float e = crack_edges(world_pos * 2.0);
+		// Off the integer lattice (walls sit on whole metres: sampling on a cell boundary flickers),
+		// and softened by on-screen size so thin cracks don't shimmer.
+		vec3 cp = world_pos + vec3(0.371, 0.213, 0.537);
+		float mask = smoothstep(0.35, 0.65, value_noise(cp * 1.3) + damage * 0.45);
+		float e = crack_edges(cp * 2.0);
 		float width = damage * 0.06 * mask;
-		float crack = 1.0 - smoothstep(width * 0.4, width, e);
+		float aa = fwidth(e);
+		float crack = (1.0 - smoothstep(width * 0.4 - aa, width + aa, e)) * clamp(width / max(aa, 0.0001), 0.0, 1.0);
 		col *= mix(1.0, 0.35, crack) * (1.0 - damage * 0.12);
 		rough = mix(rough, 1.0, crack);
 	}

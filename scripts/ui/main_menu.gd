@@ -232,14 +232,13 @@ func _page_character(stack: Control) -> Control:
 	_name.placeholder_text = "Your name"
 	var grid := _grid(v)
 	_field(grid, "Name", _name)
-	var hats := ["Random"] + CharacterModel.HAT_NAMES
+	var hats := ["Random"] + CharacterModel.HAT_NAMES.slice(0, CharacterModel.PLAYER_HATS)
 	var skins := ["Random"] + CharacterModel.SKIN_NAMES
 	var colors := ["Auto"]
 	for i in Game.FFA_COLORS.size():
 		colors.append("Colour %d" % (i + 1))
 	_picker(grid, "hat", "Hat", hats, Game.look_hat + 1)
 	_picker(grid, "face", "Head extra", CharacterModel.FACE_NAMES, Game.look_face)
-	_picker(grid, "outfit", "Outfit", CharacterModel.OUTFIT_NAMES, Game.look_outfit)
 	_picker(grid, "skin", "Skin", skins, Game.look_skin + 1)
 	_picker(grid, "color", "Shirt", colors, Game.look_color + 1)
 	_picker(grid, "faces", "Faces", ["Expressive", "Classic"], 0 if Game.expressive_faces else 1)
@@ -253,11 +252,10 @@ func _page_character(stack: Control) -> Control:
 	rnd.custom_minimum_size.x = 0
 	rnd.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	rnd.pressed.connect(func():
-		_set_pick("hat", randi() % (CharacterModel.HAT_COUNT + 1))
+		_set_pick("hat", randi() % (CharacterModel.PLAYER_HATS + 1))
 		_set_pick("face", randi() % CharacterModel.FACE_NAMES.size())
 		_set_pick("skin", randi() % (CharacterModel.SKINS.size() + 1))
-		_set_pick("color", randi() % (Game.FFA_COLORS.size() + 1))
-		_set_pick("outfit", randi() % CharacterModel.OUTFIT_NAMES.size()))
+		_set_pick("color", randi() % (Game.FFA_COLORS.size() + 1)))
 	_update_preview.call_deferred()
 	return page
 
@@ -318,7 +316,6 @@ func _set_pick(key: String, index: int) -> void:
 	Game.look_face = _pickers.face.index
 	Game.look_skin = _pickers.skin.index - 1
 	Game.look_color = _pickers.color.index - 1
-	Game.look_outfit = _pickers.outfit.index
 	Game.expressive_faces = _pickers.faces.index == 0
 	_update_preview()
 
@@ -326,7 +323,7 @@ func _set_pick(key: String, index: int) -> void:
 func _update_preview() -> void:
 	var shirt: Color = Game.FFA_COLORS[maxi(Game.look_color, 0) % Game.FFA_COLORS.size()]
 	var hat := Game.look_hat if Game.look_hat >= 0 else 0
-	_preview.show_look(shirt, hat, Game.look_face, Game.look_skin, 1, Game.look_outfit)
+	_preview.show_look(shirt, hat, Game.look_face, Game.look_skin, 1)
 
 
 # --- Building blocks --------------------------------------------------------------
