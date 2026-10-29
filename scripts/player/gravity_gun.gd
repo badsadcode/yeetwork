@@ -31,6 +31,7 @@ var _stuck_time := 0.0
 var _punt_cd := 0.0
 var _boost_cd := 0.0
 var _regrab_block := 0.0
+var _pull_id := 0
 
 # Replicated visual state.
 var vis_kind: int = Kind.NONE
@@ -257,6 +258,7 @@ func server_action(action: int, origin: Vector3, dir: Vector3) -> void:
 				_try_grab(origin, dir)
 		Action.GRAB_END:
 			grab_active = false
+			_pull_id = 0
 			release(false)
 		Action.THROW:
 			if held_kind != Kind.NONE:
@@ -278,7 +280,15 @@ func server_tick(delta: float) -> void:
 	var origin := player.eye_position()
 	var dir := player.aim_direction()
 	if grab_active and held_kind == Kind.NONE and _regrab_block <= 0.0:
-		_try_grab(origin, dir)
+		# Whatever we are already pulling gets caught once it is close, wherever we aim.
+		var pulled := player.world.get_prop(_pull_id) as Prop
+		if pulled and pulled.held_by == 0 and origin.distance_to(pulled.global_position) <= GRAB_RANGE + pulled.size.length() * 0.5:
+			_grab_prop(pulled)
+		elif pulled and pulled.held_by == 0 and origin.distance_to(pulled.global_position) < PULL_RANGE * 1.2 and _has_los(origin, pulled):
+			_pull(pulled, origin) # tractor lock: keeps coming even if the aim drifts
+		else:
+			_pull_id = 0
+			_try_grab(origin, dir)
 	match held_kind:
 		Kind.PROP:
 			_hold_prop(delta, origin, dir)
@@ -304,10 +314,7 @@ func _try_grab(origin: Vector3, dir: Vector3) -> void:
 				if not p.frozen_by_player:
 					return
 				w.server_unfreeze_prop(p)
-			var to_me := (origin - p.global_position).normalized()
-			var pull := clampf(2200.0 / p.mass, 6.0, 28.0)
-			p.linear_velocity = p.linear_velocity.lerp(to_me * pull + Vector3.UP * 1.5, 0.25)
-			p.sleeping = false
+			_pull(p, origin)
 	elif target is Player:
 		var pl := target as Player
 		if pl != player and pl.is_alive() and origin.distance_to(pl.body_center()) <= PLAYER_GRAB_RANGE:
@@ -319,6 +326,21 @@ func _try_grab(origin: Vector3, dir: Vector3) -> void:
 			w.server_set_last_attacker(pl, player.player_id)
 			w.server_gun_state_changed(self)
 			Sfx.play3d("zap", pl.global_position, -2.0, 0.8)
+
+
+func _pull(p: Prop, origin: Vector3) -> void:
+	var to_me := origin - p.global_position
+	var d := to_me.length()
+	# Ease in so the object arrives at the hold point instead of overshooting.
+	var pull := minf(clampf(2200.0 / p.mass, 6.0, 28.0), d * 4.0)
+	p.linear_velocity = p.linear_velocity.lerp(to_me / d * pull + Vector3.UP * 1.2, 0.25)
+	p.sleeping = false
+	_pull_id = p.prop_id
+
+
+func _has_los(origin: Vector3, n: Node3D) -> bool:
+	var q := PhysicsRayQueryParameters3D.create(origin, n.global_position, Game.L_WORLD, [player.get_rid()])
+	return player.get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
 ## Sphere search in front of the player so catching fast objects is forgiving.

@@ -253,7 +253,7 @@ func _environment(space := false) -> void:
 	var fill := DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-25, 38 + 180, 0)
 	fill.light_color = Color(0.55, 0.7, 1.0)
-	fill.light_energy = 0.35
+	fill.light_energy = 0.25
 	fill.light_specular = 0.2
 	fill.shadow_enabled = false
 	add_child(fill)

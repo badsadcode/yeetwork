@@ -149,7 +149,7 @@ func _ready() -> void:
 
 	_help = _label(16, Color(1, 1, 1, 0.85))
 	_help.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_help.position = Vector2(24, 20)
+	_help.position = Vector2(24, 78)
 	_help.text = "WASD move  ·  Space jump (hold to bhop)  ·  Ctrl/Shift crouch & slide\nRun along walls to wall-run, jump off them to wall-jump\nLMB hold: grab / pull / catch   ·   RMB: throw, or punt (punt a nearby wall to gravity-jump)\nF freeze held prop  ·  Q spawn prop (1-9 / wheel to pick)  ·  V third person  ·  Tab scores  ·  K respawn  ·  Esc menu"
 	_root.add_child(_help)
 

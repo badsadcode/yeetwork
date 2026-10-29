@@ -204,6 +204,12 @@ func _steer(delta: float, want_move: bool) -> void:
 		return
 	# Move in world space toward the goal regardless of where we are looking.
 	var dir := to.normalized()
+	var ledge := false
+	if pl.is_on_floor() and not _ground_ahead(pos, dir):
+		ledge = true
+		# Ledge! Head back toward the middle of the map instead of walking off it.
+		var back := Vector3(-pos.x * 0.2, 0, -pos.z).normalized()
+		dir = back if back.length() > 0.1 else -dir
 	var basis := Basis(Vector3.UP, pl.yaw)
 	var local := basis.inverse() * dir
 	_strafe_timer -= delta
@@ -222,8 +228,14 @@ func _steer(delta: float, want_move: bool) -> void:
 		cmd.jump_pressed = true
 		_stuck = 0.0
 		_strafe = _rng.randf_range(-1, 1)
-	cmd.jump = hop
+	cmd.jump = hop and not ledge
 	cmd.crouch = hs > 11.0 and _rng.randf() < 0.02
+
+
+func _ground_ahead(pos: Vector3, dir: Vector3) -> bool:
+	var probe := pos + dir * 2.5 + Vector3.UP * 0.5
+	var q := PhysicsRayQueryParameters3D.create(probe, probe + Vector3.DOWN * 8.0, Game.L_WORLD)
+	return not pl.get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
 ## Detour around the acid pit unless we actually want to go down there.

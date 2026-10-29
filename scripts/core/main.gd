@@ -4,13 +4,14 @@ extends Node
 ##
 ## Command line (after `--`):  --host  --join <ip>  --mode sandbox|ctf|dodgeball
 ##   --bots <n>  --port <n>  --name <name>  --autotest <seconds>  (quit after N seconds)
-##   --map prime|facing  --tour <dir>  (save screenshots from fixed viewpoints, then quit)
+##   --map prime|facing  --test (gameplay smoke tests)  --tour <dir>  (save screenshots from fixed viewpoints, then quit)
 
 var menu: MainMenu
 var world: World
 var _autotest := -1.0
 var _autotest_elapsed := 0.0
 var _tour_dir := ""
+var _test := false
 
 
 func _ready() -> void:
@@ -53,6 +54,8 @@ func _handle_cmdline() -> bool:
 			"--autotest":
 				_autotest = float(next)
 				i += 1
+			"--test":
+				_test = true
 			"--tour":
 				_tour_dir = next
 				i += 1
@@ -139,6 +142,10 @@ func _start_world(server: bool) -> void:
 	world.leave_requested.connect(func(): leave(""))
 	world.start(server)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if _test:
+		var t: Node = load("res://tests/test_runner.gd").new()
+		t.set("world", world)
+		add_child(t)
 	if _tour_dir != "":
 		var tour: Node = load("res://scripts/core/dev_tour.gd").new()
 		tour.set("world", world)
