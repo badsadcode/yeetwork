@@ -6,11 +6,29 @@ extends Node3D
 
 const SKINS := [Color(1.0, 0.85, 0.7), Color(0.93, 0.72, 0.55), Color(0.75, 0.55, 0.4), Color(0.5, 0.36, 0.26), Color(1.0, 0.8, 0.55)]
 const SKIN_NAMES := ["Peach", "Tan", "Caramel", "Cocoa", "Honey"]
-const HAT_NAMES := ["Hair tuft", "Party cone", "Top hat", "Propeller beanie", "Antenna", "Horns", "Bucket", "Pumpkin head", "Witch hat", "Baseball cap", "Crown", "Chef hat", "Viking helmet"]
-const HAT_COUNT := 13
+const HAT_NAMES := ["Hair tuft", "Party cone", "Top hat", "Propeller beanie", "Antenna", "Horns", "Bucket", "Pumpkin head", "Witch hat", "Baseball cap", "Crown", "Chef hat", "Viking helmet", "Captain's dome"]
+const HAT_COUNT := 14
+const HAT_CAPTAIN := 13
 const SPOOKY_HATS := [7, 8] # Halloween costumes
 ## Head attachments, worn together with any hat (except the pumpkin head, which covers the face).
 const FACE_NAMES := ["Nothing", "Round glasses", "Shades", "Mustache", "Clown nose", "Headphones", "Bow", "Monocle", "Eyepatch"]
+## Outfits over the torso. The shirt colour (team colour in team modes) always shows.
+const OUTFIT_NAMES := ["Shirt", "Captain's tunic"]
+
+## Expressive faces: eye openness, pupil size, brow height and tilt (+ = angry, - = worried),
+## mouth scale and drop, cheek puff. "Classic" faces (expressive = false) never change.
+const MOODS := {
+	"neutral": {"eye": 1.0, "pupil": 1.0, "brow_y": 0.0, "brow_tilt": 0.0, "mouth": Vector3(1.4, 0.55, 0.5), "mouth_y": 0.0, "cheek": 1.0},
+	"happy": {"eye": 1.0, "pupil": 1.15, "brow_y": 0.03, "brow_tilt": -0.1, "mouth": Vector3(2.1, 0.55, 0.5), "mouth_y": -0.01, "cheek": 1.3},
+	"grin": {"eye": 0.85, "pupil": 1.2, "brow_y": 0.05, "brow_tilt": -0.15, "mouth": Vector3(2.5, 1.0, 0.55), "mouth_y": -0.025, "cheek": 1.45},
+	"angry": {"eye": 0.55, "pupil": 0.9, "brow_y": -0.035, "brow_tilt": 0.5, "mouth": Vector3(1.5, 0.2, 0.5), "mouth_y": 0.0, "cheek": 0.8},
+	"focused": {"eye": 0.75, "pupil": 0.9, "brow_y": -0.015, "brow_tilt": 0.2, "mouth": Vector3(1.1, 0.35, 0.5), "mouth_y": 0.0, "cheek": 1.0},
+	"scared": {"eye": 1.3, "pupil": 0.6, "brow_y": 0.07, "brow_tilt": -0.45, "mouth": Vector3(0.9, 1.2, 0.55), "mouth_y": -0.02, "cheek": 0.9},
+	"dizzy": {"eye": 1.1, "pupil": 0.8, "brow_y": 0.03, "brow_tilt": -0.3, "mouth": Vector3(1.2, 0.8, 0.5), "mouth_y": -0.01, "cheek": 1.0},
+	"ouch": {"eye": 0.1, "pupil": 1.0, "brow_y": -0.02, "brow_tilt": 0.4, "mouth": Vector3(1.3, 1.0, 0.55), "mouth_y": -0.02, "cheek": 1.1},
+	"gasp": {"eye": 0.85, "pupil": 0.8, "brow_y": 0.04, "brow_tilt": -0.2, "mouth": Vector3(0.6, 0.6, 0.6), "mouth_y": 0.0, "cheek": 1.7},
+	"dead": {"eye": 0.0, "pupil": 1.0, "brow_y": 0.0, "brow_tilt": -0.2, "mouth": Vector3(1.2, 0.3, 0.5), "mouth_y": 0.0, "cheek": 0.7},
+}
 
 ## Collision specs used by the ragdoll: part -> [shape, radius, height, offset].
 const PART_SPECS := {
@@ -28,6 +46,7 @@ var gun_socket: Node3D
 ## The meshes of the hat and of the head extra (children of the head), e.g. for exporting.
 var hat_nodes: Array[Node3D] = []
 var face_nodes: Array[Node3D] = []
+var outfit_nodes: Array[Node3D] = []
 var _pupils: Array[MeshInstance3D] = []
 var _propeller: Node3D
 var _phase := 0.0
@@ -40,6 +59,23 @@ var _last_vel := Vector3.ZERO
 var _yaw := 0.0
 var _time := 0.0
 var _first_person := false
+## Expressive faces (blinks, moods, eyes that look at things). Set before setup().
+var expressive := true
+## Mood the owner holds while something lasts (charging a throw, holding, underwater).
+var base_mood := ""
+## World point the eyes look at (INF: just ahead).
+var look_target := Vector3.INF
+var _eyes: Array[MeshInstance3D] = []
+var _brows: Array[MeshInstance3D] = []
+var _x_eyes: Array[Node3D] = []
+var _cheeks: Array[MeshInstance3D] = []
+var _mouth: MeshInstance3D
+var _mood := "neutral"
+var _mood_until := 0.0
+var _face := {}
+var _blink := 0.0
+var _next_blink := 2.0
+var _look_off := Vector2.ZERO
 
 
 ## A random everyday hat (or, in spooky mode, mostly Halloween costumes).
@@ -52,8 +88,9 @@ static func random_hat(rng: RandomNumberGenerator, spooky: bool) -> int:
 	return hat
 
 
-## skin_index < 0 picks a skin tone from the seed. face: index into FACE_NAMES.
-func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1) -> void:
+## skin_index < 0 picks a skin tone from the seed. face: index into FACE_NAMES,
+## outfit: index into OUTFIT_NAMES.
+func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1, outfit := 0) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value * 7919 + 17
 	var skin: Color = SKINS[rng.randi() % SKINS.size()]
@@ -71,15 +108,28 @@ func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1)
 	# Belly patch + belt for a clear silhouette.
 	_sphere(torso, 0.27, shirt.lightened(0.35), Vector3(0, -0.05, -0.12), Vector3(1, 1.1, 0.6))
 	_cyl(torso, 0.345, 0.08, pants.darkened(0.2), Vector3(0, -0.28, 0))
+	var n_torso := torso.get_child_count()
+	if outfit == 1:
+		# Captain's tunic: dark shoulders and collar over the shirt colour, a gold badge.
+		var dark := Color(0.12, 0.12, 0.15)
+		_sphere(torso, 0.355, dark, Vector3(0, 0.2, 0), Vector3(1.0, 0.55, 1.0))
+		_cyl(torso, 0.2, 0.06, dark, Vector3(0, 0.44, 0))
+		var badge := _box(torso, Vector3(0.09, 0.11, 0.03), Color(1.0, 0.8, 0.25), Vector3(-0.15, 0.13, -0.33))
+		badge.material_override = Mats.plastic(Color(1.0, 0.8, 0.25), 0.15)
+		badge.rotation.z = 0.785
+	for i in range(n_torso, torso.get_child_count()):
+		outfit_nodes.append(torso.get_child(i))
 
 	var head := _part("head", Vector3(0, 0.65, 0))
 	_sphere(head, 0.36, skin, Vector3.ZERO, Vector3.ONE).material_override = Mats.skin(skin)
 	for sx in [-1, 1]:
-		_sphere(head, 0.125, Color.WHITE, Vector3(sx * 0.13, 0.07, -0.29), Vector3.ONE)
+		_eyes.append(_sphere(head, 0.125, Color.WHITE, Vector3(sx * 0.13, 0.07, -0.29), Vector3.ONE))
 		var pupil := _sphere(head, 0.06, Color(0.05, 0.05, 0.08), Vector3(sx * 0.13, 0.07, -0.4), Vector3(1, 1, 0.5))
 		_pupils.append(pupil)
-		_sphere(head, 0.07, Color(1.0, 0.5, 0.55), Vector3(sx * 0.22, -0.08, -0.26), Vector3(1, 0.6, 0.4))
-	_sphere(head, 0.08, Color(0.35, 0.1, 0.12), Vector3(0, -0.15, -0.31), Vector3(1.4, 0.55, 0.5))
+		_cheeks.append(_sphere(head, 0.07, Color(1.0, 0.5, 0.55), Vector3(sx * 0.22, -0.08, -0.26), Vector3(1, 0.6, 0.4)))
+	_mouth = _sphere(head, 0.08, Color(0.35, 0.1, 0.12), Vector3(0, -0.15, -0.31), Vector3(1.4, 0.55, 0.5))
+	if expressive and hat % HAT_COUNT != 7:
+		_build_expression_parts(head, skin)
 	var n := head.get_child_count()
 	_build_hat(head, hat, shirt, rng)
 	for i in range(n, head.get_child_count()):
@@ -227,6 +277,12 @@ func _build_hat(head: Node3D, hat: int, shirt: Color, rng: RandomNumberGenerator
 			for sx in [-1, 1]:
 				var horn := _cyl(head, 0.07, 0.34, Color(0.98, 0.94, 0.82), Vector3(sx * 0.4, 0.33, 0), 0.0)
 				horn.rotation.z = -sx * 0.9
+		13: # Captain's dome: bald on top, a short grey fringe around the back and sides.
+			var grey := Color(0.72, 0.72, 0.74)
+			for i in 9:
+				var a := deg_to_rad(-110.0 + i * 27.5) # from one ear, round the back, to the other
+				var tuft := _sphere(head, 0.075, grey, Vector3(sin(a) * 0.33, -0.01, cos(a) * 0.33), Vector3(1.0, 0.75, 0.7))
+				tuft.rotation.y = a
 		_:
 			# Tuft of hair.
 			_sphere(head, 0.14, shirt.darkened(0.4), Vector3(0.05, 0.33, 0.02), Vector3(1.2, 0.7, 1))
@@ -290,6 +346,113 @@ func _ring(parent: Node3D, r: float, thickness: float, color: Color, pos: Vector
 	var mi := _mesh(parent, m, color, pos)
 	mi.rotation.x = PI * 0.5
 	return mi
+
+
+## Brows and the knocked-out X eyes (expressive faces only).
+func _build_expression_parts(head: Node3D, skin: Color) -> void:
+	var brow_col := skin.darkened(0.62)
+	for sx in [-1, 1]:
+		var brow := _capsule(head, 0.022, 0.13, brow_col, Vector3(sx * 0.13, 0.225, -0.305))
+		brow.rotation.z = PI * 0.5
+		_brows.append(brow)
+		var x := Node3D.new()
+		x.position = Vector3(sx * 0.13, 0.07, -0.4)
+		x.visible = false
+		head.add_child(x)
+		for a in [0.78, -0.78]:
+			var bar := _box(x, Vector3(0.16, 0.03, 0.02), Color(0.08, 0.06, 0.08), Vector3.ZERO)
+			bar.rotation.z = a
+		_x_eyes.append(x)
+	_face = MOODS.neutral.duplicate()
+	_next_blink = randf_range(1.0, 4.0)
+
+
+## Back to a normal face (respawn).
+func reset_mood() -> void:
+	_mood = "neutral"
+	_mood_until = 0.0
+
+
+## A short reaction (grin after a kill, ouch when hit); returns to normal after duration.
+func react(mood: String, duration: float) -> void:
+	if not expressive or not MOODS.has(mood):
+		return
+	_mood = mood
+	_mood_until = _time + duration
+
+
+## Jumps straight to a mood with no easing (the corpse copies the face as it is).
+func snap_mood(mood: String) -> void:
+	if not expressive or _face.is_empty() or not MOODS.has(mood):
+		return
+	react(mood, 1000.0)
+	_face = MOODS[mood].duplicate()
+	_blink = 0.0
+	_apply_face(Vector2.ZERO)
+
+
+func _update_face(delta: float, ragdoll: bool, falling: float, sliding: bool) -> void:
+	if _face.is_empty():
+		return
+	# Who wins: a reaction, then being thrown about, then what the owner is doing.
+	var mood := "neutral"
+	if _time < _mood_until:
+		mood = _mood
+	elif ragdoll:
+		mood = "dizzy"
+	elif falling > 0.6:
+		mood = "scared"
+	elif base_mood != "":
+		mood = base_mood
+	elif sliding:
+		mood = "happy"
+	var target: Dictionary = MOODS[mood]
+	var k := 1.0 - exp(-14.0 * delta)
+	for key in target:
+		_face[key] = lerp(_face[key], target[key], k)
+	# Blinks every few seconds (not while squeezing the eyes shut anyway).
+	_next_blink -= delta
+	if _next_blink <= 0.0:
+		_blink = 0.13
+		_next_blink = randf_range(2.0, 5.0) if randf() > 0.15 else 0.25 # sometimes a double blink
+	_blink = maxf(_blink - delta, 0.0)
+	# Pupils glance toward what the character looks at; dizzy ones spin.
+	var want := Vector2.ZERO
+	if look_target != Vector3.INF and parts.has("head"):
+		var local := (parts.head as Node3D).global_transform.affine_inverse() * look_target
+		if local.z < 0.0:
+			want = Vector2(local.x, local.y).limit_length(-local.z) / maxf(-local.z, 0.5) * 0.045
+	if mood == "dizzy":
+		want = Vector2(cos(_time * 9.0), sin(_time * 9.0)) * 0.035
+	_look_off = _look_off.lerp(want.limit_length(0.05), 1.0 - exp(-10.0 * delta))
+	_apply_face(_look_off)
+
+
+func _apply_face(look: Vector2) -> void:
+	var open: float = _face.eye * (0.08 if _blink > 0.0 else 1.0)
+	var dead := _mood == "dead" and _time < _mood_until
+	for i in _eyes.size():
+		var sx := -1.0 if i == 0 else 1.0
+		_eyes[i].scale = Vector3(1.0 + (_face.eye - 1.0) * 0.3, maxf(open, 0.06), 1.0)
+		_eyes[i].visible = not dead
+		if i < _x_eyes.size():
+			_x_eyes[i].visible = dead
+		if i < _pupils.size():
+			var pupil := _pupils[i]
+			var ps: float = _face.pupil
+			pupil.scale = Vector3(ps, ps * clampf(open, 0.0, 1.0), 0.5)
+			pupil.visible = open > 0.15 and not dead
+			pupil.position = Vector3(sx * 0.13 + _pupil_off.x + look.x, 0.07 + (_pupil_off.y + look.y) * clampf(open, 0.0, 1.0), -0.4)
+		if i < _brows.size():
+			var brow := _brows[i]
+			brow.position = Vector3(sx * 0.13, 0.225 + _face.brow_y + (open - 1.0) * 0.03, -0.305)
+			brow.rotation.x = 0.0
+			brow.rotation.z = PI * 0.5 + sx * _face.brow_tilt
+		if i < _cheeks.size():
+			_cheeks[i].scale = Vector3(1, 0.6, 0.4) * _face.cheek
+	if _mouth:
+		_mouth.scale = _face.mouth
+		_mouth.position = Vector3(0, -0.15 + _face.mouth_y, -0.31)
 
 
 func set_first_person(fp: bool) -> void:
@@ -412,8 +575,11 @@ func animate(delta: float, vel: Vector3, flags: int, yaw: float, flailing: bool)
 	if _pupil_off.length() > 0.055:
 		_pupil_off = _pupil_off.normalized() * 0.055
 		_pupil_v *= -0.4
-	for i in _pupils.size():
-		var sx := -1.0 if i == 0 else 1.0
-		_pupils[i].position = Vector3(sx * 0.13 + _pupil_off.x, 0.07 + _pupil_off.y, -0.4)
+	if _face.is_empty():
+		for i in _pupils.size():
+			var sx := -1.0 if i == 0 else 1.0
+			_pupils[i].position = Vector3(sx * 0.13 + _pupil_off.x, 0.07 + _pupil_off.y, -0.4)
+	else:
+		_update_face(delta, ragdoll, clampf(-vel.y / 20.0, 0.0, 1.0) if not grounded else 0.0, sliding)
 	if _propeller:
 		_propeller.rotate_y(delta * (6.0 + hspeed * 2.0 + maxf(-vel.y, 0.0) * 3.0))

@@ -69,6 +69,7 @@ var color := Color.WHITE
 var hat := 0
 var face := 0
 var skin := -1
+var outfit := 0
 
 # Gameplay (server authoritative, replicated).
 var hp := 100.0
@@ -134,6 +135,8 @@ var _adjust_yaw := 0.0
 var _adjust_pitch := 0.0
 var _adjust_send := 0.0
 var _base_fov := 0.0
+var _face_hp := 100.0
+var _face_frags := 0
 
 # Remote interpolation.
 var _net_pos := Vector3.ZERO
@@ -152,6 +155,7 @@ func setup(p_world: Node, info: Dictionary) -> void:
 	hat = info.get("hat", 0)
 	face = info.get("face", 0)
 	skin = info.get("skin", -1)
+	outfit = info.get("outfit", 0)
 	frags = info.get("frags", 0)
 	deaths = info.get("deaths", 0)
 	score = info.get("score", 0)
@@ -177,8 +181,10 @@ func _ready() -> void:
 	add_child(_collision)
 
 	model = CharacterModel.new()
+	model.expressive = Game.expressive_faces
 	add_child(model)
-	model.setup(color, hat, player_id, face, skin)
+	model.setup(color, hat, player_id, face, skin, outfit)
+	_face_frags = frags
 
 	_head = Node3D.new()
 	_head.position.y = EYE_STAND
@@ -321,6 +327,7 @@ func _physics_process(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	var hv := Vector3(velocity.x, 0, velocity.z)
+	_update_face()
 	model.animate(delta, velocity, flags, yaw, _held_by != 0)
 	_trail.emitting = hv.length() > 15.0 or state == State.RAGDOLL and velocity.length() > 10.0
 	if camera:
@@ -949,6 +956,7 @@ func die(death_velocity: Vector3) -> void:
 	collision_layer = 0
 	if gun:
 		gun.on_owner_died()
+	model.snap_mood("dead") # the corpse keeps the knocked-out face
 	var corpse := Ragdoll.spawn(world.fx_root, model, global_transform, death_velocity, color)
 	world.track_corpse(corpse)
 	if is_local_human():
@@ -969,9 +977,37 @@ func respawn(pos: Vector3, p_yaw: float) -> void:
 	collision_layer = Game.L_PLAYERS
 	model.visible = true
 	_corpse = null
+	model.reset_mood()
+	_face_hp = hp
 	_set_crouched(false)
 	_update_view_mode()
 	_update_flags()
+
+
+# --- Face (expressive characters) -------------------------------------------------
+
+## Moods from what every peer knows about this player: hp, frags, the gun and position.
+func _update_face() -> void:
+	if not model.expressive or state == State.DEAD:
+		return
+	if hp < _face_hp - 0.5:
+		model.react("ouch", 0.45)
+	_face_hp = hp
+	if frags > _face_frags:
+		model.react("grin", 1.8)
+	_face_frags = frags
+	var mood := ""
+	var held: Node3D = gun.held_node() if gun else null # the visual state: known on every peer
+	if gun and gun.visual_charge() > 0.25:
+		mood = "angry"
+	elif held:
+		mood = "focused"
+	var head := eye_position()
+	var liq := Liquid.at(head, 0.5)
+	if liq and head.y < liq.height_at(head.x, head.z):
+		mood = "gasp"
+	model.base_mood = mood
+	model.look_target = held.global_position if held else head + aim_direction() * 10.0
 
 
 # --- Camera -------------------------------------------------------------------------

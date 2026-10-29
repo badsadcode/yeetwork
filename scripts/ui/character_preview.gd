@@ -43,12 +43,13 @@ func _ready() -> void:
 	_vp.add_child(_pivot)
 
 
-func show_look(shirt: Color, hat: int, face: int, skin: int, seed_value: int) -> void:
+func show_look(shirt: Color, hat: int, face: int, skin: int, seed_value: int, outfit := 0) -> void:
 	if _model:
 		_model.queue_free()
 	_model = CharacterModel.new()
+	_model.expressive = Game.expressive_faces
 	_pivot.add_child(_model)
-	_model.setup(shirt, hat, seed_value, face, skin)
+	_model.setup(shirt, hat, seed_value, face, skin, outfit)
 	_model.squash(0.25) # a little hop of joy on every change
 
 
@@ -58,3 +59,6 @@ func _process(delta: float) -> void:
 		# Mostly facing the camera, swaying side to side to show the hat.
 		var yaw := PI + sin(_time * 0.6) * 0.45
 		_model.animate(delta, Vector3.ZERO, Player.F_GROUNDED, yaw, false)
+		# Show the face off now and then.
+		if fmod(_time, 6.0) < delta:
+			_model.react(["happy", "grin", "scared", "angry"][int(_time / 6.0) % 4], 1.4)

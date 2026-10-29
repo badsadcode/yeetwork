@@ -16,9 +16,10 @@ func _ready() -> void:
 	world.hud.visible = false
 	Game.fov = 34.0 # close-up lens (not saved)
 	# Floating in the sky above the map: nothing in the way, sky behind.
-	var rows := [CharacterModel.HAT_COUNT, CharacterModel.FACE_NAMES.size()]
+	var moods: Array = CharacterModel.MOODS.keys()
+	var rows := [CharacterModel.HAT_COUNT, CharacterModel.FACE_NAMES.size(), moods.size() + 1]
 	var groups := []
-	for row in 2:
+	for row in 3:
 		var models: Array[CharacterModel] = []
 		for i in rows[row]:
 			var m := CharacterModel.new()
@@ -26,12 +27,17 @@ func _ready() -> void:
 			var col: Color = Game.FFA_COLORS[i % Game.FFA_COLORS.size()]
 			if row == 0:
 				m.setup(col, i, i + 3)
-			else:
+			elif row == 1:
 				m.setup(col, 0, i + 3, i, i % CharacterModel.SKINS.size())
+			elif i < moods.size():
+				m.setup(col, 0, i + 3, 0, 0)
+				m.react(moods[i], 1000.0)
+			else: # the tribute captain
+				m.setup(Color(0.75, 0.12, 0.15), CharacterModel.HAT_CAPTAIN, 7, 0, 0, 1)
 			m.global_position = Vector3(0, 120, row * 40.0 + i * 1.4)
 			models.append(m)
 		for g in range(0, models.size(), 5):
-			groups.append([("hats" if row == 0 else "extras") + str(g / 5), models.slice(g, g + 5)])
+			groups.append([["hats", "extras", "moods"][row] + str(g / 5), models.slice(g, g + 5)])
 	for group in groups:
 		var ms: Array = group[1]
 		var center := Vector3.ZERO

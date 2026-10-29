@@ -20,8 +20,10 @@ const BREAK_DROP := 1
 const MAX_SPAWNED_PER_PLAYER := 25
 const MAX_CORPSES := 12
 const RESPAWN_TIME := 3.0
-const SPOOKY_BOT_NAMES := ["Count Yeetula", "Boo-nkers", "Pumpkin Spice", "Ghoulie", "Skelly Splat", "Mummy Dearest", "Frankenyeet", "Wobblin' Goblin", "Jack O'Splat", "Witchy Wanda", "Casper the Thrown", "Sir Spooks-a-lot"]
-const BOT_NAMES := ["Bonkers", "Sir Yeets-a-lot", "Wobbles", "Ragdolly Parton", "Flopsy", "Chonk", "Splatworth", "Gravy Gunner", "Noodle", "Bumpkin", "Captain Thud", "Jellybean"]
+const SPOOKY_BOT_NAMES := ["Sir Yeetrick Stewart", "Count Yeetula", "Boo-nkers", "Pumpkin Spice", "Ghoulie", "Skelly Splat", "Mummy Dearest", "Frankenyeet", "Wobblin' Goblin", "Jack O'Splat", "Witchy Wanda", "Casper the Thrown", "Sir Spooks-a-lot"]
+## A tribute bot: always joins first, always in the captain's dome and tunic.
+const TRIBUTE_BOT := "Sir Yeetrick Stewart"
+const BOT_NAMES := [TRIBUTE_BOT, "Bonkers", "Sir Yeets-a-lot", "Wobbles", "Ragdolly Parton", "Flopsy", "Chonk", "Splatworth", "Gravy Gunner", "Noodle", "Bumpkin", "Captain Thud", "Jellybean"]
 
 var arena: Arena
 var fx: Effects
@@ -299,7 +301,7 @@ func _build_init_state() -> Dictionary:
 func _player_info(pl: Player) -> Dictionary:
 	return {
 		"id": pl.player_id, "owner": pl.owner_peer, "bot": pl.is_bot, "name": pl.display_name,
-		"team": pl.team, "color": pl.color, "hat": pl.hat, "face": pl.face, "skin": pl.skin, "frags": pl.frags, "deaths": pl.deaths,
+		"team": pl.team, "color": pl.color, "hat": pl.hat, "face": pl.face, "skin": pl.skin, "outfit": pl.outfit, "frags": pl.frags, "deaths": pl.deaths,
 		"score": pl.score, "pos": pl.global_position, "yaw": pl.yaw, "hp": pl.hp, "alive": pl.is_alive(),
 	}
 
@@ -344,11 +346,15 @@ func _server_add_player(peer: int, pname: String, bot: bool, look := {}) -> Play
 	var hat := int(look.get("hat", -1))
 	if hat < 0 or hat >= CharacterModel.HAT_COUNT:
 		hat = CharacterModel.random_hat(rng, Game.spooky)
+	if bot and pname == TRIBUTE_BOT:
+		look = {"hat": CharacterModel.HAT_CAPTAIN, "face": 0, "outfit": 1}
+		hat = CharacterModel.HAT_CAPTAIN
 	var face := int(look.get("face", (rng.randi() % CharacterModel.FACE_NAMES.size()) if bot and rng.randf() < 0.4 else 0))
 	var info := {
 		"id": id, "owner": 1 if bot else peer, "bot": bot, "name": pname, "team": team,
 		"color": color, "hat": hat, "face": clampi(face, 0, CharacterModel.FACE_NAMES.size() - 1),
 		"skin": clampi(int(look.get("skin", -1)), -1, CharacterModel.SKINS.size() - 1),
+		"outfit": clampi(int(look.get("outfit", 0)), 0, CharacterModel.OUTFIT_NAMES.size() - 1),
 		"frags": 0, "deaths": 0, "score": 0, "pos": Vector3.ZERO, "yaw": 0.0, "hp": 100.0, "alive": true,
 	}
 	var pl := _create_player(info)
@@ -369,6 +375,8 @@ func _server_add_bot() -> void:
 	var names: Array = SPOOKY_BOT_NAMES if Game.spooky else BOT_NAMES
 	var free := names.filter(func(n): return not used.has(n))
 	var bot_name: String = free[rng.randi() % free.size()] if not free.is_empty() else "Bot %d" % _next_bot_id
+	if TRIBUTE_BOT in free:
+		bot_name = TRIBUTE_BOT
 	_server_add_player(0, bot_name, true)
 
 

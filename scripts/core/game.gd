@@ -74,6 +74,9 @@ var look_hat := -1
 var look_face := 0
 var look_skin := -1
 var look_color := -1
+var look_outfit := 0
+## Faces that blink and react (false: the classic, unchanging faces). Only changes what you see.
+var expressive_faces := true
 
 # Session config (set by the menu before a match starts).
 var mode: int = Mode.SANDBOX
@@ -107,7 +110,7 @@ func _ready() -> void:
 
 ## The character choices sent to the server when joining.
 func look() -> Dictionary:
-	return {"hat": look_hat, "face": look_face, "skin": look_skin, "color": look_color}
+	return {"hat": look_hat, "face": look_face, "skin": look_skin, "color": look_color, "outfit": look_outfit}
 
 
 ## Steam sets SteamDeck=1 for games launched on the Deck; SteamOS sets SteamOS=1.
@@ -174,6 +177,8 @@ func save_settings() -> void:
 	cfg.set_value("look", "face", look_face)
 	cfg.set_value("look", "skin", look_skin)
 	cfg.set_value("look", "color", look_color)
+	cfg.set_value("look", "outfit", look_outfit)
+	cfg.set_value("look", "expressive", expressive_faces)
 	cfg.set_value("net", "address", join_address)
 	cfg.set_value("net", "port", port)
 	cfg.set_value("match", "mode", mode)
@@ -211,6 +216,8 @@ func load_settings() -> void:
 	look_face = cfg.get_value("look", "face", look_face)
 	look_skin = cfg.get_value("look", "skin", look_skin)
 	look_color = cfg.get_value("look", "color", look_color)
+	look_outfit = cfg.get_value("look", "outfit", look_outfit)
+	expressive_faces = cfg.get_value("look", "expressive", expressive_faces)
 	join_address = cfg.get_value("net", "address", join_address)
 	port = cfg.get_value("net", "port", port)
 	mode = cfg.get_value("match", "mode", mode)

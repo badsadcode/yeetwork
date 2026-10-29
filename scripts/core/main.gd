@@ -7,6 +7,7 @@ extends Node
 ##   --screenshot <png> (save a screenshot after 2.5 s, then quit)
 ##   --map prime|facing|<map name in res://maps>  --validate (check a map, then quit)  --test (gameplay smoke tests)  --tour <dir> [--tour-mode destruction|charge|water]  (save screenshots from fixed viewpoints, then quit)
 ##   --graphics 0|1|2 (quality preset for this run: low / medium / high)  --paused (open the pause menu)
+##   --faces expressive|classic (character faces on this screen)
 ##   --water-style classic|sculpted  --sea calm|lake|ocean|stormy (ocean sea state, sculpted water)
 
 var menu: MainMenu
@@ -89,6 +90,9 @@ func _handle_cmdline(execute := true) -> bool:
 				i += 1
 			"--water-style":
 				Game.water_style = "sculpted" if next == "sculpted" else "classic"
+				i += 1
+			"--faces":
+				Game.expressive_faces = next != "classic"
 				i += 1
 			"--sea":
 				Game.sea_override = next

@@ -247,8 +247,11 @@ func _run() -> void:
 		if is_instance_valid(p) and Vector2(p.global_position.x, p.global_position.z).distance_to(Vector2(-40, 25)) < 4.0:
 			world.server_despawn_prop(p)
 	await reset(Vector3(-40, 40, 25), 0.0)
+	var deaths_before := pl.deaths
 	await ticks(150)
-	check("fall damage", pl.hp < 100.0, "hp %.0f" % pl.hp)
+	# A 40 m drop leaves a few hp; landing on leftover debris can finish you off (and the
+	# respawn refills hp), so a death counts as fall damage too.
+	check("fall damage", pl.hp < 100.0 or pl.deaths > deaths_before, "hp %.0f, deaths +%d" % [pl.hp, pl.deaths - deaths_before])
 
 	# 12. CTF capture: drop the blue flag on the red stand while red's flag is home.
 	if world.mode == Game.Mode.CTF:

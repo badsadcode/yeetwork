@@ -14,6 +14,7 @@ func _ready() -> void:
 	var shirt: Color = Game.FFA_COLORS[0]
 
 	var body := CharacterModel.new()
+	body.expressive = false # the classic face, as the characters always were
 	body.setup(shirt, 0, 1, 0, 0)
 	body.name = "Body"
 	for n in body.hat_nodes: # the hair tuft is exported as a hat of its own
@@ -39,6 +40,17 @@ func _ready() -> void:
 		_move_parts(m.face_nodes, extras, "Extra-" + CharacterModel.FACE_NAMES[i], head_xf)
 		m.free()
 
+	var outfits := Node3D.new()
+	outfits.name = "Outfits"
+	root.add_child(outfits)
+	var torso_xf: Transform3D = body.body.transform * (body.parts.torso as Node3D).transform
+	for i in range(1, CharacterModel.OUTFIT_NAMES.size()):
+		var m := CharacterModel.new()
+		m.setup(shirt, 0, 1, 0, 0, i)
+		_move_parts(m.outfit_nodes, outfits, "Outfit-" + CharacterModel.OUTFIT_NAMES[i], torso_xf)
+		m.free()
+
+	_drop_hidden(root) # e.g. the knocked-out X eyes (Blender can't import node visibility)
 	var doc := GLTFDocument.new()
 	var state := GLTFState.new()
 	var err := doc.append_from_scene(root, state)
@@ -57,3 +69,12 @@ func _move_parts(nodes: Array[Node3D], parent: Node3D, group_name: String, head_
 	for n in nodes:
 		n.get_parent().remove_child(n)
 		g.add_child(n)
+
+
+func _drop_hidden(n: Node) -> void:
+	for c in n.get_children():
+		if c is Node3D and not (c as Node3D).visible:
+			n.remove_child(c)
+			c.free()
+		else:
+			_drop_hidden(c)

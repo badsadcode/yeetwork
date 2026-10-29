@@ -262,10 +262,19 @@ server when you join):
   pumpkin head, witch hat, baseball cap, crown, chef hat, viking helmet (or random).
 - **Head extra**: round glasses, shades, mustache, clown nose, headphones, bow, monocle,
   eyepatch.
+- **Outfit**: shirt, or the captain's tunic (dark shoulders, gold badge).
 - **Skin** tone and a favourite **shirt** colour (free-for-all modes; teams wear team colours).
+- **Faces**: *Expressive* faces blink, glance at what they grab or aim at, and react: an
+  angry squint while charging a throw, focus while holding something, a scared "O" when
+  falling, dizzy spinning eyes in a ragdoll, a squeezed "ouch" when hit, a grin after a
+  kill, puffed cheeks underwater and X eyes when knocked out. *Classic* keeps the original
+  faces exactly as they were. It only changes what you see (`--faces classic`).
 
-**Blender:** `art/characters/characters.blend` holds the same parts: the body, every hat
-and every head extra, each in its own collection and already sitting on the head (toggle
+Look out for **Sir Yeetrick Stewart**, a tribute bot in the captain's dome and tunic, who
+always joins first.
+
+**Blender:** `art/characters/characters.blend` holds the same parts: the body (with the
+classic face), every hat, head extra and outfit, each in its own collection and already sitting on the head (toggle
 the eye icons to compose a character). It is made from the game's own code, so it matches
 exactly:
 

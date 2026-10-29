@@ -215,10 +215,13 @@ func _page_character(stack: Control) -> Control:
 	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	h.add_theme_constant_override("separation", 16)
 	page.add_child(h)
+	var left := VBoxContainer.new()
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.size_flags_stretch_ratio = 0.8
+	h.add_child(left)
 	_preview = CharacterPreview.new()
-	_preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_preview.size_flags_stretch_ratio = 0.8
-	h.add_child(_preview)
+	_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	left.add_child(_preview)
 	var v := VBoxContainer.new()
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_theme_constant_override("separation", 6 if _compact else 10)
@@ -236,21 +239,25 @@ func _page_character(stack: Control) -> Control:
 		colors.append("Colour %d" % (i + 1))
 	_picker(grid, "hat", "Hat", hats, Game.look_hat + 1)
 	_picker(grid, "face", "Head extra", CharacterModel.FACE_NAMES, Game.look_face)
+	_picker(grid, "outfit", "Outfit", CharacterModel.OUTFIT_NAMES, Game.look_outfit)
 	_picker(grid, "skin", "Skin", skins, Game.look_skin + 1)
 	_picker(grid, "color", "Shirt", colors, Game.look_color + 1)
+	_picker(grid, "faces", "Faces", ["Expressive", "Classic"], 0 if Game.expressive_faces else 1)
 	var note := Label.new()
-	note.text = "Shirt colour shows in free-for-all modes; teams wear team colours."
+	note.text = "Shirt: free-for-all only (teams wear team colours). Faces: only on your screen."
 	note.add_theme_font_size_override("font_size", 15)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(note)
 	_spacer(v)
-	var rnd := _action_button(v, "SURPRISE ME", "GreenButton")
+	var rnd := _action_button(left, "SURPRISE ME", "GreenButton")
 	rnd.custom_minimum_size.x = 0
+	rnd.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	rnd.pressed.connect(func():
 		_set_pick("hat", randi() % (CharacterModel.HAT_COUNT + 1))
 		_set_pick("face", randi() % CharacterModel.FACE_NAMES.size())
 		_set_pick("skin", randi() % (CharacterModel.SKINS.size() + 1))
-		_set_pick("color", randi() % (Game.FFA_COLORS.size() + 1)))
+		_set_pick("color", randi() % (Game.FFA_COLORS.size() + 1))
+		_set_pick("outfit", randi() % CharacterModel.OUTFIT_NAMES.size()))
 	_update_preview.call_deferred()
 	return page
 
@@ -311,13 +318,15 @@ func _set_pick(key: String, index: int) -> void:
 	Game.look_face = _pickers.face.index
 	Game.look_skin = _pickers.skin.index - 1
 	Game.look_color = _pickers.color.index - 1
+	Game.look_outfit = _pickers.outfit.index
+	Game.expressive_faces = _pickers.faces.index == 0
 	_update_preview()
 
 
 func _update_preview() -> void:
 	var shirt: Color = Game.FFA_COLORS[maxi(Game.look_color, 0) % Game.FFA_COLORS.size()]
 	var hat := Game.look_hat if Game.look_hat >= 0 else 0
-	_preview.show_look(shirt, hat, Game.look_face, Game.look_skin, 1)
+	_preview.show_look(shirt, hat, Game.look_face, Game.look_skin, 1, Game.look_outfit)
 
 
 # --- Building blocks --------------------------------------------------------------
