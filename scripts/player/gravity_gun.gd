@@ -56,11 +56,12 @@ const VM_SCALE := 0.4
 var _world_model: Node3D
 var _wm_muzzle: Node3D
 var _beam: MeshInstance3D
-var _beam_mat: StandardMaterial3D
+var _beam_mat: ShaderMaterial
 var _arc_mesh: ImmediateMesh
 var _arc_light: OmniLight3D
 var _hum: AudioStreamPlayer3D
-var _arc_offsets: Array = [] # per strand, per point jitter (re-rolled ~20x/s)
+var _arc_paths: Array = [] # [main bolt, branches..., end bursts] (re-rolled ~16x/s)
+var _arc_seed := 0
 var _arc_reroll := 0.0
 var _spark_timer := 0.0
 
@@ -68,7 +69,6 @@ var _spark_timer := 0.0
 var hold_extra := 0.0
 var hold_rot := Basis.IDENTITY
 
-const ARC_POINTS := 14
 var _kick := 0.0
 var _sway := Vector2.ZERO
 var _last_yaw := 0.0
@@ -82,8 +82,8 @@ func _ready() -> void:
 	_arc_mesh = ImmediateMesh.new()
 	_beam = MeshInstance3D.new()
 	_beam.mesh = _arc_mesh
-	_beam_mat = Mats.glow(_beam_color(), 4.0, true).duplicate()
-	_beam_mat.vertex_color_use_as_albedo = true
+	_beam_mat = ShaderMaterial.new()
+	_beam_mat.shader = preload("res://scripts/fx/arc.gdshader")
 	_beam.material_override = _beam_mat
 	_beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_beam.top_level = true
@@ -277,7 +277,7 @@ func update_visuals(delta: float) -> void:
 
 
 func _beam_color() -> Color:
-	return Color(0.45, 0.95, 1.0) if player.team == 0 else Game.team_color(player.team).lightened(0.3)
+	return Color(0.25, 0.55, 1.0) if player.team == 0 else Game.team_color(player.team).lightened(0.15)
 
 
 ## Lightning between muzzle and target: a main bolt plus thin strands and an occasional
@@ -292,50 +292,37 @@ func _draw_arc(from: Vector3, to: Vector3, delta: float) -> void:
 	var d := from.distance_to(to)
 	var aim := player.aim_direction()
 	var ctrl := from + aim * d * 0.55
-	var strands := 3 + int(ch * 2.0)
 	_arc_reroll -= delta
-	if _arc_reroll <= 0.0 or _arc_offsets.size() < strands + 1:
-		_arc_reroll = 0.05
-		_arc_offsets.clear()
-		for s in strands + 1:
-			var offs := PackedVector3Array()
-			for i in ARC_POINTS + 1:
-				offs.append(Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)))
-			_arc_offsets.append(offs)
-	var col := _beam_color().lerp(Color(1.0, 0.97, 0.9), ch)
+	if _arc_reroll <= 0.0 or _arc_paths.is_empty():
+		_arc_reroll = 0.06
+		_arc_seed += 1
+		_build_bolt(from, ctrl, to, d, ch)
+	var col := _beam_color().lerp(Color(0.85, 0.92, 1.0), ch)
+	var cam_pos := cam.global_position
+	var w := (0.6 if fp else 1.0) * (1.0 + ch * 0.6)
 	_arc_mesh.clear_surfaces()
 	_arc_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
-	var cam_pos := cam.global_position
-	for s in strands:
-		var amp := (0.05 + d * 0.02) * (1.0 + ch * 0.7) * (1.0 if s == 0 else 1.6)
-		var width := (0.035 if s == 0 else 0.012) * (1.0 + ch) * (0.5 if fp else 1.0)
-		var bright := Color(col, 0.95 if s == 0 else 0.55)
-		var prev := from
-		var offs: PackedVector3Array = _arc_offsets[s]
-		for i in range(1, ARC_POINTS + 1):
-			var t := float(i) / ARC_POINTS
-			var p := from.lerp(ctrl, t).lerp(ctrl.lerp(to, t), t)
-			if i < ARC_POINTS:
-				p += offs[i] * amp * sin(PI * t)
-			_ribbon(prev, p, width, bright, cam_pos)
-			prev = p
-	# A short fork off the main bolt now and then.
-	var fork_offs: PackedVector3Array = _arc_offsets[strands]
-	if fork_offs[0].x > 0.0:
-		var t0 := 0.3 + absf(fork_offs[1].x) * 0.4
-		var start := from.lerp(ctrl, t0).lerp(ctrl.lerp(to, t0), t0)
-		var end := start + fork_offs[2].normalized() * (0.25 + d * 0.08)
-		_ribbon(start, start.lerp(end, 0.5) + fork_offs[3] * 0.08, 0.01, Color(col, 0.6), cam_pos)
-		_ribbon(start.lerp(end, 0.5) + fork_offs[3] * 0.08, end, 0.008, Color(col, 0.4), cam_pos)
+	var main: PackedVector3Array = _arc_paths[0]
+	# Main bolt: a wide soft glow, then the white-hot core inside it.
+	_polyline(main, 0.16 * w, Color(col, 0.35), 0.0, cam_pos)
+	_polyline(main, 0.035 * w, Color(col, 1.0), 1.0, cam_pos)
+	# Branches: hair-thin, fading toward their tips.
+	for i in range(1, _arc_paths.size()):
+		var br: PackedVector3Array = _arc_paths[i]
+		_polyline(br, 0.03 * w, Color(col, 0.3), 0.0, cam_pos)
+		_polyline(br, 0.009 * w, Color(col, 0.85), 1.0, cam_pos)
+	# Starbursts where the arc touches the gun and the object.
+	var flick := 0.85 + randf() * 0.3
+	_glow_sprite(from, 0.35 * w * flick, Color(col, 0.9), cam)
+	_glow_sprite(to, (0.6 + ch * 0.4) * w * flick, Color(col, 0.8), cam)
 	_arc_mesh.surface_end()
 	_beam.global_transform = Transform3D.IDENTITY
 	_beam.visible = true
-	_beam_mat.emission = col
-	_beam_mat.emission_energy_multiplier = 3.0 + ch * 3.0 + randf() * 1.5
+	_beam_mat.set_shader_parameter("energy", (2.0 + ch * 1.6) * (0.9 + randf() * 0.2))
 	_arc_light.visible = true
 	_arc_light.global_position = to
 	_arc_light.light_color = col
-	_arc_light.light_energy = (1.2 + randf() * 1.0) * (1.0 + ch)
+	_arc_light.light_energy = (1.0 + randf() * 0.6) * (1.0 + ch)
 	_hum.global_position = from
 	if not _hum.playing:
 		_hum.stream = Sfx.stream("arc")
@@ -347,17 +334,89 @@ func _draw_arc(from: Vector3, to: Vector3, delta: float) -> void:
 		player.world.fx.spark(to, col)
 
 
-## One camera-facing quad between two points.
-func _ribbon(a: Vector3, b: Vector3, width: float, col: Color, cam_pos: Vector3) -> void:
+## Lightning between from and to, bending through ctrl: a jagged main bolt (midpoint
+## displacement at three scales), side branches with sub-branches, and short rays bursting
+## out of both ends.
+func _build_bolt(from: Vector3, ctrl: Vector3, to: Vector3, d: float, ch: float) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = _arc_seed * 7919 + player.player_id
+	_arc_paths.clear()
+	var guide := PackedVector3Array()
+	for i in 7:
+		var t := i / 6.0
+		guide.append(from.lerp(ctrl, t).lerp(ctrl.lerp(to, t), t))
+	var main := _jag(guide, 0.22 * (1.0 + ch * 0.5), 3, rng)
+	_arc_paths.append(main)
+	var branches := int(5 + d * 0.8 + ch * 6.0)
+	for b in mini(branches, 16):
+		var k := rng.randi_range(2, main.size() - 3)
+		var start := main[k]
+		var along := (main[k + 1] - main[k - 1]).normalized()
+		var out := (_rand_dir(rng) - along * 0.3).normalized()
+		var length := rng.randf_range(0.2, 0.55) * (0.6 + d * 0.06) * (1.0 + ch * 0.5)
+		var br := _jag(PackedVector3Array([start, start + (out + along * 0.4).normalized() * length]), 0.35, 2, rng)
+		_arc_paths.append(br)
+		if rng.randf() < 0.45 and br.size() > 3: # a sub-branch
+			var j := rng.randi_range(1, br.size() - 2)
+			var sub_out := (_rand_dir(rng) + out).normalized() * length * 0.45
+			_arc_paths.append(_jag(PackedVector3Array([br[j], br[j] + sub_out]), 0.4, 2, rng))
+	for e in [from, to]:
+		for i in 5:
+			var ray := _rand_dir(rng) * rng.randf_range(0.12, 0.3) * (1.0 + ch)
+			_arc_paths.append(_jag(PackedVector3Array([e, e + ray]), 0.4, 1, rng))
+
+
+## Midpoint displacement: every level splits each segment and nudges the middle sideways.
+func _jag(pts: PackedVector3Array, rough: float, levels: int, rng: RandomNumberGenerator) -> PackedVector3Array:
+	var cur := pts
+	var amount := rough
+	for l in levels:
+		var nxt := PackedVector3Array([cur[0]])
+		for i in cur.size() - 1:
+			var a := cur[i]
+			var b := cur[i + 1]
+			var seg := b - a
+			var side := seg.cross(_rand_dir(rng)).normalized()
+			nxt.append((a + b) * 0.5 + side * seg.length() * amount * rng.randf_range(-1.0, 1.0))
+			nxt.append(b)
+		cur = nxt
+		amount *= 0.6
+	return cur
+
+
+func _rand_dir(rng: RandomNumberGenerator) -> Vector3:
+	return Vector3(rng.randf_range(-1, 1), rng.randf_range(-1, 1), rng.randf_range(-1, 1)).normalized()
+
+
+## Camera-facing ribbon along a path; intensity fades out toward its far end.
+func _polyline(pts: PackedVector3Array, width: float, col: Color, hot: float, cam_pos: Vector3) -> void:
+	for i in pts.size() - 1:
+		var fade := 1.0 - float(i) / pts.size() * (0.0 if pts.size() > 30 else 0.75)
+		_ribbon(pts[i], pts[i + 1], width, Color(col, col.a * fade), hot, cam_pos)
+
+
+## A camera-facing glow sprite (round) at p.
+func _glow_sprite(p: Vector3, size: float, col: Color, cam: Camera3D) -> void:
+	var right := cam.global_transform.basis.x * size
+	var up := cam.global_transform.basis.y * size
+	_arc_mesh.surface_set_color(col)
+	_arc_mesh.surface_set_uv2(Vector2(1, 0))
+	var corners := [[p - right - up, Vector2(0, 1)], [p + right - up, Vector2(1, 1)], [p + right + up, Vector2(1, 0)], [p - right + up, Vector2(0, 0)]]
+	for idx in [0, 1, 2, 0, 2, 3]:
+		_arc_mesh.surface_set_uv(corners[idx][1])
+		_arc_mesh.surface_add_vertex(corners[idx][0])
+
+
+## One camera-facing quad between two points (UV.y across, UV.x = hot core amount).
+func _ribbon(a: Vector3, b: Vector3, width: float, col: Color, hot: float, cam_pos: Vector3) -> void:
 	var seg := b - a
 	var side := seg.cross(cam_pos - a).normalized() * width
 	_arc_mesh.surface_set_color(col)
-	_arc_mesh.surface_add_vertex(a - side)
-	_arc_mesh.surface_add_vertex(a + side)
-	_arc_mesh.surface_add_vertex(b + side)
-	_arc_mesh.surface_add_vertex(a - side)
-	_arc_mesh.surface_add_vertex(b + side)
-	_arc_mesh.surface_add_vertex(b - side)
+	_arc_mesh.surface_set_uv2(Vector2.ZERO)
+	var quad := [[a - side, 0.0], [a + side, 1.0], [b + side, 1.0], [a - side, 0.0], [b + side, 1.0], [b - side, 0.0]]
+	for q in quad:
+		_arc_mesh.surface_set_uv(Vector2(hot, q[1]))
+		_arc_mesh.surface_add_vertex(q[0])
 
 
 func on_owner_died() -> void:

@@ -7,8 +7,10 @@ extends Node
 @export var map_name := "Untitled Arena"
 @export var author := ""
 @export_multiline var description := ""
-## Lighting preset: warm sunset, bright day, moonlit night, or outer space.
-@export_enum("sunset", "day", "night", "space") var sky := "sunset":
+## Environment: sky, light, haze, distant scenery and clouds. sunset, day, tropical
+## (islands), desert (mesas, dunes), snow (peaks, pines), volcano (red sky, ash, a glowing
+## volcano), night or space.
+@export_enum("sunset", "day", "tropical", "desert", "snow", "volcano", "night", "space") var sky := "sunset":
 	set(v):
 		sky = v
 		_refresh_preview()

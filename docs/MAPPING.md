@@ -80,8 +80,9 @@ Design around these numbers:
 | Red team / Blue team | `#FF4554` / `#408CFF` |
 | Landmarks | something glowing (`ArenaBlock → Emission`), unique shapes, lights |
 
-Lighting is automatic (*MapSettings → Sky*): **sunset**, **day**, **night** or
-**space**. You can still add your own `OmniLight3D` and `SpotLight3D` nodes for
+Lighting is automatic (*MapSettings → Sky*): **sunset**, **day**, **tropical**,
+**desert**, **snow**, **volcano**, **night** or **space**. Each also places low-poly
+scenery on the horizon and cartoon clouds overhead. You can still add your own `OmniLight3D` and `SpotLight3D` nodes for
 accents. If your scene has its own `WorldEnvironment` or `DirectionalLight3D`, the
 preset is skipped and yours is used.
 
@@ -95,7 +96,7 @@ All kit nodes preview themselves in the editor. In game they become the real thi
 | Property | |
 |---|---|
 | Map Name, Author, Description | shown in the menu and HUD |
-| Sky | `sunset`, `day`, `night`, `space` |
+| Sky | the environment: `sunset`, `day`, `tropical`, `desert`, `snow`, `volcano`, `night`, `space` (sky, light, haze, horizon scenery, clouds). The host can override it per match |
 | Sun Rotation Degrees, Sun Energy Scale, Ambient Scale | tweak the preset |
 | Ocean Preset | sea state with the *Sculpted* water style: `calm`, `lake`, `ocean`, `stormy` |
 | Ocean, Ocean Level | surround the map with an animated sea whose surface sits at *Ocean Level*. Players who fall in sink and drown; wooden and rubber props float. Put your floors above it, and an island's sides look best reaching a few metres below it |

@@ -17,6 +17,7 @@ var _mode: OptionButton
 var _map: OptionButton
 var _spooky: OptionButton
 var _water: OptionButton
+var _sky: OptionButton
 var _bots: SpinBox
 var _pages := {}
 var _page_title: Label
@@ -171,6 +172,15 @@ func _page_play(stack: Control) -> Control:
 		_water.add_item(item)
 	_water.selected = 1 if Game.water_style == "sculpted" else 0
 	_field(grid, "Water style", _water)
+	_sky = OptionButton.new()
+	_sky.add_item("Map's own")
+	for i in MapEnvironment.PRESETS.size():
+		_sky.add_item(String(MapEnvironment.PRESETS[i]).capitalize())
+		if MapEnvironment.PRESETS[i] == Game.sky_override:
+			_sky.selected = i + 1
+	if Game.sky_override == "":
+		_sky.selected = 0
+	_field(grid, "Environment", _sky)
 	_spacer(v)
 	var host := _action_button(v, "START MATCH", "YellowButton")
 	host.pressed.connect(func():
@@ -403,6 +413,7 @@ func _store() -> void:
 	Game.mode = _mode.selected
 	Game.halloween = _spooky.selected
 	Game.water_style = "sculpted" if _water.selected == 1 else "classic"
+	Game.sky_override = "" if _sky.selected <= 0 else MapEnvironment.PRESETS[_sky.selected - 1]
 	Game.map = _map.get_item_metadata(_map.selected) if _map.selected >= 0 else "facing"
 	Game.bot_count = int(_bots.value)
 	Game.port = int(_port.value)

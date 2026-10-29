@@ -287,6 +287,7 @@ func _build_init_state() -> Dictionary:
 		"mode": mode,
 		"spooky": Game.spooky,
 		"water_style": Liquid.style,
+		"sky": Game.sky_override,
 		"map": map_key,
 		"time": net_time(),
 		"players": pl_list,
@@ -311,6 +312,7 @@ func _s_init(state: Dictionary) -> void:
 	mode = state.mode
 	Game.spooky = state.get("spooky", false)
 	Liquid.style = state.get("water_style", "classic")
+	Game.sky_override = state.get("sky", "")
 	_start_ambience()
 	_build_arena(state.map)
 	_time_offset = state.time - now()

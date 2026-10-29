@@ -592,4 +592,9 @@ func splash(pos: Vector3, speed: float) -> void:
 	add_ripple(at_surface, clampf(speed / 7.0, 0.3, 2.0))
 	var strength := clampf(speed / 14.0, 0.25, 2.0)
 	_world.fx.splash(at_surface, strength, params.shallow_color, kind)
+	var lp: Player = _world.get("local_player")
+	if kind == "water" and lp and lp.lens and lp.camera and strength > 0.6:
+		var d := lp.camera.global_position.distance_to(at_surface)
+		if d < 4.5:
+			lp.lens.wet(clampf(strength * 0.5 * (1.0 - d / 4.5) + 0.2, 0.0, 0.8))
 	Sfx.play3d("splash" if kind == "water" else "sizzle", at_surface, -4.0 + strength * 4.0, randf_range(0.85, 1.1) / sqrt(strength))

@@ -6,6 +6,25 @@ extends RefCounted
 ##   sunset - warm golden hour (default)      day   - bright, saturated, blue sky
 ##   night  - cool moonlight, deep blue sky   space - starfield, nebula and a planet
 ##   halloween - purple dusk, orange horizon, big moon, thick fog (spooky mode)
+##   tropical  - deep blue sky, turquoise horizon, islands and big white clouds
+##   desert    - warm haze, high sun, mesas and dunes, few clouds
+##   snow      - cool bright light, snowy peaks and pine forests
+##   volcano   - smoky red sky, ash clouds, a glowing volcano on the horizon
+
+## Every environment a map can pick (MapSettings.sky), in menu order.
+const PRESETS := ["sunset", "day", "tropical", "desert", "snow", "volcano", "night", "space"]
+
+## Clouds per environment: [count at full quality, altitude, lit colour, shaded colour].
+const CLOUDS := {
+	"day": [26, 110.0, Color(1.0, 1.0, 1.0), Color(0.62, 0.7, 0.88)],
+	"sunset": [22, 100.0, Color(1.0, 0.82, 0.7), Color(0.55, 0.45, 0.7)],
+	"tropical": [30, 120.0, Color(1.0, 1.0, 1.0), Color(0.6, 0.74, 0.92)],
+	"desert": [8, 170.0, Color(1.0, 0.94, 0.86), Color(0.82, 0.72, 0.66)],
+	"snow": [30, 90.0, Color(0.96, 0.97, 1.0), Color(0.6, 0.65, 0.78)],
+	"volcano": [26, 90.0, Color(0.42, 0.3, 0.28), Color(0.12, 0.08, 0.09)],
+	"night": [16, 110.0, Color(0.36, 0.4, 0.6), Color(0.12, 0.14, 0.26)],
+	"halloween": [18, 100.0, Color(0.48, 0.36, 0.62), Color(0.15, 0.1, 0.22)],
+}
 
 
 ## Quality options (Game.gfx) on top of a preset. Without full GI the ambient light gets a
@@ -80,6 +99,41 @@ static func build(preset: String, settings: Node = null) -> Array[Node]:
 			sun_energy = 1.1
 			fill_color = Color(0.5, 0.3, 0.9)
 			fill_energy = 0.35
+		"tropical":
+			sky_mat.sky_top_color = Color(0.08, 0.38, 0.92)
+			sky_mat.sky_horizon_color = Color(0.62, 0.9, 1.0)
+			sky_mat.ground_horizon_color = Color(0.55, 0.85, 0.92)
+			sky_mat.ground_bottom_color = Color(0.1, 0.35, 0.5)
+			sun_color = Color(1.0, 0.96, 0.86)
+			sun_energy = 2.8
+			fill_color = Color(0.45, 0.8, 1.0)
+		"desert":
+			sky_mat.sky_top_color = Color(0.3, 0.52, 0.88)
+			sky_mat.sky_horizon_color = Color(1.0, 0.86, 0.62)
+			sky_mat.ground_horizon_color = Color(0.98, 0.78, 0.52)
+			sky_mat.ground_bottom_color = Color(0.62, 0.45, 0.3)
+			sun_color = Color(1.0, 0.86, 0.66)
+			sun_energy = 3.0
+			fill_color = Color(0.7, 0.75, 1.0)
+		"snow":
+			sky_mat.sky_top_color = Color(0.42, 0.58, 0.86)
+			sky_mat.sky_horizon_color = Color(0.86, 0.91, 0.98)
+			sky_mat.ground_horizon_color = Color(0.9, 0.93, 1.0)
+			sky_mat.ground_bottom_color = Color(0.7, 0.75, 0.85)
+			sun_color = Color(1.0, 0.95, 0.9)
+			sun_energy = 2.2
+			fill_color = Color(0.6, 0.72, 1.0)
+			fill_energy = 0.4
+		"volcano":
+			sky_mat.sky_top_color = Color(0.2, 0.1, 0.14)
+			sky_mat.sky_horizon_color = Color(0.85, 0.4, 0.22)
+			sky_mat.ground_horizon_color = Color(0.4, 0.14, 0.08)
+			sky_mat.ground_bottom_color = Color(0.08, 0.04, 0.04)
+			sky_mat.sun_angle_max = 8.0
+			sun_color = Color(1.0, 0.68, 0.45)
+			sun_energy = 2.0
+			fill_color = Color(1.0, 0.35, 0.2)
+			fill_energy = 0.45
 		"night":
 			sky_mat.sky_top_color = Color(0.03, 0.04, 0.12)
 			sky_mat.sky_horizon_color = Color(0.2, 0.18, 0.38)
@@ -173,6 +227,32 @@ static func build(preset: String, settings: Node = null) -> Array[Node]:
 		"day":
 			env.volumetric_fog_density = 0.001
 			env.adjustment_saturation = 1.15
+		"tropical":
+			env.volumetric_fog_density = 0.0008
+			env.fog_light_color = Color(0.7, 0.88, 1.0)
+			env.adjustment_saturation = 1.25
+		"desert":
+			env.fog_light_color = Color(1.0, 0.85, 0.65)
+			env.fog_density = 0.0016
+			env.volumetric_fog_density = 0.003
+			env.volumetric_fog_albedo = Color(1.0, 0.85, 0.7)
+			env.adjustment_saturation = 1.15
+		"snow":
+			env.ambient_light_energy = 0.75 * amb_scale
+			env.fog_light_color = Color(0.85, 0.9, 1.0)
+			env.fog_density = 0.0008
+			env.volumetric_fog_density = 0.0018
+			env.volumetric_fog_albedo = Color(0.9, 0.94, 1.0)
+		"volcano":
+			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+			env.ambient_light_color = Color(0.62, 0.46, 0.46)
+			env.ambient_light_energy = 0.7 * amb_scale
+			env.fog_light_color = Color(0.5, 0.28, 0.22)
+			env.fog_density = 0.0018
+			env.volumetric_fog_density = 0.005
+			env.volumetric_fog_albedo = Color(0.75, 0.55, 0.5)
+			env.volumetric_fog_emission = Color(0.04, 0.01, 0.0)
+			env.glow_intensity = 0.8
 	apply_quality(env, preset)
 	var we := WorldEnvironment.new()
 	we.environment = env

@@ -46,11 +46,13 @@ const SETTINGS_PATH := "user://settings.cfg"
 ##   aa: 0 off, 1 FXAA, 2 MSAA 2x, 3 MSAA 4x, 4 TAA   shadows: 0 off, 1 low, 2 high
 ##   gi: 0 off, 1 SSIL, 2 SSIL + SDFGI   ssao, fog (volumetric), glow: on/off
 ##   water: 0 low, 1 medium, 2 high   glass: 0 simple, 1 refraction, 2 + reflections
+##   explosions: 0 simple (billboard puffs), 1 volumetric, 2 volumetric high
+##   clouds: 0 off, 1 few, 2 many
 ##   vsync: on/off   max_fps: 0 = unlimited
 const GFX_PRESETS := [
-	{"scale": 0.75, "upscaler": 1, "aa": 1, "shadows": 1, "gi": 0, "ssao": true, "fog": false, "glow": true, "water": 0, "glass": 1, "vsync": true, "max_fps": 0},
-	{"scale": 0.9, "upscaler": 1, "aa": 1, "shadows": 2, "gi": 1, "ssao": true, "fog": true, "glow": true, "water": 1, "glass": 2, "vsync": true, "max_fps": 0},
-	{"scale": 1.0, "upscaler": 0, "aa": 2, "shadows": 2, "gi": 2, "ssao": true, "fog": true, "glow": true, "water": 2, "glass": 2, "vsync": true, "max_fps": 0},
+	{"scale": 0.75, "upscaler": 1, "aa": 1, "shadows": 1, "gi": 0, "ssao": true, "fog": false, "glow": true, "water": 0, "glass": 1, "explosions": 0, "clouds": 1, "vsync": true, "max_fps": 0},
+	{"scale": 0.9, "upscaler": 1, "aa": 1, "shadows": 2, "gi": 1, "ssao": true, "fog": true, "glow": true, "water": 1, "glass": 2, "explosions": 1, "clouds": 2, "vsync": true, "max_fps": 0},
+	{"scale": 1.0, "upscaler": 0, "aa": 2, "shadows": 2, "gi": 2, "ssao": true, "fog": true, "glow": true, "water": 2, "glass": 2, "explosions": 2, "clouds": 2, "vsync": true, "max_fps": 0},
 ]
 
 # Player settings (persisted).
@@ -88,6 +90,8 @@ var bot_count := 3
 var water_style := "classic"
 ## Session override of every ocean's sea state (--sea calm|lake|ocean|stormy), not saved.
 var sea_override := ""
+## The host's environment pick for every map ("" = the map's own MapSettings.sky).
+var sky_override := ""
 var join_address := "127.0.0.1"
 var port := DEFAULT_PORT
 var is_hosting := true
@@ -182,6 +186,7 @@ func save_settings() -> void:
 	cfg.set_value("match", "mode", mode)
 	cfg.set_value("match", "bots", bot_count)
 	cfg.set_value("match", "water_style", water_style)
+	cfg.set_value("match", "sky", sky_override)
 	cfg.set_value("match", "map", map)
 	cfg.save(SETTINGS_PATH)
 	apply_graphics()
@@ -220,6 +225,7 @@ func load_settings() -> void:
 	mode = cfg.get_value("match", "mode", mode)
 	bot_count = cfg.get_value("match", "bots", bot_count)
 	water_style = cfg.get_value("match", "water_style", water_style)
+	sky_override = cfg.get_value("match", "sky", sky_override)
 	var m = cfg.get_value("match", "map", map)
 	map = m if m is String else "facing"
 	apply_audio()

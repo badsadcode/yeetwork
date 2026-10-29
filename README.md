@@ -169,8 +169,22 @@ damage.
 
 **Graphics options.** Low (Steam Deck), Medium and High presets, plus every detail on its
 own: resolution, upscaler (FSR 1 / FSR 2), anti-aliasing, shadows, lighting (SSIL, SDFGI),
-ambient occlusion, volumetric fog, bloom, water quality, glass quality, VSync and a frame
-rate cap. Available in the menu and in the pause menu.
+ambient occlusion, volumetric fog, bloom, water quality, glass quality, explosions, clouds,
+VSync and a frame rate cap. Available in the menu and in the pause menu.
+
+**Effects.** Dust, smoke, mist and whitewater are soft cloud-noise puffs with colour
+gradients over their life that erode into wisps and fade softly into the ground (dust kicks
+up on landings, runs and slides). Explosions are ray-marched volumetric fireballs that cool
+into rolling smoke (*Explosions: Simple* uses billboard puffs instead). The gravity gun's
+arc is branching lightning with a soft blue glow and starbursts at both ends. Coming out of
+the water leaves drops on the lens: beads that refract and disperse the light, and teardrop
+runners that slide down leaving wet trails.
+
+**Environments.** Each map picks one (*MapSettings → Sky*), and the host can override it
+on the Play page: sunset, day, tropical (islands), desert (mesas, dunes), snow (peaks and
+pine forests), volcano (a glowing volcano under a red sky), night and space. Each has its
+own sky, light, haze, low-poly scenery on the horizon and puffy cartoon clouds drifting
+overhead (*Clouds* option).
 
 **Look.** Stylized PBR with a custom triplanar surface shader (soft panels, warm-to-cool
 height gradients), a warm key sun, cool fill light, SDFGI and SSIL bounce lighting, soft
@@ -247,8 +261,12 @@ godot --path . -- --host --map courtyard --bots 0 --tour /tmp/shots --tour-mode 
 # Any of these with a graphics preset for one run (0 = Low / Steam Deck, 1 = Medium, 2 = High)
 godot --path . -- --host --map courtyard --graphics 0
 
-# Water style and sea state for a match (the host's choice reaches every client)
-godot --path . -- --host --map courtyard --water-style sculpted --sea stormy
+# Water style, sea state and environment for a match (the host's choice reaches every client)
+godot --path . -- --host --map courtyard --water-style sculpted --sea stormy --sky volcano
+
+# Effects in front of a still camera (explosion, dust, gun arc, lens drops), and a cracked window
+godot --path . -- --host --map lagoon --bots 0 --tour /tmp/shots --tour-mode fx
+godot --path . -- --host --map prime --bots 0 --tour /tmp/shots --tour-mode glass
 
 # Every hat and head extra in a line-up; the menu on a given page; the pause menu
 godot --path . -- --host --map prime --bots 0 --tour /tmp/shots --tour-mode looks

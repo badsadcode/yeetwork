@@ -323,8 +323,11 @@ func _environment(space := false) -> void:
 
 
 func environment_preset(preset: String, settings: Node = null) -> void:
-	if Game.spooky and preset != "space":
+	if Game.sky_override != "" and preset != "space":
+		preset = Game.sky_override # the host's environment pick wins over the spooky look
+	elif Game.spooky and preset != "space":
 		preset = "halloween"
+	_scenery(preset, settings)
 	for n in MapEnvironment.build(preset, settings):
 		add_child(n)
 		if n is WorldEnvironment:
@@ -339,6 +342,21 @@ func environment_preset(preset: String, settings: Node = null) -> void:
 					MapEnvironment.apply_sun(sun))
 	if Game.spooky:
 		_spooky_extras()
+
+
+## Distant scenery and clouds for the environment (Backdrop, Clouds).
+func _scenery(preset: String, settings: Node) -> void:
+	var base_y := -8.0
+	if settings and settings.get("ocean"):
+		base_y = float(settings.get("ocean_level"))
+	var bd := Backdrop.build(preset, base_y)
+	if bd:
+		add_child(bd)
+	var q: int = Game.gfx.get("clouds", 2)
+	if q > 0 and MapEnvironment.CLOUDS.has(preset):
+		var c: Array = MapEnvironment.CLOUDS[preset]
+		var count := int(c[0]) if q >= 2 else int(c[0]) / 2
+		add_child(Clouds.create(count, c[1], 120.0, 650.0, c[2], c[3]))
 
 
 ## Bats circling high above the action.

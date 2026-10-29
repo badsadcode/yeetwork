@@ -103,6 +103,9 @@ var camera: Camera3D
 var _underwater: MeshInstance3D
 var _underwater_mat: ShaderMaterial
 var _underwater_liquid: Liquid
+var _was_under := false
+## Water on the camera lens (local human only).
+var lens: LensDrops
 var _trail: CPUParticles3D
 var _eye_height := EYE_STAND
 var _air_time := 0.0
@@ -136,6 +139,9 @@ var _adjust_pitch := 0.0
 var _adjust_send := 0.0
 var _base_fov := 0.0
 var _face_hp := 100.0
+var _fx_grounded := true
+var _fx_fall := 0.0
+var _fx_timer := 0.0
 var _face_frags := 0
 
 # Remote interpolation.
@@ -243,6 +249,8 @@ func _ready() -> void:
 		_underwater.visible = false
 		camera.add_child(_underwater)
 		gun.build_viewmodel(camera)
+		lens = LensDrops.new()
+		add_child(lens)
 		_view_third_person = Game.third_person
 	_net_pos = global_position
 	_update_view_mode()
@@ -328,6 +336,7 @@ func _physics_process(delta: float) -> void:
 func _process(delta: float) -> void:
 	var hv := Vector3(velocity.x, 0, velocity.z)
 	_update_face()
+	_ground_fx(delta)
 	model.animate(delta, velocity, flags, yaw, _held_by != 0)
 	_trail.emitting = hv.length() > 15.0 or state == State.RAGDOLL and velocity.length() > 10.0
 	if camera:
@@ -984,6 +993,31 @@ func respawn(pos: Vector3, p_yaw: float) -> void:
 	_update_flags()
 
 
+# --- Ground dust (every peer, from the movement flags) ------------------------------
+
+func _ground_fx(delta: float) -> void:
+	if world == null or world.fx == null or not is_alive() or not model.visible:
+		return
+	var grounded := (flags & F_GROUNDED) != 0
+	if not grounded:
+		_fx_fall = minf(_fx_fall, velocity.y)
+	elif not _fx_grounded and _fx_fall < -7.0 and not _in_liquid():
+		world.fx.ground_dust(global_position, clampf((-_fx_fall - 7.0) / 15.0, 0.15, 1.0))
+	if grounded:
+		_fx_fall = 0.0
+	_fx_grounded = grounded
+	_fx_timer -= delta
+	var hv := Vector3(velocity.x, 0, velocity.z)
+	if grounded and _fx_timer <= 0.0 and (hv.length() > 7.0 or (flags & F_SLIDING) != 0) and not _in_liquid():
+		_fx_timer = 0.06 if (flags & F_SLIDING) != 0 else 0.28
+		world.fx.ground_dust(global_position, 0.3, hv)
+
+
+func _in_liquid() -> bool:
+	var liq := Liquid.at(global_position, 0.3)
+	return liq != null and global_position.y < liq.height_at(global_position.x, global_position.z) + 0.2
+
+
 # --- Face (expressive characters) -------------------------------------------------
 
 ## Moods from what every peer knows about this player: hp, frags, the gun and position.
@@ -1087,3 +1121,6 @@ func _update_underwater() -> void:
 		_underwater_mat.set_shader_parameter("wave_time", Liquid.wave_time())
 	_underwater.visible = near
 	Sfx.set_underwater(under)
+	if _was_under and not under and lens and liq and liq.kind == "water":
+		lens.wet(1.0) # surfacing: water runs off the lens
+	_was_under = under

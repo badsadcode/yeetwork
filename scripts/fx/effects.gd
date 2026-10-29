@@ -12,6 +12,11 @@ var _blood_mat: StandardMaterial3D
 var _drop_mesh: SphereMesh
 var _chunk_mesh: BoxMesh
 var _rng := RandomNumberGenerator.new()
+var _quad: QuadMesh
+var _puff_mats := {}
+static var _noise_tex: NoiseTexture2D
+static var _noise3d: NoiseTexture3D
+var _ball: SphereMesh
 
 
 func _ready() -> void:
@@ -25,6 +30,36 @@ func _ready() -> void:
 	_drop_mesh.rings = 3
 	_chunk_mesh = BoxMesh.new()
 	_chunk_mesh.size = Vector3.ONE
+	_quad = QuadMesh.new()
+	_quad.size = Vector2.ONE
+	_ball = SphereMesh.new()
+	_ball.radius = 1.0
+	_ball.height = 2.0
+	_ball.radial_segments = 24
+	_ball.rings = 12
+	if _noise3d == null and Game.gfx.get("explosions", 2) > 0:
+		var n3 := FastNoiseLite.new()
+		n3.seed = 11
+		n3.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		n3.frequency = 0.06
+		n3.fractal_octaves = 2
+		_noise3d = NoiseTexture3D.new()
+		_noise3d.width = 64
+		_noise3d.height = 64
+		_noise3d.depth = 64
+		_noise3d.seamless = true
+		_noise3d.noise = n3
+	if _noise_tex == null:
+		var n := FastNoiseLite.new()
+		n.seed = 77
+		n.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		n.frequency = 0.012
+		n.fractal_octaves = 4
+		_noise_tex = NoiseTexture2D.new()
+		_noise_tex.width = 256
+		_noise_tex.height = 256
+		_noise_tex.seamless = true
+		_noise_tex.noise = n
 
 
 func _space() -> PhysicsDirectSpaceState3D:
@@ -129,6 +164,73 @@ func _burst(pos: Vector3, dir: Vector3, amount: int, mesh: Mesh, mat: Material, 
 	get_tree().create_timer(life + 0.5).timeout.connect(p.queue_free)
 
 
+## Soft cloudy puffs (puff.gdshader): dust, smoke, mist, fireballs. `colors` is a gradient
+## over each puff's life (alpha included); puffs grow by `grow` while they live.
+func puffs(pos: Vector3, dir: Vector3, amount: int, colors: Array, size_min: float, size_max: float, speed_min: float, speed_max: float, life: float, spread := 60.0, gravity := Vector3(0, 0.6, 0), damp := 3.0, heat := 0.0, emit_radius := 0.2, grow := 2.0, radial := 0.0) -> void:
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 0.9
+	p.amount = maxi(int(amount * (0.6 if Game.graphics == 0 else 1.0)), 1)
+	p.lifetime = life
+	p.mesh = _quad
+	p.material_override = _puff_material(heat)
+	p.direction = dir.normalized() if dir.length() > 0.01 else Vector3.UP
+	p.spread = spread
+	p.initial_velocity_min = speed_min
+	p.initial_velocity_max = speed_max
+	p.gravity = gravity
+	p.damping_min = damp * 0.7
+	p.damping_max = damp
+	p.radial_accel_min = radial * 0.6
+	p.radial_accel_max = radial
+	p.angle_min = -180.0
+	p.angle_max = 180.0
+	p.angular_velocity_min = -40.0
+	p.angular_velocity_max = 40.0
+	p.scale_amount_min = size_min
+	p.scale_amount_max = size_max
+	var curve := Curve.new()
+	curve.add_point(Vector2(0, 0.45))
+	curve.add_point(Vector2(1, 0.45 * grow))
+	p.scale_amount_curve = curve
+	var g := Gradient.new()
+	for i in colors.size():
+		var t := float(i) / maxf(colors.size() - 1, 1)
+		if i < 2:
+			g.set_offset(i, t)
+			g.set_color(i, colors[i])
+		else:
+			g.add_point(t, colors[i])
+	p.color_ramp = g
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = maxf(emit_radius, 0.01)
+	p.local_coords = false
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(p)
+	p.global_position = pos
+	p.emitting = true
+	get_tree().create_timer(life + 0.3).timeout.connect(p.queue_free)
+
+
+func _puff_material(heat: float) -> ShaderMaterial:
+	var key := "h%.1f" % heat
+	if not _puff_mats.has(key):
+		var m := ShaderMaterial.new()
+		m.shader = preload("res://scripts/fx/puff.gdshader")
+		m.set_shader_parameter("noise_tex", _noise_tex)
+		m.set_shader_parameter("heat", heat)
+		_puff_mats[key] = m
+	return _puff_mats[key]
+
+
+## Dust spreading out along a surface from a point (landings, impacts).
+func dust_ring(pos: Vector3, n: Vector3, strength: float, color: Color) -> void:
+	var c := color.lightened(0.25)
+	puffs(pos + n * 0.15, n, int(6 + strength * 10), [Color(c, 0.75), Color(c, 0.55), Color(c, 0.0)],
+		0.9 + strength * 0.5, 1.6 + strength * 0.9, 0.5, 1.5 + strength, 0.9 + strength * 0.4,
+		85.0, Vector3(0, 0.4, 0), 4.0, 0.0, 0.25, 2.2, 6.0 + strength * 6.0)
+
+
 func _rand_vec() -> Vector3:
 	return Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1), _rng.randf_range(-1, 1))
 
@@ -200,8 +302,8 @@ func impact(pos: Vector3, normal: Vector3, strength: float, material: String) ->
 	var n := normal.normalized() if normal.length() > 0.01 else Vector3.UP
 	if s > 0.5:
 		_flash(pos + n * 0.1, 0.25 + s * 0.25)
-	if material != "rubber" and material != "glass":
-		_ring(pos + n * 0.05, n, 0.6 + s * 1.2, _dust_color(material))
+	if material != "rubber" and material != "glass" and material != "body":
+		dust_ring(pos, n, s, _dust_color(material))
 	var count := int(4 + s * 14)
 	match material:
 		"metal":
@@ -330,13 +432,9 @@ func spark(pos: Vector3, color: Color) -> void:
 
 
 func dust(pos: Vector3, color: Color, amount: float) -> void:
-	var m := SphereMesh.new()
-	m.radius = 0.35
-	m.height = 0.7
-	m.radial_segments = 8
-	m.rings = 4
-	var mat := Mats.plastic(color.lightened(0.35), 1.0)
-	_burst(pos, Vector3.UP, int(6 + amount * 6), m, mat, 0.5, 3.0 + amount, 1.4, 3.5)
+	var c := color.lightened(0.3)
+	puffs(pos, Vector3.UP, int(6 + amount * 6), [Color(c, 0.85), Color(c.darkened(0.1), 0.6), Color(c, 0.0)],
+		1.6, 2.6 + amount * 0.6, 0.5, 3.0 + amount, 1.8, 70.0, Vector3(0, 0.5, 0), 3.5, 0.0, 0.4 + amount * 0.2, 2.4)
 
 
 func explosion(pos: Vector3, radius: float) -> void:
@@ -349,26 +447,46 @@ func explosion(pos: Vector3, radius: float) -> void:
 	var tw := flash.create_tween()
 	tw.tween_property(flash, "light_energy", 0.0, 0.5)
 	tw.tween_callback(flash.queue_free)
-	var ball := MeshInstance3D.new()
-	var sm := SphereMesh.new()
-	sm.radius = 1.0
-	sm.height = 2.0
-	ball.mesh = sm
-	var mat := Mats.glow(Color(1.0, 0.55, 0.15), 6.0, true).duplicate() as StandardMaterial3D
-	ball.material_override = mat
-	add_child(ball)
-	ball.global_position = pos
-	ball.scale = Vector3.ONE * 0.3
-	var tw2 := ball.create_tween().set_parallel(true)
-	tw2.tween_property(ball, "scale", Vector3.ONE * radius, 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_EXPO)
-	tw2.tween_property(mat, "albedo_color:a", 0.0, 0.45)
-	tw2.chain().tween_callback(ball.queue_free)
-	var smoke := SphereMesh.new()
-	smoke.radius = 0.5
-	smoke.height = 1.0
-	_burst(pos, Vector3.UP, 14, smoke, Mats.plastic(Color(0.25, 0.22, 0.25), 1.0), 2.0, 7.0, 1.6, 4.0)
+	var k := radius / 7.5
+	var q: int = Game.gfx.get("explosions", 2)
+	if q > 0 and _noise3d:
+		_volume_explosion(pos, radius, 20 if q == 1 else 36)
+		dust_ring(pos - Vector3.UP * 0.4, Vector3.UP, 2.5, Color(0.6, 0.55, 0.5))
+		_burst(pos, Vector3.UP, 30, _drop_mesh, Mats.glow(Color(1.0, 0.7, 0.2), 4.0), 6.0, 18.0, 0.8)
+		scorch(pos, radius * 0.5)
+		return
+	# Low quality: billboard puffs. Fireball: hot core cooling to orange, red and soot.
+	puffs(pos, Vector3.UP, 24, [Color(1.0, 0.95, 0.7, 1.0), Color(1.0, 0.55, 0.15, 0.95), Color(0.55, 0.15, 0.08, 0.8), Color(0.12, 0.1, 0.1, 0.0)],
+		8.0 * k, 12.0 * k, 4.0, 10.0 * k, 1.4, 180.0, Vector3(0, 4.0, 0), 3.0, 1.0, 2.5 * k, 1.6)
+	# Rolling smoke that rises and lingers.
+	puffs(pos + Vector3.UP * 0.5, Vector3.UP, 12, [Color(0.3, 0.27, 0.28, 0.0), Color(0.32, 0.29, 0.3, 0.85), Color(0.45, 0.42, 0.44, 0.5), Color(0.55, 0.52, 0.55, 0.0)],
+		4.5 * k, 7.5 * k, 1.5, 5.0 * k, 3.2, 70.0, Vector3(0, 2.2, 0), 2.0, 0.0, 1.5 * k, 2.4)
+	dust_ring(pos - Vector3.UP * 0.4, Vector3.UP, 2.5, Color(0.6, 0.55, 0.5))
 	_burst(pos, Vector3.UP, 30, _drop_mesh, Mats.glow(Color(1.0, 0.7, 0.2), 4.0), 6.0, 18.0, 0.8)
 	scorch(pos, radius * 0.5)
+
+
+## Ray-marched fireball (explosion_volume.gdshader) that cools into rising smoke.
+func _volume_explosion(pos: Vector3, radius: float, steps: int) -> void:
+	var mi := MeshInstance3D.new()
+	mi.mesh = _ball
+	var m := ShaderMaterial.new()
+	m.shader = preload("res://scripts/fx/explosion_volume.gdshader")
+	m.set_shader_parameter("noise3d", _noise3d)
+	m.set_shader_parameter("steps", steps)
+	m.set_shader_parameter("seed", _rng.randf() * 10.0)
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.extra_cull_margin = radius
+	add_child(mi)
+	mi.global_position = pos
+	var r := radius * 0.8
+	mi.scale = Vector3.ONE * r
+	var tw := mi.create_tween().set_parallel(true)
+	tw.tween_method(func(v: float): m.set_shader_parameter("progress", v), 0.0, 1.0, 2.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(mi, "scale", Vector3.ONE * r * 1.45, 2.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(mi, "global_position", pos + Vector3.UP * radius * 0.7, 2.6).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_SINE)
+	tw.chain().tween_callback(mi.queue_free)
 
 
 func shockwave(pos: Vector3, dir: Vector3, color := Color(0.5, 0.95, 1.0)) -> void:
@@ -398,10 +516,7 @@ func zap(pos: Vector3) -> void:
 
 
 func puff(pos: Vector3, normal: Vector3, color := Color(0.9, 0.9, 0.95)) -> void:
-	var m := SphereMesh.new()
-	m.radius = 0.15
-	m.height = 0.3
-	_burst(pos, normal, 6, m, Mats.plastic(color, 1.0), 1.0, 3.0, 0.5, 4.0)
+	puffs(pos, normal, 6, [Color(color, 0.8), Color(color, 0.0)], 0.35, 0.7, 1.0, 3.0, 0.7, 50.0, Vector3(0, 0.3, 0), 4.0)
 
 
 ## Something hit a liquid: a crown of droplets, a whitewater column, a ring and mist.
@@ -422,13 +537,10 @@ func splash(pos: Vector3, strength: float, color: Color, liquid := "water") -> v
 	streak.radial_segments = 6
 	streak.rings = 1
 	_burst(pos + Vector3.UP * 0.1, Vector3.UP, int(14 + strength * 22), streak, drop, 3.0 + strength * 2.0, 6.0 + strength * 5.0, 1.1, 0.4, true)
-	var foam := Mats.plastic(Color(0.95, 0.98, 1.0) if not glow else color.lightened(0.4), 0.6, 1.5 if glow else 0.0)
-	var blob := SphereMesh.new()
-	blob.radius = 0.16
-	blob.height = 0.32
-	blob.radial_segments = 8
-	blob.rings = 4
-	_burst(pos, Vector3.UP, int(6 + strength * 8), blob, foam, 2.0 + strength, 4.0 + strength * 3.5, 0.8, 1.5)
+	# Whitewater column: soft foamy puffs thrown up and falling back.
+	var white := Color(0.97, 0.99, 1.0) if not glow else color.lightened(0.45)
+	puffs(pos + Vector3.UP * 0.2, Vector3.UP, int(6 + strength * 8), [Color(white, 0.95), Color(white, 0.7), Color(white, 0.0)],
+		0.45 + strength * 0.2, 0.9 + strength * 0.4, 2.0 + strength, 4.0 + strength * 3.0, 0.9, 25.0, Vector3(0, -9.0, 0), 1.0, 0.8 if glow else 0.0, 0.2, 1.6)
 	_ring(pos + Vector3.UP * 0.05, Vector3.UP, 1.2 + strength * 2.2, Color(0.95, 0.98, 1.0) if not glow else color)
 	if strength > 0.8:
 		_ring(pos + Vector3.UP * 0.05, Vector3.UP, 2.5 + strength * 3.0, Color(0.95, 0.98, 1.0) if not glow else color)
@@ -437,43 +549,16 @@ func splash(pos: Vector3, strength: float, color: Color, liquid := "water") -> v
 
 ## Soft mist that drifts with the wind and fades (wave crests, big splashes).
 func spray(pos: Vector3, wind: Vector3, strength: float) -> void:
-	var p := CPUParticles3D.new()
-	p.one_shot = true
-	p.explosiveness = 0.7
-	p.amount = int(5 + strength * 5)
-	p.lifetime = 1.6
-	var m := SphereMesh.new()
-	m.radius = 0.4
-	m.height = 0.8
-	m.radial_segments = 8
-	m.rings = 4
-	p.mesh = m
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color(0.92, 0.97, 1.0)
-	p.material_override = mat
-	var ramp := Gradient.new()
-	ramp.set_color(0, Color(1, 1, 1, 0.45))
-	ramp.set_color(1, Color(1, 1, 1, 0.0))
-	p.color_ramp = ramp
-	var grow := Curve.new()
-	grow.add_point(Vector2(0, 0.4))
-	grow.add_point(Vector2(1, 1.6))
-	p.scale_amount_curve = grow
-	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
-	p.emission_sphere_radius = 0.6 * strength
-	p.direction = (wind * 1.5 + Vector3.UP).normalized()
-	p.spread = 35.0
-	p.initial_velocity_min = 1.5
-	p.initial_velocity_max = 4.0 * strength
-	p.gravity = Vector3(0, -2.0, 0) + wind * 2.0
-	p.damping_min = 1.0
-	p.damping_max = 2.0
-	p.local_coords = false
-	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(p)
-	p.global_position = pos
-	p.emitting = true
-	get_tree().create_timer(2.2).timeout.connect(p.queue_free)
+	puffs(pos, (wind * 1.5 + Vector3.UP).normalized(), int(5 + strength * 5), [Color(0.95, 0.98, 1.0, 0.5), Color(0.92, 0.97, 1.0, 0.3), Color(0.9, 0.95, 1.0, 0.0)],
+		0.8, 1.5, 1.5, 4.0 * strength, 1.7, 35.0, Vector3(0, -1.0, 0) + wind * 2.0, 1.5, 0.0, 0.6 * strength, 2.2)
+
+
+## Feet on the ground: a puff of dust when landing, running or sliding (every peer, from
+## the players' movement flags). `strength` 0..1.
+func ground_dust(pos: Vector3, strength: float, trail := Vector3.ZERO) -> void:
+	var c := Color(0.92, 0.88, 0.82)
+	if trail.length() > 0.1:
+		puffs(pos + Vector3.UP * 0.1, -trail.normalized() + Vector3.UP * 0.4, 2, [Color(c, 0.6), Color(c, 0.0)],
+			0.4, 0.7, 0.5, 1.5, 0.8, 30.0, Vector3(0, 0.4, 0), 3.0, 0.0, 0.15, 2.0)
+	else:
+		dust_ring(pos, Vector3.UP, strength, c)

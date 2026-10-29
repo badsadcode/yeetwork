@@ -116,13 +116,15 @@ static func _graphics_rows(g: GridContainer) -> void:
 	check.call("Bloom", "glow", "Glow around bright lights")
 	opt.call("Water", "water", ["Low", "Medium", "High"], [0, 1, 2])
 	opt.call("Glass", "glass", ["Simple", "Refraction", "Refraction + reflections"], [0, 1, 2])
+	opt.call("Explosions", "explosions", ["Simple", "Volumetric", "Volumetric high"], [0, 1, 2])
+	opt.call("Clouds", "clouds", ["Off", "Few", "Many"], [0, 1, 2])
 	check.call("VSync", "vsync", "Sync to the display (no tearing)")
 	var caps := ["Unlimited"]
 	for v in FPS_CAPS.slice(1):
 		caps.append("%d FPS" % v)
 	opt.call("Frame rate cap", "max_fps", caps, FPS_CAPS)
 	var note := Label.new()
-	note.text = "Water detail and glass apply from the next match."
+	note.text = "Water detail, glass and clouds apply from the next match."
 	note.add_theme_font_size_override("font_size", 14)
 	g.add_child(Control.new())
 	g.add_child(note)

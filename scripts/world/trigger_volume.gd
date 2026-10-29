@@ -33,6 +33,7 @@ func setup(p_kind: int, size: Vector3, p_velocity := Vector3.ZERO, p_strength :=
 	cs.shape = shape
 	add_child(cs)
 	body_entered.connect(_on_body_entered)
+	body_exited.connect(_on_body_exited)
 
 
 func _on_body_entered(body: Node3D) -> void:
@@ -63,6 +64,21 @@ static func _prune(d: Dictionary, now: float) -> void:
 	for k in d.keys():
 		if not is_instance_valid(k) or now - d[k] > 2.0:
 			d.erase(k)
+
+
+## Bursting back out of a liquid (jumping out, being yanked out) splashes too.
+func _on_body_exited(body: Node3D) -> void:
+	if liquid == null or not is_instance_valid(body):
+		return
+	var v := Vector3.ZERO
+	if body is Player:
+		v = (body as Player).velocity
+	elif body is Prop:
+		v = (body as Prop).motion_velocity()
+	var now := Time.get_ticks_msec() / 1000.0
+	if v.y > 3.0 and now - _splash_cooldowns.get(body, -10.0) > 0.6:
+		_splash_cooldowns[body] = now
+		liquid.splash(body.global_position, v.length() * 0.6)
 
 
 func _physics_process(delta: float) -> void:
