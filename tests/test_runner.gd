@@ -258,13 +258,13 @@ func _run() -> void:
 	if world.mode == Game.Mode.CTF:
 		var ctf := world.mode_logic as ModeCTF
 		var blue := world.get_prop(ctf.flags[Game.TEAM_BLUE]) as Prop
-		var red_stand: Vector3 = world.arena.flag_stands[Game.TEAM_RED]
+		var red_stand: Vector3 = world.arena.flag_pos(Game.TEAM_RED)
 		var before_score: int = world.team_scores.get(Game.TEAM_RED, 0)
 		blue.global_position = red_stand + Vector3(0.5, 1.25, 0)
 		blue.linear_velocity = Vector3.ZERO
 		await ticks(10)
 		check("ctf capture", world.team_scores.get(Game.TEAM_RED, 0) == before_score + 1, "red score %d" % world.team_scores.get(Game.TEAM_RED, 0))
-		check("ctf flag returned home", blue.global_position.distance_to(blue.home_transform.origin) < 1.0, "flag at %s" % blue.global_position.snapped(Vector3.ONE * 0.1))
+		check("ctf flag returned home", blue.global_position.distance_to(world.arena.xf_world(blue.home_transform).origin) < 1.0, "flag at %s" % blue.global_position.snapped(Vector3.ONE * 0.1))
 
 	# 13. Props shatter: a crate hurled at a wall bursts into board fragments. Count only
 	# fragments newer than the crate (the debris cap may remove older ones meanwhile).

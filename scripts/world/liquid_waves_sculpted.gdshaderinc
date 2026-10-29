@@ -26,6 +26,11 @@ uniform float asymmetry = 0.35;
 uniform float ripple_intensity = 1.0;
 // Quality: how many of the 12 waves to sum.
 uniform int wave_count = 12;
+// Long ocean swell from far-away storms (oceans only): two long gentle waves the wind sea
+// rides on, which big things like ships respond to (Ship). Height 0 = none.
+uniform float swell_height = 0.0;
+uniform float swell_length = 170.0;
+uniform float swell_angle = 1.2;
 
 // x = direction offset from the wind (times spread), y = wavelength (m),
 // z = height / wavelength, w = phase. Waves 7+ are the secondary ripples.
@@ -53,6 +58,23 @@ float wave_group(vec2 p, float i) {
 	float a = dot(p, vec2(0.017, 0.011) * (1.0 + 0.29 * i)) + i * 2.3 - wave_time * 0.09;
 	float b = dot(p, vec2(-0.009, 0.021)) - i * 1.1 + wave_time * 0.06;
 	return 0.625 + 0.375 * sin(a) * sin(b);
+}
+
+// Height of the swell at p (two crossing components; Liquid.swell_at() mirrors it).
+float swell(vec2 p) {
+	if (swell_height <= 0.0) {
+		return 0.0;
+	}
+	float h = 0.0;
+	for (int i = 0; i < 2; i++) {
+		float ang = swell_angle + (i == 0 ? 0.0 : -1.35);
+		float wl = swell_length * (i == 0 ? 1.0 : 0.71);
+		float a = swell_height * (i == 0 ? 1.0 : 0.45);
+		float k = 6.2831853 / wl;
+		float c = sqrt(9.8 / k);
+		h += a * sin(k * (dot(vec2(cos(ang), sin(ang)), p) - c * wave_time) + float(i) * 2.1);
+	}
+	return h * wave_fade(p);
 }
 
 // Displacement of the surface point resting at p; crest = 0..1 height within the waves.
@@ -112,7 +134,7 @@ vec3 sculpted_offset(vec2 p, out float crest) {
 	}
 	hor *= min(1.0, 0.96 / max(pinch, 0.0001));
 	crest = total > 0.0001 ? clamp(off_y / total * 0.5 + 0.5, 0.0, 1.0) : 0.0;
-	return vec3(hor.x, off_y, hor.y);
+	return vec3(hor.x, off_y + swell(p), hor.y);
 }
 
 // World height of the surface above the world point p.

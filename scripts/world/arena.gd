@@ -28,6 +28,10 @@ var flag_stands := {} # team -> Vector3 (base of the flag)
 var initial_props: Array = [] # [kind, Transform3D]
 var kill_y := -45.0
 var avoid_rects: Array[Rect2] = [] # XZ areas bots should route around
+## A moving body the whole map rides on (High Seas' ship), or null. When set, spawn points,
+## flag stands, initial props and props' home transforms are in its local space; use
+## to_world() / xf_world() / flag_pos() to read them.
+var carrier: Node3D
 var _spinners: Array[Node3D] = []
 
 
@@ -36,6 +40,9 @@ func build(p_world: Node, map_key: String) -> void:
 	name = "Arena"
 	if map_key == "facing":
 		MapFacing.build(self)
+		return
+	if map_key == "highseas":
+		MapHighSeas.build(self)
 		return
 	if map_key.ends_with(".tscn") or map_key.ends_with(".scn"):
 		_build_scene_map(map_key)
@@ -280,7 +287,8 @@ func validate() -> Array[String]:
 	var space := get_world_3d().direct_space_state
 	var lowest := INF
 	for team in spawn_points:
-		for p: Vector3 in spawn_points[team]:
+		for lp: Vector3 in spawn_points[team]:
+			var p := to_world(lp)
 			var q := PhysicsRayQueryParameters3D.create(p + Vector3.UP * 0.5, p + Vector3.DOWN * 4.0, Game.L_WORLD)
 			var hit := space.intersect_ray(q)
 			if hit.is_empty():
@@ -605,4 +613,23 @@ func random_spawn(team: int, rng: RandomNumberGenerator) -> Vector3:
 				break
 	if list.is_empty():
 		return Vector3(0, 2, 0)
-	return list[rng.randi() % list.size()]
+	return to_world(list[rng.randi() % list.size()])
+
+
+## A map position (carrier-local on a ship) in world space, right now.
+func to_world(p: Vector3) -> Vector3:
+	return carrier.global_transform * p if carrier else p
+
+
+func xf_world(xf: Transform3D) -> Transform3D:
+	return carrier.global_transform * xf if carrier else xf
+
+
+## A world transform as a map transform (carrier-local on a ship).
+func xf_local(xf: Transform3D) -> Transform3D:
+	return carrier.global_transform.affine_inverse() * xf if carrier else xf
+
+
+## Where a team's flag stand is now (world space).
+func flag_pos(team: int) -> Vector3:
+	return to_world(flag_stands.get(team, Vector3.ZERO))

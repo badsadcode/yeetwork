@@ -77,7 +77,9 @@ static func create(p_world: Node, id: int, p_kind: String, xform: Transform3D, p
 		p.color = Game.team_color(p_team)
 	p.explosive = def.get("explosive", false)
 	p.transform = xform
-	p.home_transform = xform
+	# Where it came from, in map space (ship-local on a moving map): see Arena.xf_world().
+	var arena = p_world.get("arena") if p_world else null
+	p.home_transform = arena.xf_local(xform) if arena else xform
 	p._target_xform = xform
 	p._build(def)
 	return p
@@ -122,7 +124,9 @@ func _build(def: Dictionary) -> void:
 	physics_material_override = pm
 	linear_damp = def.get("damp", 0.05)
 	angular_damp = 0.3
-	can_sleep = true
+	# On a moving map (a ship) props must stay awake to ride along and slide.
+	var arena = world.get("arena") if world else null
+	can_sleep = arena == null or arena.carrier == null
 
 	var shape_node := CollisionShape3D.new()
 	var mesh := MeshInstance3D.new()

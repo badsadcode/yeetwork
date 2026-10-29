@@ -160,7 +160,7 @@ func _reconsider() -> void:
 	if world.mode == Game.Mode.CTF:
 		var flag := _enemy_flag()
 		if _carrying_flag():
-			_goal = world.arena.flag_stands[pl.team]
+			_goal = world.arena.flag_pos(pl.team)
 			return
 		if flag and flag.held_by == 0 and not holding and _rng.randf() < 0.7:
 			_target_prop = flag

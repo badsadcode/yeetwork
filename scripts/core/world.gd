@@ -61,6 +61,7 @@ var _corpses: Array[Node] = []
 
 func _ready() -> void:
 	name = "World"
+	Liquid.clock = weakref(self)
 
 
 func net_time() -> float:
@@ -97,7 +98,7 @@ func start(server: bool) -> void:
 		if Game.spooky:
 			_server_spooky_props()
 		for entry in arena.initial_props:
-			var p := server_spawn_prop(entry[0], entry[1])
+			var p := server_spawn_prop(entry[0], arena.xf_world(entry[1]))
 			p.set_meta("map_prop", true)
 		mode_logic.spawn_mode_props()
 		_start_ambience()
@@ -449,7 +450,7 @@ func _physics_process(delta: float) -> void:
 				_bc_all("_s_respawn", [id, pos, _yaw_toward_center(pos)])
 	for i in range(_restock.size() - 1, -1, -1):
 		if t >= _restock[i][0]:
-			var p := server_spawn_prop(_restock[i][1], _restock[i][2])
+			var p := server_spawn_prop(_restock[i][1], arena.xf_world(_restock[i][2]))
 			p.set_meta("map_prop", true)
 			server_fx("spawn", p.global_position, Vector3.UP, 1.0)
 			_restock.remove_at(i)

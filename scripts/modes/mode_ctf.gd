@@ -30,7 +30,7 @@ func allow_build() -> bool:
 
 func spawn_mode_props() -> void:
 	for team in [Game.TEAM_RED, Game.TEAM_BLUE]:
-		var stand: Vector3 = world.arena.flag_stands[team]
+		var stand: Vector3 = world.arena.flag_pos(team)
 		var p: Prop = world.server_spawn_prop("flag", Transform3D(Basis.IDENTITY, stand + Vector3(0, 1.25, 0)), Vector3.ZERO, Color(0, 0, 0, 0), team)
 		flags[team] = p.prop_id
 		_idle[team] = 0.0
@@ -44,7 +44,7 @@ func _is_home(team: int) -> bool:
 	var f := _flag(team)
 	if f == null:
 		return false
-	return f.global_position.distance_to(world.arena.flag_stands[team] + Vector3(0, 1.25, 0)) < CAPTURE_RADIUS
+	return f.global_position.distance_to(world.arena.flag_pos(team) + Vector3(0, 1.25, 0)) < CAPTURE_RADIUS
 
 
 func return_flag(team: int, text := "") -> void:
@@ -58,7 +58,7 @@ func return_flag(team: int, text := "") -> void:
 	f.freeze = false
 	f.linear_velocity = Vector3.ZERO
 	f.angular_velocity = Vector3.ZERO
-	f.global_transform = f.home_transform
+	f.global_transform = world.arena.xf_world(f.home_transform)
 	_idle[team] = 0.0
 	if text != "":
 		world.server_message(text, Game.team_color(team))
@@ -83,7 +83,7 @@ func tick(delta: float) -> void:
 		var ef := _flag(enemy)
 		if ef == null or not _is_home(team):
 			continue
-		var stand: Vector3 = world.arena.flag_stands[team] + Vector3(0, 1.25, 0)
+		var stand: Vector3 = world.arena.flag_pos(team) + Vector3(0, 1.25, 0)
 		if ef.global_position.distance_to(stand) < CAPTURE_RADIUS:
 			var capper := world.get_player(ef.held_by if ef.held_by != 0 else ef.last_thrower) as Player
 			if capper:

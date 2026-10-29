@@ -5,7 +5,7 @@ extends Node
 ## Command line (after `--`):  --host  --join <ip>  --mode sandbox|ctf|dodgeball
 ##   --bots <n>  --bot-skill 0|1|2  --port <n>  --name <name>  --autotest <seconds>  (quit after N seconds)
 ##   --screenshot <png> (save a screenshot after 2.5 s, then quit)
-##   --map prime|facing|<map name in res://maps>  --validate (check a map, then quit)  --test (gameplay smoke tests)  --tour <dir> [--tour-mode destruction|charge|water]  (save screenshots from fixed viewpoints, then quit)
+##   --map prime|facing|highseas|<map name in res://maps>  --validate (check a map, then quit)  --test (gameplay smoke tests)  --tour <dir> [--tour-mode destruction|charge|water]  (save screenshots from fixed viewpoints, then quit)
 ##   --graphics 0|1|2 (quality preset for this run: low / medium / high)  --paused (open the pause menu)
 ##   --faces expressive|classic (character faces on this screen)
 ##   --sky sunset|day|tropical|desert|snow|volcano|night|space (environment for this match)
@@ -58,7 +58,7 @@ func _handle_cmdline(execute := true) -> bool:
 				i += 1
 			"--map":
 				# Built-in key ("prime", "facing"), a map file name in res://maps, or a path.
-				Game.map = next if next in ["prime", "facing"] or next.begins_with("res://") else "res://maps/%s.tscn" % next.trim_suffix(".tscn")
+				Game.map = next if next in ["prime", "facing", "highseas"] or next.begins_with("res://") else "res://maps/%s.tscn" % next.trim_suffix(".tscn")
 				i += 1
 			"--bot-skill":
 				Game.bot_skill = int(next)
@@ -141,6 +141,9 @@ func _report_and_quit() -> void:
 		var broken := 0
 		for d in world.arena.destructibles:
 			broken += d.broken_cells.size()
+		if world.arena.carrier:
+			var e: Vector3 = world.arena.carrier.global_transform.basis.get_euler()
+			print("AUTOTEST ship at net time %.2f: roll %.2f deg, pitch %.2f deg, heave %.3f m" % [world.net_time(), rad_to_deg(e.x), rad_to_deg(e.z), world.arena.carrier.global_position.y])
 		print("AUTOTEST server=%s players=%d alive=%d props=%d broken_cells=%d splashes=%d water=%s scores=%s" % [world.is_server, world.players.size(), alive, world.props.size(), broken, Liquid.splash_count, Liquid.style, world.team_scores])
 		for p in world.players.values():
 			print("  %s hp=%.0f frags=%d deaths=%d score=%d pos=%s" % [p.display_name, p.hp, p.frags, p.deaths, p.score, p.global_position.snapped(Vector3.ONE * 0.1)])

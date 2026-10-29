@@ -66,7 +66,9 @@ const SCULPTED := {
 		"fog": Color(0.04, 0.22, 0.26), "visibility": 11.0,
 	},
 }
-const SCULPTED_KEYS := ["wind_angle", "spread", "choppiness", "crest_sharpness", "asymmetry", "ripple_intensity"]
+const SCULPTED_KEYS := ["wind_angle", "spread", "choppiness", "crest_sharpness", "asymmetry", "ripple_intensity", "swell_height", "swell_length", "swell_angle"]
+## Long swell per sea state (oceans only): [height m, wavelength m].
+const SWELL := {"calm": [0.45, 200.0], "lake": [0.0, 170.0], "ocean": [1.2, 170.0], "stormy": [2.8, 150.0]}
 ## Water style of the match: "classic" (liquid.gdshader) or "sculpted" (liquid_sculpted.gdshader).
 ## The host decides (Game.water_style) and clients get it with the match state.
 static var style := "classic"
@@ -131,6 +133,10 @@ func _ready() -> void:
 		if not SCULPTED.has(sea):
 			sea = "ocean" if ocean else "calm"
 		params.merge(SCULPTED[sea], true)
+		var sw: Array = SWELL[sea] if ocean else [0.0, 170.0]
+		params.swell_height = sw[0]
+		params.swell_length = sw[1]
+		params.swell_angle = float(params.wind_angle) + 0.9
 	material = ShaderMaterial.new()
 	material.shader = preload("res://scripts/world/liquid_sculpted.gdshader") if sculpted else preload("res://scripts/world/liquid.gdshader")
 	_textures()
@@ -223,8 +229,16 @@ func _wave_count() -> int:
 	return 8 if water_quality() == 0 else 12
 
 
-## Shared wave clock: wall-clock based so every machine sees the same waves.
+## The match's synced clock (World.net_time); set by World. Without one, the wall clock.
+static var clock: WeakRef
+
+
+## Shared wave clock: the match's network time, so every peer sees the same waves (and the
+## same ship motion).
 static func wave_time() -> float:
+	var w: Object = clock.get_ref() if clock else null
+	if w:
+		return fmod(w.call("net_time"), 3600.0)
 	return fmod(Time.get_unix_time_from_system(), 3600.0)
 
 
@@ -329,7 +343,22 @@ func _sculpted(p: Vector2, t: float) -> Vector4:
 		pinch += wv[1] * wv[0] * q
 	hor *= minf(1.0, 0.96 / maxf(pinch, 0.0001))
 	var crest := clampf(off_y / total * 0.5 + 0.5, 0.0, 1.0) if total > 0.0001 else 0.0
-	return Vector4(hor.x, off_y, hor.y, crest)
+	return Vector4(hor.x, off_y + swell_at(p, t), hor.y, crest)
+
+
+## Height of the long swell at p (mirror of swell() in liquid_waves_sculpted.gdshaderinc).
+func swell_at(p: Vector2, t: float) -> float:
+	if not sculpted or float(params.get("swell_height", 0.0)) <= 0.0:
+		return 0.0
+	var h := 0.0
+	for i in 2:
+		var ang: float = params.swell_angle + (0.0 if i == 0 else -1.35)
+		var wl: float = params.swell_length * (1.0 if i == 0 else 0.71)
+		var a: float = params.swell_height * (1.0 if i == 0 else 0.45)
+		var k := TAU / wl
+		var c := sqrt(9.8 / k)
+		h += a * sin(k * (Vector2(cos(ang), sin(ang)).dot(p) - c * t) + i * 2.1)
+	return h * _fade(p)
 
 
 # --- Interaction (sculpted water) ---------------------------------------------------

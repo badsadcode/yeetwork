@@ -19,6 +19,7 @@ const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash"
 const BUILTIN_MAPS := [
 	{"key": "facing", "name": "Facing Yeets"},
 	{"key": "prime", "name": "Yeetwork Prime"},
+	{"key": "highseas", "name": "High Seas"},
 ]
 const MAPS_DIR := "res://maps"
 

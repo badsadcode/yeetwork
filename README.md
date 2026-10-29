@@ -152,6 +152,13 @@ menu, or in Pumpkin Smash, every map gets:
   and breakable bridges over chasms. Falling off is death.
 - **Courtyard**: the Map Kit example map, an island in the sea. Team decks, a breakable
   gate, an acid trench with a wooden bridge, a catwalk with a lift and an updraft.
+- **High Seas**: the container ship MV *Bad Decisions* on the open ocean. The whole ship
+  rolls, pitches and heaves on the ocean's long swell (gently in calm seas, up to about 13°
+  in a storm), the same for every player. Loose cargo starts to move as the deck tilts:
+  balls and barrels on their side first, crates in rough seas, anvils hardly ever. Red
+  spawns on the bow, Blue at the bridge. Falling overboard means the ocean. Container stacks
+  with aisles, ramps and pads; more of the ship (interiors, cranes, weather) is coming.
+  Try it in a storm: `--map highseas --sea stormy`.
 - **Lagoon**: a ring island around a swimmable lagoon out at sea. Dive off the tower,
   float the junk, fight over the breakable piers to the glass-fronted team bases. The
   place to see both water styles.
@@ -222,7 +229,8 @@ scripts/world/    arena.gd (+ Prime layout), map_facing.gd, destructible.gd, mat
                   liquid.gd + liquid.gdshader + liquid_waves.gdshaderinc (water, acid, lava),
                   liquid_sculpted.gdshader + liquid_waves_sculpted.gdshaderinc (sculpted water),
                   underwater*.gdshader (full-screen underwater pass), glass.gdshader,
-                  ssr.gdshaderinc (screen-space reflections for water and glass)
+                  ssr.gdshaderinc (screen-space reflections for water and glass),
+                  map_high_seas.gd + ship.gd + container.gdshader (High Seas)
 scripts/modes/    mode_base.gd (sandbox), mode_ctf.gd, mode_dodgeball.gd
 scripts/fx/       effects.gd (blood, decals, explosions, debris), sfx.gd (synthesized sounds)
 scripts/bots/     bot_brain.gd
@@ -263,6 +271,9 @@ godot --path . -- --host --map courtyard --graphics 0
 
 # Water style, sea state and environment for a match (the host's choice reaches every client)
 godot --path . -- --host --map courtyard --water-style sculpted --sea stormy --sky volcano
+
+# High Seas: how far the ship rolls and pitches, and whether players and cargo stay aboard
+godot --headless --path . -- --host --map highseas --bots 0 --tour x --tour-mode ship --sea stormy
 
 # Effects in front of a still camera (explosion, dust, gun arc, lens drops), and a cracked window
 godot --path . -- --host --map lagoon --bots 0 --tour /tmp/shots --tour-mode fx
