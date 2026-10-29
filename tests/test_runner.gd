@@ -280,6 +280,27 @@ func _run() -> void:
 	check("crate shatters into boards", world.get_prop(box_id) == null and boards > 0, "crate gone: %s, new board props %d" % [world.get_prop(box_id) == null, boards])
 
 	await _water_tests()
+	_controls_test()
+
+
+## Rebinding: swap the mouse buttons, save, reset, load back (a scratch ConfigFile, so the
+## player's own settings are never touched).
+func _controls_test() -> void:
+	var grab0 := Controls.key_of("gun_grab")
+	var throw0 := Controls.key_of("gun_throw")
+	Controls.swap_mouse_buttons()
+	var cfg := ConfigFile.new()
+	Controls.save(cfg)
+	Controls.reset_all()
+	var reset_ok := Controls.key_of("gun_grab") == grab0
+	Controls.init(cfg)
+	var swapped := Controls.key_of("gun_grab") == throw0 and Controls.key_of("gun_throw") == grab0
+	var k := InputEventKey.new()
+	k.physical_keycode = KEY_G
+	Controls.rebind("freeze_prop", k)
+	var rebound := Controls.key_of("freeze_prop") == "G" and Controls.pad_of("freeze_prop") != "-"
+	Controls.reset_all()
+	check("controls: swap, save, reset, load, rebind", reset_ok and swapped and rebound, "grab %s -> %s, freeze rebound to G: %s" % [grab0, throw0, rebound])
 
 
 ## A concrete tub of water (surface at y -0.4, floor at -3) off to the side of the map.

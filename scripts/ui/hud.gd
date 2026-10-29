@@ -22,7 +22,10 @@ var world: Node
 var _root: Control
 var _crosshair: Control
 var _health_label: Label
-var _health_bar: ProgressBar
+var _health_bar: HudPlate
+var _score_plate: HudPlate
+var _speed_plate: HudPlate
+var _slot_plates: Array[PanelContainer] = []
 var _speed_label: Label
 var _slots_box: HBoxContainer
 var _slot_labels: Array[Label] = []
@@ -36,13 +39,14 @@ var _death_label: Label
 var _scoreboard: PanelContainer
 var _scoreboard_text: RichTextLabel
 var _pause: PanelContainer
-var _help: Label
+var _help: RichTextLabel
 var _aim_state := 0 # 0 nothing, 1 grabbable, 2 holding
 var _help_time := 14.0
 var _paused := false
 var _resume_button: Button
 var _hold_hint: Label
 var _pad_used := false
+var _help_pad := false
 
 
 func _ready() -> void:
@@ -64,52 +68,77 @@ func _ready() -> void:
 	_crosshair.draw.connect(_draw_crosshair)
 	_root.add_child(_crosshair)
 
-	# Health (bottom left).
-	var hb := VBoxContainer.new()
-	hb.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	hb.position = Vector2(28, -110)
-	_root.add_child(hb)
-	_health_label = _label(42, Color.WHITE)
-	hb.add_child(_health_label)
-	_health_bar = ProgressBar.new()
-	_health_bar.custom_minimum_size = Vector2(240, 14)
-	_health_bar.show_percentage = false
-	_health_bar.max_value = 100
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = Color(0.4, 1.0, 0.5)
-	fill.set_corner_radius_all(6)
-	var bg := StyleBoxFlat.new()
-	bg.bg_color = Color(0, 0, 0, 0.45)
-	bg.set_corner_radius_all(6)
-	_health_bar.add_theme_stylebox_override("fill", fill)
-	_health_bar.add_theme_stylebox_override("background", bg)
-	hb.add_child(_health_bar)
+	# Health (bottom left): a plate with a plus badge, the number and a segmented bar.
+	var hp_plate := HudPlate.new()
+	hp_plate.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	hp_plate.position = Vector2(24, -98)
+	hp_plate.size = Vector2(300, 74)
+	_root.add_child(hp_plate)
+	var badge := HudPlate.new()
+	badge.fill = Color(0.92, 0.24, 0.3)
+	badge.position = Vector2(10, 10)
+	badge.size = Vector2(54, 54)
+	badge.chamfer = 10.0
+	hp_plate.add_child(badge)
+	var plus := _label(40, Color.WHITE)
+	plus.text = "+"
+	plus.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	plus.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	plus.position = Vector2(0, -3)
+	plus.size = Vector2(54, 54)
+	badge.add_child(plus)
+	_health_label = _label(30, Color.WHITE)
+	_health_label.position = Vector2(76, 2)
+	hp_plate.add_child(_health_label)
+	_health_bar = HudPlate.new()
+	_health_bar.position = Vector2(74, 40)
+	_health_bar.size = Vector2(214, 24)
+	_health_bar.fill = Color(0.08, 0.09, 0.13)
+	_health_bar.chamfer = 6.0
+	_health_bar.value = 1.0
+	hp_plate.add_child(_health_bar)
 
-	# Speedometer (bottom center).
-	_speed_label = _label(26, Color(1, 1, 1, 0.9))
-	_speed_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	# Speedometer (bottom center): a small pill.
+	_speed_plate = HudPlate.new()
+	_speed_plate.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_speed_plate.position = Vector2(-80, -96)
+	_speed_plate.size = Vector2(160, 40)
+	_speed_plate.chamfer = 12.0
+	_root.add_child(_speed_plate)
+	_speed_label = _label(22, Color(1, 1, 1, 0.95))
 	_speed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_speed_label.position = Vector2(-150, -96)
-	_speed_label.custom_minimum_size = Vector2(300, 0)
-	_root.add_child(_speed_label)
+	_speed_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_speed_label.size = Vector2(160, 38)
+	_speed_plate.add_child(_speed_label)
 
 	# Prop slots (bottom right).
 	_slots_box = HBoxContainer.new()
 	_slots_box.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_slots_box.position = Vector2(-330, -44)
+	_slots_box.position = Vector2(-300, -46)
 	_slots_box.add_theme_constant_override("separation", 6)
 	_root.add_child(_slots_box)
 	for i in Prop.SPAWNABLE.size():
+		var tile := PanelContainer.new()
+		tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile.add_theme_stylebox_override("panel", _tile_style(false))
+		_slots_box.add_child(tile)
+		_slot_plates.append(tile)
 		var l := _label(14, Color.WHITE)
 		l.text = "%d %s" % [i + 1, Prop.DEFS[Prop.SPAWNABLE[i]].label]
-		_slots_box.add_child(l)
+		tile.add_child(l)
 		_slot_labels.append(l)
 
 	# Scores (top center).
+	_score_plate = HudPlate.new()
+	_score_plate.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_score_plate.position = Vector2(-200, 10)
+	_score_plate.size = Vector2(400, 48)
+	_score_plate.chamfer = 12.0
+	_root.add_child(_score_plate)
 	_score_label = _label(26, Color.WHITE)
 	_score_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_score_label.position = Vector2(-300, 16)
+	_score_label.position = Vector2(-300, 15)
 	_score_label.custom_minimum_size = Vector2(600, 0)
 	_root.add_child(_score_label)
 
@@ -152,10 +181,20 @@ func _ready() -> void:
 	_death_label.visible = false
 	_root.add_child(_death_label)
 
-	_help = _label(16, Color(1, 1, 1, 0.85))
+	_help = RichTextLabel.new()
+	_help.bbcode_enabled = true
+	_help.fit_content = true
+	_help.scroll_active = false
+	_help.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_help.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_help.position = Vector2(24, 78)
-	_help.text = "WASD move  ·  Space jump (hold to bhop)  ·  Ctrl/Shift crouch & slide\nRun along walls to wall-run, jump off them to wall-jump\nLMB hold: grab / pull / catch   ·   RMB: throw (hold to charge), or punt (punt a wall to gravity-jump)\nF freeze held prop  ·  Q spawn prop (1-9 / wheel to pick)  ·  V third person  ·  Tab scores  ·  K respawn  ·  Esc menu"
+	_help.position = Vector2(24, 74)
+	_help.size = Vector2(760, 0)
+	_help.add_theme_font_override("normal_font", UiTheme.FONT)
+	_help.add_theme_font_size_override("normal_font_size", 16)
+	_help.add_theme_constant_override("outline_size", 5)
+	_help.add_theme_color_override("font_outline_color", Color(0.05, 0.03, 0.1))
+	_help.add_theme_stylebox_override("normal", _tile_style(false, 0.55))
+	_help.text = _help_text(false)
 	_root.add_child(_help)
 
 	_hold_hint = _label(15, Color(1, 1, 1, 0.8))
@@ -173,6 +212,7 @@ func _ready() -> void:
 func _label(size: int, color: Color) -> Label:
 	var l := Label.new()
 	var ls := LabelSettings.new()
+	ls.font = UiTheme.FONT
 	ls.font_size = size
 	ls.font_color = color
 	ls.outline_size = maxi(4, size / 6)
@@ -183,6 +223,35 @@ func _label(size: int, color: Color) -> Label:
 	l.label_settings = ls
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
+
+
+## A small dark tile (prop slots, killfeed, hints); highlighted = yellow border.
+func _tile_style(highlighted: bool, alpha := 0.7) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.1, 0.11, 0.16, alpha)
+	sb.set_corner_radius_all(7)
+	sb.set_content_margin_all(5)
+	sb.content_margin_left = 9
+	sb.content_margin_right = 9
+	sb.border_color = Color(1.0, 0.78, 0.2) if highlighted else Color(0.05, 0.05, 0.08, alpha)
+	sb.set_border_width_all(2)
+	return sb
+
+
+## The controls cheat sheet, with the player's own bindings (keyboard/mouse or gamepad).
+func _help_text(pad: bool) -> String:
+	var k := func(action: String) -> String:
+		return "[color=#ffd23f]%s[/color]" % (Controls.pad_of(action) if pad else Controls.key_of(action))
+	var move := "%s %s %s %s" % [k.call("move_forward"), k.call("move_left"), k.call("move_back"), k.call("move_right")]
+	if pad:
+		move = "[color=#ffd23f]Left stick[/color]"
+	var lines := [
+		"%s move  ·  %s jump (hold to bunny hop)  ·  %s run  ·  %s crouch & slide" % [move, k.call("jump"), k.call("run") if not pad else k.call("run_toggle"), k.call("crouch")],
+		"Run along walls to wall-run, jump off them to wall-jump",
+		"%s hold: grab / pull / catch  ·  %s throw (hold to charge) or punt (punt a wall to gravity-jump)" % [k.call("gun_grab"), k.call("gun_throw")],
+		"%s freeze held prop  ·  %s spawn prop  ·  %s camera  ·  %s scores  ·  %s respawn  ·  %s menu" % [k.call("freeze_prop"), k.call("spawn_prop"), k.call("toggle_view"), k.call("scoreboard"), k.call("suicide"), k.call("pause")],
+	]
+	return "\n".join(lines)
 
 
 func _panel_style(alpha := 0.82) -> StyleBoxFlat:
@@ -256,9 +325,17 @@ func _build_pause() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	v.add_child(scroll)
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_theme_constant_override("separation", 12)
+	scroll.add_child(col)
 	var form := SettingsForm.build_settings_controls()
 	form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(form)
+	col.add_child(form)
+	var ch := _label(24, Color(1, 0.8, 0.3))
+	ch.text = "Controls"
+	col.add_child(ch)
+	col.add_child(ControlsForm.new())
 
 
 ## Private network addresses of this machine (what friends on the same network type in).
@@ -274,6 +351,8 @@ func _lan_addresses() -> PackedStringArray:
 
 func set_paused(p: bool) -> void:
 	_paused = p
+	if not p:
+		_help.text = _help_text(_pad_used) # bindings may have changed in the pause menu
 	_pause.visible = p
 	if p and _resume_button:
 		_resume_button.grab_focus.call_deferred()
@@ -304,29 +383,37 @@ func _process(delta: float) -> void:
 		_refresh_scoreboard()
 	_help_time -= delta
 	_help.modulate.a = clampf(_help_time, 0.0, 1.0)
+	if _help_pad != _pad_used:
+		_help_pad = _pad_used
+		_help.text = _help_text(_pad_used)
 	_vignette.color.a = maxf(_vignette.color.a - delta * 0.8, 0.0)
 	if pl == null:
 		return
 	var hp := maxf(pl.hp, 0.0)
 	_health_label.text = "%d" % ceilf(hp)
-	_health_bar.value = hp
-	var fill := _health_bar.get_theme_stylebox("fill") as StyleBoxFlat
-	fill.bg_color = Color(1.0, 0.3, 0.3).lerp(Color(0.4, 1.0, 0.5), hp / 100.0)
+	if absf(_health_bar.value - hp / 100.0) > 0.001:
+		_health_bar.value = hp / 100.0
+		_health_bar.bar_color = Color(1.0, 0.3, 0.3).lerp(Color(0.4, 1.0, 0.5), hp / 100.0)
+		_health_bar.queue_redraw()
 	var speed := pl.horizontal_speed()
 	_speed_label.text = "%.1f m/s" % speed
 	_speed_label.label_settings.font_color = Color.WHITE.lerp(Color(1.0, 0.45, 0.85), clampf((speed - 9.5) / 15.0, 0.0, 1.0))
 	var sandbox: bool = world.mode == Game.Mode.SANDBOX
 	_slots_box.visible = sandbox
 	for i in _slot_labels.size():
-		_slot_labels[i].label_settings.font_color = Color(1, 0.85, 0.3) if i == pl.gun.selected_slot else Color(1, 1, 1, 0.55)
+		var sel: bool = i == pl.gun.selected_slot
+		_slot_labels[i].label_settings.font_color = Color(1, 0.85, 0.3) if sel else Color(1, 1, 1, 0.7)
+		if _slot_plates[i].get_meta("sel", false) != sel:
+			_slot_plates[i].set_meta("sel", sel)
+			_slot_plates[i].add_theme_stylebox_override("panel", _tile_style(sel))
 	_death_label.visible = not pl.is_alive()
 	var holding := pl.gun.vis_kind != GravityGun.Kind.NONE and pl.is_alive()
 	_hold_hint.visible = holding
 	if holding:
 		if _pad_used:
-			_hold_hint.text = "RT hold: charge throw  ·  D-pad ↑↓: push / pull  ·  LB + stick: rotate  ·  RB: freeze"
+			_hold_hint.text = "%s hold: charge throw  ·  %s / %s: push / pull  ·  %s + stick: rotate  ·  %s: freeze" % [Controls.pad_of("gun_throw"), Controls.pad_of("hold_farther"), Controls.pad_of("hold_closer"), Controls.pad_of("rotate_held"), Controls.pad_of("freeze_prop")]
 		else:
-			_hold_hint.text = "RMB hold: charge throw  ·  Wheel: push / pull  ·  E + mouse: rotate  ·  F: freeze"
+			_hold_hint.text = "%s hold: charge throw  ·  Wheel: push / pull  ·  %s + mouse: rotate  ·  %s: freeze" % [Controls.key_of("gun_throw"), Controls.key_of("rotate_held"), Controls.key_of("freeze_prop")]
 	_update_aim_state(pl)
 	_crosshair.queue_redraw()
 
@@ -390,6 +477,18 @@ func on_players_changed() -> void:
 	else:
 		var pl: Player = world.local_player
 		_score_label.text = "%s     Frags: %d" % [world.mode_name(), pl.frags if pl else 0]
+	_fit_score_plate.call_deferred()
+
+
+func _fit_score_plate() -> void:
+	if _score_plate == null:
+		return
+	var w := _score_label.get_minimum_size().x + 48.0
+	_score_plate.offset_left = -w * 0.5 # offsets from the top-centre anchor
+	_score_plate.offset_right = w * 0.5
+	_score_plate.offset_top = 10
+	_score_plate.offset_bottom = 58
+	_score_plate.queue_redraw()
 
 
 func _refresh_scoreboard() -> void:
@@ -431,12 +530,19 @@ func add_kill(victim: Player, killer: Player, cause: String) -> void:
 				text = "%s hugged a barrel" % victim.display_name
 			_:
 				text = "%s got yeeted" % victim.display_name
-	var l := _label(18, Color.WHITE)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_END
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.custom_minimum_size = Vector2(540, 0)
+	var pill := PanelContainer.new()
+	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pill.add_theme_stylebox_override("panel", _tile_style(killer == world.local_player or victim == world.local_player, 0.6))
+	row.add_child(pill)
+	var l := _label(17, Color.WHITE)
 	l.text = text
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	l.custom_minimum_size = Vector2(540, 0)
-	_killfeed.add_child(l)
-	_fade_out(l, 6.0)
+	pill.add_child(l)
+	_killfeed.add_child(row)
+	_fade_out(row, 6.0)
 	# queue_free() only takes effect at frame end, so detach first or this never ends.
 	while _killfeed.get_child_count() > 6:
 		var old := _killfeed.get_child(0)

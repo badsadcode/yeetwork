@@ -279,17 +279,21 @@ func _page_options(stack: Control) -> Control:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	page.add_child(scroll)
+	var sargs := OS.get_cmdline_user_args()
+	var si := sargs.find("--menu-scroll") # (screenshots: scroll the options down by N px)
+	if si >= 0 and si + 1 < sargs.size():
+		var px := int(sargs[si + 1])
+		get_tree().create_timer(1.2).timeout.connect(func(): scroll.scroll_vertical = px)
 	var v := VBoxContainer.new()
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_theme_constant_override("separation", 10)
 	scroll.add_child(v)
 	v.add_child(SettingsForm.build_settings_controls())
-	var help := Label.new()
-	help.text = "WASD move · Shift run · Ctrl/C crouch (slide while running) · Space jump / swim up\nLMB grab / pull / catch · RMB throw (hold to charge) or punt\nWheel push/pull held · E + mouse rotate · F freeze · Q spawn · V camera\nPad: LT grab · RT throw · A jump · B crouch/slide · L3 run · LB rotate"
-	help.add_theme_font_size_override("font_size", 15)
-	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(_label("Controls"))
-	v.add_child(help)
+	var head := _label("Controls")
+	head.add_theme_font_size_override("font_size", 26)
+	head.add_theme_color_override("font_color", Color(1.0, 0.8, 0.25))
+	v.add_child(head)
+	v.add_child(ControlsForm.new())
 	return page
 
 

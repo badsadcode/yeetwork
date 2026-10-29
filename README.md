@@ -59,6 +59,10 @@ menu art and font (`assets/`): the title background and logo, button and frame a
 
 Gamepads work too (sticks, triggers for the gun, A jump, B crouch).
 
+Everything can be rebound in **Options → Controls** (and in the pause menu): one keyboard or
+mouse binding and one gamepad binding per action. **Swap mouse buttons** puts the grab on the
+right button and the throw on the left. The in-game hints show your own bindings.
+
 ## What's in it
 
 **Gravity gun.** A chunky toy sci-fi gun with a glowing core and three claws, modelled in

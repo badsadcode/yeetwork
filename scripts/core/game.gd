@@ -105,6 +105,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_input()
 	load_settings()
+	var cfg := ConfigFile.new()
+	Controls.init(cfg if cfg.load(SETTINGS_PATH) == OK else null)
 	if graphics < 0:
 		graphics = 0 if is_steam_deck() else 2
 	if graphics <= 2 or gfx.is_empty():
@@ -193,6 +195,7 @@ func save_settings() -> void:
 	cfg.set_value("match", "water_style", water_style)
 	cfg.set_value("match", "sky", sky_override)
 	cfg.set_value("match", "map", map)
+	Controls.save(cfg)
 	cfg.save(SETTINGS_PATH)
 	apply_graphics()
 	settings_changed.emit()
