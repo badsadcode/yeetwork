@@ -1360,6 +1360,21 @@ func _s_gun(id: int, kind: int, target: int) -> void:
 			Sfx.play3d("zap", pl.eye_position(), -4.0, 1.0)
 
 
+## Push/pull and rotate the held object (client sends accumulated deltas ~20x/s).
+func gun_adjust(pl: Player, dist: float, yaw: float, pitch: float) -> void:
+	if is_server:
+		pl.gun.server_adjust(dist, yaw, pitch)
+	else:
+		_c_gun_adjust.rpc_id(1, dist, yaw, pitch)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_gun_adjust(dist: float, yaw: float, pitch: float) -> void:
+	var pl := get_player(multiplayer.get_remote_sender_id())
+	if pl:
+		pl.gun.server_adjust(clampf(dist, -5.0, 5.0), clampf(yaw, -PI, PI), clampf(pitch, -PI, PI))
+
+
 func server_gun_charge(gun: GravityGun, on: bool) -> void:
 	_bc_all("_s_gun_charge", [gun.player.player_id, on])
 

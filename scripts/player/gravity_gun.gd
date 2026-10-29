@@ -20,6 +20,7 @@ const PUNT_COOLDOWN := 0.45
 const BOOST_COOLDOWN := 0.9
 const MAX_PULL_MASS := 160.0
 const CHARGE_TIME := 1.0 # seconds to full charge
+const MAX_HOLD_DISTANCE := 10.0
 const CHARGE_BONUS := 0.8 # full charge throws (1 + bonus) times as hard
 
 var player: Player
@@ -53,6 +54,18 @@ var _world_model: Node3D
 var _wm_muzzle: Node3D
 var _beam: MeshInstance3D
 var _beam_mat: StandardMaterial3D
+var _arc_mesh: ImmediateMesh
+var _arc_light: OmniLight3D
+var _hum: AudioStreamPlayer3D
+var _arc_offsets: Array = [] # per strand, per point jitter (re-rolled ~20x/s)
+var _arc_reroll := 0.0
+var _spark_timer := 0.0
+
+# Hold control (server): extra distance and orientation relative to the player's facing.
+var hold_extra := 0.0
+var hold_rot := Basis.IDENTITY
+
+const ARC_POINTS := 14
 var _kick := 0.0
 var _sway := Vector2.ZERO
 var _last_yaw := 0.0
@@ -62,21 +75,29 @@ var _vm_visible := true
 
 func _ready() -> void:
 	_build_world_model()
+	# Electric arc: camera-facing ribbons rebuilt every frame (see _draw_arc).
+	_arc_mesh = ImmediateMesh.new()
 	_beam = MeshInstance3D.new()
-	var cm := CylinderMesh.new()
-	cm.top_radius = 0.06
-	cm.bottom_radius = 0.06
-	cm.height = 1.0
-	cm.radial_segments = 8
-	cm.rings = 1
-	_beam.mesh = cm
-	var beam_color := Color(0.45, 0.95, 1.0) if player.team == 0 else Game.team_color(player.team).lightened(0.3)
-	_beam_mat = Mats.glow(beam_color, 4.0, true).duplicate()
+	_beam.mesh = _arc_mesh
+	_beam_mat = Mats.glow(_beam_color(), 4.0, true).duplicate()
+	_beam_mat.vertex_color_use_as_albedo = true
 	_beam.material_override = _beam_mat
 	_beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_beam.top_level = true
 	_beam.visible = false
 	add_child(_beam)
+	_arc_light = OmniLight3D.new()
+	_arc_light.light_color = _beam_color()
+	_arc_light.omni_range = 4.0
+	_arc_light.top_level = true
+	_arc_light.visible = false
+	add_child(_arc_light)
+	_hum = AudioStreamPlayer3D.new()
+	_hum.bus = "SFX"
+	_hum.unit_size = 4.0
+	_hum.volume_db = -14.0
+	_hum.top_level = true
+	add_child(_hum)
 
 
 # --- Visual construction ------------------------------------------------------------
@@ -214,24 +235,13 @@ func update_visuals(delta: float) -> void:
 		var to: Vector3 = target.global_position
 		if target is Player:
 			to = (target as Player).body_center()
-		var d := from.distance_to(to)
-		if d > 0.05:
-			_beam.visible = true
-			var dir := (to - from) / d
-			var up := Vector3.UP if absf(dir.y) < 0.99 else Vector3.RIGHT
-			var b := Basis.looking_at(dir, up) * Basis(Vector3.RIGHT, PI * 0.5)
-			var ch := visual_charge()
-			# Thinner in first person: the beam starts right at the camera.
-			var fp := 0.45 if (_viewmodel and _viewmodel.visible) else 1.0
-			var w := (1.0 + sin(Time.get_ticks_msec() * (0.03 + ch * 0.05)) * 0.3) * (1.0 + ch * 0.6) * fp
-			_beam.global_transform = Transform3D(b.scaled(Vector3(w, d, w)), (from + to) * 0.5)
-			var base_col := Color(0.45, 0.95, 1.0) if player.team == 0 else Game.team_color(player.team).lightened(0.3)
-			_beam_mat.albedo_color = base_col.lerp(Color(1.0, 0.97, 0.9), ch)
-			_beam_mat.albedo_color.a = (0.45 + randf() * 0.25) * (0.7 if fp < 1.0 else 1.0)
-			_beam_mat.emission = _beam_mat.albedo_color
-			_beam_mat.emission_energy_multiplier = 3.0 + ch * 2.5
+		if from.distance_to(to) > 0.05:
+			_draw_arc(from, to, delta)
 	else:
 		_beam.visible = false
+		_arc_light.visible = false
+		if _hum.playing:
+			_hum.stop()
 	if _viewmodel:
 		_kick = lerpf(_kick, 0.0, 1.0 - exp(-10.0 * delta))
 		var dyaw := clampf(wrapf(player.yaw - _last_yaw, -PI, PI), -0.08, 0.08)
@@ -254,11 +264,97 @@ func update_visuals(delta: float) -> void:
 		_vm_core.scale = Vector3.ONE * pulse
 
 
+func _beam_color() -> Color:
+	return Color(0.45, 0.95, 1.0) if player.team == 0 else Game.team_color(player.team).lightened(0.3)
+
+
+## Lightning between muzzle and target: a main bolt plus thin strands and an occasional
+## fork, all following a curve that bends toward where the gun points (so the arc whips
+## when the object lags behind your aim). Jitter is re-rolled ~20 times a second.
+func _draw_arc(from: Vector3, to: Vector3, delta: float) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var ch := visual_charge()
+	var fp := _viewmodel != null and _viewmodel.visible
+	var d := from.distance_to(to)
+	var aim := player.aim_direction()
+	var ctrl := from + aim * d * 0.55
+	var strands := 3 + int(ch * 2.0)
+	_arc_reroll -= delta
+	if _arc_reroll <= 0.0 or _arc_offsets.size() < strands + 1:
+		_arc_reroll = 0.05
+		_arc_offsets.clear()
+		for s in strands + 1:
+			var offs := PackedVector3Array()
+			for i in ARC_POINTS + 1:
+				offs.append(Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)))
+			_arc_offsets.append(offs)
+	var col := _beam_color().lerp(Color(1.0, 0.97, 0.9), ch)
+	_arc_mesh.clear_surfaces()
+	_arc_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	var cam_pos := cam.global_position
+	for s in strands:
+		var amp := (0.05 + d * 0.02) * (1.0 + ch * 0.7) * (1.0 if s == 0 else 1.6)
+		var width := (0.035 if s == 0 else 0.012) * (1.0 + ch) * (0.5 if fp else 1.0)
+		var bright := Color(col, 0.95 if s == 0 else 0.55)
+		var prev := from
+		var offs: PackedVector3Array = _arc_offsets[s]
+		for i in range(1, ARC_POINTS + 1):
+			var t := float(i) / ARC_POINTS
+			var p := from.lerp(ctrl, t).lerp(ctrl.lerp(to, t), t)
+			if i < ARC_POINTS:
+				p += offs[i] * amp * sin(PI * t)
+			_ribbon(prev, p, width, bright, cam_pos)
+			prev = p
+	# A short fork off the main bolt now and then.
+	var fork_offs: PackedVector3Array = _arc_offsets[strands]
+	if fork_offs[0].x > 0.0:
+		var t0 := 0.3 + absf(fork_offs[1].x) * 0.4
+		var start := from.lerp(ctrl, t0).lerp(ctrl.lerp(to, t0), t0)
+		var end := start + fork_offs[2].normalized() * (0.25 + d * 0.08)
+		_ribbon(start, start.lerp(end, 0.5) + fork_offs[3] * 0.08, 0.01, Color(col, 0.6), cam_pos)
+		_ribbon(start.lerp(end, 0.5) + fork_offs[3] * 0.08, end, 0.008, Color(col, 0.4), cam_pos)
+	_arc_mesh.surface_end()
+	_beam.global_transform = Transform3D.IDENTITY
+	_beam.visible = true
+	_beam_mat.emission = col
+	_beam_mat.emission_energy_multiplier = 3.0 + ch * 3.0 + randf() * 1.5
+	_arc_light.visible = true
+	_arc_light.global_position = to
+	_arc_light.light_color = col
+	_arc_light.light_energy = (1.2 + randf() * 1.0) * (1.0 + ch)
+	_hum.global_position = from
+	if not _hum.playing:
+		_hum.stream = Sfx.stream("arc")
+		_hum.play()
+	_hum.pitch_scale = 1.0 + ch * 0.6
+	_spark_timer -= delta
+	if _spark_timer <= 0.0:
+		_spark_timer = randf_range(0.08, 0.2)
+		player.world.fx.spark(to, col)
+
+
+## One camera-facing quad between two points.
+func _ribbon(a: Vector3, b: Vector3, width: float, col: Color, cam_pos: Vector3) -> void:
+	var seg := b - a
+	var side := seg.cross(cam_pos - a).normalized() * width
+	_arc_mesh.surface_set_color(col)
+	_arc_mesh.surface_add_vertex(a - side)
+	_arc_mesh.surface_add_vertex(a + side)
+	_arc_mesh.surface_add_vertex(b + side)
+	_arc_mesh.surface_add_vertex(a - side)
+	_arc_mesh.surface_add_vertex(b + side)
+	_arc_mesh.surface_add_vertex(b - side)
+
+
 func on_owner_died() -> void:
 	if multiplayer.is_server():
 		release(false)
 	grab_active = false
 	_beam.visible = false
+	_arc_light.visible = false
+	_hum.stop()
 
 
 # --- Server gameplay ------------------------------------------------------------------
@@ -344,6 +440,7 @@ func _try_grab(origin: Vector3, dir: Vector3) -> void:
 				return # no mutual holding loops
 			held_kind = Kind.PLAYER
 			held_id = pl.player_id
+			hold_extra = 0.0
 			_held_time = 0.0
 			w.server_set_last_attacker(pl, player.player_id)
 			w.server_gun_state_changed(self)
@@ -399,6 +496,9 @@ func _grab_prop(p: Prop) -> void:
 		w.server_unfreeze_prop(p)
 	held_kind = Kind.PROP
 	held_id = p.prop_id
+	hold_extra = 0.0
+	# Keep the object's current orientation, relative to where the player faces.
+	hold_rot = Basis(Vector3.UP, -player.yaw) * p.global_transform.basis.orthonormalized()
 	_held_time = 0.0
 	_stuck_time = 0.0
 	p.held_by = player.player_id
@@ -420,12 +520,23 @@ func _hold_prop(delta: float, origin: Vector3, dir: Vector3) -> void:
 		return
 	var c := charge_level()
 	var shake := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * 0.08 * c
-	var target := origin + dir * _hold_distance(p) * (1.0 - 0.3 * c) + shake
+	var dist := clampf(_hold_distance(p) + hold_extra, 1.0 + p.size.length() * 0.4, MAX_HOLD_DISTANCE)
+	var target := origin + dir * dist * (1.0 - 0.3 * c) + shake
 	var to := target - p.global_position
 	var desired := to * 16.0 + player.velocity
 	var grip := clampf(80.0 / p.mass, 0.12, 1.0)
 	p.linear_velocity = p.linear_velocity.lerp(desired, 0.12 + 0.3 * grip)
-	p.angular_velocity *= 0.85
+	# Steer orientation toward hold_rot (relative to the player's facing).
+	var want := (Basis(Vector3.UP, player.yaw) * hold_rot).get_rotation_quaternion()
+	var cur := p.global_transform.basis.get_rotation_quaternion()
+	var q := want * cur.inverse()
+	if q.w < 0.0:
+		q = -q
+	var angle := 2.0 * acos(clampf(q.w, -1.0, 1.0))
+	var ang_target := Vector3.ZERO
+	if angle > 0.001:
+		ang_target = Vector3(q.x, q.y, q.z).normalized() * minf(angle * 10.0, 20.0)
+	p.angular_velocity = p.angular_velocity.lerp(ang_target, 0.1 + 0.3 * grip)
 	p.sleeping = false
 	if to.length() > 4.0:
 		_stuck_time += delta
@@ -446,8 +557,17 @@ func _hold_player(delta: float, origin: Vector3, dir: Vector3) -> void:
 		release(true)
 		return
 	var c := charge_level()
-	var target := origin + dir * 2.8 * (1.0 - 0.25 * c) + Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * 0.08 * c
+	var target := origin + dir * clampf(2.8 + hold_extra, 1.8, MAX_HOLD_DISTANCE) * (1.0 - 0.25 * c) + Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * 0.08 * c
 	w.server_send_held(pl, target, player.velocity, player.player_id)
+
+
+## Server: push/pull (meters) and rotate (radians, in the player's facing frame) what we hold.
+func server_adjust(dist_delta: float, yaw_delta: float, pitch_delta: float) -> void:
+	if held_kind == Kind.NONE:
+		return
+	hold_extra = clampf(hold_extra + dist_delta, -3.0, MAX_HOLD_DISTANCE)
+	if held_kind == Kind.PROP and (yaw_delta != 0.0 or pitch_delta != 0.0):
+		hold_rot = (Basis(Vector3.UP, yaw_delta) * Basis(Vector3.RIGHT, pitch_delta) * hold_rot).orthonormalized()
 
 
 ## 0..1 server-side charge of the current wind-up.

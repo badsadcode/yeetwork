@@ -121,6 +121,10 @@ var _prev_grounded := true
 var _view_third_person := false
 var _corpse: Node3D
 var _punch := 0.0
+var _adjust_dist := 0.0
+var _adjust_yaw := 0.0
+var _adjust_pitch := 0.0
+var _adjust_send := 0.0
 var _base_fov := 0.0
 
 # Remote interpolation.
@@ -254,9 +258,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion:
 		var e := event as InputEventMouseMotion
+		if _rotating_held():
+			# E + mouse spins what the gravity gun holds instead of the view.
+			_adjust_yaw += e.relative.x * 0.008
+			_adjust_pitch += e.relative.y * 0.008
+			return
 		yaw -= e.relative.x * Game.mouse_sensitivity
 		pitch = clampf(pitch - e.relative.y * Game.mouse_sensitivity, -1.55, 1.55)
-	elif event.is_action_pressed("toggle_view"):
+	elif event is InputEventMouseButton and event.pressed and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+		var up := (event as InputEventMouseButton).button_index == MOUSE_BUTTON_WHEEL_UP
+		if _holding():
+			_adjust_dist += 0.6 if up else -0.6
+		else:
+			var n := Prop.SPAWNABLE.size()
+			gun.selected_slot = (gun.selected_slot + (n - 1 if up else 1)) % n
+	elif event.is_action_pressed("toggle_view") and not (event is InputEventJoypadButton and _holding()):
 		_view_third_person = not _view_third_person
 		Game.third_person = _view_third_person
 		_update_view_mode()
@@ -300,7 +316,10 @@ func _read_local_input(_delta: float) -> void:
 		return
 	# Gamepad look.
 	var look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
-	if look.length() > 0.05:
+	if look.length() > 0.05 and _rotating_held():
+		_adjust_yaw += look.x * 3.0 * get_physics_process_delta_time()
+		_adjust_pitch += look.y * 3.0 * get_physics_process_delta_time()
+	elif look.length() > 0.05:
 		# Squared response curve: precise small corrections, fast full turns.
 		var curved := look * look.length()
 		var inv := -1.0 if Game.invert_y else 1.0
@@ -324,17 +343,40 @@ func _read_local_input(_delta: float) -> void:
 		world.gun_action(self, GravityGun.Action.THROW_RELEASE)
 	if Input.is_action_just_pressed("freeze_prop"):
 		world.gun_action(self, GravityGun.Action.FREEZE)
+	# Push / pull what we hold (wheel or D-pad); otherwise the wheel picks props.
+	var holding := _holding()
+	if holding:
+		if Input.is_action_just_pressed("hold_farther"):
+			_adjust_dist += 0.75
+		if Input.is_action_just_pressed("hold_closer"):
+			_adjust_dist -= 0.75
+	_adjust_send -= get_physics_process_delta_time()
+	if _adjust_send <= 0.0 and (_adjust_dist != 0.0 or _adjust_yaw != 0.0 or _adjust_pitch != 0.0):
+		_adjust_send = 0.05
+		if holding:
+			world.gun_adjust(self, _adjust_dist, _adjust_yaw, _adjust_pitch)
+		_adjust_dist = 0.0
+		_adjust_yaw = 0.0
+		_adjust_pitch = 0.0
 	if Input.is_action_just_pressed("spawn_prop"):
 		world.request_spawn_prop(self, gun.selected_slot)
-	if Input.is_action_just_pressed("suicide"):
+	if Input.is_action_just_pressed("suicide") and not (holding and Input.is_action_just_pressed("hold_closer")):
 		world.request_suicide(self)
 	for i in range(1, 10):
 		if Input.is_action_just_pressed("slot_%d" % i):
 			gun.selected_slot = i - 1
-	if Input.is_action_just_pressed("next_slot"):
+	if Input.is_action_just_pressed("next_slot") and not holding:
 		gun.selected_slot = (gun.selected_slot + 1) % Prop.SPAWNABLE.size()
-	if Input.is_action_just_pressed("prev_slot"):
+	if Input.is_action_just_pressed("prev_slot") and not holding:
 		gun.selected_slot = (gun.selected_slot + Prop.SPAWNABLE.size() - 1) % Prop.SPAWNABLE.size()
+
+
+func _holding() -> bool:
+	return gun != null and gun.vis_kind != GravityGun.Kind.NONE
+
+
+func _rotating_held() -> bool:
+	return _holding() and gun.vis_kind == GravityGun.Kind.PROP and Input.is_action_pressed("rotate_held")
 
 
 func _simulate(delta: float) -> void:

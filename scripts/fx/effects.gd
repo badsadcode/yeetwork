@@ -322,6 +322,13 @@ func pumpkin_burst(pos: Vector3, dir: Vector3, gold: bool) -> void:
 	tw.tween_callback(flash.queue_free)
 
 
+## A few electric sparks (gravity-gun tether end).
+func spark(pos: Vector3, color: Color) -> void:
+	var m := BoxMesh.new()
+	m.size = Vector3(0.015, 0.12, 0.015)
+	_burst(pos, Vector3.UP, 4, m, Mats.glow(color.lightened(0.4), 6.0), 2.0, 5.0, 0.25, 2.0, true)
+
+
 func dust(pos: Vector3, color: Color, amount: float) -> void:
 	var m := SphereMesh.new()
 	m.radius = 0.35

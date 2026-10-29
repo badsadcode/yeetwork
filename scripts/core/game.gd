@@ -240,12 +240,18 @@ func _setup_input() -> void:
 	_key("pause", [KEY_ESCAPE])
 	_key("suicide", [KEY_K])
 	_key("respawn_props", [KEY_F5])
+	_key("rotate_held", [KEY_E])
 	for i in range(1, 10):
 		_key("slot_%d" % i, [KEY_0 + i])
 	_mouse("gun_grab", MOUSE_BUTTON_LEFT)
 	_mouse("gun_throw", MOUSE_BUTTON_RIGHT)
-	_mouse("next_slot", MOUSE_BUTTON_WHEEL_DOWN)
-	_mouse("prev_slot", MOUSE_BUTTON_WHEEL_UP)
+	# The mouse wheel is read as raw events in Player (prop slots, or push/pull when
+	# holding something); on gamepads the D-pad does the same through these actions.
+	_ensure("next_slot")
+	_ensure("prev_slot")
+	_pad("hold_farther", JOY_BUTTON_DPAD_UP)
+	_pad("hold_closer", JOY_BUTTON_DPAD_DOWN)
+	_pad("rotate_held", JOY_BUTTON_LEFT_SHOULDER)
 	_pad("jump", JOY_BUTTON_A)
 	_pad("crouch", JOY_BUTTON_B)
 	_pad("spawn_prop", JOY_BUTTON_Y)

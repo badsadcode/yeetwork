@@ -146,6 +146,26 @@ func _run() -> void:
 	check("charged throw", was_charging and charged_speed > tap_speed * 1.5, "tap %.1f m/s, charged %.1f m/s" % [tap_speed, charged_speed])
 	world.gun_action(pl, GravityGun.Action.GRAB_END)
 
+	# 5c. Push/pull and rotate a held crate.
+	await reset(Vector3(-50, 0.2, 0), -PI * 0.5)
+	pl.pitch = 0.0
+	var crate3: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, pl.eye_position() + pl.aim_direction() * 3.0))
+	await ticks(5)
+	world.gun_action(pl, GravityGun.Action.GRAB_START)
+	await ticks(30)
+	var near_d := pl.eye_position().distance_to(crate3.global_position)
+	var yaw_before := crate3.global_transform.basis.get_euler().y
+	world.gun_adjust(pl, 3.0, PI * 0.5, 0.0)
+	await ticks(60)
+	var far_d := pl.eye_position().distance_to(crate3.global_position)
+	var turned := absf(wrapf(crate3.global_transform.basis.get_euler().y - yaw_before, -PI, PI))
+	check("push held object farther", far_d > near_d + 2.0, "%.1f m -> %.1f m" % [near_d, far_d])
+	check("rotate held object", absf(turned - PI * 0.5) < 0.35, "turned %.0f degrees" % rad_to_deg(turned))
+	world.gun_adjust(pl, -3.0, 0.0, 0.0)
+	await ticks(60)
+	check("pull held object closer", pl.eye_position().distance_to(crate3.global_position) < far_d - 2.0, "%.1f m" % pl.eye_position().distance_to(crate3.global_position))
+	world.gun_action(pl, GravityGun.Action.GRAB_END)
+
 	# 6. Pull from range.
 	await reset(Vector3(45, 0.2, -24), PI * 0.5)
 	var far: Prop = world.server_spawn_prop("ball", Transform3D(Basis.IDENTITY, Vector3(30, 0.5, -24)))

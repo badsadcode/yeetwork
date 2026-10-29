@@ -39,6 +39,8 @@ var _aim_state := 0 # 0 nothing, 1 grabbable, 2 holding
 var _help_time := 14.0
 var _paused := false
 var _resume_button: Button
+var _hold_hint: Label
+var _pad_used := false
 
 
 func _ready() -> void:
@@ -154,6 +156,14 @@ func _ready() -> void:
 	_help.text = "WASD move  ·  Space jump (hold to bhop)  ·  Ctrl/Shift crouch & slide\nRun along walls to wall-run, jump off them to wall-jump\nLMB hold: grab / pull / catch   ·   RMB: throw (hold to charge), or punt (punt a wall to gravity-jump)\nF freeze held prop  ·  Q spawn prop (1-9 / wheel to pick)  ·  V third person  ·  Tab scores  ·  K respawn  ·  Esc menu"
 	_root.add_child(_help)
 
+	_hold_hint = _label(15, Color(1, 1, 1, 0.8))
+	_hold_hint.set_anchors_preset(Control.PRESET_CENTER)
+	_hold_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hold_hint.position = Vector2(-300, 46)
+	_hold_hint.custom_minimum_size = Vector2(600, 0)
+	_hold_hint.visible = false
+	_root.add_child(_hold_hint)
+
 	_build_scoreboard()
 	_build_pause()
 
@@ -256,6 +266,13 @@ func set_paused(p: bool) -> void:
 		Game.save_settings()
 
 
+func _input(event: InputEvent) -> void:
+	if event is InputEventJoypadButton or (event is InputEventJoypadMotion and absf(event.axis_value) > 0.5):
+		_pad_used = true
+	elif event is InputEventKey or event is InputEventMouseButton:
+		_pad_used = false
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause") or (_paused and event.is_action_pressed("ui_cancel") and event is InputEventJoypadButton):
 		set_paused(not _paused)
@@ -287,6 +304,13 @@ func _process(delta: float) -> void:
 	for i in _slot_labels.size():
 		_slot_labels[i].label_settings.font_color = Color(1, 0.85, 0.3) if i == pl.gun.selected_slot else Color(1, 1, 1, 0.55)
 	_death_label.visible = not pl.is_alive()
+	var holding := pl.gun.vis_kind != GravityGun.Kind.NONE and pl.is_alive()
+	_hold_hint.visible = holding
+	if holding:
+		if _pad_used:
+			_hold_hint.text = "RT hold: charge throw  ·  D-pad ↑↓: push / pull  ·  LB + stick: rotate  ·  RB: freeze"
+		else:
+			_hold_hint.text = "RMB hold: charge throw  ·  Wheel: push / pull  ·  E + mouse: rotate  ·  F: freeze"
 	_update_aim_state(pl)
 	_crosshair.queue_redraw()
 

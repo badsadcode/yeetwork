@@ -47,6 +47,10 @@ func _ready() -> void:
 	_add("score", 0.6, _score)
 	_add("squelch", 0.6, _squelch)
 	_add("charge", 1.1, _charge)
+	_add("arc", 2.0, _arc)
+	for w: AudioStreamWAV in _streams.arc:
+		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		w.loop_end = w.data.size() / 2
 	_add("pickup", 0.18, _blip.bind(900.0, 1500.0, 0.18, 0.3))
 	_add("wind", 4.0, _wind)
 	for w: AudioStreamWAV in _streams.wind:
@@ -195,6 +199,25 @@ func _thud_heavy(buf: PackedFloat32Array, v: int) -> void:
 func _smack(buf: PackedFloat32Array, v: int) -> void:
 	_add_noise(buf, _bp_noise(buf.size(), 1100.0 * _vr(v, 0.1)), 32.0, 0.9)
 	_drop(buf, 230.0 * _vr(v, 0.07), 70.0, 30.0, 18.0, 0.8)
+
+
+## Electric tether: mains-style buzz with random crackles (seamless loop, whole periods).
+func _arc(buf: PackedFloat32Array, v: int) -> void:
+	var n := buf.size()
+	var hp := _bp_noise(n, 3500.0)
+	for i in n:
+		var t := float(i) / RATE
+		var buzz := sin(TAU * 120.0 * t) * 0.18 + sin(TAU * 240.0 * t) * 0.1 + sin(TAU * 360.0 * t) * 0.05
+		buf[i] += buzz * (0.8 + 0.2 * sin(TAU * 3.0 * t))
+	for c in 40 + v * 5:
+		var start := int(_rng.randf_range(0.0, 1.95) * RATE)
+		var amp := _rng.randf_range(0.2, 0.7)
+		for i in range(start, mini(start + int(0.02 * RATE), n)):
+			buf[i] += hp[i] * exp(-float(i - start) / RATE * 220.0) * amp
+
+
+func stream(sound: String) -> AudioStream:
+	return _streams[sound][0] if _streams.has(sound) else null
 
 
 ## Rising whine with a growing hum underneath: the gravity gun winding up.
