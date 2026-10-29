@@ -1,0 +1,160 @@
+extends Node
+## Entry point: switches between the main menu and a running World, and owns the
+## network peer.
+##
+## Command line (after `--`):  --host  --join <ip>  --mode sandbox|ctf|dodgeball
+##   --bots <n>  --port <n>  --name <name>  --autotest <seconds>  (quit after N seconds)
+##   --map prime|facing  --tour <dir>  (save screenshots from fixed viewpoints, then quit)
+
+var menu: MainMenu
+var world: World
+var _autotest := -1.0
+var _autotest_elapsed := 0.0
+var _tour_dir := ""
+
+
+func _ready() -> void:
+	multiplayer.server_disconnected.connect(func(): leave("Disconnected from server"))
+	multiplayer.connection_failed.connect(func(): leave("Could not connect"))
+	multiplayer.connected_to_server.connect(_on_connected)
+	if not _handle_cmdline():
+		show_menu("")
+
+
+func _handle_cmdline() -> bool:
+	var args := OS.get_cmdline_user_args()
+	var action := ""
+	var i := 0
+	while i < args.size():
+		var a := args[i]
+		var next := args[i + 1] if i + 1 < args.size() else ""
+		match a:
+			"--host":
+				action = "host"
+			"--join":
+				action = "join"
+				Game.join_address = next
+				i += 1
+			"--mode":
+				Game.mode = {"sandbox": Game.Mode.SANDBOX, "ctf": Game.Mode.CTF, "dodgeball": Game.Mode.DODGEBALL}.get(next, Game.Mode.SANDBOX)
+				i += 1
+			"--map":
+				Game.map = {"prime": 0, "facing": 1}.get(next, 0)
+				i += 1
+			"--bots":
+				Game.bot_count = int(next)
+				i += 1
+			"--port":
+				Game.port = int(next)
+				i += 1
+			"--name":
+				Game.player_name = next
+				i += 1
+			"--autotest":
+				_autotest = float(next)
+				i += 1
+			"--tour":
+				_tour_dir = next
+				i += 1
+		i += 1
+	match action:
+		"host":
+			host()
+			return true
+		"join":
+			join()
+			return true
+	return false
+
+
+func _process(delta: float) -> void:
+	if _autotest > 0.0:
+		_autotest_elapsed += delta
+		if _autotest_elapsed >= _autotest:
+			_autotest = -1.0
+			_report_and_quit()
+
+
+func _report_and_quit() -> void:
+	if world:
+		var alive := 0
+		for p in world.players.values():
+			if p.is_alive():
+				alive += 1
+		var broken := 0
+		for d in world.arena.destructibles:
+			broken += d.broken_cells.size()
+		print("AUTOTEST server=%s players=%d alive=%d props=%d broken_cells=%d scores=%s" % [world.is_server, world.players.size(), alive, world.props.size(), broken, world.team_scores])
+		for p in world.players.values():
+			print("  %s hp=%.0f frags=%d deaths=%d pos=%s" % [p.display_name, p.hp, p.frags, p.deaths, p.global_position.snapped(Vector3.ONE * 0.1)])
+	else:
+		print("AUTOTEST no world")
+	get_tree().quit()
+
+
+func show_menu(status: String) -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if menu == null:
+		menu = MainMenu.new()
+		add_child(menu)
+		menu.host_pressed.connect(host)
+		menu.join_pressed.connect(join)
+		menu.quit_pressed.connect(func(): get_tree().quit())
+	menu.visible = true
+	menu.set_status(status)
+
+
+func host() -> void:
+	var peer := ENetMultiplayerPeer.new()
+	var err := peer.create_server(Game.port, Game.MAX_PLAYERS)
+	if err != OK:
+		# Port busy: still let people play offline.
+		print("Could not open port %d (%s); playing offline" % [Game.port, error_string(err)])
+		multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	else:
+		multiplayer.multiplayer_peer = peer
+	_start_world(true)
+
+
+func join() -> void:
+	var peer := ENetMultiplayerPeer.new()
+	var err := peer.create_client(Game.join_address, Game.port)
+	if err != OK:
+		show_menu("Could not start client: %s" % error_string(err))
+		return
+	multiplayer.multiplayer_peer = peer
+	if menu:
+		menu.set_status("Connecting to %s:%d..." % [Game.join_address, Game.port])
+
+
+func _on_connected() -> void:
+	_start_world(false)
+
+
+func _start_world(server: bool) -> void:
+	if menu:
+		menu.visible = false
+	world = World.new()
+	add_child(world)
+	world.leave_requested.connect(func(): leave(""))
+	world.start(server)
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if _tour_dir != "":
+		var tour: Node = load("res://scripts/core/dev_tour.gd").new()
+		tour.set("world", world)
+		tour.set("out_dir", _tour_dir)
+		add_child(tour)
+
+
+func leave(status: String) -> void:
+	if world:
+		world.queue_free()
+		world = null
+	if multiplayer.multiplayer_peer and not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
+		multiplayer.multiplayer_peer.close()
+	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	if _autotest > 0.0 or DisplayServer.get_name() == "headless":
+		print("Left match: %s" % status)
+		get_tree().quit()
+		return
+	show_menu(status)

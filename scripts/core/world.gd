@@ -1,0 +1,1119 @@
+class_name World
+extends Node3D
+## A running match. Owns the arena, players, props and effects, and is the single hub for
+## all network traffic (every RPC lives here, so node paths always resolve).
+##
+## Authority model:
+##   * Server simulates props, destruction, damage, scoring and gravity guns.
+##   * Each peer simulates its own player (bots run on the server) and streams state.
+##   * Effects that only change how things look are broadcast and played locally.
+
+signal leave_requested
+
+const STATE_RATE := 1.0 / 30.0
+const PROP_RATE := 1.0 / 30.0
+const MAX_DEBRIS := 220
+const MAX_SPAWNED_PER_PLAYER := 25
+const MAX_CORPSES := 12
+const RESPAWN_TIME := 3.0
+const BOT_NAMES := ["Bonkers", "Sir Yeets-a-lot", "Wobbles", "Ragdolly Parton", "Flopsy", "Chonk", "Splatworth", "Gravy Gunner", "Noodle", "Bumpkin", "Captain Thud", "Jellybean"]
+
+var arena: Arena
+var fx: Effects
+var fx_root: Node3D
+var hud: Hud
+var players_root: Node3D
+var props_root: Node3D
+var mode_logic: ModeBase
+var mode: int = Game.Mode.SANDBOX
+var map_id := 0
+var is_server := false
+var rng := RandomNumberGenerator.new()
+var players := {} # id -> Player
+var props := {} # id -> Prop
+var team_scores := {1: 0, 2: 0}
+var local_player: Player
+var ready_peers: Array[int] = []
+
+var _time_offset := 0.0
+var _next_prop_id := 1
+var _next_bot_id := 1000
+var _state_accum := 0.0
+var _prop_accum := 0.0
+var _prop_cursor := 0
+var _sent_xforms := {} # prop id -> Transform3D last sent
+var _respawn_at := {} # player id -> time
+var _restock: Array = [] # [time, kind, Transform3D]
+var _debris: Array[int] = []
+var _spawned_by := {} # player id -> Array[int]
+var _spawn_cd := {}
+var _pair_cd := {}
+var _corpses: Array[Node] = []
+
+
+func _ready() -> void:
+	name = "World"
+
+
+func net_time() -> float:
+	return Time.get_ticks_msec() / 1000.0 + _time_offset
+
+
+func now() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+
+func start(server: bool) -> void:
+	is_server = server
+	rng.randomize()
+	players_root = Node3D.new()
+	players_root.name = "Players"
+	add_child(players_root)
+	props_root = Node3D.new()
+	props_root.name = "Props"
+	add_child(props_root)
+	fx = Effects.new()
+	add_child(fx)
+	fx_root = fx
+	hud = Hud.new()
+	hud.world = self
+	add_child(hud)
+	hud.leave_pressed.connect(func(): leave_requested.emit())
+	if server:
+		_build_arena(Game.map)
+		mode = Game.mode
+		mode_logic = _make_mode(mode)
+		mode_logic.setup(self)
+		for entry in arena.initial_props:
+			var p := server_spawn_prop(entry[0], entry[1])
+			p.set_meta("map_prop", true)
+		mode_logic.spawn_mode_props()
+		multiplayer.peer_connected.connect(_on_peer_connected)
+		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+		_server_add_player(1, Game.player_name, false)
+		for i in Game.bot_count:
+			_server_add_bot()
+		hud.on_mode_changed()
+	else:
+		_c_hello.rpc_id(1, Game.player_name, Game.VERSION)
+
+
+func _build_arena(id: int) -> void:
+	map_id = id
+	arena = Arena.new()
+	add_child(arena)
+	move_child(arena, 0)
+	arena.build(self, id)
+
+
+func _make_mode(m: int) -> ModeBase:
+	match m:
+		Game.Mode.CTF:
+			return ModeCTF.new()
+		Game.Mode.DODGEBALL:
+			return ModeDodgeball.new()
+	return ModeBase.new()
+
+
+func mode_name() -> String:
+	return "%s · %s" % [Game.MODE_NAMES[mode], Game.MAP_NAMES[map_id]]
+
+
+func is_team_mode() -> bool:
+	return mode != Game.Mode.SANDBOX
+
+
+func get_player(id: int) -> Player:
+	return players.get(id)
+
+
+func get_prop(id: int) -> Prop:
+	var p: Prop = props.get(id)
+	return p if is_instance_valid(p) else null
+
+
+func are_teammates(a: Player, b: Player) -> bool:
+	return a.team != Game.TEAM_NONE and a.team == b.team
+
+
+func hold_time_limit(a: Player, b: Player) -> float:
+	return mode_logic.hold_time_limit(a, b) if mode_logic else 2.0
+
+
+func allow_freeze() -> bool:
+	return mode_logic.allow_build() if mode_logic else false
+
+
+# --- Broadcast helpers ------------------------------------------------------------
+
+## Send an RPC to every peer that has finished joining (not to ourselves).
+func _bc(method: StringName, args: Array) -> void:
+	for peer in ready_peers:
+		callv("rpc_id", [peer, method] + args)
+
+
+## Run locally on the server and send to every joined peer.
+func _bc_all(method: StringName, args: Array) -> void:
+	callv(method, args)
+	_bc(method, args)
+
+
+## Deliver to the peer that simulates this player.
+func _to_owner(pl: Player, method: StringName, args: Array) -> void:
+	if pl.is_bot or pl.owner_peer == multiplayer.get_unique_id():
+		callv(method, args)
+	elif ready_peers.has(pl.owner_peer):
+		callv("rpc_id", [pl.owner_peer, method] + args)
+
+
+# --- Joining / leaving ------------------------------------------------------------
+
+func _on_peer_connected(_peer: int) -> void:
+	pass # Wait for _c_hello.
+
+
+func _on_peer_disconnected(peer: int) -> void:
+	ready_peers.erase(peer)
+	var pl := get_player(peer)
+	if pl:
+		server_message("%s left" % pl.display_name, Color(0.8, 0.8, 0.8))
+		_server_remove_player(pl)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_hello(pname: String, version: String) -> void:
+	if not is_server:
+		return
+	var peer := multiplayer.get_remote_sender_id()
+	if players.has(peer):
+		return
+	if version != Game.VERSION:
+		print("Peer %d has version %s (server %s)" % [peer, version, Game.VERSION])
+	pname = pname.strip_edges().substr(0, 20)
+	if pname.is_empty():
+		pname = "Yeeter"
+	_server_add_player(peer, pname, false)
+	_s_init.rpc_id(peer, _build_init_state())
+	ready_peers.append(peer)
+	server_message("%s joined the chaos" % pname, Color(0.7, 1.0, 0.7))
+
+
+func _build_init_state() -> Dictionary:
+	var pl_list := []
+	for pl: Player in players.values():
+		pl_list.append(_player_info(pl))
+	var pr_list := []
+	for p: Prop in props.values():
+		if is_instance_valid(p):
+			pr_list.append([p.prop_id, p.kind, p.global_transform, p.size, p.color, p.team])
+	var broken := {}
+	for d in arena.destructibles:
+		if not d.broken_cells.is_empty():
+			broken[d.wall_id] = d.broken_cells
+	var guns := []
+	for pl: Player in players.values():
+		if pl.gun.held_kind != GravityGun.Kind.NONE:
+			guns.append([pl.player_id, pl.gun.held_kind, pl.gun.held_id])
+	return {
+		"mode": mode,
+		"map": map_id,
+		"time": net_time(),
+		"players": pl_list,
+		"props": pr_list,
+		"broken": broken,
+		"scores": team_scores,
+		"guns": guns,
+	}
+
+
+func _player_info(pl: Player) -> Dictionary:
+	return {
+		"id": pl.player_id, "owner": pl.owner_peer, "bot": pl.is_bot, "name": pl.display_name,
+		"team": pl.team, "color": pl.color, "hat": pl.hat, "frags": pl.frags, "deaths": pl.deaths,
+		"score": pl.score, "pos": pl.global_position, "yaw": pl.yaw, "hp": pl.hp, "alive": pl.is_alive(),
+	}
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_init(state: Dictionary) -> void:
+	mode = state.mode
+	_build_arena(state.map)
+	_time_offset = state.time - now()
+	team_scores = state.scores
+	for info in state.players:
+		_create_player(info)
+	for e in state.props:
+		_create_prop(e[0], e[1], e[2], e[3], e[4], e[5], false)
+	for wall_id in state.broken:
+		if wall_id < arena.destructibles.size():
+			arena.destructibles[wall_id].remove_cells(state.broken[wall_id])
+	for g in state.guns:
+		var pl := get_player(g[0])
+		if pl:
+			pl.gun.set_visual_state(g[1], g[2])
+	hud.on_mode_changed()
+
+
+func _server_add_player(peer: int, pname: String, bot: bool) -> Player:
+	var id := peer
+	if bot:
+		id = _next_bot_id
+		_next_bot_id += 1
+	var team := mode_logic.pick_team(players)
+	var info := {
+		"id": id, "owner": 1 if bot else peer, "bot": bot, "name": pname, "team": team,
+		"color": mode_logic.player_color(team, players.size()), "hat": rng.randi() % CharacterModel.HAT_COUNT,
+		"frags": 0, "deaths": 0, "score": 0, "pos": Vector3.ZERO, "yaw": 0.0, "hp": 100.0, "alive": true,
+	}
+	var pl := _create_player(info)
+	var spawn := mode_logic.spawn_point(pl)
+	pl.respawn(spawn, _yaw_toward_center(spawn))
+	info.pos = spawn
+	info.yaw = pl.yaw
+	_bc("_s_add_player", [info])
+	if bot:
+		pl.bot_brain = BotBrain.new(pl, self)
+	return pl
+
+
+func _server_add_bot() -> void:
+	var used := {}
+	for pl: Player in players.values():
+		used[pl.display_name] = true
+	var free := BOT_NAMES.filter(func(n): return not used.has(n))
+	var bot_name: String = free[rng.randi() % free.size()] if not free.is_empty() else "Bot %d" % _next_bot_id
+	_server_add_player(0, bot_name, true)
+
+
+func _yaw_toward_center(pos: Vector3) -> float:
+	var to := -pos
+	return atan2(-to.x, -to.z)
+
+
+func _create_player(info: Dictionary) -> Player:
+	var pl := Player.new()
+	pl.setup(self, info)
+	players_root.add_child(pl)
+	players[pl.player_id] = pl
+	pl.global_position = info.pos
+	pl.yaw = info.yaw
+	pl.hp = info.hp
+	if not info.alive:
+		pl.die(Vector3.ZERO)
+	if pl.is_local_human():
+		local_player = pl
+	hud.on_players_changed()
+	return pl
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_add_player(info: Dictionary) -> void:
+	if not players.has(info.id):
+		_create_player(info)
+
+
+func _server_remove_player(pl: Player) -> void:
+	pl.gun.release(false)
+	for other: Player in players.values():
+		if other.gun.held_kind == GravityGun.Kind.PLAYER and other.gun.held_id == pl.player_id:
+			other.gun.release(false)
+	for id in _spawned_by.get(pl.player_id, []):
+		var p := get_prop(id)
+		if p:
+			server_despawn_prop(p)
+	_spawned_by.erase(pl.player_id)
+	_bc_all("_s_remove_player", [pl.player_id])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_remove_player(id: int) -> void:
+	var pl := get_player(id)
+	if pl:
+		players.erase(id)
+		pl.queue_free()
+		hud.on_players_changed()
+
+
+# --- Main loop ------------------------------------------------------------------
+
+func _physics_process(delta: float) -> void:
+	if not is_server:
+		return
+	mode_logic.tick(delta)
+	var t := now()
+	for id in _respawn_at.keys():
+		if t >= _respawn_at[id]:
+			_respawn_at.erase(id)
+			var pl := get_player(id)
+			if pl:
+				var pos := mode_logic.spawn_point(pl)
+				_bc_all("_s_respawn", [id, pos, _yaw_toward_center(pos)])
+	for i in range(_restock.size() - 1, -1, -1):
+		if t >= _restock[i][0]:
+			var p := server_spawn_prop(_restock[i][1], _restock[i][2])
+			p.set_meta("map_prop", true)
+			server_fx("spawn", p.global_position, Vector3.UP, 1.0)
+			_restock.remove_at(i)
+	_state_accum += delta
+	if _state_accum >= STATE_RATE:
+		_state_accum = 0.0
+		_send_player_states()
+	_prop_accum += delta
+	if _prop_accum >= PROP_RATE:
+		_prop_accum = 0.0
+		_send_prop_snapshot()
+
+
+# --- Player state sync ------------------------------------------------------------
+
+## Called by the controlling peer at ~30 Hz.
+func net_send_player_state(pl: Player) -> void:
+	if is_server:
+		return # the server streams everyone in _send_player_states
+	_c_state.rpc_id(1, pl.global_position, pl.velocity, pl.yaw, pl.pitch, pl.flags)
+
+
+@rpc("any_peer", "call_remote", "unreliable_ordered", 1)
+func _c_state(pos: Vector3, vel: Vector3, yaw: float, pitch: float, flags: int) -> void:
+	var pl := get_player(multiplayer.get_remote_sender_id())
+	if pl:
+		pl.apply_net_state(pos, vel, yaw, pitch, flags)
+
+
+func _send_player_states() -> void:
+	if ready_peers.is_empty():
+		return
+	var data := []
+	for pl: Player in players.values():
+		data.append(pl.get_net_state())
+	_bc("_s_states", [data])
+
+
+@rpc("authority", "call_remote", "unreliable_ordered", 1)
+func _s_states(data: Array) -> void:
+	for s in data:
+		var pl := get_player(s[0])
+		if pl:
+			pl.apply_net_state(s[1], s[2], s[3], s[4], s[5])
+
+
+# --- Props ------------------------------------------------------------------------
+
+func _create_prop(id: int, kind: String, xform: Transform3D, size: Vector3, color: Color, team: int, server: bool) -> Prop:
+	var p := Prop.create(self, id, kind, xform, size, color, team)
+	p.setup_role(server)
+	props_root.add_child(p)
+	props[id] = p
+	return p
+
+
+func server_spawn_prop(kind: String, xform: Transform3D, size := Vector3.ZERO, color := Color(0, 0, 0, 0), team := 0, vel := Vector3.ZERO) -> Prop:
+	var id := _next_prop_id
+	_next_prop_id += 1
+	var p := _create_prop(id, kind, xform, size, color, team, true)
+	p.linear_velocity = vel
+	_sent_xforms[id] = xform
+	_bc("_s_spawn_prop", [id, p.kind, xform, p.size, p.color, team])
+	return p
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_spawn_prop(id: int, kind: String, xform: Transform3D, size: Vector3, color: Color, team: int) -> void:
+	if not props.has(id):
+		_create_prop(id, kind, xform, size, color, team, false)
+
+
+func server_despawn_prop(p: Prop) -> void:
+	if p.held_by != 0:
+		var holder := get_player(p.held_by)
+		if holder:
+			holder.gun.release(false)
+	_sent_xforms.erase(p.prop_id)
+	_bc_all("_s_despawn_prop", [p.prop_id])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_despawn_prop(id: int) -> void:
+	var p := get_prop(id)
+	props.erase(id)
+	if p:
+		for pl: Player in players.values():
+			if pl.gun.vis_kind == GravityGun.Kind.PROP and pl.gun.vis_id == id:
+				pl.gun.set_visual_state(GravityGun.Kind.NONE, 0)
+		p.queue_free()
+
+
+func _send_prop_snapshot() -> void:
+	if ready_peers.is_empty():
+		return
+	var ids := props.keys()
+	var count := ids.size()
+	if count == 0:
+		return
+	# Packets of up to 28 props (~1.2 KB) stay under the ENet MTU; at most 4 per tick.
+	var buf := PackedFloat32Array()
+	var in_packet := 0
+	var packets := 0
+	var checked := 0
+	while checked < count and packets < 4:
+		_prop_cursor = (_prop_cursor + 1) % count
+		checked += 1
+		var p := get_prop(ids[_prop_cursor])
+		if p == null:
+			continue
+		var xf := p.global_transform
+		var last: Transform3D = _sent_xforms.get(p.prop_id, Transform3D())
+		if xf.origin.distance_squared_to(last.origin) < 0.0001 and xf.basis.is_equal_approx(last.basis):
+			continue
+		_sent_xforms[p.prop_id] = xf
+		var q := xf.basis.get_rotation_quaternion()
+		var v := p.linear_velocity
+		buf.append_array([p.prop_id, xf.origin.x, xf.origin.y, xf.origin.z, q.x, q.y, q.z, q.w, v.x, v.y, v.z])
+		in_packet += 1
+		if in_packet >= 28:
+			_bc("_s_props", [buf])
+			buf = PackedFloat32Array()
+			in_packet = 0
+			packets += 1
+	if in_packet > 0:
+		_bc("_s_props", [buf])
+
+
+@rpc("authority", "call_remote", "unreliable_ordered", 2)
+func _s_props(buf: PackedFloat32Array) -> void:
+	var i := 0
+	while i + 10 < buf.size():
+		var p := get_prop(int(buf[i]))
+		if p:
+			p.apply_snapshot(Vector3(buf[i + 1], buf[i + 2], buf[i + 3]), Quaternion(buf[i + 4], buf[i + 5], buf[i + 6], buf[i + 7]).normalized(), Vector3(buf[i + 8], buf[i + 9], buf[i + 10]))
+		i += 11
+
+
+func server_prop_fell_out(p: Prop) -> void:
+	if mode_logic.on_prop_fell_out(p):
+		return
+	if p.has_meta("map_prop"):
+		_restock.append([now() + 10.0, p.kind, p.home_transform])
+	server_despawn_prop(p)
+
+
+func server_unfreeze_prop(p: Prop) -> void:
+	p.freeze = false
+	p.frozen_by_player = false
+	p.sleeping = false
+
+
+func server_freeze_prop(p: Prop) -> void:
+	p.linear_velocity = Vector3.ZERO
+	p.angular_velocity = Vector3.ZERO
+	p.freeze = true
+	p.frozen_by_player = true
+	server_fx("zap", p.global_position, Vector3.UP, 1.0)
+
+
+## Called (deferred) when a server-side prop touches something.
+func server_prop_impact(p: Prop, body: Node, rel: Vector3, speed: float) -> void:
+	if not is_instance_valid(p) or not is_instance_valid(body) or p.exploded:
+		return
+	var t := now()
+	if speed > 4.0 and p.can_sound(t):
+		var bouncy := p.kind in ["ball", "beachball", "tire"]
+		server_fx("boing" if bouncy else "hit", p.global_position, rel, clampf(speed / 20.0, 0.1, 1.5))
+	if body is Player:
+		_prop_hits_player(p, body as Player, rel, speed)
+		return
+	if p.live and not (body is Prop and (body as Prop).held_by != 0):
+		p.live = false
+	if body is Prop:
+		var o := body as Prop
+		if o.explosive and speed > 12.0:
+			_schedule_explosion(o, 0.05)
+	if p.explosive and speed > 13.0:
+		_schedule_explosion(p, 0.0)
+		return
+	if body.has_meta("destructible") and speed > 8.0:
+		var energy := 0.5 * p.mass * speed * speed
+		if energy > 1200.0:
+			var d: Destructible = body.get_meta("destructible")
+			var attacker := p.last_thrower if t - p.last_thrown_time < 6.0 else 0
+			var broke := server_damage_destructible(d, p.global_position, 0.7 + minf(p.mass / 120.0, 1.5), clampf(energy / 35.0, 0.0, 400.0), rel, attacker)
+			if broke:
+				# Keep most of the momentum: smash through rather than bounce.
+				p.linear_velocity = rel * 0.75
+
+
+func _prop_hits_player(p: Prop, pl: Player, rel: Vector3, speed: float) -> void:
+	if p.held_by == pl.player_id or not pl.is_alive() or speed < 6.0 or p.freeze:
+		return
+	var t := now()
+	var attacker := get_player(p.last_thrower) if t - p.last_thrown_time < 6.0 else null
+	if attacker == pl:
+		attacker = null
+	if mode_logic.on_prop_hit_player(p, pl, attacker):
+		return
+	var key := "%d:%d" % [p.prop_id, pl.player_id]
+	if t - _pair_cd.get(key, -10.0) < 0.3:
+		return
+	_pair_cd[key] = t
+	var dmg := clampf(0.5 * p.mass * speed * speed / 160.0 - 4.0, 0.0, 150.0)
+	var kb := rel * (p.mass / (p.mass + Player.MASS)) * 1.3 + Vector3.UP * minf(speed * 0.2, 5.0)
+	var rag := 1.1 if kb.length() > 9.0 else 0.0
+	server_launch_player(pl, kb, false, rag, attacker.player_id if attacker else 0)
+	if dmg > 0.0:
+		server_damage_player(pl, dmg, attacker.player_id if attacker else 0, "prop:" + p.kind, pl.body_center(), rel)
+	p.live = false
+	if p.explosive and speed > 10.0:
+		_schedule_explosion(p, 0.0)
+
+
+func _schedule_explosion(p: Prop, delay: float) -> void:
+	if p.exploded:
+		return
+	p.exploded = true
+	if delay <= 0.0:
+		server_explode(p)
+	else:
+		get_tree().create_timer(delay).timeout.connect(func():
+			if is_instance_valid(p):
+				server_explode(p))
+
+
+func server_explode(p: Prop) -> void:
+	p.exploded = true
+	var pos := p.global_position
+	var radius := 7.5
+	var t := now()
+	var attacker := p.last_thrower if t - p.last_thrown_time < 8.0 else 0
+	server_fx("explosion", pos, Vector3.UP, radius)
+	for o: Prop in props.values():
+		if not is_instance_valid(o) or o == p:
+			continue
+		var to := o.global_position - pos
+		var d := to.length()
+		if d > radius:
+			continue
+		if o.explosive and not o.exploded:
+			o.last_thrower = attacker
+			o.last_thrown_time = p.last_thrown_time
+			_schedule_explosion(o, 0.12 + d * 0.02)
+			continue
+		if o.freeze:
+			if not o.frozen_by_player:
+				continue
+			server_unfreeze_prop(o)
+		var f := 1.0 - d / radius
+		o.linear_velocity += (to.normalized() + Vector3.UP * 0.5) * f * minf(2200.0 / o.mass, 35.0)
+		o.angular_velocity += Vector3(rng.randf_range(-8, 8), rng.randf_range(-8, 8), rng.randf_range(-8, 8))
+		o.sleeping = false
+		o.last_thrower = attacker
+		o.last_thrown_time = p.last_thrown_time
+	for pl: Player in players.values():
+		if not pl.is_alive():
+			continue
+		var to := pl.body_center() - pos
+		var d := to.length()
+		if d > radius:
+			continue
+		var f := 1.0 - d / radius
+		server_launch_player(pl, (to.normalized() + Vector3.UP * 0.6) * 24.0 * f, false, 1.5, attacker)
+		server_damage_player(pl, 90.0 * f + 10.0, attacker, "explosion", pl.body_center(), to)
+	for d in arena.destructibles:
+		if d.global_position.distance_to(pos) < radius + 30.0 and not d.cells_near(pos, radius * 0.6).is_empty():
+			server_damage_destructible(d, pos, radius * 0.55, 220.0, Vector3.UP * 6.0, attacker)
+	if p.has_meta("map_prop"):
+		_restock.append([t + 25.0, p.kind, p.home_transform])
+	server_despawn_prop(p)
+
+
+# --- Destruction ------------------------------------------------------------------
+
+## Returns true if any cell broke.
+func server_damage_destructible(d: Destructible, point: Vector3, radius: float, amount: float, impulse: Vector3, _attacker: int) -> bool:
+	var broken := d.apply_damage(point, radius, amount)
+	if broken.is_empty():
+		server_fx("chip", point, impulse, 0.5)
+		return false
+	_bc_all("_s_break", [d.wall_id, broken, point, impulse])
+	# Server turns broken cells into networked debris the gravity gun can use.
+	var size := d.cell_world_size()
+	var spawned := 0
+	for i in broken:
+		if spawned >= 30:
+			break
+		var center := d.cell_world(i)
+		var xf := Transform3D(d.global_transform.basis.orthonormalized(), center)
+		var near := center.distance_to(point) < radius + 1.0
+		var vel := impulse * 0.5 * rng.randf_range(0.6, 1.0) if near else Vector3.ZERO
+		var piece := server_spawn_prop("debris", xf, size * 0.94, d.color, 0, vel)
+		piece.angular_velocity = Vector3(rng.randf_range(-3, 3), rng.randf_range(-3, 3), rng.randf_range(-3, 3)) if near else Vector3.ZERO
+		_debris.append(piece.prop_id)
+		spawned += 1
+	while _debris.size() > MAX_DEBRIS:
+		var old := get_prop(_debris.pop_front())
+		if old and old.held_by == 0:
+			server_despawn_prop(old)
+	return true
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_break(wall_id: int, cells: PackedInt32Array, point: Vector3, impulse: Vector3) -> void:
+	if wall_id >= arena.destructibles.size():
+		return
+	var d := arena.destructibles[wall_id]
+	var fx_count := 0
+	for i in cells:
+		if fx_count < 10 and d.is_alive(i):
+			fx.wall_break(d.cell_world(i), d.cell_world_size(), d.color, impulse)
+			fx_count += 1
+	d.remove_cells(cells)
+	Sfx.play3d("crack", point, 4.0, rng.randf_range(0.8, 1.1))
+	if local_player and local_player.global_position.distance_to(point) < 20.0:
+		local_player.shake(0.4)
+
+
+# --- Damage, death, respawn -------------------------------------------------------
+
+func server_set_last_attacker(pl: Player, attacker: int) -> void:
+	if attacker != 0 and attacker != pl.player_id:
+		pl.last_attacker = attacker
+		pl.last_attacker_time = now()
+
+
+func server_damage_player(pl: Player, amount: float, attacker: int, cause: String, point: Vector3, dir: Vector3) -> void:
+	if not pl.is_alive() or amount <= 0.0:
+		return
+	var t := now()
+	if attacker == 0 and t - pl.last_attacker_time < 7.0:
+		attacker = pl.last_attacker # environmental kills credit whoever sent you there
+	server_set_last_attacker(pl, attacker)
+	pl.hp -= amount
+	_bc_all("_s_hp", [pl.player_id, pl.hp])
+	if amount >= 6.0 and cause != "void":
+		var n := -dir.normalized() if dir.length() > 0.1 else Vector3.UP
+		server_fx("blood", point, dir, clampf(amount / 30.0, 0.3, 2.5), n)
+	if pl.hp <= 0.0:
+		_server_kill(pl, attacker, cause, dir)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_hp(id: int, hp: float) -> void:
+	var pl := get_player(id)
+	if pl:
+		if pl == local_player and hp < pl.hp:
+			hud.flash_damage(pl.hp - hp)
+		pl.hp = hp
+
+
+func _server_kill(pl: Player, killer_id: int, cause: String, dir: Vector3) -> void:
+	pl.gun.release(false)
+	for other: Player in players.values():
+		if other.gun.held_kind == GravityGun.Kind.PLAYER and other.gun.held_id == pl.player_id:
+			other.gun.release(false)
+	pl.deaths += 1
+	var killer := get_player(killer_id)
+	if killer and killer != pl:
+		if are_teammates(killer, pl):
+			killer.frags -= 1
+		else:
+			killer.frags += 1
+		server_player_stats(killer)
+	elif killer_id == 0 or killer == pl:
+		pl.frags -= 1 if cause == "suicide" else 0
+	mode_logic.on_kill(pl, killer, cause)
+	server_player_stats(pl)
+	var vel := pl.velocity + dir.normalized() * minf(dir.length(), 20.0) * 0.4
+	_bc_all("_s_died", [pl.player_id, killer_id, cause, vel])
+	_respawn_at[pl.player_id] = now() + RESPAWN_TIME
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_died(id: int, killer_id: int, cause: String, vel: Vector3) -> void:
+	var pl := get_player(id)
+	if pl == null:
+		return
+	pl.die(vel)
+	Sfx.play3d("death", pl.global_position + Vector3.UP, 0.0, rng.randf_range(0.9, 1.1))
+	hud.add_kill(pl, get_player(killer_id), cause)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_respawn(id: int, pos: Vector3, yaw: float) -> void:
+	var pl := get_player(id)
+	if pl:
+		pl.respawn(pos, yaw)
+		fx.zap(pos + Vector3.UP)
+		if pl == local_player:
+			Sfx.play_ui("spawn", -6.0)
+
+
+func server_player_stats(pl: Player) -> void:
+	_bc_all("_s_stats", [pl.player_id, pl.frags, pl.deaths, pl.score])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_stats(id: int, frags: int, deaths: int, score: int) -> void:
+	var pl := get_player(id)
+	if pl:
+		pl.frags = frags
+		pl.deaths = deaths
+		pl.score = score
+		hud.on_players_changed()
+
+
+func server_team_scores_changed() -> void:
+	_bc_all("_s_team_scores", [team_scores])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_team_scores(scores: Dictionary) -> void:
+	team_scores = scores
+	hud.on_players_changed()
+
+
+func track_corpse(c: Node) -> void:
+	_corpses.append(c)
+	while _corpses.size() > MAX_CORPSES:
+		var old = _corpses.pop_front()
+		if is_instance_valid(old):
+			old.queue_free()
+
+
+# --- Player physics events (reported by the controlling peer) ----------------------
+
+func report_self_damage(pl: Player, amount: float, cause: String, point: Vector3, normal: Vector3, vel: Vector3) -> void:
+	if is_server:
+		_server_self_damage(pl, amount, cause, point, normal, vel)
+	else:
+		_c_hurt.rpc_id(1, amount, cause, point, normal, vel)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_hurt(amount: float, cause: String, point: Vector3, normal: Vector3, vel: Vector3) -> void:
+	var pl := get_player(multiplayer.get_remote_sender_id())
+	if pl:
+		_server_self_damage(pl, clampf(amount, 0.0, 1000.0), cause, point, normal, vel)
+
+
+func _server_self_damage(pl: Player, amount: float, cause: String, point: Vector3, normal: Vector3, vel: Vector3) -> void:
+	if not pl.is_alive():
+		return
+	server_damage_player(pl, amount, 0, cause, point, vel)
+	if cause == "impact" and amount > 10.0:
+		# Extra splatter onto the surface that was hit.
+		server_fx("blood", point, vel, clampf(amount / 25.0, 0.5, 3.0), normal)
+
+
+func report_break(pl: Player, d: Destructible, _cell: int, point: Vector3, speed: float, vel: Vector3) -> void:
+	if is_server:
+		server_damage_destructible(d, point, 1.0 + speed * 0.03, speed * 9.0, vel, pl.last_attacker)
+	else:
+		_c_break.rpc_id(1, d.wall_id, point, speed, vel)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_break(wall_id: int, point: Vector3, speed: float, vel: Vector3) -> void:
+	var pl := get_player(multiplayer.get_remote_sender_id())
+	if pl == null or wall_id < 0 or wall_id >= arena.destructibles.size():
+		return
+	if pl.global_position.distance_to(point) > 6.0:
+		return
+	speed = minf(speed, 80.0)
+	server_damage_destructible(arena.destructibles[wall_id], point, 1.0 + speed * 0.03, speed * 9.0, vel, pl.last_attacker)
+
+
+func report_player_bump(pl: Player, other: Player, vel: Vector3) -> void:
+	if is_server:
+		_server_bump(pl, other, vel)
+	else:
+		_c_bump.rpc_id(1, other.player_id, vel)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_bump(other_id: int, vel: Vector3) -> void:
+	var pl := get_player(multiplayer.get_remote_sender_id())
+	var other := get_player(other_id)
+	if pl and other:
+		_server_bump(pl, other, vel.limit_length(80.0))
+
+
+func _server_bump(pl: Player, other: Player, vel: Vector3) -> void:
+	if not other.is_alive() or not pl.is_alive():
+		return
+	var t := now()
+	var key := "b%d:%d" % [mini(pl.player_id, other.player_id), maxi(pl.player_id, other.player_id)]
+	if t - _pair_cd.get(key, -10.0) < 0.3:
+		return
+	_pair_cd[key] = t
+	var rel := vel - other.velocity
+	var speed := rel.length()
+	if speed < 7.0:
+		return
+	# A thrown player is a projectile: credit whoever threw them.
+	var credit := pl.player_id
+	if pl.state == Player.State.RAGDOLL and t - pl.last_attacker_time < 3.0:
+		credit = pl.last_attacker
+	server_launch_player(other, rel * 0.75 + Vector3.UP * 3.0, false, 1.2 if speed > 12.0 else 0.0, credit)
+	if speed > 10.0:
+		server_damage_player(other, (speed - 10.0) * 3.5, credit, "player", other.body_center(), rel)
+		server_damage_player(pl, (speed - 10.0) * 1.5, 0, "player", pl.body_center(), -rel)
+	server_fx("hit", other.body_center(), rel, clampf(speed / 20.0, 0.2, 1.5))
+
+
+func report_prop_push(pl: Player, p: Prop, vel: Vector3, point: Vector3) -> void:
+	if is_server:
+		_server_push(pl, p, vel, point)
+	else:
+		_c_push.rpc_id(1, p.prop_id, vel, point)
+
+
+@rpc("any_peer", "call_remote", "unreliable_ordered", 3)
+func _c_push(prop_id: int, vel: Vector3, point: Vector3) -> void:
+	var pl := get_player(multiplayer.get_remote_sender_id())
+	var p := get_prop(prop_id)
+	if pl and p:
+		_server_push(pl, p, vel.limit_length(60.0), point)
+
+
+func _server_push(pl: Player, p: Prop, vel: Vector3, _point: Vector3) -> void:
+	if p.freeze or p.held_by != 0:
+		return
+	var speed := vel.length()
+	if speed < 0.5:
+		return
+	var dir := vel / speed
+	var target := speed * (2.0 * Player.MASS / (Player.MASS + p.mass))
+	var current := p.linear_velocity.dot(dir)
+	if current < target:
+		p.linear_velocity += dir * (target - current)
+		p.sleeping = false
+	if speed > 12.0:
+		p.last_thrower = pl.player_id
+		p.last_thrown_time = now()
+		if p.explosive and speed > 15.0:
+			_schedule_explosion(p, 0.0)
+
+
+# --- Launch / hold (server -> owner) ---------------------------------------------
+
+func server_launch_player(pl: Player, vel: Vector3, replace: bool, ragdoll: float, attacker: int) -> void:
+	if not pl.is_alive():
+		return
+	server_set_last_attacker(pl, attacker)
+	_to_owner(pl, "_s_launch", [pl.player_id, vel, replace, ragdoll])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_launch(id: int, vel: Vector3, replace: bool, ragdoll: float) -> void:
+	var pl := get_player(id)
+	if pl and pl.is_controlled_here():
+		pl.external_launch(vel, replace, ragdoll)
+		if pl == local_player and vel.length() > 18.0:
+			hud.yeet_text()
+
+
+func server_send_held(pl: Player, target: Vector3, holder_vel: Vector3, holder: int) -> void:
+	_to_owner(pl, "_s_held", [pl.player_id, target, holder_vel, holder])
+
+
+@rpc("authority", "call_remote", "unreliable_ordered", 1)
+func _s_held(id: int, target: Vector3, holder_vel: Vector3, holder: int) -> void:
+	var pl := get_player(id)
+	if pl and pl.is_controlled_here():
+		pl.held_update(target, holder_vel, holder)
+
+
+func server_release_held(pl: Player, ragdoll: float) -> void:
+	_to_owner(pl, "_s_held_release", [pl.player_id, ragdoll])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_held_release(id: int, ragdoll: float) -> void:
+	var pl := get_player(id)
+	if pl and pl.is_controlled_here():
+		pl.held_release(ragdoll)
+
+
+func request_break_free(pl: Player) -> void:
+	if is_server:
+		_server_break_free(pl)
+	else:
+		_c_break_free.rpc_id(1)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_break_free() -> void:
+	var pl := get_player(multiplayer.get_remote_sender_id())
+	if pl:
+		_server_break_free(pl)
+
+
+func _server_break_free(pl: Player) -> void:
+	for other: Player in players.values():
+		if other.gun.held_kind == GravityGun.Kind.PLAYER and other.gun.held_id == pl.player_id:
+			if are_teammates(other, pl) or rng.randf() < 0.2:
+				other.gun.release(false)
+
+
+# --- Gravity gun ------------------------------------------------------------------
+
+func gun_action(pl: Player, action: int) -> void:
+	if is_server:
+		pl.gun.server_action(action, pl.eye_position(), pl.aim_direction())
+	else:
+		_c_gun.rpc_id(1, action, pl.eye_position(), pl.aim_direction())
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_gun(action: int, origin: Vector3, dir: Vector3) -> void:
+	var pl := get_player(multiplayer.get_remote_sender_id())
+	if pl == null:
+		return
+	if origin.distance_to(pl.eye_position()) > 4.0:
+		origin = pl.eye_position()
+	pl.gun.server_action(action, origin, dir)
+
+
+func server_gun_state_changed(gun: GravityGun) -> void:
+	_bc_all("_s_gun", [gun.player.player_id, gun.held_kind, gun.held_id])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_gun(id: int, kind: int, target: int) -> void:
+	var pl := get_player(id)
+	if pl:
+		pl.gun.set_visual_state(kind, target)
+		if kind != GravityGun.Kind.NONE:
+			Sfx.play3d("zap", pl.eye_position(), -4.0, 1.0)
+
+
+func server_gun_kick(pl: Player, amount: float) -> void:
+	_to_owner(pl, "_s_kick", [pl.player_id, amount])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_kick(id: int, amount: float) -> void:
+	var pl := get_player(id)
+	if pl:
+		pl.gun.kick(amount)
+
+
+func server_prop_caught(p: Prop, pl: Player) -> void:
+	mode_logic.on_prop_caught(p, pl)
+
+
+func request_spawn_prop(pl: Player, slot: int) -> void:
+	if is_server:
+		_server_spawn_for(pl, slot)
+	else:
+		_c_spawn.rpc_id(1, slot)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_spawn(slot: int) -> void:
+	var pl := get_player(multiplayer.get_remote_sender_id())
+	if pl:
+		_server_spawn_for(pl, slot)
+
+
+func _server_spawn_for(pl: Player, slot: int) -> void:
+	if not pl.is_alive():
+		return
+	if not mode_logic.allow_build():
+		_to_owner(pl, "_s_msg_local", ["Prop spawning is sandbox-only", Color(1, 0.6, 0.4)])
+		return
+	var t := now()
+	if t - _spawn_cd.get(pl.player_id, -10.0) < 0.3:
+		return
+	_spawn_cd[pl.player_id] = t
+	var kind: String = Prop.SPAWNABLE[clampi(slot, 0, Prop.SPAWNABLE.size() - 1)]
+	var size: Vector3 = Prop.DEFS[kind].size
+	var dir := pl.aim_direction()
+	var pos := pl.eye_position() + dir * (2.0 + size.length())
+	var space := get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(pl.eye_position(), pos, Game.L_WORLD | Game.L_PROPS, [pl.get_rid()])
+	var hit := space.intersect_ray(q)
+	if not hit.is_empty():
+		pos = hit.position - dir * size.length()
+	var p := server_spawn_prop(kind, Transform3D(Basis(Vector3.UP, pl.yaw), pos), Vector3.ZERO, Color(0, 0, 0, 0), 0, pl.velocity * 0.5)
+	p.spawned_by = pl.player_id
+	var list: Array = _spawned_by.get(pl.player_id, [])
+	list.append(p.prop_id)
+	while list.size() > MAX_SPAWNED_PER_PLAYER:
+		var old := get_prop(list.pop_front())
+		if old:
+			server_despawn_prop(old)
+	_spawned_by[pl.player_id] = list
+	server_fx("spawn", pos, Vector3.UP, 1.0)
+
+
+func request_suicide(pl: Player) -> void:
+	if is_server:
+		server_damage_player(pl, 1000.0, pl.player_id, "suicide", pl.body_center(), Vector3.UP * 12.0)
+	else:
+		_c_suicide.rpc_id(1)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_suicide() -> void:
+	var pl := get_player(multiplayer.get_remote_sender_id())
+	if pl:
+		server_damage_player(pl, 1000.0, pl.player_id, "suicide", pl.body_center(), Vector3.UP * 12.0)
+
+
+# --- Effects & messages -----------------------------------------------------------
+
+func server_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal := Vector3.UP) -> void:
+	_bc_all("_s_fx", [kind, pos, dir, amount, normal])
+
+
+@rpc("authority", "call_remote", "unreliable", 3)
+func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vector3) -> void:
+	match kind:
+		"blood":
+			fx.blood(pos, normal, dir, amount)
+			Sfx.play3d("splat", pos, -2.0 + amount * 2.0, rng.randf_range(0.8, 1.2))
+		"explosion":
+			fx.explosion(pos, amount)
+			Sfx.play3d("boom", pos, 6.0, rng.randf_range(0.8, 1.0))
+			if local_player:
+				var d := local_player.global_position.distance_to(pos)
+				local_player.shake(clampf(1.2 - d / 25.0, 0.0, 1.0))
+		"punt":
+			fx.shockwave(pos, dir)
+			Sfx.play3d("punt", pos, 0.0, rng.randf_range(0.9, 1.1))
+		"throw":
+			Sfx.play3d("throw", pos, 0.0, rng.randf_range(0.9, 1.2))
+		"zap":
+			fx.zap(pos)
+		"hit":
+			fx.puff(pos, -dir.normalized())
+			Sfx.play3d("hit", pos, -10.0 + amount * 8.0, rng.randf_range(0.7, 1.2) / maxf(amount, 0.5))
+		"boing":
+			Sfx.play3d("boing", pos, -10.0 + amount * 8.0, rng.randf_range(0.9, 1.3))
+		"chip":
+			fx.puff(pos, -dir.normalized(), Arena.C_BREAK)
+			Sfx.play3d("hit", pos, -6.0, 0.6)
+		"spawn":
+			fx.zap(pos)
+			Sfx.play3d("spawn", pos, -4.0)
+		"score":
+			fx.explosion(pos + Vector3.UP * 2.0, 3.0)
+			Sfx.play_ui("score", 0.0)
+
+
+func local_blood(pos: Vector3, normal: Vector3, dir: Vector3, amount: float) -> void:
+	fx.blood(pos, normal, dir, amount)
+
+
+func server_message(text: String, color := Color.WHITE, big := false) -> void:
+	_bc_all("_s_msg", [text, color, big])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_msg(text: String, color: Color, big: bool) -> void:
+	hud.show_message(text, color, big)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_msg_local(text: String, color: Color) -> void:
+	hud.show_message(text, color, false)
