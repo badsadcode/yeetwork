@@ -9,6 +9,10 @@ var out_dir := ""
 
 
 func _ready() -> void:
+	# Failsafe: whatever happens, never hang (a script error would stop this coroutine).
+	get_tree().create_timer(45.0).timeout.connect(func():
+		print("SHIP CHECK FAILED (timed out)")
+		get_tree().quit(1))
 	await get_tree().create_timer(0.5).timeout
 	var ship: Ship = world.arena.carrier
 	var pl: Player = world.local_player
@@ -46,7 +50,7 @@ func _ready() -> void:
 		drift, absf(local_end.y - MapHighSeas.DECK) < 0.6, local_end.y - MapHighSeas.DECK, aboard_start, aboard_end])
 	var ok := max_roll > deg_to_rad(0.5) and absf(local_end.y - MapHighSeas.DECK) < 0.6 and aboard_end >= aboard_start - 3
 	var moved := {}
-	for p: Prop in start_local:
+	for p in start_local: # (untyped: props that exploded meanwhile are freed)
 		if is_instance_valid(p):
 			var d := Vector2((ship.global_transform.affine_inverse() * p.global_position - start_local[p]).x, (ship.global_transform.affine_inverse() * p.global_position - start_local[p]).z).length()
 			moved[p.kind] = maxf(moved.get(p.kind, 0.0), d)
