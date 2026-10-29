@@ -4,6 +4,7 @@ extends Node
 ##
 ## Command line (after `--`):  --host  --join <ip>  --mode sandbox|ctf|dodgeball
 ##   --bots <n>  --port <n>  --name <name>  --autotest <seconds>  (quit after N seconds)
+##   --screenshot <png> (save a screenshot after 2.5 s, then quit)
 ##   --map prime|facing|<map name in res://maps>  --validate (check a map, then quit)  --test (gameplay smoke tests)  --tour <dir> [--tour-mode destruction]  (save screenshots from fixed viewpoints, then quit)
 
 var menu: MainMenu
@@ -14,6 +15,8 @@ var _tour_dir := ""
 var _tour_mode := ""
 var _test := false
 var _validate := false
+var _shot_path := ""
+var _shot_time := 0.0
 
 
 func _ready() -> void:
@@ -73,6 +76,9 @@ func _handle_cmdline(execute := true) -> bool:
 			"--tour":
 				_tour_dir = next
 				i += 1
+			"--screenshot":
+				_shot_path = next
+				i += 1
 			"--tour-mode":
 				_tour_mode = next
 				i += 1
@@ -90,6 +96,12 @@ func _handle_cmdline(execute := true) -> bool:
 
 
 func _process(delta: float) -> void:
+	if _shot_path != "":
+		_shot_time += delta
+		if _shot_time > 2.5:
+			get_viewport().get_texture().get_image().save_png(_shot_path)
+			print("Saved ", _shot_path)
+			get_tree().quit()
 	if _autotest > 0.0:
 		_autotest_elapsed += delta
 		if _autotest_elapsed >= _autotest:

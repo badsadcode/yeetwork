@@ -14,6 +14,21 @@ static func build_settings_controls() -> GridContainer:
 	_row(g, "Volume", _slider(0.0, 1.0, 0.01, Game.master_volume, func(v):
 		Game.master_volume = v
 		Game.apply_audio()))
+	_row(g, "Stick sensitivity", _slider(0.3, 3.0, 0.05, Game.stick_sensitivity, func(v): Game.stick_sensitivity = v))
+	var inv := CheckBox.new()
+	inv.text = "Invert stick Y"
+	inv.button_pressed = Game.invert_y
+	inv.toggled.connect(func(on): Game.invert_y = on)
+	_row(g, "Invert Y", inv)
+	var gfx := OptionButton.new()
+	for item in ["Low (Steam Deck)", "Medium", "High"]:
+		gfx.add_item(item)
+	gfx.selected = clampi(Game.graphics, 0, 2)
+	gfx.item_selected.connect(func(i):
+		Game.graphics = i
+		Game.apply_graphics()
+		Game.settings_changed.emit())
+	_row(g, "Graphics", gfx)
 	var gore := OptionButton.new()
 	for item in ["Off (confetti)", "Silly", "EXTREME"]:
 		gore.add_item(item)

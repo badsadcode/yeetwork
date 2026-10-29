@@ -38,12 +38,13 @@ var _help: Label
 var _aim_state := 0 # 0 nothing, 1 grabbable, 2 holding
 var _help_time := 14.0
 var _paused := false
+var _resume_button: Button
 
 
 func _ready() -> void:
 	layer = 10
 	_root = Control.new()
-	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
 
@@ -214,11 +215,18 @@ func _build_pause() -> void:
 	title.text = "PAUSED (the chaos is not)"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(title)
+	if multiplayer.is_server() and not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
+		var host_info := _label(18, Color(0.7, 1.0, 0.75))
+		host_info.text = "Hosting · friends join: %s  (port %d)" % [", ".join(_lan_addresses()), Game.port]
+		host_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		host_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(host_info)
 	v.add_child(SettingsForm.build_settings_controls())
 	var resume := Button.new()
 	resume.text = "Resume"
 	resume.custom_minimum_size.y = 44
 	resume.pressed.connect(func(): set_paused(false))
+	_resume_button = resume
 	v.add_child(resume)
 	var leave := Button.new()
 	leave.text = "Leave match"
@@ -227,16 +235,29 @@ func _build_pause() -> void:
 	v.add_child(leave)
 
 
+## Private network addresses of this machine (what friends on the same network type in).
+func _lan_addresses() -> PackedStringArray:
+	var out := PackedStringArray()
+	for ip in IP.get_local_addresses():
+		if ip.begins_with("192.168.") or ip.begins_with("10.") or ip.begins_with("100.") or (ip.begins_with("172.") and ip.split(".")[1].to_int() >= 16 and ip.split(".")[1].to_int() <= 31):
+			out.append(ip)
+	if out.is_empty():
+		out.append("127.0.0.1")
+	return out
+
+
 func set_paused(p: bool) -> void:
 	_paused = p
 	_pause.visible = p
+	if p and _resume_button:
+		_resume_button.grab_focus.call_deferred()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if p else Input.MOUSE_MODE_CAPTURED
 	if not p:
 		Game.save_settings()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause"):
+	if event.is_action_pressed("pause") or (_paused and event.is_action_pressed("ui_cancel") and event is InputEventJoypadButton):
 		set_paused(not _paused)
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.pressed and not _paused and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:

@@ -13,6 +13,13 @@ characters and spectacularly unfortunate accidents.
 | ![Action](docs/screenshots/facing_action.jpg) | ![Characters](docs/screenshots/characters.jpg) |
 | ![Yeetwork Prime](docs/screenshots/prime_overview.jpg) | ![Tower](docs/screenshots/facing_tower.jpg) |
 
+## Downloads: Windows, Linux & Steam Deck
+
+GitHub Actions builds **Windows** and **Linux** versions on every push (see the *Actions*
+tab → *Test & Export* → Artifacts). Tagging `v*` publishes a Release. The Linux build
+runs natively on the **Steam Deck** with controller support and a Deck graphics preset.
+The step-by-step install and multiplayer guide is in **[docs/STEAM_DECK.md](docs/STEAM_DECK.md)**.
+
 ## Running
 
 1. Install **Godot 4.7** (standard build, no .NET needed).

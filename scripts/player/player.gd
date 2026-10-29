@@ -301,8 +301,11 @@ func _read_local_input(_delta: float) -> void:
 	# Gamepad look.
 	var look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
 	if look.length() > 0.05:
-		yaw -= look.x * 3.2 * get_physics_process_delta_time()
-		pitch = clampf(pitch - look.y * 2.4 * get_physics_process_delta_time(), -1.55, 1.55)
+		# Squared response curve: precise small corrections, fast full turns.
+		var curved := look * look.length()
+		var inv := -1.0 if Game.invert_y else 1.0
+		yaw -= curved.x * 4.0 * Game.stick_sensitivity * get_physics_process_delta_time()
+		pitch = clampf(pitch - curved.y * inv * 2.8 * Game.stick_sensitivity * get_physics_process_delta_time(), -1.55, 1.55)
 	cmd.move = Vector2(Input.get_axis("move_left", "move_right"), Input.get_axis("move_back", "move_forward"))
 	var jump_now := Input.is_action_pressed("jump")
 	cmd.jump_pressed = jump_now and not _jump_held_last

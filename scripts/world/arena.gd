@@ -339,6 +339,11 @@ func environment_preset(preset: String, settings: Node = null) -> void:
 		preset = "halloween"
 	for n in MapEnvironment.build(preset, settings):
 		add_child(n)
+		if n is WorldEnvironment:
+			var we := n as WorldEnvironment
+			Game.settings_changed.connect(func():
+				if is_instance_valid(we):
+					MapEnvironment.apply_quality(we.environment, preset))
 	if Game.spooky:
 		_spooky_extras()
 

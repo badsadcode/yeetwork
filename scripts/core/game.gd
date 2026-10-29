@@ -47,6 +47,9 @@ var mouse_sensitivity := 0.0022
 var fov := 100.0
 var gore_level := 1 # 0 = off, 1 = silly, 2 = extreme
 var auto_bhop := true
+var graphics := -1 # 0 = low, 1 = medium, 2 = high; -1 = pick automatically
+var stick_sensitivity := 1.0
+var invert_y := false
 var halloween := 1 # 0 = off, 1 = auto (mid October - early November), 2 = always
 var third_person := false
 var master_volume := 0.8
@@ -67,6 +70,41 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_input()
 	load_settings()
+	if graphics < 0:
+		graphics = 0 if is_steam_deck() else 2
+	apply_graphics()
+
+
+## Steam sets SteamDeck=1 for games launched on the Deck; SteamOS sets SteamOS=1.
+func is_steam_deck() -> bool:
+	return OS.get_environment("SteamDeck") == "1" or OS.get_environment("SteamOS") == "1"
+
+
+## Viewport-level quality (resolution scale, AA, shadow atlas). The environment side is
+## handled by MapEnvironment and re-applied on settings_changed.
+func apply_graphics() -> void:
+	var vp := get_viewport()
+	if vp == null:
+		return
+	match graphics:
+		0:
+			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR
+			vp.scaling_3d_scale = 0.75
+			vp.msaa_3d = Viewport.MSAA_DISABLED
+			vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+			RenderingServer.directional_shadow_atlas_set_size(2048, true)
+		1:
+			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR
+			vp.scaling_3d_scale = 0.9
+			vp.msaa_3d = Viewport.MSAA_DISABLED
+			vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+			RenderingServer.directional_shadow_atlas_set_size(4096, true)
+		_:
+			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+			vp.scaling_3d_scale = 1.0
+			vp.msaa_3d = Viewport.MSAA_2X
+			vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+			RenderingServer.directional_shadow_atlas_set_size(4096, true)
 
 
 func save_settings() -> void:
@@ -77,6 +115,9 @@ func save_settings() -> void:
 	cfg.set_value("player", "gore", gore_level)
 	cfg.set_value("player", "auto_bhop", auto_bhop)
 	cfg.set_value("match", "halloween", halloween)
+	cfg.set_value("video", "graphics", graphics)
+	cfg.set_value("player", "stick_sensitivity", stick_sensitivity)
+	cfg.set_value("player", "invert_y", invert_y)
 	cfg.set_value("player", "third_person", third_person)
 	cfg.set_value("audio", "volume", master_volume)
 	cfg.set_value("net", "address", join_address)
@@ -85,6 +126,7 @@ func save_settings() -> void:
 	cfg.set_value("match", "bots", bot_count)
 	cfg.set_value("match", "map", map)
 	cfg.save(SETTINGS_PATH)
+	apply_graphics()
 	settings_changed.emit()
 
 
@@ -98,6 +140,9 @@ func load_settings() -> void:
 	gore_level = cfg.get_value("player", "gore", gore_level)
 	auto_bhop = cfg.get_value("player", "auto_bhop", auto_bhop)
 	halloween = cfg.get_value("match", "halloween", halloween)
+	graphics = cfg.get_value("video", "graphics", graphics)
+	stick_sensitivity = cfg.get_value("player", "stick_sensitivity", stick_sensitivity)
+	invert_y = cfg.get_value("player", "invert_y", invert_y)
 	third_person = cfg.get_value("player", "third_person", third_person)
 	master_volume = cfg.get_value("audio", "volume", master_volume)
 	join_address = cfg.get_value("net", "address", join_address)
@@ -207,6 +252,12 @@ func _setup_input() -> void:
 	_pad("freeze_prop", JOY_BUTTON_X)
 	_pad("pause", JOY_BUTTON_START)
 	_pad("scoreboard", JOY_BUTTON_BACK)
+	_pad("toggle_view", JOY_BUTTON_DPAD_UP)
+	_pad("suicide", JOY_BUTTON_DPAD_DOWN)
+	_pad("prev_slot", JOY_BUTTON_DPAD_LEFT)
+	_pad("next_slot", JOY_BUTTON_DPAD_RIGHT)
+	_pad("crouch", JOY_BUTTON_LEFT_STICK)
+	_pad("freeze_prop", JOY_BUTTON_RIGHT_SHOULDER)
 	_axis("move_forward", JOY_AXIS_LEFT_Y, -1.0)
 	_axis("move_back", JOY_AXIS_LEFT_Y, 1.0)
 	_axis("move_left", JOY_AXIS_LEFT_X, -1.0)
