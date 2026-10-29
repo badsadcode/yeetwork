@@ -60,7 +60,7 @@ const SCULPTED := {
 		"asymmetry": 0.35, "ripple_intensity": 1.0, "spread": 0.9, "wind_angle": 0.3, "foam_amount": 1.0, "roughness_value": 0.035,
 	},
 	"stormy": {
-		"wave_height": 1.7, "wave_length": 1.15, "wave_speed": 1.25, "choppiness": 1.2, "crest_sharpness": 2.1,
+		"wave_height": 1.9, "wave_length": 1.15, "wave_speed": 1.25, "choppiness": 1.5, "crest_sharpness": 2.4,
 		"asymmetry": 0.5, "ripple_intensity": 1.4, "spread": 1.5, "wind_angle": 0.3, "foam_amount": 1.8, "roughness_value": 0.06,
 		"shallow_color": Color(0.12, 0.4, 0.44), "deep_color": Color(0.02, 0.12, 0.18), "scatter_color": Color(0.22, 0.62, 0.52),
 		"fog": Color(0.04, 0.22, 0.26), "visibility": 11.0,
@@ -296,11 +296,12 @@ static func _sculpted_group(p: Vector2, i: float, t: float) -> float:
 func _sculpted(p: Vector2, t: float) -> Vector4:
 	var amp_scale: float = params.wave_height * _fade(p)
 	var min_wl := _spacing * 2.8
+	var count := _wave_count()
+	var waves := [] # [amplitude, k, phase u, direction]
 	var off_y := 0.0
-	var hor := Vector2.ZERO
 	var total := 0.0
-	var chop_sum := 0.0
-	for i in _wave_count():
+	var share_sum := 0.0
+	for i in count:
 		var w: Vector4 = SWAVES[i]
 		var wl: float = w.y * params.wave_length
 		var res := smoothstep(min_wl, min_wl * 1.5, wl)
@@ -311,16 +312,24 @@ func _sculpted(p: Vector2, t: float) -> Vector4:
 		var k := TAU / wl
 		var c := sqrt(9.8 / k) * float(params.wave_speed)
 		var a: float = w.z * wl * amp_scale * res * _sculpted_group(p, i, t) * (float(params.ripple_intensity) if i >= 7 else 1.0)
+		a = minf(a, 0.34 / k)
 		var f := k * (d.dot(p) - c * t) + w.w
 		var u: float = f + params.asymmetry * 0.5 * sin(f)
-		var s := 0.5 + 0.5 * sin(u)
+		var s := maxf(0.5 + 0.5 * sin(u), 1e-5)
 		off_y += a * (2.0 * pow(s, params.crest_sharpness) - 1.0)
-		hor += d * a * cos(u)
-		chop_sum += k * a
+		waves.append([a, k, u, d])
 		total += a
-	var chop: float = params.choppiness * minf(1.0, 0.92 / maxf(chop_sum * params.choppiness, 0.0001))
+		share_sum += k * k * a * a * a
+	var hor := Vector2.ZERO
+	var pinch := 0.0
+	for wv in waves:
+		var share: float = wv[1] * wv[1] * wv[0] * wv[0] * wv[0] / maxf(share_sum, 1e-9)
+		var q: float = params.choppiness * lerpf(1.0, share * count, 0.7)
+		hor += (wv[3] as Vector2) * wv[0] * q * cos(wv[2])
+		pinch += wv[1] * wv[0] * q
+	hor *= minf(1.0, 0.96 / maxf(pinch, 0.0001))
 	var crest := clampf(off_y / total * 0.5 + 0.5, 0.0, 1.0) if total > 0.0001 else 0.0
-	return Vector4(hor.x * chop, off_y, hor.y * chop, crest)
+	return Vector4(hor.x, off_y, hor.y, crest)
 
 
 # --- Interaction (sculpted water) ---------------------------------------------------

@@ -56,15 +56,23 @@ float wave_group(vec2 p, float i) {
 }
 
 // Displacement of the surface point resting at p; crest = 0..1 height within the waves.
+// Choppiness goes mostly to the big steep waves (share ~ k^2 A^3, after the storm sea in
+// Tom's Thornwake): their crests pinch into sharp knife edges while the small ripples stay
+// round; the total stays just below folding.
 vec3 sculpted_offset(vec2 p, out float crest) {
 	float amp_scale = wave_height * wave_fade(p);
-	vec3 off = vec3(0.0);
-	vec2 hor = vec2(0.0);
+	float amps[12];
+	float ks[12];
+	float us[12];
+	vec2 dirs[12];
+	float off_y = 0.0;
 	float total = 0.0;
-	float chop_sum = 0.0;
+	float share_sum = 0.0;
+	float steep_sum = 0.0;
 	for (int i = 0; i < 12; i++) {
+		amps[i] = 0.0;
 		if (i >= wave_count) {
-			break;
+			continue;
 		}
 		vec4 w = SWAVES[i];
 		float wl = w.y * wave_length;
@@ -77,19 +85,34 @@ vec3 sculpted_offset(vec2 p, out float crest) {
 		float k = 6.2831853 / wl;
 		float c = sqrt(9.8 / k) * wave_speed;
 		float a = w.z * wl * amp_scale * res * wave_group(p, float(i)) * (i >= 7 ? ripple_intensity : 1.0);
+		a = min(a, 0.34 / k); // no wave steeper than it can stand
 		float f = k * (dot(d, p) - c * wave_time) + w.w;
 		float u = f + asymmetry * 0.5 * sin(f); // skew: steep front, gentle back
 		float s = max(0.5 + 0.5 * sin(u), 1e-5); // pow(0, x) can be NaN on some GPUs
-		off.y += a * (2.0 * pow(s, crest_sharpness) - 1.0);
-		hor += d * a * cos(u);
-		chop_sum += k * a;
+		off_y += a * (2.0 * pow(s, crest_sharpness) - 1.0);
+		amps[i] = a;
+		ks[i] = k;
+		us[i] = u;
+		dirs[i] = d;
 		total += a;
+		share_sum += k * k * a * a * a;
+		steep_sum += k * a;
 	}
-	// Choppiness pulls points toward the crests; capped so the surface never folds over.
-	float chop = choppiness * min(1.0, 0.92 / max(chop_sum * choppiness, 0.0001));
-	off.xz = hor * chop;
-	crest = total > 0.0001 ? clamp(off.y / total * 0.5 + 0.5, 0.0, 1.0) : 0.0;
-	return off;
+	// Each wave's share of the chop, and a cap so the sum of k*a*q stays below 1 (no folding).
+	vec2 hor = vec2(0.0);
+	float pinch = 0.0;
+	for (int i = 0; i < 12; i++) {
+		if (amps[i] <= 0.0) {
+			continue;
+		}
+		float share = ks[i] * ks[i] * amps[i] * amps[i] * amps[i] / max(share_sum, 1e-9);
+		float q = choppiness * mix(1.0, share * float(wave_count), 0.7);
+		hor += dirs[i] * amps[i] * q * cos(us[i]);
+		pinch += ks[i] * amps[i] * q;
+	}
+	hor *= min(1.0, 0.96 / max(pinch, 0.0001));
+	crest = total > 0.0001 ? clamp(off_y / total * 0.5 + 0.5, 0.0, 1.0) : 0.0;
+	return vec3(hor.x, off_y, hor.y);
 }
 
 // World height of the surface above the world point p.
