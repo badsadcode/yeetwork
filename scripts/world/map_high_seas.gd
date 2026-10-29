@@ -23,17 +23,26 @@ const CONT := Vector3(12.2, 2.6, 2.44) # a 40 ft container
 static var _cont_mats := {}
 
 
-static func build(a: Arena) -> void:
+## Variants (map keys): the sea state and the sky.
+const VARIANTS := {
+	"highseas": ["ocean", "tropical", Vector3(-38, -60, 0)],
+	"highseas_dusk": ["calm", "sunset", Vector3(-12, -110, 0)],
+	"highseas_storm": ["stormy", "storm", Vector3(-55, -40, 0)],
+}
+
+
+static func build(a: Arena, key := "highseas") -> void:
 	a.kill_y = -25.0
 	Liquid.style = "sculpted" # the ship rides the sculpted ocean's swell
-	var sea := Game.sea_override if Game.sea_override in Liquid.SCULPTED else "ocean"
+	var v: Array = VARIANTS.get(key, VARIANTS.highseas)
+	var sea: String = Game.sea_override if Game.sea_override in Liquid.SCULPTED else v[0]
 	var ocean := Liquid.create_ocean(0.0, sea)
 	a.add_child(ocean)
 	var settings := MapSettings.new()
 	settings.ocean = true
 	settings.ocean_level = 0.0
-	settings.sun_rotation_degrees = Vector3(-38, -60, 0)
-	a.environment_preset("tropical", settings)
+	settings.sun_rotation_degrees = v[2]
+	a.environment_preset(v[1], settings)
 	settings.free()
 	var ship := Ship.new()
 	ship.name = "Ship"
@@ -181,12 +190,14 @@ static func _container_mat(color: Color) -> ShaderMaterial:
 static func _hull(ship: Ship) -> void:
 	# Main hull: red antifouling below the waterline, dark blue above, a white line.
 	_box(ship, Vector3(-3, -4.5, 0), Vector3(126, 9, 32), HULL_RED)
-	_box(ship, Vector3(-3, 3.75, 0), Vector3(126, 8.5, 32), HULL_DARK)
+	# (The hull tops stop 10 cm under the deck plating: two surfaces at one height flicker.)
+	_box(ship, Vector3(-3, 3.95, 0), Vector3(126, 7.9, 32), HULL_DARK) # y 0..7.9, on top of the red
 	_box(ship, Vector3(-3, 0.6, 0), Vector3(126.1, 0.35, 32.1), WHITE, Basis.IDENTITY, false)
 	# Deck surface (slightly proud of the hull top, green deck paint).
 	_box(ship, Vector3(-3, DECK - 0.05, 0), Vector3(126, 0.1, 31.2), DECK_COL)
 	# Stern: rounded transom.
-	_prism(ship, PackedVector2Array([Vector2(-66, -16), Vector2(-70, -14), Vector2(-72, -9), Vector2(-72, 9), Vector2(-70, 14), Vector2(-66, 16)]), -6.0, DECK, HULL_DARK)
+	_prism(ship, PackedVector2Array([Vector2(-66, -16), Vector2(-70, -14), Vector2(-72, -9), Vector2(-72, 9), Vector2(-70, 14), Vector2(-66, 16)]), -6.0, DECK - 0.1, HULL_DARK)
+	_box(ship, Vector3(-69, DECK - 0.05, 0), Vector3(5.9, 0.1, 17.5), DECK_COL)
 	# Bulwarks: low steel walls along both sides (falling overboard needs a push or a jump).
 	for s in [-1, 1]:
 		_box(ship, Vector3(-3, DECK + 0.55, s * 15.8), Vector3(126, 1.1, 0.4), STEEL)
@@ -196,8 +207,8 @@ static func _hull(ship: Ship) -> void:
 
 static func _bow(a: Arena, ship: Ship) -> void:
 	var outline := PackedVector2Array([Vector2(60, -16), Vector2(68, -13), Vector2(75, -7), Vector2(78, 0), Vector2(75, 7), Vector2(68, 13), Vector2(60, 16)])
-	_prism(ship, outline, -9.0, FORE, HULL_DARK)
-	_box(ship, Vector3(69, FORE - 0.05, 0), Vector3(16, 0.1, 22), DECK_COL, Basis.IDENTITY, false)
+	_prism(ship, outline, -9.0, FORE - 0.1, HULL_DARK)
+	_box(ship, Vector3(69, FORE - 0.05, 0), Vector3(16, 0.1, 22), DECK_COL)
 	# Bulwark around the forecastle.
 	for i in outline.size() - 1:
 		var p0 := Vector3(outline[i].x, FORE + 0.55, outline[i].y)

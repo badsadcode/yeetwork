@@ -42,6 +42,8 @@ uniform float crust = 0.0;
 uniform vec4 ripples[32];
 // Mesh spacing, for the finite-difference normals.
 uniform float normal_step = 0.5;
+// Storms: long streaks of foam blown along the wind (0 = none).
+uniform float foam_streaks = 0.0;
 
 uniform sampler2D normal_a : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D normal_b : hint_normal, filter_linear_mipmap, repeat_enable;
@@ -233,6 +235,14 @@ void fragment() {
 	// Lace: webs of bubbles that thin out toward the edge of a patch.
 	float lace = clamp(n1 * 0.55 + n2 * 0.6, 0.0, 1.0);
 	float foam = smoothstep(1.0 - foam_src, 1.0 - foam_src + 0.12, lace) * (0.35 + 0.55 * foam_src);
+	if (foam_streaks > 0.0) {
+		// Spindrift: foam stretched into long lines along the wind, drifting downwind.
+		vec2 wd = vec2(cos(wind_angle), sin(wind_angle));
+		vec2 sp = vec2(dot(rest_xz, wd) * 0.012 - t * 0.02, dot(rest_xz, vec2(-wd.y, wd.x)) * 0.22);
+		float st = texture(foam_noise, sp).r * texture(foam_noise, sp * vec2(1.7, 0.6) + 0.37).r;
+		float lines = smoothstep(0.16, 0.3, st) * foam_streaks * (0.5 + 0.5 * crest) * wave_fade(world_pos.xz);
+		foam = max(foam, lines * 0.75);
+	}
 	if (bubbles > 0.0) {
 		float b = texture(foam_noise, world_pos.xz * 0.7 + vec2(0.0, t * 0.13)).r;
 		float pop = smoothstep(0.78, 0.84, b) * (0.5 + 0.5 * sin(t * 6.0 + b * 40.0));

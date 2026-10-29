@@ -61,8 +61,8 @@ static func build(preset: String, base_y: float, seed_value := 7) -> Node3D:
 				var bottom := vp + Vector3(cos(a) * 240.0, 20.0, sin(a) * 240.0)
 				_strip(glow, top, bottom, 7.0, Color(1.0, 0.35, 0.05))
 			has_glow = true
-		"space", "":
-			return null
+		"space", "storm", "":
+			return null # open ocean in a storm: nothing but the waves on the horizon
 		_: # day, sunset, night, halloween: rolling hills and blue mountains far away
 			var grass := Color(0.36, 0.62, 0.32) if preset != "halloween" else Color(0.22, 0.18, 0.28)
 			var night := preset in ["night", "halloween"]

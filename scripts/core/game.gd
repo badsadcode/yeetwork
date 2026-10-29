@@ -20,6 +20,8 @@ const BUILTIN_MAPS := [
 	{"key": "facing", "name": "Facing Yeets"},
 	{"key": "prime", "name": "Yeetwork Prime"},
 	{"key": "highseas", "name": "High Seas"},
+	{"key": "highseas_dusk", "name": "High Seas: Golden Hour"},
+	{"key": "highseas_storm", "name": "High Seas: Storm"},
 ]
 const MAPS_DIR := "res://maps"
 

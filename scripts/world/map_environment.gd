@@ -10,11 +10,13 @@ extends RefCounted
 ##   desert    - warm haze, high sun, mesas and dunes, few clouds
 ##   snow      - cool bright light, snowy peaks and pine forests
 ##   volcano   - smoky red sky, ash clouds, a glowing volcano on the horizon
+##   storm     - dark slate sky, low heavy clouds, grey haze, dim cool light (High Seas: Storm)
 
 ## Every environment a map can pick (MapSettings.sky), in menu order.
-const PRESETS := ["sunset", "day", "tropical", "desert", "snow", "volcano", "night", "space"]
+const PRESETS := ["sunset", "day", "tropical", "desert", "snow", "volcano", "storm", "night", "space"]
 
-## Clouds per environment: [count at full quality, altitude, lit colour, shaded colour].
+## Clouds per environment: [count at full quality, altitude, lit colour, shaded colour,
+## optional size].
 const CLOUDS := {
 	"day": [26, 110.0, Color(1.0, 1.0, 1.0), Color(0.62, 0.7, 0.88)],
 	"sunset": [22, 100.0, Color(1.0, 0.82, 0.7), Color(0.55, 0.45, 0.7)],
@@ -22,6 +24,7 @@ const CLOUDS := {
 	"desert": [8, 170.0, Color(1.0, 0.94, 0.86), Color(0.82, 0.72, 0.66)],
 	"snow": [30, 90.0, Color(0.96, 0.97, 1.0), Color(0.6, 0.65, 0.78)],
 	"volcano": [26, 90.0, Color(0.42, 0.3, 0.28), Color(0.12, 0.08, 0.09)],
+	"storm": [46, 62.0, Color(0.5, 0.53, 0.6), Color(0.13, 0.15, 0.2), 1.9],
 	"night": [16, 110.0, Color(0.36, 0.4, 0.6), Color(0.12, 0.14, 0.26)],
 	"halloween": [18, 100.0, Color(0.48, 0.36, 0.62), Color(0.15, 0.1, 0.22)],
 }
@@ -134,6 +137,17 @@ static func build(preset: String, settings: Node = null) -> Array[Node]:
 			sun_energy = 2.0
 			fill_color = Color(1.0, 0.35, 0.2)
 			fill_energy = 0.45
+		"storm":
+			sky_mat.sky_top_color = Color(0.15, 0.18, 0.24)
+			sky_mat.sky_horizon_color = Color(0.4, 0.45, 0.52)
+			sky_mat.ground_horizon_color = Color(0.32, 0.37, 0.43)
+			sky_mat.ground_bottom_color = Color(0.1, 0.12, 0.16)
+			sky_mat.sky_curve = 0.25
+			sky_mat.sun_angle_max = 2.0
+			sun_color = Color(0.78, 0.84, 0.95)
+			sun_energy = 0.8
+			fill_color = Color(0.5, 0.6, 0.8)
+			fill_energy = 0.45
 		"night":
 			sky_mat.sky_top_color = Color(0.03, 0.04, 0.12)
 			sky_mat.sky_horizon_color = Color(0.2, 0.18, 0.38)
@@ -243,6 +257,17 @@ static func build(preset: String, settings: Node = null) -> Array[Node]:
 			env.fog_density = 0.0008
 			env.volumetric_fog_density = 0.0018
 			env.volumetric_fog_albedo = Color(0.9, 0.94, 1.0)
+		"storm":
+			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+			env.ambient_light_color = Color(0.5, 0.56, 0.66)
+			env.ambient_light_energy = 0.75 * amb_scale
+			env.fog_light_color = Color(0.36, 0.41, 0.48)
+			env.fog_density = 0.0055
+			env.fog_sky_affect = 0.35
+			env.volumetric_fog_density = 0.008
+			env.volumetric_fog_albedo = Color(0.7, 0.75, 0.82)
+			env.adjustment_saturation = 0.95
+			env.adjustment_contrast = 1.15
 		"volcano":
 			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 			env.ambient_light_color = Color(0.62, 0.46, 0.46)

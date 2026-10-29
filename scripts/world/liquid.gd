@@ -62,6 +62,7 @@ const SCULPTED := {
 	"stormy": {
 		"wave_height": 1.9, "wave_length": 1.15, "wave_speed": 1.25, "choppiness": 1.5, "crest_sharpness": 2.4,
 		"asymmetry": 0.5, "ripple_intensity": 1.4, "spread": 1.5, "wind_angle": 0.3, "foam_amount": 1.8, "roughness_value": 0.06,
+		"foam_streaks": 0.9, "spray": 3.0,
 		"shallow_color": Color(0.12, 0.4, 0.44), "deep_color": Color(0.02, 0.12, 0.18), "scatter_color": Color(0.22, 0.62, 0.52),
 		"fog": Color(0.04, 0.22, 0.26), "visibility": 11.0,
 	},
@@ -592,7 +593,8 @@ func _spray(delta: float) -> void:
 	_spray_timer -= delta
 	if _spray_timer > 0.0:
 		return
-	_spray_timer = 0.12 if water_quality() != 0 else 0.3
+	var rate: float = params.get("spray", 1.0)
+	_spray_timer = (0.12 if water_quality() != 0 else 0.3) / rate
 	var cam := get_viewport().get_camera_3d()
 	if cam == null or _world == null or _world.get("fx") == null:
 		return
@@ -604,10 +606,11 @@ func _spray(delta: float) -> void:
 		if _fade(p) < 0.5:
 			continue
 		var o := _gerstner(p, t)
-		if o.w > 0.86:
+		if o.w > (0.86 if rate <= 1.0 else 0.72):
 			var pos := Vector3(p.x + o.x, global_position.y + o.y, p.y + o.z)
-			var wind := Vector3(cos(WAVES[0].x), 0, sin(WAVES[0].x))
-			_world.fx.spray(pos, wind, 1.0)
+			var wa: float = params.get("wind_angle", WAVES[0].x)
+			var wind := Vector3(cos(wa), 0, sin(wa)) * (1.0 if rate <= 1.0 else 2.5)
+			_world.fx.spray(pos, wind, 1.0 if rate <= 1.0 else 1.6)
 			return
 
 

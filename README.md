@@ -158,7 +158,9 @@ menu, or in Pumpkin Smash, every map gets:
   balls and barrels on their side first, crates in rough seas, anvils hardly ever. Red
   spawns on the bow, Blue at the bridge. Falling overboard means the ocean. Container stacks
   with aisles, ramps and pads; more of the ship (interiors, cranes, weather) is coming.
-  Try it in a storm: `--map highseas --sea stormy`.
+  Three variants: **High Seas** (open ocean, tropical sky), **Golden Hour** (calm sea at
+  sunset) and **Storm** (a knife-edged stormy sea with streaks of blown foam, spray off the
+  crests and the hull, wind wisps, low storm clouds, lightning and thunder).
 - **Lagoon**: a ring island around a swimmable lagoon out at sea. Dive off the tower,
   float the junk, fight over the breakable piers to the glass-fronted team bases. The
   place to see both water styles.
@@ -190,7 +192,7 @@ runners that slide down leaving wet trails.
 **Environments.** Each map picks one (*MapSettings → Sky*), and the host can override it
 on the Play page: sunset, day, tropical (islands), desert (mesas, dunes), snow (peaks and
 pine forests), volcano (a glowing volcano under a red sky), night and space. Each has its
-own sky, light, haze, low-poly scenery on the horizon and puffy cartoon clouds drifting
+own sky, light, haze, low-poly scenery on the horizon (storm: open sea, lightning) and puffy cartoon clouds drifting
 overhead (*Clouds* option).
 
 **Look.** Stylized PBR with a custom triplanar surface shader (soft panels, warm-to-cool

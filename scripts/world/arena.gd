@@ -41,8 +41,8 @@ func build(p_world: Node, map_key: String) -> void:
 	if map_key == "facing":
 		MapFacing.build(self)
 		return
-	if map_key == "highseas":
-		MapHighSeas.build(self)
+	if map_key.begins_with("highseas"):
+		MapHighSeas.build(self, map_key)
 		return
 	if map_key.ends_with(".tscn") or map_key.ends_with(".scn"):
 		_build_scene_map(map_key)
@@ -364,7 +364,10 @@ func _scenery(preset: String, settings: Node) -> void:
 	if q > 0 and MapEnvironment.CLOUDS.has(preset):
 		var c: Array = MapEnvironment.CLOUDS[preset]
 		var count := int(c[0]) if q >= 2 else int(c[0]) / 2
-		add_child(Clouds.create(count, c[1], 120.0, 650.0, c[2], c[3]))
+		var size: float = c[4] if c.size() > 4 else 1.0
+		add_child(Clouds.create(count, c[1], 60.0 if preset == "storm" else 120.0, 650.0, c[2], c[3], size))
+	if preset == "storm":
+		add_child(Weather.new())
 
 
 ## Bats circling high above the action.

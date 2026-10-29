@@ -96,7 +96,7 @@ All kit nodes preview themselves in the editor. In game they become the real thi
 | Property | |
 |---|---|
 | Map Name, Author, Description | shown in the menu and HUD |
-| Sky | the environment: `sunset`, `day`, `tropical`, `desert`, `snow`, `volcano`, `night`, `space` (sky, light, haze, horizon scenery, clouds). The host can override it per match |
+| Sky | the environment: `sunset`, `day`, `tropical`, `desert`, `snow`, `volcano`, `storm`, `night`, `space` (sky, light, haze, horizon scenery, clouds). The host can override it per match |
 | Sun Rotation Degrees, Sun Energy Scale, Ambient Scale | tweak the preset |
 | Ocean Preset | sea state with the *Sculpted* water style: `calm`, `lake`, `ocean`, `stormy` |
 | Ocean, Ocean Level | surround the map with an animated sea whose surface sits at *Ocean Level*. Players who fall in sink and drown; wooden and rubber props float. Put your floors above it, and an island's sides look best reaching a few metres below it |
