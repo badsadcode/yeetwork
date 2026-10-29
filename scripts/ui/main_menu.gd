@@ -112,6 +112,8 @@ func _ready() -> void:
 	play.ready.connect(play.grab_focus, CONNECT_ONE_SHOT | CONNECT_DEFERRED)
 	# --menu-page <name> opens a page directly (screenshots, testing).
 	var args := OS.get_cmdline_user_args()
+	if "--noor" in args: # (screenshots: the Character page with Noor picked)
+		_set_pick.call_deferred("character", CharacterModel.NOOR)
 	var i := args.find("--menu-page")
 	_show_page(args[i + 1] if i >= 0 and i + 1 < args.size() and _pages.has(args[i + 1]) else "play", false)
 
@@ -247,13 +249,14 @@ func _page_character(stack: Control) -> Control:
 	var colors := ["Auto"]
 	for i in Game.FFA_COLORS.size():
 		colors.append("Colour %d" % (i + 1))
+	_picker(grid, "character", "Yeet", CharacterModel.CHARACTER_NAMES, Game.look_character)
 	_picker(grid, "hat", "Hat", hats, Game.look_hat + 1)
 	_picker(grid, "face", "Head extra", CharacterModel.FACE_NAMES, Game.look_face)
 	_picker(grid, "skin", "Skin", skins, Game.look_skin + 1)
 	_picker(grid, "color", "Shirt", colors, Game.look_color + 1)
 	_picker(grid, "faces", "Faces", ["Expressive", "Classic"], 0 if Game.expressive_faces else 1)
 	var note := Label.new()
-	note.text = "Shirt: free-for-all only (teams wear team colours). Faces: only on your screen."
+	note.text = "Noor wears her own gear; the shirt colour is her scarf. Teams wear team colours."
 	note.add_theme_font_size_override("font_size", 15)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(note)
@@ -322,6 +325,7 @@ func _set_pick(key: String, index: int) -> void:
 	var p: Dictionary = _pickers[key]
 	p.index = posmod(index, p.names.size())
 	p.label.text = p.names[p.index]
+	Game.look_character = _pickers.character.index
 	Game.look_hat = _pickers.hat.index - 1
 	Game.look_face = _pickers.face.index
 	Game.look_skin = _pickers.skin.index - 1
@@ -333,7 +337,7 @@ func _set_pick(key: String, index: int) -> void:
 func _update_preview() -> void:
 	var shirt: Color = Game.FFA_COLORS[maxi(Game.look_color, 0) % Game.FFA_COLORS.size()]
 	var hat := Game.look_hat if Game.look_hat >= 0 else 0
-	_preview.show_look(shirt, hat, Game.look_face, Game.look_skin, 1)
+	_preview.show_look(shirt, hat, Game.look_face, Game.look_skin, 1, 0, Game.look_character)
 
 
 # --- Building blocks --------------------------------------------------------------

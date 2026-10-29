@@ -15,6 +15,7 @@ characters and spectacularly unfortunate accidents.
 | ![Sea](docs/screenshots/water_sea.jpg) | ![Underwater](docs/screenshots/water_underwater.jpg) |
 | ![Waterline](docs/screenshots/water_waterline.jpg) | ![Lava](docs/screenshots/water_lava.jpg) |
 | ![Menu](docs/screenshots/menu.jpg) | ![Character](docs/screenshots/menu_character.jpg) |
+| ![Noor Yeet](docs/screenshots/noor_yeet.jpg) | |
 
 ## Downloads: Windows, Linux & Steam Deck
 
@@ -295,6 +296,11 @@ heads, googly eyes, stubby limbs, procedural animation and a joint-based ragdoll
 
 **Customize yours** in the menu's *Character* page (saved with your settings, sent to the
 server when you join):
+- **Yeet**: the classic Yeet, or **Noor Yeet**, designed by Noor (who helps design
+  Yeetwork's mechanics): golden and floppy-eared, in a leather aviator cap with goggles, a
+  harness, a utility belt with pouches, her smiley badge and chunky boots, with big eyes and
+  a happy grin. She keeps her own gear; the shirt colour becomes her scarf, so teams stay
+  readable. A bot called Noor Yeet sometimes joins matches too.
 - **Hat**: hair tuft, party cone, top hat, propeller beanie, antenna, horns, bucket,
   pumpkin head, witch hat, baseball cap, crown, chef hat, viking helmet (or random).
 - **Head extra**: round glasses, shades, mustache, clown nose, headphones, bow, monocle,

@@ -50,6 +50,15 @@ func _ready() -> void:
 		_move_parts(m.outfit_nodes, outfits, "Outfit-" + CharacterModel.OUTFIT_NAMES[i], torso_xf)
 		m.free()
 
+	# Noor Yeet, whole (expressive face, so her brows come along).
+	var chars := Node3D.new()
+	chars.name = "Characters"
+	root.add_child(chars)
+	var noor := CharacterModel.new()
+	noor.setup(shirt, 0, 1, 0, 0, 0, CharacterModel.NOOR)
+	noor.name = "Character-Noor_Yeet"
+	noor.position = Vector3(2.0, 0, 0)
+	chars.add_child(noor)
 	_drop_hidden(root) # e.g. the knocked-out X eyes (Blender can't import node visibility)
 	var doc := GLTFDocument.new()
 	var state := GLTFState.new()

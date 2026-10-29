@@ -6,11 +6,20 @@ extends Node3D
 
 const SKINS := [Color(1.0, 0.85, 0.7), Color(0.93, 0.72, 0.55), Color(0.75, 0.55, 0.4), Color(0.5, 0.36, 0.26), Color(1.0, 0.8, 0.55)]
 const SKIN_NAMES := ["Peach", "Tan", "Caramel", "Cocoa", "Honey"]
-const HAT_NAMES := ["Hair tuft", "Party cone", "Top hat", "Propeller beanie", "Antenna", "Horns", "Bucket", "Pumpkin head", "Witch hat", "Baseball cap", "Crown", "Chef hat", "Viking helmet", "Captain's dome"]
-const HAT_COUNT := 14
+const HAT_NAMES := ["Hair tuft", "Party cone", "Top hat", "Propeller beanie", "Antenna", "Horns", "Bucket", "Pumpkin head", "Witch hat", "Baseball cap", "Crown", "Chef hat", "Viking helmet", "Captain's dome", "Aviator cap"]
+const HAT_COUNT := 15
 ## Hats players can pick (and random hats); the ones after are reserved for special bots.
 const PLAYER_HATS := 13
 const HAT_CAPTAIN := 13
+const HAT_AVIATOR := 14 # Noor's
+
+## Characters: the classic Yeet (hats, extras, skins, shirts) or Noor Yeet (designed by Noor:
+## golden, floppy-eared, aviator cap and goggles, harness, utility belt and smiley badge).
+const CHARACTER_NAMES := ["Classic Yeet", "Noor Yeet"]
+const NOOR := 1
+const NOOR_GOLD := Color(0.95, 0.66, 0.28)
+const LEATHER := Color(0.4, 0.24, 0.13)
+const LEATHER_DARK := Color(0.22, 0.13, 0.08)
 const SPOOKY_HATS := [7, 8] # Halloween costumes
 ## Head attachments, worn together with any hat (except the pumpkin head, which covers the face).
 const FACE_NAMES := ["Nothing", "Round glasses", "Shades", "Mustache", "Clown nose", "Headphones", "Bow", "Monocle", "Eyepatch"]
@@ -48,6 +57,11 @@ var parts := {}
 var gun_socket: Node3D
 ## Colours of this character (first-person hands use them).
 var skin_color := Color(1.0, 0.85, 0.7)
+var arm_color := Color.WHITE
+## Which character (CHARACTER_NAMES) this model is.
+var character := 0
+## The face it relaxes into (Noor's is a happy grin).
+var idle_mood := "neutral"
 ## The meshes of the hat and of the head extra (children of the head), e.g. for exporting.
 var hat_nodes: Array[Node3D] = []
 var face_nodes: Array[Node3D] = []
@@ -94,16 +108,27 @@ static func random_hat(rng: RandomNumberGenerator, spooky: bool) -> int:
 
 
 ## skin_index < 0 picks a skin tone from the seed. face: index into FACE_NAMES,
-## outfit: index into OUTFIT_NAMES.
-func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1, outfit := 0) -> void:
+## outfit: index into OUTFIT_NAMES, p_character: index into CHARACTER_NAMES. Noor keeps her
+## own look (body, cap, gear); the shirt colour becomes her scarf, so teams stay readable.
+func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1, outfit := 0, p_character := 0) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value * 7919 + 17
 	var skin: Color = SKINS[rng.randi() % SKINS.size()]
 	if skin_index >= 0:
 		skin = SKINS[skin_index % SKINS.size()]
+	character = p_character
+	var scarf := shirt
+	var noor := character == NOOR
+	if noor:
+		skin = NOOR_GOLD
+		shirt = NOOR_GOLD # her body is golden all over
+		hat = HAT_AVIATOR
+		outfit = 0
+		idle_mood = "happy"
 	skin_color = skin
-	var pants := Color(0.2, 0.22, 0.35).lerp(shirt.darkened(0.6), 0.3)
-	var shoe := Color(0.95, 0.95, 0.95)
+	arm_color = shirt
+	var pants := Color(0.2, 0.22, 0.35).lerp(shirt.darkened(0.6), 0.3) if not noor else NOOR_GOLD.darkened(0.06)
+	var shoe := Color(0.95, 0.95, 0.95) if not noor else LEATHER_DARK
 
 	body = Node3D.new()
 	body.position.y = 0.9
@@ -112,9 +137,12 @@ func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1,
 	var torso := _part("torso", Vector3(0, 0.05, 0))
 	_capsule(torso, 0.34, 0.95, shirt, Vector3.ZERO)
 	# Belly patch + belt for a clear silhouette.
-	_sphere(torso, 0.27, shirt.lightened(0.35), Vector3(0, -0.05, -0.12), Vector3(1, 1.1, 0.6))
-	_cyl(torso, 0.345, 0.08, pants.darkened(0.2), Vector3(0, -0.28, 0))
+	_sphere(torso, 0.27, shirt.lightened(0.35 if not noor else 0.15), Vector3(0, -0.05, -0.12), Vector3(1, 1.1, 0.6))
+	if not noor:
+		_cyl(torso, 0.345, 0.08, pants.darkened(0.2), Vector3(0, -0.28, 0))
 	var n_torso := torso.get_child_count()
+	if noor:
+		_noor_gear(torso, scarf)
 	if outfit == 1:
 		# Captain's tunic: dark shoulders and collar over the shirt colour, a gold badge.
 		var dark := Color(0.12, 0.12, 0.15)
@@ -128,8 +156,17 @@ func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1,
 
 	var head := _part("head", Vector3(0, 0.65, 0))
 	_sphere(head, 0.36, skin, Vector3.ZERO, Vector3.ONE).material_override = Mats.skin(skin)
+	if noor:
+		# Long floppy ears hanging from under the cap.
+		for sx in [-1, 1]:
+			var ear := _sphere(head, 0.14, skin, Vector3(sx * 0.42, -0.14, 0.02), Vector3(0.6, 2.2, 1.0))
+			ear.material_override = Mats.skin(skin)
+			ear.rotation.z = sx * 0.6 # flaring out
+			ear.rotation.x = -0.2
 	for sx in [-1, 1]:
-		_eyes.append(_sphere(head, 0.125, Color.WHITE, Vector3(sx * 0.13, 0.07, -0.29), Vector3.ONE))
+		# (Noor's eyes are bigger and closer; their fronts stay where the pupils sit.)
+		var er := 0.143 if noor else 0.125
+		_eyes.append(_sphere(head, er, Color.WHITE, Vector3(sx * 0.13, 0.07, -0.415 + er), Vector3.ONE))
 		var pupil := _sphere(head, 0.06, Color(0.05, 0.05, 0.08), Vector3(sx * 0.13, 0.07, -0.4), Vector3(1, 1, 0.5))
 		_pupils.append(pupil)
 		_cheeks.append(_sphere(head, 0.07, Color(1.0, 0.5, 0.55), Vector3(sx * 0.22, -0.08, -0.26), Vector3(1, 0.6, 0.4)))
@@ -154,9 +191,15 @@ func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1,
 			gun_socket = Node3D.new()
 			gun_socket.position = Vector3(0, -0.55, -0.05)
 			arm.add_child(gun_socket)
+		if noor: # leather wrist cuffs
+			_cyl(arm, 0.112, 0.09, LEATHER, Vector3(0, -0.42, 0))
 		var leg := _part("leg_l" if sx < 0 else "leg_r", Vector3(sx * 0.16, -0.35, 0))
 		_capsule(leg, 0.12, 0.62, pants, Vector3(0, -0.25, 0))
-		_box(leg, Vector3(0.22, 0.14, 0.34), shoe, Vector3(0, -0.5, -0.06))
+		if noor: # chunky boots with a cuff
+			_box(leg, Vector3(0.27, 0.18, 0.4), shoe, Vector3(0, -0.5, -0.07))
+			_cyl(leg, 0.14, 0.12, LEATHER, Vector3(0, -0.4, 0))
+		else:
+			_box(leg, Vector3(0.22, 0.14, 0.34), shoe, Vector3(0, -0.5, -0.06))
 
 
 func _part(part_name: String, pos: Vector3) -> Node3D:
@@ -289,6 +332,32 @@ func _build_hat(head: Node3D, hat: int, shirt: Color, rng: RandomNumberGenerator
 				var a := deg_to_rad(-110.0 + i * 27.5) # from one ear, round the back, to the other
 				var tuft := _sphere(head, 0.075, grey, Vector3(sin(a) * 0.33, -0.01, cos(a) * 0.33), Vector3(1.0, 0.75, 0.7))
 				tuft.rotation.y = a
+		14: # Aviator cap (Noor): a leather cap tilted back, goggles up on the forehead.
+			var cap := SphereMesh.new()
+			cap.radius = 0.385
+			cap.height = 0.385
+			cap.is_hemisphere = true
+			var dome := _mesh(head, cap, LEATHER, Vector3(0, 0.04, 0.0), Vector3(1.0, 0.95, 1.0))
+			dome.rotation.x = 0.4
+			dome.material_override = Mats.plastic(LEATHER, 0.65)
+			var rim := TorusMesh.new()
+			rim.inner_radius = 0.36
+			rim.outer_radius = 0.4
+			var r := _mesh(head, rim, LEATHER_DARK, Vector3(0, 0.04, 0.0))
+			r.rotation.x = 0.4
+			# The goggles' strap hugs the cap (same tilt, where the dome is 0.34 across).
+			var strap := TorusMesh.new()
+			strap.inner_radius = 0.338
+			strap.outer_radius = 0.37
+			var s := _mesh(head, strap, LEATHER_DARK, Vector3(0, 0.206, 0.07))
+			s.rotation.x = 0.4
+			for sx in [-1, 1]:
+				var frame := _cyl(head, 0.1, 0.08, Color(0.55, 0.42, 0.25), Vector3(sx * 0.12, 0.33, -0.235))
+				frame.rotation.x = PI * 0.5 - 0.7
+				frame.material_override = Mats.plastic(Color(0.55, 0.42, 0.25), 0.3)
+				var lens := _cyl(head, 0.077, 0.085, Color(0.55, 0.85, 0.95), Vector3(sx * 0.12, 0.33, -0.235))
+				lens.rotation.x = PI * 0.5 - 0.7
+				lens.material_override = Mats.plastic(Color(0.55, 0.85, 0.95), 0.05, 0.25)
 		_:
 			# Tuft of hair.
 			_sphere(head, 0.14, shirt.darkened(0.4), Vector3(0.05, 0.33, 0.02), Vector3(1.2, 0.7, 1))
@@ -354,6 +423,34 @@ func _ring(parent: Node3D, r: float, thickness: float, color: Color, pos: Vector
 	return mi
 
 
+## Noor's gear on the torso: scarf (team colour), crossed harness straps, utility belt with
+## buckle and pouches, and her signature smiley badge.
+func _noor_gear(torso: Node3D, scarf: Color) -> void:
+	var neck := TorusMesh.new()
+	neck.inner_radius = 0.15
+	neck.outer_radius = 0.25
+	_mesh(torso, neck, scarf, Vector3(0, 0.43, 0), Vector3(1, 1.3, 1))
+	_sphere(torso, 0.07, scarf.darkened(0.15), Vector3(0.1, 0.38, -0.25), Vector3(1, 0.8, 0.8))
+	for side in [-1.0, 1.0]: # front and back
+		for sx in [-1, 1]:
+			var strap := _box(torso, Vector3(0.065, 0.78, 0.035), LEATHER, Vector3(0, 0.07, side * 0.33))
+			strap.rotation.z = sx * 0.5
+	_cyl(torso, 0.352, 0.1, LEATHER_DARK, Vector3(0, -0.28, 0))
+	var buckle := _box(torso, Vector3(0.13, 0.11, 0.03), Color(0.85, 0.65, 0.3), Vector3(0, -0.28, -0.355))
+	buckle.material_override = Mats.plastic(Color(0.85, 0.65, 0.3), 0.2)
+	for p in [Vector3(-0.24, -0.3, -0.27), Vector3(0.25, -0.3, -0.26), Vector3(0.35, -0.3, 0.02), Vector3(-0.35, -0.3, 0.05)]:
+		var pouch := _box(torso, Vector3(0.13, 0.14, 0.09), LEATHER, p)
+		pouch.rotation.y = -atan2(p.x, -p.z)
+	var badge := _cyl(torso, 0.08, 0.025, Color(1.0, 0.82, 0.15), Vector3(-0.13, 0.18, -0.325))
+	badge.rotation.x = PI * 0.5
+	badge.material_override = Mats.plastic(Color(1.0, 0.82, 0.15), 0.2, 0.15)
+	for sx in [-1, 1]:
+		_sphere(torso, 0.012, Color(0.1, 0.07, 0.04), Vector3(-0.13 + sx * 0.025, 0.2, -0.34), Vector3(1, 1.4, 0.6))
+	for k in 5: # a curved smile of little dots
+		var a := (k - 2) * 0.35
+		_sphere(torso, 0.009, Color(0.1, 0.07, 0.04), Vector3(-0.13 + sin(a) * 0.04, 0.175 - cos(a) * 0.035, -0.34), Vector3(1, 1, 0.6))
+
+
 ## Brows and the knocked-out X eyes (expressive faces only).
 func _build_expression_parts(head: Node3D, skin: Color) -> void:
 	var brow_col := skin.darkened(0.62)
@@ -369,7 +466,7 @@ func _build_expression_parts(head: Node3D, skin: Color) -> void:
 			var bar := _box(x, Vector3(0.16, 0.03, 0.02), Color(0.08, 0.06, 0.08), Vector3.ZERO)
 			bar.rotation.z = a
 		_x_eyes.append(x)
-	_face = MOODS.neutral.duplicate()
+	_face = MOODS[idle_mood].duplicate()
 	_next_blink = randf_range(1.0, 4.0)
 
 
@@ -401,7 +498,7 @@ func _update_face(delta: float, ragdoll: bool, falling: float, sliding: bool) ->
 	if _face.is_empty():
 		return
 	# Who wins: a reaction, then being thrown about, then what the owner is doing.
-	var mood := "neutral"
+	var mood := idle_mood
 	if _time < _mood_until:
 		mood = _mood
 	elif ragdoll:

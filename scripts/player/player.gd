@@ -70,6 +70,7 @@ var hat := 0
 var face := 0
 var skin := -1
 var outfit := 0
+var character := 0
 
 # Gameplay (server authoritative, replicated).
 var hp := 100.0
@@ -162,6 +163,7 @@ func setup(p_world: Node, info: Dictionary) -> void:
 	face = info.get("face", 0)
 	skin = info.get("skin", -1)
 	outfit = info.get("outfit", 0)
+	character = info.get("character", 0)
 	frags = info.get("frags", 0)
 	deaths = info.get("deaths", 0)
 	score = info.get("score", 0)
@@ -189,7 +191,7 @@ func _ready() -> void:
 	model = CharacterModel.new()
 	model.expressive = Game.expressive_faces
 	add_child(model)
-	model.setup(color, hat, player_id, face, skin, outfit)
+	model.setup(color, hat, player_id, face, skin, outfit, character)
 	_face_frags = frags
 
 	_head = Node3D.new()

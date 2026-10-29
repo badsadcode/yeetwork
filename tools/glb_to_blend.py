@@ -2,7 +2,8 @@
 
     blender --background --python tools/glb_to_blend.py -- <characters.glb> <out.blend> [preview.png]
 
-Collections: Body (the base character), Hats/<hat>, Head extras/<extra>, Outfits/<outfit>. Every hat and head
+Collections: Body (the base character), Hats/<hat>, Head extras/<extra>, Outfits/<outfit>,
+Characters/<character> (whole special characters, e.g. Noor Yeet, standing beside the body). Every hat and head
 extra sits on the head already; show one of each (eye icon) to compose a character.
 The game still builds characters in code (scripts/player/character_model.gd); this file is
 the editable copy of the same parts, for making new hats and extras or replacing parts.
@@ -32,6 +33,9 @@ def top_group(obj):
     if "Hats" in chain:
         i = chain.index("Hats")
         return "Hats", chain[i + 1] if i + 1 < len(chain) else None
+    if "Characters" in chain:
+        i = chain.index("Characters")
+        return "Characters", chain[i + 1] if i + 1 < len(chain) else None
     if "Outfits" in chain:
         i = chain.index("Outfits")
         return "Outfits", chain[i + 1] if i + 1 < len(chain) else None

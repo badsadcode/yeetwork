@@ -23,7 +23,9 @@ const RESPAWN_TIME := 3.0
 const SPOOKY_BOT_NAMES := ["Sir Yeetrick Stewart", "Count Yeetula", "Boo-nkers", "Pumpkin Spice", "Ghoulie", "Skelly Splat", "Mummy Dearest", "Frankenyeet", "Wobblin' Goblin", "Jack O'Splat", "Witchy Wanda", "Casper the Thrown", "Sir Spooks-a-lot"]
 ## A tribute bot: always joins first, always in the captain's dome and tunic.
 const TRIBUTE_BOT := "Sir Yeetrick Stewart"
-const BOT_NAMES := [TRIBUTE_BOT, "Bonkers", "Sir Yeets-a-lot", "Wobbles", "Ragdolly Parton", "Flopsy", "Chonk", "Splatworth", "Gravy Gunner", "Noodle", "Bumpkin", "Captain Thud", "Jellybean"]
+## Noor, who designs Yeetwork's mechanics, sometimes joins as herself.
+const NOOR_BOT := "Noor Yeet"
+const BOT_NAMES := [TRIBUTE_BOT, NOOR_BOT, "Bonkers", "Sir Yeets-a-lot", "Wobbles", "Ragdolly Parton", "Flopsy", "Chonk", "Splatworth", "Gravy Gunner", "Noodle", "Bumpkin", "Captain Thud", "Jellybean"]
 
 var arena: Arena
 var fx: Effects
@@ -303,7 +305,7 @@ func _build_init_state() -> Dictionary:
 func _player_info(pl: Player) -> Dictionary:
 	return {
 		"id": pl.player_id, "owner": pl.owner_peer, "bot": pl.is_bot, "name": pl.display_name,
-		"team": pl.team, "color": pl.color, "hat": pl.hat, "face": pl.face, "skin": pl.skin, "outfit": pl.outfit, "frags": pl.frags, "deaths": pl.deaths,
+		"team": pl.team, "color": pl.color, "hat": pl.hat, "face": pl.face, "skin": pl.skin, "outfit": pl.outfit, "character": pl.character, "frags": pl.frags, "deaths": pl.deaths,
 		"score": pl.score, "pos": pl.global_position, "yaw": pl.yaw, "hp": pl.hp, "alive": pl.is_alive(),
 	}
 
@@ -349,6 +351,8 @@ func _server_add_player(peer: int, pname: String, bot: bool, look := {}) -> Play
 	var hat := int(look.get("hat", -1))
 	if hat < 0 or hat >= CharacterModel.PLAYER_HATS: # bot-only hats can't be picked
 		hat = CharacterModel.random_hat(rng, Game.spooky)
+	if bot and pname == NOOR_BOT:
+		look = {"character": CharacterModel.NOOR}
 	if bot and pname == TRIBUTE_BOT:
 		look = {"hat": CharacterModel.HAT_CAPTAIN, "face": 0, "outfit": 1}
 		hat = CharacterModel.HAT_CAPTAIN
@@ -358,6 +362,7 @@ func _server_add_player(peer: int, pname: String, bot: bool, look := {}) -> Play
 		"color": color, "hat": hat, "face": clampi(face, 0, CharacterModel.FACE_NAMES.size() - 1),
 		"skin": clampi(int(look.get("skin", -1)), -1, CharacterModel.SKINS.size() - 1),
 		"outfit": clampi(int(look.get("outfit", 0)), 0, CharacterModel.OUTFIT_NAMES.size() - 1) if bot else 0,
+		"character": clampi(int(look.get("character", 0)), 0, CharacterModel.CHARACTER_NAMES.size() - 1),
 		"frags": 0, "deaths": 0, "score": 0, "pos": Vector3.ZERO, "yaw": 0.0, "hp": 100.0, "alive": true,
 	}
 	var pl := _create_player(info)

@@ -43,13 +43,13 @@ func _ready() -> void:
 	_vp.add_child(_pivot)
 
 
-func show_look(shirt: Color, hat: int, face: int, skin: int, seed_value: int, outfit := 0) -> void:
+func show_look(shirt: Color, hat: int, face: int, skin: int, seed_value: int, outfit := 0, character := 0) -> void:
 	if _model:
 		_model.queue_free()
 	_model = CharacterModel.new()
 	_model.expressive = Game.expressive_faces
 	_pivot.add_child(_model)
-	_model.setup(shirt, hat, seed_value, face, skin, outfit)
+	_model.setup(shirt, hat, seed_value, face, skin, outfit, character)
 	_model.squash(0.25) # a little hop of joy on every change
 
 

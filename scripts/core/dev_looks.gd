@@ -17,9 +17,10 @@ func _ready() -> void:
 	Game.fov = 34.0 # close-up lens (not saved)
 	# Floating in the sky above the map: nothing in the way, sky behind.
 	var moods: Array = CharacterModel.MOODS.keys()
-	var rows := [CharacterModel.HAT_COUNT, CharacterModel.FACE_NAMES.size(), moods.size() + 1]
+	var rows := [CharacterModel.HAT_COUNT, CharacterModel.FACE_NAMES.size(), moods.size() + 1, 5]
+	var noor_moods := ["", "grin", "scared", "angry", "dizzy"]
 	var groups := []
-	for row in 3:
+	for row in 4:
 		var models: Array[CharacterModel] = []
 		for i in rows[row]:
 			var m := CharacterModel.new()
@@ -29,15 +30,19 @@ func _ready() -> void:
 				m.setup(col, i, i + 3)
 			elif row == 1:
 				m.setup(col, 0, i + 3, i, i % CharacterModel.SKINS.size())
-			elif i < moods.size():
+			elif row == 2 and i < moods.size():
 				m.setup(col, 0, i + 3, 0, 0)
 				m.react(moods[i], 1000.0)
-			else: # the tribute captain
+			elif row == 2: # the tribute captain
 				m.setup(Color(0.75, 0.12, 0.15), CharacterModel.HAT_CAPTAIN, 7, 0, 0, 1)
+			else: # Noor Yeet in a few moods, scarves in different colours
+				m.setup(col, 0, i + 3, 0, -1, 0, CharacterModel.NOOR)
+				if noor_moods[i] != "":
+					m.react(noor_moods[i], 1000.0)
 			m.global_position = Vector3(0, 120, row * 40.0 + i * 1.4)
 			models.append(m)
 		for g in range(0, models.size(), 5):
-			groups.append([["hats", "extras", "moods"][row] + str(g / 5), models.slice(g, g + 5)])
+			groups.append([["hats", "extras", "moods", "noor"][row] + str(g / 5), models.slice(g, g + 5)])
 	for group in groups:
 		var ms: Array = group[1]
 		var center := Vector3.ZERO

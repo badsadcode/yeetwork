@@ -164,7 +164,7 @@ func build_viewmodel(camera: Camera3D) -> void:
 ## First-person hands in the player's skin and sleeve colours, holding the gun.
 func _build_hands(gun: Node3D) -> void:
 	var skin: Color = player.model.skin_color if player.model else Color(1.0, 0.85, 0.7)
-	var sleeve: Color = player.color
+	var sleeve: Color = player.model.arm_color if player.model else player.color
 	# Gun model space (unscaled): grip at GRIP, the drum's underside around z 0..-0.1.
 	for h in [[GRIP + Vector3(0.0, -0.02, 0.02), Vector3(0.3, -0.7, 0.65)]]:
 		var hand := Node3D.new()
