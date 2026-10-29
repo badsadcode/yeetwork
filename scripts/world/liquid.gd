@@ -45,6 +45,8 @@ const OCEAN := {
 const VIEW_KEYS := ["fog", "visibility", "shafts"]
 
 static var all: Array[Liquid] = []
+## Splashes seen on this peer (reported by --autotest).
+static var splash_count := 0
 static var _normal_a: Texture2D
 static var _normal_b: Texture2D
 static var _foam_noise: Texture2D
@@ -60,6 +62,8 @@ var volume: TriggerVolume
 var _spray_timer := 0.0
 var _world: Node
 var _sun_dir := Vector3.ZERO
+var _splash_budget := 6.0
+var _splash_time := 0.0
 ## Grid spacing of the surface mesh; waves too short for it are left out.
 var _spacing := 0.5
 
@@ -407,6 +411,17 @@ func _spray(delta: float) -> void:
 func splash(pos: Vector3, speed: float) -> void:
 	if _world == null or _world.get("fx") == null:
 		return
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > 90.0:
+		return # out of sight and earshot
+	# Rate limit: a pit full of bouncing debris must not drown the frame in particles.
+	var now := Time.get_ticks_msec() / 1000.0
+	_splash_budget = minf(_splash_budget + (now - _splash_time) * 4.0, 6.0)
+	_splash_time = now
+	if _splash_budget < 1.0:
+		return
+	_splash_budget -= 1.0
+	splash_count += 1
 	var at_surface := Vector3(pos.x, height_at(pos.x, pos.z), pos.z)
 	var strength := clampf(speed / 14.0, 0.25, 2.0)
 	_world.fx.splash(at_surface, strength, params.shallow_color, kind)

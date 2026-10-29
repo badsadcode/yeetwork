@@ -74,7 +74,8 @@ Design around these numbers:
 | Steel (platforms, ramps) | `#809ECC` |
 | **Breakable** | cream `#F2DBA8` (plaster), terracotta (brick), warm wood, glass |
 | Movement aids (pads, lifts) | green glow (automatic) |
-| Hazard | acid green (automatic) |
+| Hazard | acid green, lava orange (automatic) |
+| Water | teal (automatic) |
 | Red team / Blue team | `#FF4554` / `#408CFF` |
 | Landmarks | something glowing (`ArenaBlock → Emission`), unique shapes, lights |
 
@@ -95,6 +96,7 @@ All kit nodes preview themselves in the editor. In game they become the real thi
 | Map Name, Author, Description | shown in the menu and HUD |
 | Sky | `sunset`, `day`, `night`, `space` |
 | Sun Rotation Degrees, Sun Energy Scale, Ambient Scale | tweak the preset |
+| Ocean, Ocean Level | surround the map with an animated sea whose surface sits at *Ocean Level*. Players who fall in sink and drown; wooden and rubber props float. Put your floors above it, and an island's sides look best reaching a few metres below it |
 | Kill Height | anything below dies or respawns. Keep it ≥ 3 m below your lowest floor |
 | Avoid Areas | XZ rectangles bots walk around (pits). `Rect2(x, z, width, depth)` |
 | Playtest Mode / Playtest Bots | used by F6 |
@@ -150,10 +152,19 @@ A destructible wall, floor or bridge. In game it fractures into irregular pieces
 ### HazardVolume
 - **Kind**:
   - `acid`: a glowing pool that hurts and bounces players and props up.
+  - `lava`: like acid (burns and bounces), with glowing molten rock and drifting crust.
+  - `water`: a pool to swim in. Players float with their head out, hold jump to swim
+    up, crouch to dive, and climb out by swimming into a ledge while holding jump (it
+    clears up to ~1.5 m above the water). Wood and rubber props float, metal and stone
+    sink. Nobody drowns in a pool.
   - `kill`: instant death, for under-map voids.
   - `wind`: constant push, for updrafts. **Wind** is the acceleration in m/s². Gravity
     is 24, so use more than 24 upward to lift people.
-- **Size** is the box size. For acid, the glowing surface sits near the top of the box.
+- **Size** is the box size. For liquids, the surface sits 80% of the way up the box and
+  the liquid fills the box below it. Give the pool a floor and walls: a liquid without a
+  floor under it looks bottomless.
+- **Damage** applies to acid and lava.
+- Liquids can't be rotated; only the box's position counts.
 
 ### Anything else
 - **CSG nodes** (`CSGBox3D`, `CSGCylinder3D`, `CSGCombiner3D`...) with *Use Collision*
@@ -174,11 +185,13 @@ A destructible wall, floor or bridge. In game it fractures into irregular pieces
 - [ ] Nothing important is reachable *only* through a breakable wall (they can be
       rebuilt only by restarting the match).
 - [ ] Kill height catches people who fall off, but not people in pits you intended.
+- [ ] Pools: you can climb out everywhere you can fall in (ledges ≤ 1.5 m above the water).
 - [ ] Bots: pits are in *Avoid Areas*.
 - [ ] CTF: flags are roughly equidistant from the center and not reachable in one jump pad.
 - [ ] F6 playtest in Sandbox, CTF and Dodgeball modes.
 - [ ] Optional: screenshots with
       `godot --path . -- --host --map my_arena --bots 6 --tour /tmp/shots`.
+- [ ] Liquids or an ocean: also try `--graphics 0` (Steam Deck preset).
 
 ---
 

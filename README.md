@@ -12,6 +12,8 @@ characters and spectacularly unfortunate accidents.
 |---|---|
 | ![Action](docs/screenshots/facing_action.jpg) | ![Characters](docs/screenshots/characters.jpg) |
 | ![Yeetwork Prime](docs/screenshots/prime_overview.jpg) | ![Tower](docs/screenshots/facing_tower.jpg) |
+| ![Sea](docs/screenshots/water_sea.jpg) | ![Underwater](docs/screenshots/water_underwater.jpg) |
+| ![Waterline](docs/screenshots/water_waterline.jpg) | ![Lava](docs/screenshots/water_lava.jpg) |
 
 ## Downloads: Windows, Linux & Steam Deck
 
@@ -37,6 +39,7 @@ no binary assets to import.
 |---|---|
 | Move | WASD |
 | Jump (hold to bunny hop) | Space |
+| Swim up / dive (in water) | Hold Space / hold Ctrl. Swim into a ledge holding Space to climb out |
 | Run (hold) | Shift. Settings → *Always run* flips it so Shift walks |
 | Crouch / slide (slide only while running) | Ctrl or C |
 | Gravity gun: grab, pull, catch | Hold left mouse |
@@ -64,7 +67,18 @@ wall right in front of you to gravity-jump. Thrown objects inherit your velocity
 **Movement.** Quake-style ground and air acceleration (strafe jumping, bunny hopping),
 CPM-style air control, crouch slides with slope gravity, wall running, wall jumps,
 ramp jumps that keep upward momentum, slope landings that turn falls into speed,
-jump pads, lifts, acid that bounces you, and gravity jumps.
+jump pads, lifts, acid that bounces you, gravity jumps, and swimming.
+
+**Water, acid and lava.** Liquids have Gerstner waves that roll in irregular sets, foam
+where crests fold over and along shores, sun glints, light glowing through thin crests,
+refraction with depth absorption (red fades first), caustics, and screen-space
+reflections. With your eyes at the surface the view splits above and below the
+waterline. Underwater there is fog, light shafts and Snell's window, and sound is muffled.
+In pools you float with your head out, hold jump to swim up and crouch to dive. Wood,
+rubber and soft props float and bob on the waves; metal and stone sink. Big splashes
+hit everyone's screen. The open ocean around a map is too rough to swim in: fall in and
+you sink and drown ("sleeps with the fishes"). Acid and lava bounce and burn you, and lava
+has drifting plates of cooled crust.
 
 **Player physics.** Players are physics objects: they get launched, held, thrown and
 knocked down (tumbling ragdoll state). Thrown players smash through breakable walls,
@@ -126,8 +140,8 @@ menu, or in Pumpkin Smash, every map gets:
   with two team towers. Launch shafts lead to a sniper floor with a breakable window
   and to the roof (which has anvils for dropping on people). There is a central hill
   and breakable bridges over chasms. Falling off is death.
-- **Courtyard**: the Map Kit example map. Team decks, a breakable gate, an acid trench
-  with a wooden bridge, a catwalk with a lift and an updraft.
+- **Courtyard**: the Map Kit example map, an island in the sea. Team decks, a breakable
+  gate, an acid trench with a wooden bridge, a catwalk with a lift and an updraft.
 - **Yeetwork Prime**: a vertical 90s arena. An acid pit sits around a central tower,
   with breakable bridges to each base, side lanes with wall-run walls, tunnels,
   catwalks with lifts, and quarter pipes for slope boosting.
@@ -168,7 +182,9 @@ scripts/core/     game.gd (settings, input map), main.gd (menu/session), world.g
 scripts/player/   player.gd (movement), gravity_gun.gd, character_model.gd, ragdoll.gd
 scripts/props/    prop.gd (networked physics objects)
 scripts/world/    arena.gd (+ Prime layout), map_facing.gd, destructible.gd, mats.gd,
-                  world_surface.gdshader, space_sky.gdshader, trigger_volume.gd, lift.gd
+                  world_surface.gdshader, space_sky.gdshader, trigger_volume.gd, lift.gd,
+                  liquid.gd + liquid.gdshader + liquid_waves.gdshaderinc (water, acid, lava),
+                  underwater.gdshader (full-screen underwater pass)
 scripts/modes/    mode_base.gd (sandbox), mode_ctf.gd, mode_dodgeball.gd
 scripts/fx/       effects.gd (blood, decals, explosions, debris), sfx.gd (synthesized sounds)
 scripts/bots/     bot_brain.gd
@@ -196,6 +212,13 @@ godot --headless --path . -- --host --bots 8 --autotest 60
 # Save screenshots from fixed viewpoints, or a scripted destruction showcase
 godot --path . -- --host --map facing --bots 6 --tour /tmp/shots
 godot --path . -- --host --map prime --bots 0 --tour /tmp/shots --tour-mode destruction
+
+# Liquids: sea, waterline, underwater, splash (Courtyard); acid, pool and lava basins (Prime).
+# --shots "name:ex,ey,ez:tx,ty,tz;..." takes custom views, --perf prints GPU time per view.
+godot --path . -- --host --map courtyard --bots 0 --tour /tmp/shots --tour-mode water
+
+# Any of these with a graphics preset for one run (0 = Low / Steam Deck, 1 = Medium, 2 = High)
+godot --path . -- --host --map courtyard --graphics 0
 ```
 
 ## Characters and Kenney assets

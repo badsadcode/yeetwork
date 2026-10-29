@@ -476,6 +476,11 @@ func _physics_process(delta: float) -> void:
 		global_transform = xf
 
 
+## How fast the prop is moving on this peer (clients only know the streamed velocity).
+func motion_velocity() -> Vector3:
+	return linear_velocity if is_server else _target_vel
+
+
 func apply_snapshot(pos: Vector3, rot: Quaternion, vel: Vector3) -> void:
 	_target_xform = Transform3D(Basis(rot), pos)
 	_target_vel = vel

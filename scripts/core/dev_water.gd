@@ -81,6 +81,7 @@ func _process(_delta: float) -> void:
 	pl.model.visible = false
 	if pl.gun:
 		pl.gun.set_viewmodel_visible(false)
+		pl.gun._world_model.visible = false
 	if _surf:
 		# Keep the eyes exactly at the moving surface, so the view stays split.
 		var e := pl.eye_position()

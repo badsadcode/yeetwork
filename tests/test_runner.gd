@@ -274,3 +274,77 @@ func _run() -> void:
 		if is_instance_valid(p) and p.kind == "shard" and p.prop_id > box_id:
 			boards += 1
 	check("crate shatters into boards", world.get_prop(box_id) == null and boards > 0, "crate gone: %s, new board props %d" % [world.get_prop(box_id) == null, boards])
+
+	await _water_tests()
+
+
+## A concrete tub of water (surface at y -0.4, floor at -3) off to the side of the map.
+func _build_pool(c: Vector3) -> Liquid:
+	var arena: Arena = world.arena
+	arena.box(c + Vector3(0, -3.5, 0), Vector3(16, 1, 12), Color.GRAY)
+	arena.box(c + Vector3(-8.5, -1.5, 0), Vector3(1, 5, 12), Color.GRAY)
+	arena.box(c + Vector3(8.5, -1.5, 0), Vector3(1, 5, 12), Color.GRAY)
+	arena.box(c + Vector3(0, -1.5, -6.5), Vector3(18, 5, 1), Color.GRAY)
+	arena.box(c + Vector3(0, -1.5, 6.5), Vector3(18, 5, 1), Color.GRAY)
+	var l := Liquid.create("water", c + Vector3(0, -0.4, 0), Vector3(16, 3.2, 12))
+	arena.add_child(l)
+	return l
+
+
+func _water_tests() -> void:
+	var pool := _build_pool(Vector3(300, 0, 0))
+	await ticks(5)
+
+	# 14. Swimming: idle in deep water you float with your head out; holding jump rises.
+	await reset(Vector3(300, -2.6, 0), 0.0)
+	await ticks(240)
+	var surf := pool.height_at(pl.global_position.x, pl.global_position.z)
+	var eye_above := pl.eye_position().y - surf
+	check("player floats in water", eye_above > -0.2 and eye_above < 0.9 and absf(pl.velocity.y) < 2.0, "eyes %.2f m above the surface, vy %.1f" % [eye_above, pl.velocity.y])
+	await reset(Vector3(300, -2.6, 0), 0.0)
+	pl.cmd.jump = true
+	var y0 := pl.global_position.y
+	await ticks(30)
+	pl.cmd.jump = false
+	check("hold jump to swim up", pl.global_position.y > y0 + 0.6, "rose %.2f m in 0.5 s" % (pl.global_position.y - y0))
+
+	# 15. Water jump: swim at the surface into the pool wall and climb out.
+	await reset(Vector3(300, -2.6, 0), -PI * 0.5) # facing +x, wall at x = 307.5
+	await ticks(120)
+	pl.cmd.move = Vector2(0, 1)
+	pl.cmd.jump = true
+	var out := false
+	for i in 300:
+		await ticks(1)
+		if pl.global_position.y > 0.9 and pl.is_on_floor():
+			out = true
+			break
+	pl.cmd.move = Vector2.ZERO
+	pl.cmd.jump = false
+	check("climb out of a pool", out, "ended at %s" % pl.global_position.snapped(Vector3.ONE * 0.1))
+
+	# 16. Props: wood and rubber float, metal sinks.
+	var crate: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, Vector3(297, 1.5, -2)))
+	var ball: Prop = world.server_spawn_prop("beachball", Transform3D(Basis.IDENTITY, Vector3(300, 1.5, -3)))
+	var anvil: Prop = world.server_spawn_prop("anvil", Transform3D(Basis.IDENTITY, Vector3(303, 1.5, 3)))
+	await ticks(300)
+	var cy := crate.global_position.y - pool.height_at(crate.global_position.x, crate.global_position.z)
+	var by := ball.global_position.y - pool.height_at(ball.global_position.x, ball.global_position.z)
+	check("crate floats", absf(cy) < 0.6, "crate centre %.2f m from the surface" % cy)
+	check("beach ball floats", by > -0.4 and by < 0.8, "ball centre %.2f m from the surface" % by)
+	check("anvil sinks", anvil.global_position.y < -2.5, "anvil at y %.2f (pool floor -3)" % anvil.global_position.y)
+
+	# 17. The open ocean is too rough to swim: you sink and drown.
+	var sea := Liquid.create("water", Vector3(-300, 0, 0), Vector3(40, 40, 40))
+	sea.ocean = true
+	world.arena.add_child(sea)
+	await ticks(5)
+	var deaths := pl.deaths
+	await reset(Vector3(-300, -1.0, 0), 0.0)
+	var drowned := false
+	for i in 600:
+		await ticks(1)
+		if not pl.is_alive():
+			drowned = true
+			break
+	check("drown in the ocean", drowned and pl.deaths == deaths + 1, "alive %s, depth %.1f m" % [pl.is_alive(), -pl.global_position.y])

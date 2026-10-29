@@ -127,7 +127,7 @@ func _report_and_quit() -> void:
 		var broken := 0
 		for d in world.arena.destructibles:
 			broken += d.broken_cells.size()
-		print("AUTOTEST server=%s players=%d alive=%d props=%d broken_cells=%d scores=%s" % [world.is_server, world.players.size(), alive, world.props.size(), broken, world.team_scores])
+		print("AUTOTEST server=%s players=%d alive=%d props=%d broken_cells=%d splashes=%d scores=%s" % [world.is_server, world.players.size(), alive, world.props.size(), broken, Liquid.splash_count, world.team_scores])
 		for p in world.players.values():
 			print("  %s hp=%.0f frags=%d deaths=%d score=%d pos=%s" % [p.display_name, p.hp, p.frags, p.deaths, p.score, p.global_position.snapped(Vector3.ONE * 0.1)])
 	else:
