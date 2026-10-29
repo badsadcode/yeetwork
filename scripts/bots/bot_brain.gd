@@ -108,6 +108,20 @@ func _carrying_flag() -> bool:
 func _reconsider() -> void:
 	_enemy = _find_enemy()
 	var holding := pl.gun.held_kind != GravityGun.Kind.NONE
+	if world.mode == Game.Mode.PUMPKIN and not holding:
+		# Candy first: walk over it.
+		var best: Prop = null
+		var best_d := 22.0
+		for p: Prop in world.props.values():
+			if is_instance_valid(p) and p.kind == "candy":
+				var d := pl.global_position.distance_to(p.global_position)
+				if d < best_d:
+					best_d = d
+					best = p
+		if best:
+			_goal = best.global_position
+			_target_prop = null
+			return
 	if world.mode == Game.Mode.CTF:
 		var flag := _enemy_flag()
 		if _carrying_flag():
@@ -156,10 +170,13 @@ func _find_prop() -> Prop:
 	var best: Prop = null
 	var best_d := 30.0
 	var dodgeball: bool = world.mode == Game.Mode.DODGEBALL
+	var pumpkins: bool = world.mode == Game.Mode.PUMPKIN
 	for p: Prop in world.props.values():
-		if not is_instance_valid(p) or p.held_by != 0 or p.freeze or p.kind == "flag":
+		if not is_instance_valid(p) or p.held_by != 0 or p.freeze or p.kind == "flag" or p.kind == "candy":
 			continue
 		if dodgeball and p.kind != "ball":
+			continue
+		if pumpkins and not p.kind.begins_with("pumpkin"):
 			continue
 		if p.mass > 120.0:
 			continue

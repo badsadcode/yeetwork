@@ -5,6 +5,7 @@ extends RefCounted
 ## warm key sun, cool fill, soft GI bounce (SDFGI + SSIL), soft AO and AgX tonemapping.
 ##   sunset - warm golden hour (default)      day   - bright, saturated, blue sky
 ##   night  - cool moonlight, deep blue sky   space - starfield, nebula and a planet
+##   halloween - purple dusk, orange horizon, big moon, thick fog (spooky mode)
 
 
 ## Returns [WorldEnvironment, sun, fill] ready to add to the scene. `settings` may be a
@@ -36,6 +37,19 @@ static func build(preset: String, settings: Node = null) -> Array[Node]:
 			sky_mat.ground_bottom_color = Color(0.3, 0.35, 0.45)
 			sun_color = Color(1.0, 0.95, 0.85)
 			sun_energy = 2.6
+		"halloween":
+			# Purple dusk, orange glow on the horizon and a huge pale moon (the sky's sun disc).
+			sky_mat.sky_top_color = Color(0.08, 0.03, 0.16)
+			sky_mat.sky_horizon_color = Color(0.85, 0.35, 0.15)
+			sky_mat.ground_horizon_color = Color(0.4, 0.15, 0.2)
+			sky_mat.ground_bottom_color = Color(0.03, 0.02, 0.05)
+			sky_mat.sky_curve = 0.2
+			sky_mat.sun_angle_max = 4.0
+			sky_mat.sun_curve = 0.02
+			sun_color = Color(1.0, 0.72, 0.45)
+			sun_energy = 1.1
+			fill_color = Color(0.5, 0.3, 0.9)
+			fill_energy = 0.35
 		"night":
 			sky_mat.sky_top_color = Color(0.03, 0.04, 0.12)
 			sky_mat.sky_horizon_color = Color(0.2, 0.18, 0.38)
@@ -115,6 +129,17 @@ static func build(preset: String, settings: Node = null) -> Array[Node]:
 			env.volumetric_fog_density = 0.01
 			env.volumetric_fog_albedo = Color(0.7, 0.75, 1.0)
 			env.glow_intensity = 0.8
+		"halloween":
+			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+			env.ambient_light_color = Color(0.42, 0.3, 0.6)
+			env.ambient_light_energy = 0.6 * amb_scale
+			env.fog_light_color = Color(0.35, 0.2, 0.4)
+			env.fog_density = 0.006
+			env.volumetric_fog_density = 0.018
+			env.volumetric_fog_albedo = Color(0.85, 0.7, 1.0)
+			env.volumetric_fog_emission = Color(0.06, 0.02, 0.08)
+			env.glow_intensity = 0.9
+			env.adjustment_saturation = 1.3
 		"day":
 			env.volumetric_fog_density = 0.001
 			env.adjustment_saturation = 1.15

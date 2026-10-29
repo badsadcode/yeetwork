@@ -110,7 +110,7 @@ func _ready() -> void:
 
 	_killfeed = VBoxContainer.new()
 	_killfeed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_killfeed.position = Vector2(-560, 18)
+	_killfeed.position = Vector2(-560, 64)
 	_killfeed.custom_minimum_size = Vector2(540, 0)
 	_killfeed.alignment = BoxContainer.ALIGNMENT_BEGIN
 	_root.add_child(_killfeed)
@@ -309,7 +309,15 @@ func on_mode_changed() -> void:
 func on_players_changed() -> void:
 	if world == null or _score_label == null:
 		return
-	if world.is_team_mode():
+	if world.mode == Game.Mode.PUMPKIN:
+		var pl: Player = world.local_player
+		var leader: Player = null
+		for p: Player in world.players.values():
+			if leader == null or p.score > leader.score:
+				leader = p
+		var lead := "   ·   Leader: %s (%d)" % [leader.display_name, leader.score] if leader and leader.score > 0 else ""
+		_score_label.text = "%s     Candy: %d / %d%s" % [world.mode_name(), pl.score if pl else 0, ModePumpkin.WIN_CANDY, lead]
+	elif world.is_team_mode():
 		_score_label.text = "%s     RED %d  —  %d BLUE" % [world.mode_name(), world.team_scores.get(1, 0), world.team_scores.get(2, 0)]
 	else:
 		var pl: Player = world.local_player
@@ -320,7 +328,7 @@ func _refresh_scoreboard() -> void:
 	var rows: Array = world.players.values()
 	rows.sort_custom(func(a, b): return a.frags + a.score * 5 > b.frags + b.score * 5)
 	var t := "[center][b]%s[/b][/center]\n\n" % world.mode_name().to_upper()
-	t += "[table=5][cell][b]Player   [/b][/cell][cell][b]Team   [/b][/cell][cell][b]Frags   [/b][/cell][cell][b]Deaths   [/b][/cell][cell][b]Caps/Pts[/b][/cell]"
+	t += "[table=5][cell][b]Player   [/b][/cell][cell][b]Team   [/b][/cell][cell][b]Frags   [/b][/cell][cell][b]Deaths   [/b][/cell][cell][b]Score[/b][/cell]"
 	for p: Player in rows:
 		var col: Color = p.color
 		t += "[cell][color=#%s]%s%s[/color]   [/cell][cell]%s[/cell][cell]%d[/cell][cell]%d[/cell][cell]%d[/cell]" % [col.to_html(false), p.display_name, " (bot)" if p.is_bot else "", Game.TEAM_NAMES[p.team], p.frags, p.deaths, p.score]

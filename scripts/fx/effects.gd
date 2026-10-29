@@ -291,6 +291,37 @@ func _fade_body(id: int) -> void:
 	tw.tween_callback(rb.queue_free)
 
 
+## Jack-o'-lantern splat: orange goo spray + decals, pumpkin chunks, candy confetti, a
+## warm flash.
+func pumpkin_burst(pos: Vector3, dir: Vector3, gold: bool) -> void:
+	var orange := Color(1.0, 0.5, 0.08) if not gold else Color(1.0, 0.8, 0.2)
+	var goo := Mats.plastic(Color(1.0, 0.62, 0.15), 0.15, 0.3)
+	_burst(pos, Vector3.UP + dir.normalized() * 0.4, 30, _drop_mesh, goo, 3.0, 11.0, 1.1)
+	for i in 8:
+		var ray := (Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 0.3), _rng.randf_range(-1, 1))).normalized()
+		var q := PhysicsRayQueryParameters3D.create(pos, pos + ray * 4.0, Game.L_WORLD)
+		var hit := _space().intersect_ray(q)
+		if not hit.is_empty():
+			_decal(hit.position, hit.normal, ray, _rng.randf_range(0.5, 1.2), Color(1.0, 0.5, 0.05, 0.9), 1.4)
+	for i in 6:
+		_chunk(pos + _rand_vec() * 0.2, Vector3(0.22, 0.18, 0.1), orange, Vector3.UP * 5.0 + _rand_vec() * 6.0, 3.0)
+	var cols := [Color(1, 0.3, 0.55), Color(0.4, 0.85, 1), Color(1, 0.85, 0.2), Color(0.6, 1, 0.4), Color(0.85, 0.5, 1)]
+	for c in cols:
+		var m := SphereMesh.new()
+		m.radius = 0.05
+		m.height = 0.1
+		_burst(pos, Vector3.UP, 6 if not gold else 14, m, Mats.plastic(c, 0.2, 0.8), 4.0, 9.0, 1.4)
+	var flash := OmniLight3D.new()
+	flash.light_color = Color(1.0, 0.65, 0.25)
+	flash.light_energy = 8.0
+	flash.omni_range = 9.0
+	add_child(flash)
+	flash.global_position = pos
+	var tw := flash.create_tween()
+	tw.tween_property(flash, "light_energy", 0.0, 0.5)
+	tw.tween_callback(flash.queue_free)
+
+
 func dust(pos: Vector3, color: Color, amount: float) -> void:
 	var m := SphereMesh.new()
 	m.radius = 0.35

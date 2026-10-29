@@ -5,7 +5,8 @@ extends Node3D
 ## Faces -Z. Parts are siblings under `body` so the death ragdoll can copy them.
 
 const SKINS := [Color(1.0, 0.85, 0.7), Color(0.93, 0.72, 0.55), Color(0.75, 0.55, 0.4), Color(0.5, 0.36, 0.26), Color(1.0, 0.8, 0.55)]
-const HAT_COUNT := 7
+const HAT_COUNT := 9
+const NORMAL_HATS := 7 # hats 7+ are Halloween costumes
 
 ## Collision specs used by the ragdoll: part -> [shape, radius, height, offset].
 const PART_SPECS := {
@@ -151,6 +152,26 @@ func _build_hat(head: Node3D, hat: int, shirt: Color, rng: RandomNumberGenerator
 				horn.rotation.z = -sx * 0.7
 		6: # Bucket.
 			_cyl(head, 0.3, 0.32, accent, Vector3(0, 0.36, 0), 0.34)
+		7: # Pumpkin head: a jack-o'-lantern over the whole head.
+			var orange := Color(1.0, 0.5, 0.08)
+			for i in 6:
+				var a := i * TAU / 6.0
+				var lobe := _sphere(head, 0.27, orange, Vector3(cos(a), 0, sin(a)) * 0.17 + Vector3(0, 0.04, 0), Vector3(1.0, 1.25, 0.8))
+				lobe.rotation.y = -a
+			_cyl(head, 0.03, 0.18, Color(0.35, 0.45, 0.15), Vector3(0, 0.45, 0))
+			for sx in [-1, 1]:
+				var eye := _box(head, Vector3(0.12, 0.1, 0.05), Color(1, 0.75, 0.25), Vector3(sx * 0.13, 0.1, -0.42))
+				eye.material_override = Mats.glow(Color(1, 0.75, 0.25), 4.0)
+				eye.rotation.z = sx * 0.4
+			var mouth := _box(head, Vector3(0.3, 0.07, 0.05), Color(1, 0.75, 0.25), Vector3(0, -0.12, -0.42))
+			mouth.material_override = Mats.glow(Color(1, 0.75, 0.25), 4.0)
+			_pupils.clear() # googly eyes are inside the pumpkin
+		8: # Witch hat.
+			var black := Color(0.12, 0.08, 0.16)
+			_cyl(head, 0.5, 0.04, black, Vector3(0, 0.27, 0))
+			var cone := _cyl(head, 0.26, 0.6, black, Vector3(0.04, 0.58, 0.02), 0.0)
+			cone.rotation.z = -0.25
+			_cyl(head, 0.265, 0.07, Color(0.6, 0.25, 0.9), Vector3(0, 0.33, 0))
 		_:
 			# Tuft of hair.
 			_sphere(head, 0.14, shirt.darkened(0.4), Vector3(0.05, 0.33, 0.02), Vector3(1.2, 0.7, 1))

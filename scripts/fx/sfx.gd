@@ -45,6 +45,12 @@ func _ready() -> void:
 	_add("sizzle", 0.6, _sizzle)
 	_add("death", 0.9, _death)
 	_add("score", 0.6, _score)
+	_add("squelch", 0.6, _squelch)
+	_add("pickup", 0.18, _blip.bind(900.0, 1500.0, 0.18, 0.3))
+	_add("wind", 4.0, _wind)
+	for w: AudioStreamWAV in _streams.wind:
+		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		w.loop_end = w.data.size() / 2 - int(RATE * 0.5) # see _wind crossfade
 	_streams.hit = _streams.smack
 	_streams.clang = _streams.metal
 	for i in POOL:
@@ -188,6 +194,28 @@ func _thud_heavy(buf: PackedFloat32Array, v: int) -> void:
 func _smack(buf: PackedFloat32Array, v: int) -> void:
 	_add_noise(buf, _bp_noise(buf.size(), 1100.0 * _vr(v, 0.1)), 32.0, 0.9)
 	_drop(buf, 230.0 * _vr(v, 0.07), 70.0, 30.0, 18.0, 0.8)
+
+
+func _squelch(buf: PackedFloat32Array, v: int) -> void:
+	_splat(buf, v)
+	_drop(buf, 260.0 * _vr(v, 0.1), 70.0, 12.0, 10.0, 0.6)
+	_crunch(buf, v)
+
+
+## Seamless howling wind for spooky ambience (fades to match its own start).
+func _wind(buf: PackedFloat32Array, v: int) -> void:
+	var n := buf.size()
+	var a := _bp_noise(n, 500.0 * _vr(v, 0.1))
+	var b := _lp_noise(n, 180.0)
+	for i in n:
+		var t := float(i) / n
+		var howl := 0.5 + 0.5 * sin(TAU * t * 2.0 + v) * sin(TAU * t * 3.0)
+		buf[i] += a[i] * 0.22 * howl + b[i] * 0.18
+	# Crossfade the tail into the head so the loop is seamless.
+	var fade := int(RATE * 0.5)
+	for i in fade:
+		var k := float(i) / fade
+		buf[i] = buf[i] * k + buf[n - fade + i] * (1.0 - k)
 
 
 func _crunch(buf: PackedFloat32Array, v: int) -> void:
@@ -359,6 +387,23 @@ func play3d(sound: String, pos: Vector3, volume_db := 0.0, pitch := 1.0) -> void
 	p.pitch_scale = pitch * _rng.randf_range(0.96, 1.04)
 	p.global_position = pos
 	p.play()
+
+
+var _ambient: AudioStreamPlayer
+
+
+## Looping background ambience ("" stops it).
+func set_ambience(sound: String, volume_db := -12.0) -> void:
+	if _ambient == null:
+		_ambient = AudioStreamPlayer.new()
+		_ambient.bus = "SFX"
+		add_child(_ambient)
+	if sound == "" or not _streams.has(sound):
+		_ambient.stop()
+		return
+	_ambient.stream = _streams[sound][0]
+	_ambient.volume_db = volume_db
+	_ambient.play()
 
 
 func play_ui(sound: String, volume_db := 0.0, pitch := 1.0) -> void:

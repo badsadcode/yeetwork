@@ -30,7 +30,7 @@ extends Node
 ## Areas (XZ rectangles in world space) bots should walk around, e.g. pits.
 @export var avoid_areas: Array[Rect2] = []
 ## Playtest settings used when you press F6 on this scene.
-@export_enum("Sandbox", "Capture the Flag", "Dodgeball") var playtest_mode := 0
+@export_enum("Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash") var playtest_mode := 0
 @export_range(0, 11) var playtest_bots := 3
 
 var _preview: Array[Node] = []

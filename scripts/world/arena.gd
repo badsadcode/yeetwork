@@ -335,8 +335,38 @@ func _environment(space := false) -> void:
 
 
 func environment_preset(preset: String, settings: Node = null) -> void:
+	if Game.spooky and preset != "space":
+		preset = "halloween"
 	for n in MapEnvironment.build(preset, settings):
 		add_child(n)
+	if Game.spooky:
+		_spooky_extras()
+
+
+## Bats circling high above the action.
+func _spooky_extras() -> void:
+	for k in 3:
+		var bats := CPUParticles3D.new()
+		bats.amount = 14
+		bats.lifetime = 9.0
+		bats.preprocess = 9.0
+		bats.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+		bats.emission_sphere_radius = 18.0
+		bats.direction = Vector3(1, 0.2, 0)
+		bats.spread = 180.0
+		bats.gravity = Vector3.ZERO
+		bats.initial_velocity_min = 2.0
+		bats.initial_velocity_max = 5.0
+		bats.angular_velocity_min = -90.0
+		bats.angular_velocity_max = 90.0
+		bats.scale_amount_min = 0.7
+		bats.scale_amount_max = 1.4
+		var wing := PrismMesh.new()
+		wing.size = Vector3(0.9, 0.25, 0.05)
+		bats.mesh = wing
+		bats.material_override = Mats.plastic(Color(0.06, 0.04, 0.08), 0.9)
+		bats.position = Vector3((k - 1) * 30.0, 22.0 + k * 3.0, 0)
+		add_child(bats)
 
 
 func _floor_and_pit() -> void:

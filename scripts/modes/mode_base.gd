@@ -62,6 +62,10 @@ func on_prop_caught(_prop: Prop, _pl: Player) -> void:
 	pass
 
 
+func on_prop_broken(_prop: Prop) -> void:
+	pass
+
+
 func on_prop_fell_out(_prop: Prop) -> bool:
 	return false
 

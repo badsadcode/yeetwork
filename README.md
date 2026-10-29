@@ -96,6 +96,17 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
 - **Dodgeball**: a live ball (thrown, not yet bounced) knocks out an enemy. Catching an
   enemy's live ball knocks out the thrower.
 
+- **Pumpkin Smash** (Halloween): free-for-all candy grab. Smash jack-o'-lanterns
+  (golden ones are worth more) to spill candy, then walk over candy to collect it. Getting
+  killed spills everything you carry, so yeet the leader. First to 40 wins the round.
+
+**Spooky mode.** During Halloween season (Oct 15 - Nov 3), when set to *Always* in the
+menu, or in Pumpkin Smash, every map gets:
+- Purple dusk lighting with an orange horizon, a big moon, thick fog and circling bats.
+- Glowing jack-o'-lanterns that burst into goo and candy.
+- Gravestones and coffins that shatter into stone and wood fragments.
+- Pumpkin-head and witch costumes, spooky bot names and howling wind.
+
 **Maps.**
 - **Facing Yeets**: inspired by UT's *Facing Worlds*. A long asteroid strip in space
   with two team towers. Launch shafts lead to a sniper floor with a breakable window

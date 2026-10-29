@@ -16,6 +16,13 @@ const DEFS := {
 	"tire": {"shape": "cyl", "size": Vector3(0.6, 0.38, 0.6), "mass": 20.0, "color": Color(0.12, 0.12, 0.14), "bounce": 0.8, "label": "Tire"},
 	"cone": {"shape": "cone", "size": Vector3(0.3, 0.8, 0.3), "mass": 3.0, "color": Color(1.0, 0.5, 0.1), "bounce": 0.3, "label": "Cone"},
 	"debris": {"shape": "box", "size": Vector3(1, 1, 1), "mass": 30.0, "color": Color(0.7, 0.7, 0.7), "bounce": 0.05, "label": "Debris"},
+	# Halloween. "fragile": impact energy (J) that breaks the prop; "outline" props shatter
+	# into fragments of their own shape.
+	"pumpkin": {"shape": "pumpkin", "size": Vector3(0.46, 0.4, 0.46), "mass": 8.0, "color": Color(1.0, 0.5, 0.08), "bounce": 0.25, "label": "Jack-o'-Lantern", "fragile": 1800.0},
+	"pumpkin_gold": {"shape": "pumpkin", "size": Vector3(0.62, 0.52, 0.62), "mass": 14.0, "color": Color(1.0, 0.8, 0.2), "bounce": 0.25, "label": "Golden Pumpkin", "fragile": 3200.0, "metal": true},
+	"gravestone": {"shape": "outline", "size": Vector3(0.8, 1.1, 0.25), "mass": 60.0, "color": Color(0.55, 0.56, 0.62), "bounce": 0.05, "label": "Gravestone", "fragile": 7000.0, "shatter": "concrete"},
+	"coffin": {"shape": "outline", "size": Vector3(0.9, 1.8, 0.45), "mass": 40.0, "color": Color(0.45, 0.28, 0.2), "bounce": 0.1, "label": "Coffin", "fragile": 4500.0, "shatter": "wood"},
+	"candy": {"shape": "candy", "size": Vector3(0.12, 0.12, 0.3), "mass": 0.4, "color": Color(1, 0.4, 0.7), "bounce": 0.5, "label": "Candy"},
 	"shard": {"shape": "shard", "size": Vector3(1, 1, 0.5), "mass": 20.0, "color": Color(0.9, 0.85, 0.7), "bounce": 0.05, "label": "Fragment"},
 	"flag": {"shape": "flag", "size": Vector3(0.12, 2.4, 0.12), "mass": 12.0, "color": Color(1, 1, 1), "bounce": 0.1, "label": "Flag"},
 }
@@ -32,6 +39,7 @@ var explosive := false
 var is_server := true
 var spawned_by := 0
 var spawn_time := 0.0
+var _flicker: OmniLight3D
 var extra := {} # kind-specific data (fragment polygons, thickness, material)
 
 # Server-side gameplay state.
@@ -75,9 +83,31 @@ static func create(p_world: Node, id: int, p_kind: String, xform: Transform3D, p
 	return p
 
 
+## Outline polygon (local XY, thickness along Z) for "outline" props.
+static func outline_for(p_kind: String) -> PackedVector2Array:
+	match p_kind:
+		"gravestone":
+			var pts := PackedVector2Array([Vector2(-0.4, -0.55), Vector2(0.4, -0.55), Vector2(0.4, 0.2)])
+			for i in range(1, 8):
+				var a := i * PI / 8.0
+				pts.append(Vector2(cos(a) * 0.4, 0.2 + sin(a) * 0.35))
+			pts.append(Vector2(-0.4, 0.2))
+			return pts
+		"coffin":
+			return PackedVector2Array([Vector2(-0.28, -0.9), Vector2(0.28, -0.9), Vector2(0.45, 0.35), Vector2(0.3, 0.9), Vector2(-0.3, 0.9), Vector2(-0.45, 0.35)])
+	return PackedVector2Array([Vector2(-0.5, -0.5), Vector2(0.5, -0.5), Vector2(0.5, 0.5), Vector2(-0.5, 0.5)])
+
+
+func is_fragile() -> bool:
+	return DEFS[kind].has("fragile")
+
+
 func _build(def: Dictionary) -> void:
 	collision_layer = Game.L_PROPS
 	collision_mask = Game.L_WORLD | Game.L_PLAYERS | Game.L_PROPS
+	if kind == "candy":
+		# Players walk through candy to collect it.
+		collision_mask = Game.L_WORLD | Game.L_PROPS
 	var m: float = def.mass
 	if kind == "debris":
 		m = clampf(size.x * size.y * size.z * 45.0, 4.0, 120.0)
@@ -152,10 +182,127 @@ func _build(def: Dictionary) -> void:
 			s.size = Vector3(0.35, size.y, 0.35)
 			shape_node.shape = s
 			_build_flag(mesh)
-	if mesh.mesh:
+		"pumpkin":
+			var s := SphereShape3D.new()
+			s.radius = size.x
+			shape_node.shape = s
+			_build_pumpkin(mesh, def)
+		"outline":
+			var poly := Prop.outline_for(kind)
+			var s := ConvexPolygonShape3D.new()
+			s.points = Fracture.prism_points(poly, size.z)
+			shape_node.shape = s
+			var smat: String = def.get("shatter", "concrete")
+			mesh.mesh = Fracture.fragment_mesh([poly], size.z, Mats.slab(color, smat), Mats.slab(color.darkened(0.15), smat, true))
+			mat = null
+			if kind == "gravestone":
+				_add_gravestone_text(mesh)
+		"candy":
+			var s := SphereShape3D.new()
+			s.radius = 0.12
+			shape_node.shape = s
+			_build_candy(mesh)
+	if mesh.mesh and mat:
 		mesh.material_override = mat
 	add_child(shape_node)
 	add_child(mesh)
+
+
+func _build_pumpkin(parent: MeshInstance3D, def: Dictionary) -> void:
+	var r := size.x
+	var gold := kind == "pumpkin_gold"
+	var skin := Mats.plastic(color, 0.25 if gold else 0.55, 0.4 if gold else 0.0)
+	# Ribbed body: overlapping squashed lobes around the vertical axis.
+	for i in 6:
+		var lobe := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = r * 0.62
+		sm.height = r * 1.55
+		lobe.mesh = sm
+		var a := i * TAU / 6.0
+		lobe.position = Vector3(cos(a), 0, sin(a)) * r * 0.36
+		lobe.rotation.y = -a
+		lobe.scale = Vector3(1.0, 1.0, 0.8)
+		lobe.material_override = skin
+		parent.add_child(lobe)
+	var stem := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = r * 0.06
+	cm.bottom_radius = r * 0.12
+	cm.height = r * 0.45
+	stem.mesh = cm
+	stem.position = Vector3(0.02, r * 0.78, 0)
+	stem.rotation.z = -0.25
+	stem.material_override = Mats.plastic(Color(0.35, 0.45, 0.15), 0.8)
+	parent.add_child(stem)
+	# Carved face glowing from inside.
+	var glow := Mats.glow(Color(1.0, 0.75, 0.25), 4.0)
+	var face := [
+		[Vector3(-0.32, 0.18, -0.93), Vector3(0.22, 0.2, 0.08), 0.0],
+		[Vector3(0.32, 0.18, -0.93), Vector3(0.22, 0.2, 0.08), 0.0],
+		[Vector3(0.0, -0.02, -0.98), Vector3(0.1, 0.1, 0.06), 0.785],
+		[Vector3(0.0, -0.32, -0.92), Vector3(0.6, 0.12, 0.08), 0.0],
+	]
+	for f in face:
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = f[1] * r * 1.6
+		mi.mesh = bm
+		mi.position = f[0] * r
+		mi.rotation.z = f[2]
+		mi.material_override = glow
+		parent.add_child(mi)
+	for k in 3:
+		var tooth := MeshInstance3D.new()
+		var tb := BoxMesh.new()
+		tb.size = Vector3(0.08, 0.1, 0.1) * r * 1.6
+		tooth.mesh = tb
+		tooth.position = Vector3(-0.2 + k * 0.2, -0.27, -0.95) * r
+		tooth.material_override = skin
+		parent.add_child(tooth)
+	var light := OmniLight3D.new()
+	light.light_color = Color(1.0, 0.6, 0.2) if not gold else Color(1.0, 0.85, 0.4)
+	light.light_energy = 1.4 if not gold else 2.5
+	light.omni_range = 4.5 if not gold else 7.0
+	light.position = Vector3(0, 0, -r * 0.6)
+	parent.add_child(light)
+	_flicker = light
+
+
+func _add_gravestone_text(parent: MeshInstance3D) -> void:
+	var l := Label3D.new()
+	l.text = ["RIP", "YEETED", "HERE LIES\nBOB", "OOPS"][prop_id % 4]
+	l.font_size = 48
+	l.pixel_size = 0.004
+	l.position = Vector3(0, 0.1, -size.z * 0.5 - 0.01)
+	l.rotation.y = PI
+	l.modulate = Color(0.25, 0.25, 0.3)
+	l.outline_size = 0
+	parent.add_child(l)
+
+
+func _build_candy(parent: MeshInstance3D) -> void:
+	var palette := [Color(1, 0.3, 0.55), Color(0.4, 0.85, 1), Color(1, 0.85, 0.2), Color(0.6, 1, 0.4), Color(0.85, 0.5, 1)]
+	var c: Color = palette[prop_id % palette.size()]
+	var body := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.07
+	sm.height = 0.14
+	body.mesh = sm
+	body.scale = Vector3(1, 1, 1.3)
+	body.material_override = Mats.plastic(c, 0.2, 0.6)
+	parent.add_child(body)
+	for sx in [-1, 1]:
+		var wrap := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.0
+		cm.bottom_radius = 0.06
+		cm.height = 0.09
+		wrap.mesh = cm
+		wrap.rotation.x = sx * PI * 0.5
+		wrap.position = Vector3(0, 0, sx * 0.12)
+		wrap.material_override = Mats.plastic(c.lightened(0.4), 0.2, 0.4)
+		parent.add_child(wrap)
 
 
 ## Irregular fragment of a destructible: one or more extruded polygons.
@@ -286,6 +433,14 @@ func _build_flag(parent: MeshInstance3D) -> void:
 	parent.add_child(light)
 
 
+func _process(_delta: float) -> void:
+	if _flicker:
+		var t := Time.get_ticks_msec() * 0.001 + prop_id
+		_flicker.light_energy = (1.4 if kind == "pumpkin" else 2.5) * (0.8 + 0.2 * sin(t * 13.0) * sin(t * 7.3))
+	else:
+		set_process(false)
+
+
 func _ready() -> void:
 	spawn_time = Time.get_ticks_msec() / 1000.0
 	if is_server:
@@ -353,8 +508,12 @@ func impact_material() -> String:
 			return "metal"
 		"ball", "beachball", "tire", "cone":
 			return "rubber"
-		"couch":
+		"couch", "pumpkin", "pumpkin_gold", "candy":
 			return "soft"
+		"gravestone":
+			return "stone"
+		"coffin":
+			return "wood"
 		"shard":
 			var m: String = extra.get("mat", "plaster")
 			return m if m in ["wood", "metal", "glass"] else "stone"

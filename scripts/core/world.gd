@@ -20,6 +20,7 @@ const BREAK_DROP := 1
 const MAX_SPAWNED_PER_PLAYER := 25
 const MAX_CORPSES := 12
 const RESPAWN_TIME := 3.0
+const SPOOKY_BOT_NAMES := ["Count Yeetula", "Boo-nkers", "Pumpkin Spice", "Ghoulie", "Skelly Splat", "Mummy Dearest", "Frankenyeet", "Wobblin' Goblin", "Jack O'Splat", "Witchy Wanda", "Casper the Thrown", "Sir Spooks-a-lot"]
 const BOT_NAMES := ["Bonkers", "Sir Yeets-a-lot", "Wobbles", "Ragdolly Parton", "Flopsy", "Chonk", "Splatworth", "Gravy Gunner", "Noodle", "Bumpkin", "Captain Thud", "Jellybean"]
 
 var arena: Arena
@@ -85,14 +86,18 @@ func start(server: bool) -> void:
 	add_child(hud)
 	hud.leave_pressed.connect(func(): leave_requested.emit())
 	if server:
-		_build_arena(Game.map)
 		mode = Game.mode
+		Game.spooky = Game.halloween_active()
+		_build_arena(Game.map)
 		mode_logic = _make_mode(mode)
 		mode_logic.setup(self)
+		if Game.spooky:
+			_server_spooky_props()
 		for entry in arena.initial_props:
 			var p := server_spawn_prop(entry[0], entry[1])
 			p.set_meta("map_prop", true)
 		mode_logic.spawn_mode_props()
+		_start_ambience()
 		multiplayer.peer_connected.connect(_on_peer_connected)
 		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 		_server_add_player(1, Game.player_name, false)
@@ -101,6 +106,56 @@ func start(server: bool) -> void:
 		hud.on_mode_changed()
 	else:
 		_c_hello.rpc_id(1, Game.player_name, Game.VERSION)
+
+
+func _start_ambience() -> void:
+	Sfx.set_ambience("wind" if Game.spooky else "", -16.0)
+
+
+func _exit_tree() -> void:
+	Sfx.set_ambience("")
+
+
+## Halloween dressing: some crates become jack-o'-lanterns, plus pumpkins, gravestones and
+## coffins scattered near spawn points (skipping spots blocked by geometry).
+func _server_spooky_props() -> void:
+	var srng := RandomNumberGenerator.new()
+	srng.seed = 31337
+	for entry in arena.initial_props:
+		if entry[0] == "crate" and srng.randf() < 0.4:
+			entry[0] = "pumpkin"
+	var spots: Array = arena.spawn_points[0].duplicate()
+	for t in [1, 2]:
+		spots.append_array(arena.spawn_points[t])
+	var placed := 0
+	for i in spots.size():
+		if placed >= 18:
+			break
+		var sp: Vector3 = spots[(i * 7) % spots.size()]
+		var kinds := ["pumpkin", "pumpkin", "gravestone", "pumpkin", "coffin", "gravestone"]
+		var kind: String = kinds[placed % kinds.size()]
+		var ang := srng.randf() * TAU
+		var pos := sp + Vector3(cos(ang), 0, sin(ang)) * srng.randf_range(2.5, 4.0)
+		var half: Vector3 = Prop.DEFS[kind].size
+		var h := half.y if kind.begins_with("pumpkin") else half.y * 0.5
+		pos.y += h + 0.05
+		if not _spot_free(pos, half):
+			continue
+		arena.initial_props.append([kind, Transform3D(Basis(Vector3.UP, srng.randf() * TAU), pos)])
+		placed += 1
+
+
+func _spot_free(pos: Vector3, half: Vector3) -> bool:
+	var params := PhysicsShapeQueryParameters3D.new()
+	var b := BoxShape3D.new()
+	b.size = half * 0.9
+	params.shape = b
+	params.transform = Transform3D(Basis.IDENTITY, pos)
+	params.collision_mask = Game.L_WORLD
+	if not get_world_3d().direct_space_state.intersect_shape(params, 1).is_empty():
+		return false
+	var q := PhysicsRayQueryParameters3D.create(pos, pos + Vector3.DOWN * 3.0, Game.L_WORLD)
+	return not get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
 func _build_arena(key: String) -> void:
@@ -117,6 +172,8 @@ func _make_mode(m: int) -> ModeBase:
 			return ModeCTF.new()
 		Game.Mode.DODGEBALL:
 			return ModeDodgeball.new()
+		Game.Mode.PUMPKIN:
+			return ModePumpkin.new()
 	return ModeBase.new()
 
 
@@ -125,7 +182,7 @@ func mode_name() -> String:
 
 
 func is_team_mode() -> bool:
-	return mode != Game.Mode.SANDBOX
+	return mode == Game.Mode.CTF or mode == Game.Mode.DODGEBALL
 
 
 func get_player(id: int) -> Player:
@@ -224,6 +281,7 @@ func _build_init_state() -> Dictionary:
 			guns.append([pl.player_id, pl.gun.held_kind, pl.gun.held_id])
 	return {
 		"mode": mode,
+		"spooky": Game.spooky,
 		"map": map_key,
 		"time": net_time(),
 		"players": pl_list,
@@ -246,6 +304,8 @@ func _player_info(pl: Player) -> Dictionary:
 @rpc("authority", "call_remote", "reliable")
 func _s_init(state: Dictionary) -> void:
 	mode = state.mode
+	Game.spooky = state.get("spooky", false)
+	_start_ambience()
 	_build_arena(state.map)
 	_time_offset = state.time - now()
 	team_scores = state.scores
@@ -274,7 +334,7 @@ func _server_add_player(peer: int, pname: String, bot: bool) -> Player:
 	var team := mode_logic.pick_team(players)
 	var info := {
 		"id": id, "owner": 1 if bot else peer, "bot": bot, "name": pname, "team": team,
-		"color": mode_logic.player_color(team, players.size()), "hat": rng.randi() % CharacterModel.HAT_COUNT,
+		"color": mode_logic.player_color(team, players.size()), "hat": (CharacterModel.NORMAL_HATS + rng.randi() % 2) if Game.spooky and rng.randf() < 0.75 else rng.randi() % CharacterModel.NORMAL_HATS,
 		"frags": 0, "deaths": 0, "score": 0, "pos": Vector3.ZERO, "yaw": 0.0, "hp": 100.0, "alive": true,
 	}
 	var pl := _create_player(info)
@@ -292,7 +352,8 @@ func _server_add_bot() -> void:
 	var used := {}
 	for pl: Player in players.values():
 		used[pl.display_name] = true
-	var free := BOT_NAMES.filter(func(n): return not used.has(n))
+	var names: Array = SPOOKY_BOT_NAMES if Game.spooky else BOT_NAMES
+	var free := names.filter(func(n): return not used.has(n))
 	var bot_name: String = free[rng.randi() % free.size()] if not free.is_empty() else "Bot %d" % _next_bot_id
 	_server_add_player(0, bot_name, true)
 
@@ -540,6 +601,10 @@ func server_prop_impact(p: Prop, body: Node, rel: Vector3, speed: float) -> void
 		server_fx("impact:" + mat_name, contact, rel, clampf(energy / 6000.0, 0.03, 3.0), -dir)
 	if body is Player:
 		_prop_hits_player(p, body as Player, rel, speed)
+	if p.is_fragile() and 0.5 * p.mass * speed * speed > Prop.DEFS[p.kind].fragile:
+		server_break_prop(p, rel)
+		return
+	if body is Player:
 		return
 	if p.live and not (body is Prop and (body as Prop).held_by != 0):
 		p.live = false
@@ -610,6 +675,41 @@ func _explode_by_id(id: int) -> void:
 		server_explode(p)
 
 
+## Fragile props (pumpkins, gravestones, coffins) burst or shatter into fragments.
+func server_break_prop(p: Prop, rel: Vector3) -> void:
+	if not is_instance_valid(p) or p.is_queued_for_deletion() or not props.has(p.prop_id):
+		return
+	p.exploded = true
+	var def: Dictionary = Prop.DEFS[p.kind]
+	var xf := p.global_transform
+	var vel := p.linear_velocity
+	var kind := p.kind
+	var col := p.color
+	var thickness := p.size.z
+	mode_logic.on_prop_broken(p)
+	if p.has_meta("map_prop"):
+		_restock.append([now() + 20.0, kind, p.home_transform])
+	server_despawn_prop(p)
+	if kind.begins_with("pumpkin"):
+		server_fx("pumpkin", xf.origin, rel, 2.0 if kind == "pumpkin_gold" else 1.0)
+	elif def.shape == "outline":
+		var mat_name: String = def.get("shatter", "concrete")
+		var srng := RandomNumberGenerator.new()
+		srng.seed = p.prop_id * 7717
+		var basis := xf.basis.orthonormalized()
+		for piece in Fracture.shatter(Prop.outline_for(kind), 5, srng):
+			var pc := Fracture.centroid(piece)
+			var local := Fracture.translated(piece, -pc)
+			var pos := xf * Vector3(pc.x, pc.y, 0.0)
+			var v := vel * 0.5 + (pos - xf.origin).normalized() * srng.randf_range(2.0, 5.0) + Vector3.UP * 2.0
+			if Fracture.area(piece) * thickness >= NET_FRAGMENT_VOLUME * 0.4:
+				var frag := server_spawn_prop("shard", Transform3D(basis, pos), Vector3.ZERO, col, 0, v, {"polys": [local], "t": thickness, "mat": mat_name})
+				_track_debris(frag)
+			else:
+				server_fx_shard(local, thickness, Transform3D(basis, pos), v, col, mat_name)
+		server_fx("impact:" + ("wood" if mat_name == "wood" else "stone"), xf.origin, rel, 1.5, Vector3.UP)
+
+
 func server_explode(p: Prop) -> void:
 	p.exploded = true
 	var pos := p.global_position
@@ -617,12 +717,16 @@ func server_explode(p: Prop) -> void:
 	var t := now()
 	var attacker := p.last_thrower if t - p.last_thrown_time < 8.0 else 0
 	server_fx("explosion", pos, Vector3.UP, radius)
+	var to_break: Array[Prop] = []
 	for o: Prop in props.values():
 		if not is_instance_valid(o) or o == p:
 			continue
 		var to := o.global_position - pos
 		var d := to.length()
 		if d > radius:
+			continue
+		if o.is_fragile() and d < radius * 0.7:
+			to_break.append(o)
 			continue
 		if o.explosive and not o.exploded:
 			o.last_thrower = attacker
@@ -639,6 +743,8 @@ func server_explode(p: Prop) -> void:
 		o.sleeping = false
 		o.last_thrower = attacker
 		o.last_thrown_time = p.last_thrown_time
+	for o in to_break:
+		server_break_prop(o, (o.global_position - pos).normalized() * 15.0)
 	for pl: Player in players.values():
 		if not pl.is_alive():
 			continue
@@ -1295,6 +1401,14 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 		"spawn":
 			fx.zap(pos)
 			Sfx.play3d("spawn", pos, -4.0)
+		"pumpkin":
+			fx.pumpkin_burst(pos, dir, amount > 1.5)
+			Sfx.play3d("squelch", pos, 2.0, rng.randf_range(0.85, 1.1))
+			if local_player and local_player.global_position.distance_to(pos) < 12.0:
+				local_player.shake(0.3)
+		"pickup":
+			Sfx.play3d("pickup", pos, -4.0, rng.randf_range(0.9, 1.3))
+			fx.zap(pos)
 		"creak":
 			Sfx.play3d("creak", pos, 2.0, rng.randf_range(0.7, 1.1))
 			fx.dust(pos, Color(0.9, 0.85, 0.8), 0.4)

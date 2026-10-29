@@ -14,8 +14,8 @@ const L_PROPS := 4
 const L_LIMBS := 8
 const L_TRIGGERS := 16
 
-enum Mode { SANDBOX, CTF, DODGEBALL }
-const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball"]
+enum Mode { SANDBOX, CTF, DODGEBALL, PUMPKIN }
+const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash"]
 const BUILTIN_MAPS := [
 	{"key": "facing", "name": "Facing Yeets"},
 	{"key": "prime", "name": "Yeetwork Prime"},
@@ -47,13 +47,15 @@ var mouse_sensitivity := 0.0022
 var fov := 100.0
 var gore_level := 1 # 0 = off, 1 = silly, 2 = extreme
 var auto_bhop := true
+var halloween := 1 # 0 = off, 1 = auto (mid October - early November), 2 = always
 var third_person := false
 var master_volume := 0.8
 
 # Session config (set by the menu before a match starts).
 var mode: int = Mode.SANDBOX
 var map := "facing" # built-in key or a map scene path under res://maps
-var autostart := false # set by a map scene run with F6 (playtest)
+var autostart := false
+var spooky := false # Halloween theme active for the current match (decided by the server) # set by a map scene run with F6 (playtest)
 var _map_cache: Array = []
 var bot_count := 3
 var join_address := "127.0.0.1"
@@ -74,6 +76,7 @@ func save_settings() -> void:
 	cfg.set_value("player", "fov", fov)
 	cfg.set_value("player", "gore", gore_level)
 	cfg.set_value("player", "auto_bhop", auto_bhop)
+	cfg.set_value("match", "halloween", halloween)
 	cfg.set_value("player", "third_person", third_person)
 	cfg.set_value("audio", "volume", master_volume)
 	cfg.set_value("net", "address", join_address)
@@ -94,6 +97,7 @@ func load_settings() -> void:
 	fov = cfg.get_value("player", "fov", fov)
 	gore_level = cfg.get_value("player", "gore", gore_level)
 	auto_bhop = cfg.get_value("player", "auto_bhop", auto_bhop)
+	halloween = cfg.get_value("match", "halloween", halloween)
 	third_person = cfg.get_value("player", "third_person", third_person)
 	master_volume = cfg.get_value("audio", "volume", master_volume)
 	join_address = cfg.get_value("net", "address", join_address)
@@ -157,8 +161,18 @@ func apply_audio() -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(master_volume, 0.0001)))
 
 
+## Should the Halloween theme be used for a match hosted now?
+func halloween_active() -> bool:
+	if halloween == 2 or mode == Mode.PUMPKIN:
+		return true
+	if halloween == 0:
+		return false
+	var d := Time.get_date_dict_from_system()
+	return (d.month == 10 and d.day >= 15) or (d.month == 11 and d.day <= 3)
+
+
 func is_team_mode() -> bool:
-	return mode != Mode.SANDBOX
+	return mode == Mode.CTF or mode == Mode.DODGEBALL
 
 
 func team_color(team: int) -> Color:

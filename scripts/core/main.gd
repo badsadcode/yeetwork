@@ -44,7 +44,10 @@ func _handle_cmdline(execute := true) -> bool:
 				Game.join_address = next
 				i += 1
 			"--mode":
-				Game.mode = {"sandbox": Game.Mode.SANDBOX, "ctf": Game.Mode.CTF, "dodgeball": Game.Mode.DODGEBALL}.get(next, Game.Mode.SANDBOX)
+				Game.mode = {"sandbox": Game.Mode.SANDBOX, "ctf": Game.Mode.CTF, "dodgeball": Game.Mode.DODGEBALL, "pumpkin": Game.Mode.PUMPKIN}.get(next, Game.Mode.SANDBOX)
+				i += 1
+			"--spooky":
+				Game.halloween = 2 if next != "off" else 0
 				i += 1
 			"--map":
 				# Built-in key ("prime", "facing"), a map file name in res://maps, or a path.
@@ -105,7 +108,7 @@ func _report_and_quit() -> void:
 			broken += d.broken_cells.size()
 		print("AUTOTEST server=%s players=%d alive=%d props=%d broken_cells=%d scores=%s" % [world.is_server, world.players.size(), alive, world.props.size(), broken, world.team_scores])
 		for p in world.players.values():
-			print("  %s hp=%.0f frags=%d deaths=%d pos=%s" % [p.display_name, p.hp, p.frags, p.deaths, p.global_position.snapped(Vector3.ONE * 0.1)])
+			print("  %s hp=%.0f frags=%d deaths=%d score=%d pos=%s" % [p.display_name, p.hp, p.frags, p.deaths, p.score, p.global_position.snapped(Vector3.ONE * 0.1)])
 	else:
 		print("AUTOTEST no world")
 	get_tree().quit()

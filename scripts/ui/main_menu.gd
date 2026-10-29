@@ -13,6 +13,7 @@ var _address: LineEdit
 var _port: SpinBox
 var _mode: OptionButton
 var _map: OptionButton
+var _spooky: OptionButton
 var _bots: SpinBox
 var _time := 0.0
 
@@ -111,6 +112,11 @@ func _ready() -> void:
 	_port.max_value = 65535
 	_port.value = Game.port
 	_field(grid, "Port", _port)
+	_spooky = OptionButton.new()
+	for item in ["Off", "Auto (Halloween season)", "Always"]:
+		_spooky.add_item(item)
+	_spooky.selected = Game.halloween
+	_field(grid, "Spooky mode", _spooky)
 	var host := _button(left, "HOST / PLAY")
 	host.pressed.connect(func():
 		_store()
@@ -175,6 +181,7 @@ func _button(parent: Control, text: String) -> Button:
 func _store() -> void:
 	Game.player_name = _name.text.strip_edges() if not _name.text.strip_edges().is_empty() else "Yeeter"
 	Game.mode = _mode.selected
+	Game.halloween = _spooky.selected
 	Game.map = _map.get_item_metadata(_map.selected) if _map.selected >= 0 else "facing"
 	Game.bot_count = int(_bots.value)
 	Game.port = int(_port.value)
