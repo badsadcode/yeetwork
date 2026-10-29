@@ -46,6 +46,8 @@ func ticks(n: int) -> void:
 
 
 func reset(pos: Vector3, yaw: float) -> void:
+	# A death in an earlier test schedules a server respawn; it must not fire mid-test.
+	world._respawn_at.erase(pl.player_id)
 	pl.respawn(pos, yaw)
 	pl.cmd.move = Vector2.ZERO
 	pl.cmd.jump = false
@@ -249,8 +251,7 @@ func _run() -> void:
 	await reset(Vector3(-40, 40, 25), 0.0)
 	var deaths_before := pl.deaths
 	await ticks(150)
-	# A 40 m drop leaves a few hp; landing on leftover debris can finish you off (and the
-	# respawn refills hp), so a death counts as fall damage too.
+	# A 40 m drop leaves a few hp (a death counts too).
 	check("fall damage", pl.hp < 100.0 or pl.deaths > deaths_before, "hp %.0f, deaths +%d" % [pl.hp, pl.deaths - deaths_before])
 
 	# 12. CTF capture: drop the blue flag on the red stand while red's flag is home.
