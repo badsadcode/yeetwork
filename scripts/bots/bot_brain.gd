@@ -21,6 +21,22 @@ var _grabbing := false
 var _punt_cd := 0.0
 var _jump_held := false
 var _release_in := 0.0
+var _hopping := false
+var _miss := Vector3.ZERO # per-target aim error, re-rolled each think
+
+# Per Game.bot_skill (easy, normal, hard). Hard is the original, merciless bot.
+const TURN_RATE := [2.5, 4.0, 7.0]
+const AIM_SLOP := [3.2, 1.8, 0.0] # metres of miss at the target
+const LEAD := [0.0, 0.5, 1.0]
+const THROW_DELAY := [1.6, 1.0, 0.4]
+const SIGHT := [28.0, 42.0, 60.0]
+const PUNT_REST := [3.0, 1.8, 1.0]
+const HOP := [0.15, 0.4, 0.7]
+const CHARGE := [0.0, 0.6, 1.0]
+
+
+func _skill() -> int:
+	return clampi(Game.bot_skill, 0, 2)
 
 
 func _init(p_pl: Player, p_world: Node) -> void:
@@ -41,7 +57,9 @@ func think(delta: float) -> void:
 	_think -= delta
 	_punt_cd -= delta
 	if _think <= 0.0:
-		_think = 0.25 + _rng.randf() * 0.2
+		_think = 0.25 + _rng.randf() * 0.2 + (2 - _skill()) * 0.1
+		_miss = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-0.5, 1), _rng.randf_range(-1, 1)) * AIM_SLOP[_skill()]
+		_hopping = _rng.randf() < HOP[_skill()]
 		_reconsider()
 
 	var holding := pl.gun.held_kind != GravityGun.Kind.NONE
@@ -59,9 +77,12 @@ func think(delta: float) -> void:
 			look_at = _goal + Vector3.UP
 		elif _enemy and is_instance_valid(_enemy) and _enemy.is_alive():
 			var d := eye.distance_to(_enemy.body_center())
-			var lead := _enemy.velocity * clampf(d / 35.0, 0.0, 0.8)
-			look_at = _enemy.body_center() + lead + Vector3.UP * d * 0.02
-			if d < 40.0 and _hold_timer > 0.4 and _can_see(_enemy.body_center()) and _aim_error(look_at) < 0.12:
+			var lead: Vector3 = _enemy.velocity * clampf(d / 35.0, 0.0, 0.8) * LEAD[_skill()]
+			look_at = _enemy.body_center() + lead + Vector3.UP * d * 0.02 + _miss * clampf(d / 15.0, 0.7, 1.5)
+			# Weaker bots hang back to throw instead of bulldozing you with the prop.
+			if _skill() < 2:
+				want_move = d > 7.0 + (1 - _skill()) * 4.0
+			if d < 40.0 and _hold_timer > THROW_DELAY[_skill()] and _can_see(_enemy.body_center()) and _aim_error(look_at) < 0.12:
 				_throw(d)
 		elif _hold_timer > 4.0:
 			_throw()
@@ -90,7 +111,7 @@ func think(delta: float) -> void:
 				look_at = _enemy.body_center()
 				if _aim_error(look_at) < 0.3:
 					world.gun_action(pl, GravityGun.Action.THROW)
-					_punt_cd = 1.0 + _rng.randf()
+					_punt_cd = PUNT_REST[_skill()] + _rng.randf()
 	_aim(look_at, delta)
 	_steer(delta, want_move)
 
@@ -100,7 +121,7 @@ func _throw(distance := 10.0) -> void:
 	if _release_in > 0.0:
 		return
 	world.gun_action(pl, GravityGun.Action.THROW)
-	_release_in = clampf((distance - 8.0) / 25.0, 0.05, GravityGun.CHARGE_TIME) + _rng.randf() * 0.1
+	_release_in = clampf((distance - 8.0) / 25.0, 0.05, GravityGun.CHARGE_TIME) * CHARGE[_skill()] + 0.05 + _rng.randf() * 0.1
 
 
 func _finish_throw() -> void:
@@ -169,7 +190,7 @@ func _enemy_flag() -> Prop:
 
 func _find_enemy() -> Player:
 	var best: Player = null
-	var best_d := 60.0
+	var best_d: float = SIGHT[_skill()]
 	for o: Player in world.players.values():
 		if o == pl or not o.is_alive() or world.are_teammates(o, pl):
 			continue
@@ -213,7 +234,7 @@ func _aim(point: Vector3, delta: float) -> void:
 		return
 	_aim_yaw = atan2(-to.x, -to.z)
 	_aim_pitch = atan2(to.y, Vector2(to.x, to.z).length())
-	var k := 1.0 - exp(-7.0 * delta)
+	var k := 1.0 - exp(-TURN_RATE[_skill()] * delta)
 	pl.yaw = lerp_angle(pl.yaw, _aim_yaw, k)
 	pl.pitch = lerpf(pl.pitch, clampf(_aim_pitch, -1.4, 1.4), k)
 
@@ -254,7 +275,7 @@ func _steer(delta: float, want_move: bool) -> void:
 		_stuck += delta
 	else:
 		_stuck = 0.0
-	var hop := to.length() > 12.0 and _rng.randf() < 0.7
+	var hop := to.length() > 12.0 and _hopping
 	if _stuck > 0.5:
 		cmd.jump_pressed = true
 		_stuck = 0.0

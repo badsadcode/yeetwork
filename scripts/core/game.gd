@@ -47,6 +47,8 @@ var mouse_sensitivity := 0.0022
 var fov := 100.0
 var gore_level := 1 # 0 = off, 1 = silly, 2 = extreme
 var auto_bhop := true
+var always_run := false
+var bot_skill := 1 # 0 = easy, 1 = normal, 2 = hard
 var graphics := -1 # 0 = low, 1 = medium, 2 = high; -1 = pick automatically
 var stick_sensitivity := 1.0
 var invert_y := false
@@ -114,6 +116,8 @@ func save_settings() -> void:
 	cfg.set_value("player", "fov", fov)
 	cfg.set_value("player", "gore", gore_level)
 	cfg.set_value("player", "auto_bhop", auto_bhop)
+	cfg.set_value("player", "always_run", always_run)
+	cfg.set_value("match", "bot_skill", bot_skill)
 	cfg.set_value("match", "halloween", halloween)
 	cfg.set_value("video", "graphics", graphics)
 	cfg.set_value("player", "stick_sensitivity", stick_sensitivity)
@@ -139,6 +143,8 @@ func load_settings() -> void:
 	fov = cfg.get_value("player", "fov", fov)
 	gore_level = cfg.get_value("player", "gore", gore_level)
 	auto_bhop = cfg.get_value("player", "auto_bhop", auto_bhop)
+	always_run = cfg.get_value("player", "always_run", always_run)
+	bot_skill = cfg.get_value("match", "bot_skill", bot_skill)
 	halloween = cfg.get_value("match", "halloween", halloween)
 	graphics = cfg.get_value("video", "graphics", graphics)
 	stick_sensitivity = cfg.get_value("player", "stick_sensitivity", stick_sensitivity)
@@ -232,7 +238,8 @@ func _setup_input() -> void:
 	_key("move_left", [KEY_A, KEY_LEFT])
 	_key("move_right", [KEY_D, KEY_RIGHT])
 	_key("jump", [KEY_SPACE])
-	_key("crouch", [KEY_CTRL, KEY_C, KEY_SHIFT])
+	_key("crouch", [KEY_CTRL, KEY_C])
+	_key("run", [KEY_SHIFT])
 	_key("freeze_prop", [KEY_F])
 	_key("spawn_prop", [KEY_Q])
 	_key("toggle_view", [KEY_V])
@@ -262,7 +269,7 @@ func _setup_input() -> void:
 	_pad("suicide", JOY_BUTTON_DPAD_DOWN)
 	_pad("prev_slot", JOY_BUTTON_DPAD_LEFT)
 	_pad("next_slot", JOY_BUTTON_DPAD_RIGHT)
-	_pad("crouch", JOY_BUTTON_LEFT_STICK)
+	_pad("run_toggle", JOY_BUTTON_LEFT_STICK)
 	_pad("freeze_prop", JOY_BUTTON_RIGHT_SHOULDER)
 	_axis("move_forward", JOY_AXIS_LEFT_Y, -1.0)
 	_axis("move_back", JOY_AXIS_LEFT_Y, 1.0)

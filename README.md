@@ -37,7 +37,8 @@ no binary assets to import.
 |---|---|
 | Move | WASD |
 | Jump (hold to bunny hop) | Space |
-| Crouch / slide | Ctrl, C or Shift |
+| Run (hold) | Shift. Settings → *Always run* flips it so Shift walks |
+| Crouch / slide (slide only while running) | Ctrl or C |
 | Gravity gun: grab, pull, catch | Hold left mouse |
 | Throw held object (hold to charge) / punt | Right mouse |
 | Freeze held prop (sandbox building) | F |
@@ -132,7 +133,8 @@ menu, or in Pumpkin Smash, every map gets:
   catwalks with lifts, and quarter pipes for slope boosting.
 
 **Bots.** They grab junk, chase people, lob things at them, punt anyone close, bunny hop,
-play CTF and dodgeball, and regularly fall off the map.
+play CTF and dodgeball, and regularly fall off the map. *Bot skill* in settings (host)
+picks Easy, Normal (default) or Hard. Hard is the original sharpshooter.
 
 **Look.** Stylized PBR with a custom triplanar surface shader (soft panels, warm-to-cool
 height gradients), a warm key sun, cool fill light, SDFGI and SSIL bounce lighting, soft
@@ -180,7 +182,7 @@ Command-line options (after `--`):
 
 ```bash
 # Host directly: mode, map and bot count
-godot --path . -- --host --mode ctf --map facing --bots 6
+godot --path . -- --host --mode ctf --map facing --bots 6 --bot-skill 1
 
 # Join a server
 godot --path . -- --join 192.168.1.20

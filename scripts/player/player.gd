@@ -26,7 +26,8 @@ const MASS := 80.0
 
 const GRAVITY := 24.0
 const MAX_SPEED := 9.5
-const CROUCH_SPEED := 4.5
+const WALK_SPEED := 5.0
+const CROUCH_SPEED := 3.5
 const GROUND_ACCEL := 11.0
 const AIR_ACCEL := 14.0
 const AIR_CAP := 0.75
@@ -55,6 +56,7 @@ class Cmd:
 	var jump := false
 	var jump_pressed := false
 	var crouch := false
+	var run := true # bots and tests always run; local humans walk unless running
 
 
 # Identity (replicated).
@@ -84,6 +86,7 @@ var gun: GravityGun
 var bot_brain: RefCounted
 
 var crouched := false
+var _run_toggle := false
 var sliding := false
 var wallrunning := false
 var wall_normal := Vector3.ZERO
@@ -313,6 +316,7 @@ func _read_local_input(_delta: float) -> void:
 		cmd.jump = false
 		cmd.jump_pressed = false
 		cmd.crouch = false
+		cmd.run = false
 		return
 	# Gamepad look.
 	var look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
@@ -331,6 +335,12 @@ func _read_local_input(_delta: float) -> void:
 	_jump_held_last = jump_now
 	cmd.jump = jump_now
 	cmd.crouch = Input.is_action_pressed("crouch")
+	# Shift / L3 runs (L3 toggles until you stop); with "Always run" they walk instead.
+	if Input.is_action_just_pressed("run_toggle"):
+		_run_toggle = not _run_toggle
+	if cmd.move.length() < 0.2:
+		_run_toggle = false
+	cmd.run = Game.always_run != (Input.is_action_pressed("run") or _run_toggle)
 	if not is_alive():
 		return
 	if Input.is_action_just_pressed("gun_grab"):
@@ -438,7 +448,7 @@ func _move_normal(delta: float) -> void:
 	# Crouch / stand.
 	if cmd.crouch and not crouched:
 		_set_crouched(true)
-		if grounded and horizontal_speed() > SLIDE_MIN_SPEED:
+		if grounded and cmd.run and horizontal_speed() > SLIDE_MIN_SPEED:
 			_start_slide()
 	elif not cmd.crouch and crouched and _can_stand():
 		_set_crouched(false)
@@ -460,7 +470,8 @@ func _move_normal(delta: float) -> void:
 			_slide(delta, wish_dir)
 		else:
 			_friction(delta, FRICTION)
-			_accelerate(wish_dir, (CROUCH_SPEED if crouched else MAX_SPEED) * wish_speed, GROUND_ACCEL, delta)
+			var top := CROUCH_SPEED if crouched else (MAX_SPEED if cmd.run else WALK_SPEED)
+			_accelerate(wish_dir, top * wish_speed, GROUND_ACCEL, delta)
 		var floor_n := get_floor_normal()
 		if floor_n.is_normalized():
 			velocity = velocity.slide(floor_n)

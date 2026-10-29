@@ -213,7 +213,7 @@ func _build_scoreboard() -> void:
 func _build_pause() -> void:
 	_pause = PanelContainer.new()
 	_pause.set_anchors_preset(Control.PRESET_CENTER)
-	_pause.position = Vector2(-240, -250)
+	_pause.position = Vector2(-240, -330)
 	_pause.custom_minimum_size = Vector2(480, 0)
 	_pause.add_theme_stylebox_override("panel", _panel_style(0.92))
 	_pause.visible = false

@@ -50,6 +50,7 @@ func reset(pos: Vector3, yaw: float) -> void:
 	pl.cmd.move = Vector2.ZERO
 	pl.cmd.jump = false
 	pl.cmd.crouch = false
+	pl.cmd.run = true
 	await ticks(10)
 
 
@@ -59,6 +60,19 @@ func _run() -> void:
 	pl.cmd.move = Vector2(0, 1)
 	await ticks(150)
 	check("ground run speed", absf(pl.horizontal_speed() - Player.MAX_SPEED) < 0.6, "%.2f m/s" % pl.horizontal_speed())
+
+	# 1b. Walking: slower, and crouching while walking doesn't slide.
+	await reset(Vector3(-50, 0.2, -24), -PI * 0.5)
+	pl.cmd.run = false
+	pl.cmd.move = Vector2(0, 1)
+	await ticks(120)
+	var walk := pl.horizontal_speed()
+	check("walk speed", absf(walk - Player.WALK_SPEED) < 0.6, "%.2f m/s" % walk)
+	pl.cmd.crouch = true
+	await ticks(5)
+	check("no slide while walking", not pl.sliding, "%.1f m/s" % pl.horizontal_speed())
+	pl.cmd.crouch = false
+	pl.cmd.run = true
 
 	# 2. Bunny hop + air strafe gains speed.
 	await reset(Vector3(-55, 0.2, -24), -PI * 0.5)

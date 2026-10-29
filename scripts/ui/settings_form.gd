@@ -40,6 +40,17 @@ static func build_settings_controls() -> GridContainer:
 	bhop.button_pressed = Game.auto_bhop
 	bhop.toggled.connect(func(on): Game.auto_bhop = on)
 	_row(g, "Auto hop", bhop)
+	var run := CheckBox.new()
+	run.text = "Run by default (Shift walks)"
+	run.button_pressed = Game.always_run
+	run.toggled.connect(func(on): Game.always_run = on)
+	_row(g, "Always run", run)
+	var skill := OptionButton.new()
+	for item in ["Easy", "Normal", "Hard"]:
+		skill.add_item(item)
+	skill.selected = clampi(Game.bot_skill, 0, 2)
+	skill.item_selected.connect(func(i): Game.bot_skill = i)
+	_row(g, "Bot skill (host)", skill)
 	return g
 
 

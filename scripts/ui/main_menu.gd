@@ -141,10 +141,10 @@ func _ready() -> void:
 	right.add_child(SettingsForm.build_settings_controls())
 	_header(right, "Controls")
 	var help := Label.new()
-	help.text = "WASD move · Space jump (hold = bhop) · Ctrl/Shift slide\nRun along walls to wall-run; jump off to wall-jump\nLMB hold: grab / pull / catch (players too!)\nRMB: throw held thing, or punt; punt a wall to gravity-jump\nF freeze prop · Q spawn prop (1-9) · V camera · Tab scores\nPad: LT grab · RT throw · A jump · B slide · Y spawn · RB freeze · D-pad view/props"
-	help.add_theme_font_size_override("font_size", 15)
+	help.text = "WASD move · Shift run · Ctrl/C crouch (slide while running) · Space jump\nLMB grab / pull / catch · RMB throw (hold to charge) or punt\nWheel push/pull held · E + mouse rotate · F freeze · Q spawn · V camera\nPad: LT grab · RT throw · A jump · B crouch/slide · L3 run · LB rotate"
+	help.add_theme_font_size_override("font_size", 14)
 	right.add_child(help)
-	var quit := _button(right, "Quit")
+	var quit := _button(left, "Quit")
 	quit.pressed.connect(func(): quit_pressed.emit())
 
 	_status = Label.new()

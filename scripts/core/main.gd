@@ -3,7 +3,7 @@ extends Node
 ## network peer.
 ##
 ## Command line (after `--`):  --host  --join <ip>  --mode sandbox|ctf|dodgeball
-##   --bots <n>  --port <n>  --name <name>  --autotest <seconds>  (quit after N seconds)
+##   --bots <n>  --bot-skill 0|1|2  --port <n>  --name <name>  --autotest <seconds>  (quit after N seconds)
 ##   --screenshot <png> (save a screenshot after 2.5 s, then quit)
 ##   --map prime|facing|<map name in res://maps>  --validate (check a map, then quit)  --test (gameplay smoke tests)  --tour <dir> [--tour-mode destruction|charge]  (save screenshots from fixed viewpoints, then quit)
 
@@ -55,6 +55,9 @@ func _handle_cmdline(execute := true) -> bool:
 			"--map":
 				# Built-in key ("prime", "facing"), a map file name in res://maps, or a path.
 				Game.map = next if next in ["prime", "facing"] or next.begins_with("res://") else "res://maps/%s.tscn" % next.trim_suffix(".tscn")
+				i += 1
+			"--bot-skill":
+				Game.bot_skill = int(next)
 				i += 1
 			"--bots":
 				Game.bot_count = int(next)

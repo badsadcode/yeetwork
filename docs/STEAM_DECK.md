@@ -50,7 +50,8 @@ gravity-gun shots and catches much easier.
 |---|---|
 | Move / look | Left stick / right stick (or gyro / right trackpad) |
 | Jump (hold = bunny hop) | A |
-| Crouch / slide | B or L3 |
+| Run | Click L3 (stays on until you stop), or turn on *Always run* in settings |
+| Crouch / slide (slide only while running) | B |
 | Gravity gun: grab, pull, catch | L2 (left trigger) |
 | Throw (hold to charge) / punt | R2 (right trigger) |
 | Freeze held prop | R1 / X |
