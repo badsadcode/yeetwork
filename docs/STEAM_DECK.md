@@ -52,7 +52,7 @@ gravity-gun shots and catches much easier.
 | Jump (hold = bunny hop) | A |
 | Crouch / slide | B or L3 |
 | Gravity gun: grab, pull, catch | L2 (left trigger) |
-| Throw / punt | R2 (right trigger) |
+| Throw (hold to charge) / punt | R2 (right trigger) |
 | Freeze held prop | R1 / X |
 | Spawn prop (sandbox) / pick prop | Y / D-pad left & right |
 | Third-person camera | D-pad up |

@@ -4,10 +4,11 @@ extends Node3D
 ## every peer draws the beam from the replicated held target.
 ##
 ## Hold LMB: pull/grab whatever is under the crosshair (also catches incoming objects).
-## Release LMB: drop, keeping momentum.  RMB: throw what you hold, or punt everything in a
-## cone (and gravity-jump off a nearby surface when there is nothing to punt).
+## Release LMB: drop, keeping momentum.  RMB while holding: hold to charge, release to
+## throw (tap = normal throw, full charge ~1.8x as hard). RMB with nothing held: punt
+## everything in a cone (and gravity-jump off a nearby surface when there is nothing).
 
-enum Action { GRAB_START, GRAB_END, THROW, FREEZE }
+enum Action { GRAB_START, GRAB_END, THROW, FREEZE, THROW_RELEASE }
 enum Kind { NONE, PROP, PLAYER }
 
 const PULL_RANGE := 34.0
@@ -18,6 +19,8 @@ const PUNT_COS := 0.86
 const PUNT_COOLDOWN := 0.45
 const BOOST_COOLDOWN := 0.9
 const MAX_PULL_MASS := 160.0
+const CHARGE_TIME := 1.0 # seconds to full charge
+const CHARGE_BONUS := 0.8 # full charge throws (1 + bonus) times as hard
 
 var player: Player
 var selected_slot := 0
@@ -32,6 +35,10 @@ var _punt_cd := 0.0
 var _boost_cd := 0.0
 var _regrab_block := 0.0
 var _pull_id := 0
+var _charging := false
+var _charge_start := 0.0
+var _vis_charging := false
+var _vis_charge_start := 0.0
 
 # Replicated visual state.
 var vis_kind: int = Kind.NONE
@@ -213,9 +220,16 @@ func update_visuals(delta: float) -> void:
 			var dir := (to - from) / d
 			var up := Vector3.UP if absf(dir.y) < 0.99 else Vector3.RIGHT
 			var b := Basis.looking_at(dir, up) * Basis(Vector3.RIGHT, PI * 0.5)
-			var w := 1.0 + sin(Time.get_ticks_msec() * 0.03) * 0.3
+			var ch := visual_charge()
+			# Thinner in first person: the beam starts right at the camera.
+			var fp := 0.45 if (_viewmodel and _viewmodel.visible) else 1.0
+			var w := (1.0 + sin(Time.get_ticks_msec() * (0.03 + ch * 0.05)) * 0.3) * (1.0 + ch * 0.6) * fp
 			_beam.global_transform = Transform3D(b.scaled(Vector3(w, d, w)), (from + to) * 0.5)
-			_beam_mat.albedo_color.a = 0.6 + randf() * 0.3
+			var base_col := Color(0.45, 0.95, 1.0) if player.team == 0 else Game.team_color(player.team).lightened(0.3)
+			_beam_mat.albedo_color = base_col.lerp(Color(1.0, 0.97, 0.9), ch)
+			_beam_mat.albedo_color.a = (0.45 + randf() * 0.25) * (0.7 if fp < 1.0 else 1.0)
+			_beam_mat.emission = _beam_mat.albedo_color
+			_beam_mat.emission_energy_multiplier = 3.0 + ch * 2.5
 	else:
 		_beam.visible = false
 	if _viewmodel:
@@ -228,13 +242,15 @@ func update_visuals(delta: float) -> void:
 		var bob := 0.0
 		if player.is_on_floor():
 			bob = sin(Time.get_ticks_msec() * 0.012) * clampf(player.horizontal_speed() / 10.0, 0.0, 1.0) * 0.012
-		_viewmodel.position = Vector3(0.2 + _sway.x * 0.1, -0.19 + bob - _sway.y * 0.1, -0.42 + _kick * 0.06)
-		_viewmodel.rotation = Vector3(_kick * 0.5, _sway.x, 0)
-		var open := 0.55 if vis_kind != Kind.NONE else (0.25 if grab_active else 0.0)
+		var ch := visual_charge()
+		var jitter := Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * 0.004 * ch
+		_viewmodel.position = Vector3(0.2 + _sway.x * 0.1, -0.19 + bob - _sway.y * 0.1, -0.42 + _kick * 0.06 + ch * 0.07) + jitter
+		_viewmodel.rotation = Vector3(_kick * 0.5 - ch * 0.12, _sway.x, 0)
+		var open := (0.55 + visual_charge() * 0.35) if vis_kind != Kind.NONE else (0.25 if grab_active else 0.0)
 		for c in _vm_claws:
 			var claw := c.get_child(0) as Node3D
 			claw.rotation.x = lerpf(claw.rotation.x, open, 1.0 - exp(-12.0 * delta))
-		var pulse := 1.0 + sin(Time.get_ticks_msec() * (0.02 if vis_kind != Kind.NONE else 0.005)) * 0.25
+		var pulse := 1.0 + visual_charge() * 0.8 + sin(Time.get_ticks_msec() * (0.02 + visual_charge() * 0.06 if vis_kind != Kind.NONE else 0.005)) * 0.25
 		_vm_core.scale = Vector3.ONE * pulse
 
 
@@ -262,9 +278,15 @@ func server_action(action: int, origin: Vector3, dir: Vector3) -> void:
 			release(false)
 		Action.THROW:
 			if held_kind != Kind.NONE:
-				_throw(dir)
+				_charging = true
+				_charge_start = Time.get_ticks_msec() / 1000.0
+				player.world.server_gun_charge(self, true)
 			else:
 				_punt(origin, dir)
+		Action.THROW_RELEASE:
+			if _charging and held_kind != Kind.NONE:
+				_throw(dir, charge_level())
+			_cancel_charge()
 		Action.FREEZE:
 			_freeze_held()
 
@@ -396,7 +418,9 @@ func _hold_prop(delta: float, origin: Vector3, dir: Vector3) -> void:
 	if p == null or not is_instance_valid(p):
 		release(false)
 		return
-	var target := origin + dir * _hold_distance(p)
+	var c := charge_level()
+	var shake := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * 0.08 * c
+	var target := origin + dir * _hold_distance(p) * (1.0 - 0.3 * c) + shake
 	var to := target - p.global_position
 	var desired := to * 16.0 + player.velocity
 	var grip := clampf(80.0 / p.mass, 0.12, 1.0)
@@ -421,11 +445,40 @@ func _hold_player(delta: float, origin: Vector3, dir: Vector3) -> void:
 	if _held_time > w.hold_time_limit(player, pl):
 		release(true)
 		return
-	var target := origin + dir * 2.8
+	var c := charge_level()
+	var target := origin + dir * 2.8 * (1.0 - 0.25 * c) + Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * 0.08 * c
 	w.server_send_held(pl, target, player.velocity, player.player_id)
 
 
+## 0..1 server-side charge of the current wind-up.
+func charge_level() -> float:
+	if not _charging:
+		return 0.0
+	return clampf((Time.get_ticks_msec() / 1000.0 - _charge_start) / CHARGE_TIME, 0.0, 1.0)
+
+
+## 0..1 charge as seen by every peer (for visuals).
+func visual_charge() -> float:
+	if not _vis_charging:
+		return 0.0
+	return clampf((Time.get_ticks_msec() / 1000.0 - _vis_charge_start) / CHARGE_TIME, 0.0, 1.0)
+
+
+func set_charge_visual(on: bool) -> void:
+	_vis_charging = on
+	_vis_charge_start = Time.get_ticks_msec() / 1000.0
+	if on:
+		Sfx.play3d("charge", player.eye_position(), -4.0)
+
+
+func _cancel_charge() -> void:
+	if _charging:
+		_charging = false
+		player.world.server_gun_charge(self, false)
+
+
 func release(throw_ragdoll: bool) -> void:
+	_cancel_charge()
 	var w := player.world
 	match held_kind:
 		Kind.PROP:
@@ -443,8 +496,9 @@ func release(throw_ragdoll: bool) -> void:
 		w.server_gun_state_changed(self)
 
 
-func _throw(dir: Vector3) -> void:
+func _throw(dir: Vector3, charge := 0.0) -> void:
 	var w := player.world
+	var power := 1.0 + CHARGE_BONUS * charge
 	var now := Time.get_ticks_msec() / 1000.0
 	_regrab_block = 0.5
 	match held_kind:
@@ -452,23 +506,23 @@ func _throw(dir: Vector3) -> void:
 			var p := w.get_prop(held_id) as Prop
 			release(false)
 			if p:
-				var speed := clampf(48.0 / pow(p.mass / 8.0, 0.33), 9.0, 48.0)
+				var speed := clampf(48.0 / pow(p.mass / 8.0, 0.33), 9.0, 48.0) * power
 				p.linear_velocity = dir * speed + player.velocity
 				p.angular_velocity = Vector3(randf_range(-8, 8), randf_range(-8, 8), randf_range(-8, 8))
 				p.last_thrower = player.player_id
 				p.last_thrown_time = now
 				p.live = true
-				w.server_fx("throw", p.global_position, dir, 1.0)
+				w.server_fx("throw", p.global_position, dir, power)
 		Kind.PLAYER:
 			var pl := w.get_player(held_id) as Player
 			held_kind = Kind.NONE
 			held_id = 0
 			w.server_gun_state_changed(self)
 			if pl:
-				var vel := dir * 30.0 + player.velocity + Vector3.UP * 3.0
+				var vel := dir * 30.0 * power + player.velocity + Vector3.UP * 3.0
 				w.server_launch_player(pl, vel, true, 1.6, player.player_id)
-				w.server_fx("throw", pl.body_center(), dir, 1.5)
-	w.server_gun_kick(player, 1.0)
+				w.server_fx("throw", pl.body_center(), dir, 1.5 * power)
+	w.server_gun_kick(player, power)
 
 
 func _punt(origin: Vector3, dir: Vector3) -> void:

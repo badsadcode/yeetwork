@@ -85,14 +85,14 @@ func _ready() -> void:
 	_speed_label = _label(26, Color(1, 1, 1, 0.9))
 	_speed_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_speed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_speed_label.position = Vector2(-150, -70)
+	_speed_label.position = Vector2(-150, -96)
 	_speed_label.custom_minimum_size = Vector2(300, 0)
 	_root.add_child(_speed_label)
 
 	# Prop slots (bottom right).
 	_slots_box = HBoxContainer.new()
-	_slots_box.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_slots_box.position = Vector2(-760, -60)
+	_slots_box.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_slots_box.position = Vector2(-330, -44)
 	_slots_box.add_theme_constant_override("separation", 6)
 	_root.add_child(_slots_box)
 	for i in Prop.SPAWNABLE.size():
@@ -151,7 +151,7 @@ func _ready() -> void:
 	_help = _label(16, Color(1, 1, 1, 0.85))
 	_help.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_help.position = Vector2(24, 78)
-	_help.text = "WASD move  ·  Space jump (hold to bhop)  ·  Ctrl/Shift crouch & slide\nRun along walls to wall-run, jump off them to wall-jump\nLMB hold: grab / pull / catch   ·   RMB: throw, or punt (punt a nearby wall to gravity-jump)\nF freeze held prop  ·  Q spawn prop (1-9 / wheel to pick)  ·  V third person  ·  Tab scores  ·  K respawn  ·  Esc menu"
+	_help.text = "WASD move  ·  Space jump (hold to bhop)  ·  Ctrl/Shift crouch & slide\nRun along walls to wall-run, jump off them to wall-jump\nLMB hold: grab / pull / catch   ·   RMB: throw (hold to charge), or punt (punt a wall to gravity-jump)\nF freeze held prop  ·  Q spawn prop (1-9 / wheel to pick)  ·  V third person  ·  Tab scores  ·  K respawn  ·  Esc menu"
 	_root.add_child(_help)
 
 	_build_scoreboard()
@@ -314,6 +314,13 @@ func _draw_crosshair() -> void:
 		2:
 			c = Color(1.0, 0.6, 0.2)
 	var r := 10.0 if _aim_state == 0 else 14.0
+	var pl: Player = world.local_player if world else null
+	var charge := pl.gun.visual_charge() if pl and pl.gun else 0.0
+	if charge > 0.0:
+		# Charge ring fills clockwise from the top; white-hot at full.
+		var col := Color(1.0, 0.6, 0.2).lerp(Color(1.0, 1.0, 0.9), charge)
+		_crosshair.draw_arc(Vector2.ZERO, 24.0, -PI * 0.5, -PI * 0.5 + TAU * charge, 48, Color(0, 0, 0, 0.5), 6.0)
+		_crosshair.draw_arc(Vector2.ZERO, 24.0, -PI * 0.5, -PI * 0.5 + TAU * charge, 48, col, 3.0)
 	_crosshair.draw_circle(Vector2.ZERO, 2.5, c)
 	for i in 4:
 		var a := i * PI * 0.5 + PI * 0.25

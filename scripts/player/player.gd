@@ -320,6 +320,8 @@ func _read_local_input(_delta: float) -> void:
 		world.gun_action(self, GravityGun.Action.GRAB_END)
 	if Input.is_action_just_pressed("gun_throw"):
 		world.gun_action(self, GravityGun.Action.THROW)
+	if Input.is_action_just_released("gun_throw"):
+		world.gun_action(self, GravityGun.Action.THROW_RELEASE)
 	if Input.is_action_just_pressed("freeze_prop"):
 		world.gun_action(self, GravityGun.Action.FREEZE)
 	if Input.is_action_just_pressed("spawn_prop"):
@@ -943,4 +945,6 @@ func _update_camera(delta: float) -> void:
 	if _base_fov <= 0.0:
 		_base_fov = Game.fov
 	_base_fov = lerpf(_base_fov, Game.fov + speed_fov, 1.0 - exp(-5.0 * delta))
-	camera.fov = clampf(_base_fov + _punch * 9.0, 20.0, 150.0)
+	# Charging a throw narrows the view slightly: focus before the yeet.
+	var zoom := gun.visual_charge() * 7.0 if gun else 0.0
+	camera.fov = clampf(_base_fov + _punch * 9.0 - zoom, 20.0, 150.0)

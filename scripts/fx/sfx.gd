@@ -46,6 +46,7 @@ func _ready() -> void:
 	_add("death", 0.9, _death)
 	_add("score", 0.6, _score)
 	_add("squelch", 0.6, _squelch)
+	_add("charge", 1.1, _charge)
 	_add("pickup", 0.18, _blip.bind(900.0, 1500.0, 0.18, 0.3))
 	_add("wind", 4.0, _wind)
 	for w: AudioStreamWAV in _streams.wind:
@@ -194,6 +195,20 @@ func _thud_heavy(buf: PackedFloat32Array, v: int) -> void:
 func _smack(buf: PackedFloat32Array, v: int) -> void:
 	_add_noise(buf, _bp_noise(buf.size(), 1100.0 * _vr(v, 0.1)), 32.0, 0.9)
 	_drop(buf, 230.0 * _vr(v, 0.07), 70.0, 30.0, 18.0, 0.8)
+
+
+## Rising whine with a growing hum underneath: the gravity gun winding up.
+func _charge(buf: PackedFloat32Array, v: int) -> void:
+	var phase := 0.0
+	var phase2 := 0.0
+	var n := buf.size()
+	for i in n:
+		var t := float(i) / RATE
+		var k := clampf(t / 1.0, 0.0, 1.0)
+		phase += TAU * lerpf(180.0, 900.0, k * k) * _vr(v, 0.03) / RATE
+		phase2 += TAU * lerpf(60.0, 110.0, k) / RATE
+		var env := clampf(t / 0.05, 0.0, 1.0) * clampf((1.1 - t) / 0.1, 0.0, 1.0)
+		buf[i] += (sin(phase) * 0.22 + (fmod(phase / TAU, 1.0) * 2.0 - 1.0) * 0.08 * k + sin(phase2) * 0.3) * env
 
 
 func _squelch(buf: PackedFloat32Array, v: int) -> void:

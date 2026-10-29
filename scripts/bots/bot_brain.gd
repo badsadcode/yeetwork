@@ -20,6 +20,7 @@ var _aim_pitch := 0.0
 var _grabbing := false
 var _punt_cd := 0.0
 var _jump_held := false
+var _release_in := 0.0
 
 
 func _init(p_pl: Player, p_world: Node) -> void:
@@ -48,6 +49,10 @@ func think(delta: float) -> void:
 	var look_at := _goal + Vector3.UP
 	var want_move := true
 
+	if _release_in > 0.0:
+		_release_in -= delta
+		if _release_in <= 0.0 or not holding:
+			_finish_throw()
 	if holding:
 		_hold_timer += delta
 		if _carrying_flag():
@@ -56,8 +61,8 @@ func think(delta: float) -> void:
 			var d := eye.distance_to(_enemy.body_center())
 			var lead := _enemy.velocity * clampf(d / 35.0, 0.0, 0.8)
 			look_at = _enemy.body_center() + lead + Vector3.UP * d * 0.02
-			if d < 32.0 and _hold_timer > 0.4 and _can_see(_enemy.body_center()) and _aim_error(look_at) < 0.12:
-				_throw()
+			if d < 40.0 and _hold_timer > 0.4 and _can_see(_enemy.body_center()) and _aim_error(look_at) < 0.12:
+				_throw(d)
 		elif _hold_timer > 4.0:
 			_throw()
 	else:
@@ -90,9 +95,18 @@ func think(delta: float) -> void:
 	_steer(delta, want_move)
 
 
-func _throw() -> void:
+## Starts winding up a throw; farther targets get a longer charge.
+func _throw(distance := 10.0) -> void:
+	if _release_in > 0.0:
+		return
 	world.gun_action(pl, GravityGun.Action.THROW)
+	_release_in = clampf((distance - 8.0) / 25.0, 0.05, GravityGun.CHARGE_TIME) + _rng.randf() * 0.1
+
+
+func _finish_throw() -> void:
+	world.gun_action(pl, GravityGun.Action.THROW_RELEASE)
 	world.gun_action(pl, GravityGun.Action.GRAB_END)
+	_release_in = 0.0
 	_grabbing = false
 	_hold_timer = 0.0
 	_target_prop = null

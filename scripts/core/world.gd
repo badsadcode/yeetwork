@@ -1360,6 +1360,17 @@ func _s_gun(id: int, kind: int, target: int) -> void:
 			Sfx.play3d("zap", pl.eye_position(), -4.0, 1.0)
 
 
+func server_gun_charge(gun: GravityGun, on: bool) -> void:
+	_bc_all("_s_gun_charge", [gun.player.player_id, on])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_gun_charge(id: int, on: bool) -> void:
+	var pl := get_player(id)
+	if pl:
+		pl.gun.set_charge_visual(on)
+
+
 func server_gun_kick(pl: Player, amount: float) -> void:
 	_to_owner(pl, "_s_kick", [pl.player_id, amount])
 
@@ -1466,7 +1477,11 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 			fx.shockwave(pos, dir)
 			Sfx.play3d("punt", pos, 0.0, rng.randf_range(0.9, 1.1))
 		"throw":
-			Sfx.play3d("throw", pos, 0.0, rng.randf_range(0.9, 1.2))
+			Sfx.play3d("throw", pos, -2.0 + amount * 3.0, rng.randf_range(0.9, 1.2) / maxf(amount * 0.8, 1.0))
+			if amount > 1.4:
+				# Charged yeet: a deep whump and a shockwave off the muzzle.
+				Sfx.play3d("punt", pos, 2.0, 0.75)
+				fx.shockwave(pos, dir, Color(1.0, 0.95, 0.85))
 		"zap":
 			fx.zap(pos)
 		"hit":

@@ -124,8 +124,26 @@ func _run() -> void:
 	await ticks(20)
 	check("grab crate", pl.gun.held_kind == GravityGun.Kind.PROP and pl.gun.held_id == crate.prop_id, "held kind %d" % pl.gun.held_kind)
 	world.gun_action(pl, GravityGun.Action.THROW)
+	world.gun_action(pl, GravityGun.Action.THROW_RELEASE)
 	await ticks(2)
-	check("throw crate", crate.linear_velocity.length() > 20.0, "%.1f m/s" % crate.linear_velocity.length())
+	var tap_speed := crate.linear_velocity.length()
+	check("throw crate", tap_speed > 20.0, "%.1f m/s" % tap_speed)
+	world.gun_action(pl, GravityGun.Action.GRAB_END)
+
+	# 5b. Charged throw: hold for a full charge, release, much faster than a tap.
+	await reset(Vector3(-50, 0.2, 0), -PI * 0.5)
+	pl.pitch = -0.2
+	var crate2: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, pl.eye_position() + pl.aim_direction() * 3.0))
+	await ticks(5)
+	world.gun_action(pl, GravityGun.Action.GRAB_START)
+	await ticks(20)
+	world.gun_action(pl, GravityGun.Action.THROW)
+	await ticks(70)
+	var was_charging := pl.gun.visual_charge() > 0.9
+	world.gun_action(pl, GravityGun.Action.THROW_RELEASE)
+	await ticks(2)
+	var charged_speed := crate2.linear_velocity.length() if is_instance_valid(crate2) else 0.0
+	check("charged throw", was_charging and charged_speed > tap_speed * 1.5, "tap %.1f m/s, charged %.1f m/s" % [tap_speed, charged_speed])
 	world.gun_action(pl, GravityGun.Action.GRAB_END)
 
 	# 6. Pull from range.
@@ -183,6 +201,7 @@ func _run() -> void:
 	await ticks(15)
 	var was_held := victim.state == Player.State.HELD
 	world.gun_action(pl, GravityGun.Action.THROW)
+	world.gun_action(pl, GravityGun.Action.THROW_RELEASE)
 	await ticks(3)
 	check("grab player", was_held, "state %d" % victim.state)
 	check("throw player", victim.velocity.length() > 20.0 and victim.state == Player.State.RAGDOLL, "vel %.1f state %d" % [victim.velocity.length(), victim.state])
