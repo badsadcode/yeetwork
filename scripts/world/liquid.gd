@@ -50,19 +50,23 @@ const SCULPTED := {
 	"calm": {
 		"wave_height": 0.18, "wave_length": 0.22, "wave_speed": 0.7, "choppiness": 0.6, "crest_sharpness": 1.2,
 		"asymmetry": 0.1, "ripple_intensity": 1.3, "spread": 1.6, "wind_angle": 0.3, "foam_amount": 0.3, "roughness_value": 0.02,
+		"depth_tint": 1.0,
 	},
 	"lake": {
 		"wave_height": 0.45, "wave_length": 0.4, "wave_speed": 0.85, "choppiness": 0.8, "crest_sharpness": 1.4,
 		"asymmetry": 0.2, "ripple_intensity": 1.0, "spread": 1.0, "wind_angle": 0.3, "foam_amount": 0.5, "roughness_value": 0.03,
+		"depth_tint": 1.0,
 	},
 	"ocean": {
 		"wave_height": 1.0, "wave_length": 1.0, "wave_speed": 1.0, "choppiness": 1.0, "crest_sharpness": 1.7,
 		"asymmetry": 0.35, "ripple_intensity": 1.0, "spread": 0.9, "wind_angle": 0.3, "foam_amount": 1.0, "roughness_value": 0.035,
+		"depth_tint": 1.0,
 	},
 	"stormy": {
 		"wave_height": 1.9, "wave_length": 1.15, "wave_speed": 1.25, "choppiness": 1.5, "crest_sharpness": 2.4,
 		"asymmetry": 0.5, "ripple_intensity": 1.4, "spread": 1.5, "wind_angle": 0.3, "foam_amount": 1.8, "roughness_value": 0.06,
-		"foam_streaks": 0.9, "spray": 3.0, "cross_sea": 1.0, "dir_power": 1.6, "heading_vary": 0.9,
+		"foam_streaks": 0.9, "spray": 3.0, "cross_sea": 1.0, "dir_power": 1.6, "heading_vary": 0.9, "depth_tint": 1.0,
+		"depth_scatter": Color(0.04, 0.1, 0.12), # greyer and darker in a storm
 		"shallow_color": Color(0.12, 0.4, 0.44), "deep_color": Color(0.02, 0.12, 0.18), "scatter_color": Color(0.22, 0.62, 0.52),
 		"fog": Color(0.04, 0.22, 0.26), "visibility": 11.0,
 	},

@@ -86,8 +86,9 @@ jump pads, lifts, acid that bounces you, gravity jumps, and swimming.
 **Water, acid and lava.** Two water styles, picked by the host on the Play page:
 *Classic*, and *Sculpted*, which has sharper ridged crests, broad troughs, foam that
 stretches with the waves, ripples and foam rings where things hit the water, wakes behind
-anything moving through it and churned whitewater after explosions. Sculpted seas come in
-calm, lake, ocean and stormy states (`MapSettings → Ocean Preset`).
+anything moving through it and churned whitewater after explosions, and depth-based colour
+(Thornwake's model): clear turquoise shallows, deep water sinking into a dark saturated blue.
+Sculpted seas come in calm, lake, ocean and stormy states (`MapSettings → Ocean Preset`).
 Liquids have Gerstner waves that roll in irregular sets, foam
 where crests fold over and along shores, sun glints, light glowing through thin crests,
 refraction with depth absorption (red fades first), caustics, and screen-space
