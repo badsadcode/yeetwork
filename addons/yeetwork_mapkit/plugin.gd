@@ -6,16 +6,9 @@ extends EditorPlugin
 ## - Resize boxes (blocks, hazard volumes, doors, lifts) with the handles on their faces.
 ## - Or with the Scale tool (R): when you let go, the scale becomes the piece's Size (a scaled
 ##   physics body misbehaves; Godot warns about it) and the scale goes back to 1.
-## - A block draws a world-wrapped copy of its Custom Material, and materials don't say when
-##   they're edited: the materials being edited are watched, and blocks using one are
-##   rebuilt when it changes.
-
-const MATERIAL_CHECK := 0.25 # seconds
 
 var _gizmos: EditorNode3DGizmoPlugin
 var _baking := false
-var _material_seen := {} # material -> hash of its settings when last checked
-var _material_clock := 0.0
 
 
 func _enter_tree() -> void:
@@ -68,49 +61,6 @@ func _bake_scales() -> void:
 		ur.add_undo_method(n, "update_gizmos")
 	ur.commit_action()
 	_baking = false
-
-
-func _process(delta: float) -> void:
-	_material_clock += delta
-	if _material_clock < MATERIAL_CHECK:
-		return
-	_material_clock = 0.0
-	# The materials being edited: in the Inspector, or in the slot of a selected block.
-	var watched := {}
-	var edited := EditorInterface.get_inspector().get_edited_object()
-	if edited is BaseMaterial3D:
-		watched[edited] = true
-	for n in EditorInterface.get_selection().get_selected_nodes():
-		if n.get("custom_material") is BaseMaterial3D and _is_mapkit(n):
-			watched[n.get("custom_material")] = true
-	var changed := []
-	for m in watched:
-		var h := _material_hash(m)
-		if _material_seen.has(m) and _material_seen[m] != h:
-			changed.append(m)
-		_material_seen[m] = h
-	for m in _material_seen.keys():
-		if not watched.has(m):
-			_material_seen.erase(m)
-	if not changed.is_empty():
-		_rebuild_users(EditorInterface.get_edited_scene_root(), changed)
-
-
-func _material_hash(m: Material) -> int:
-	var values := []
-	for p in m.get_property_list():
-		if p.usage & PROPERTY_USAGE_STORAGE:
-			values.append(m.get(p.name))
-	return hash(values)
-
-
-func _rebuild_users(n: Node, materials: Array) -> void:
-	if n == null:
-		return
-	if n.get("custom_material") in materials and _is_mapkit(n):
-		n.call("_rebuild")
-	for c in n.get_children():
-		_rebuild_users(c, materials)
 
 
 func _is_mapkit(n: Node) -> bool:

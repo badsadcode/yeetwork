@@ -136,12 +136,12 @@ A solid box with the arena surface shader (soft panels, warm/cool gradient).
 - **Bounciness** (0-1): a ricochet surface for bank shots. Bouncy blocks are frictionless,
   so things leave at the angle they came in (Test Chambers' BOUNCE panel uses 0.85).
 - **Custom Material** (optional): your own material instead of the colour, e.g. a PBR
-  `StandardMaterial3D` with albedo / normal / roughness / metallic / AO textures. It's wrapped
-  onto every face in world space, so it tiles evenly at any size: **Texture Size** = metres
-  per repeat. Other materials (your own shaders) are used as they are. Edits to the material
-  show on the block straight away. **Height** (parallax) does nothing on blocks: Godot can't do
-  it on world-wrapped textures. Use the normal map for depth (its **Scale** makes it
-  stronger). AO only darkens the ambient light, so it shows most in shade.
+  `StandardMaterial3D` with albedo / normal / roughness / metallic / AO / height textures.
+  It's used exactly as you set it up, and edits show straight away. The block's texture
+  coordinates are laid out in metres in the map, so the texture tiles evenly at any size and
+  lines up across neighbouring blocks: **Texture Size** = metres per repeat; the material's own
+  UV1 Scale / Offset apply on top. Works for your own shaders too (UV and UV2 are the same).
+  AO only darkens the ambient light, so it shows most in shade.
 
 ### BreakableSlab
 A destructible wall, floor or bridge. In game it fractures into irregular pieces.

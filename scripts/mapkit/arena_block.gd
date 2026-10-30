@@ -48,9 +48,10 @@ extends StaticBody3D
 		ice_map_scale = v
 		_rebuild()
 ## Your own material instead of the colour above: PBR textures (albedo, normal, roughness,
-## metallic, AO...). A StandardMaterial3D / ORMMaterial3D is wrapped onto every face in
-## world space, so it tiles evenly whatever the block's size: Texture Size = the metres one
-## repeat covers. Other materials (your own shaders) are used as they are.
+## metallic, AO, height...). It's used as it is, every setting included, on a box whose
+## texture coordinates are laid out in metres in the map, so the texture tiles evenly
+## whatever the block's size and lines up across neighbouring blocks: Texture Size = the
+## metres one repeat covers. The material's own UV1 Scale / Offset apply on top.
 @export var custom_material: Material:
 	set(v):
 		custom_material = v
@@ -66,6 +67,16 @@ extends StaticBody3D
 var _mesh: MeshInstance3D
 var _shape: CollisionShape3D
 
+# Each face: [outward normal, right, up] as seen from outside (right x up = normal).
+const FACES := [
+	[Vector3.RIGHT, Vector3.FORWARD, Vector3.UP],
+	[Vector3.LEFT, Vector3.BACK, Vector3.UP],
+	[Vector3.BACK, Vector3.RIGHT, Vector3.UP],
+	[Vector3.FORWARD, Vector3.LEFT, Vector3.UP],
+	[Vector3.UP, Vector3.RIGHT, Vector3.FORWARD],
+	[Vector3.DOWN, Vector3.RIGHT, Vector3.BACK],
+]
+
 
 func _ready() -> void:
 	collision_layer = 1
@@ -77,7 +88,14 @@ func _ready() -> void:
 		physics_material_override = pm
 	if surface == "ice":
 		set_meta("ice", true)
+	if Engine.is_editor_hint():
+		set_notify_transform(true) # the texture stays put in the map while you move the block
 	_rebuild()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSFORM_CHANGED and _mesh and custom_material and surface != "ice":
+		_mesh.mesh = _textured_box()
 
 
 func _rebuild() -> void:
@@ -96,13 +114,36 @@ func _rebuild() -> void:
 		maps = {"clarity": ice_clarity_map, "normal": ice_normal_map, "scale": ice_map_scale}
 	_mesh.material_override = Mats.ice(size * 0.5, false, false, maps) if surface == "ice" else Mats.world(color, roughness, metallic, emission)
 	if custom_material and surface != "ice":
-		var m := custom_material
-		if m is BaseMaterial3D:
-			m = m.duplicate()
-			(m as BaseMaterial3D).uv1_triplanar = true
-			(m as BaseMaterial3D).uv1_world_triplanar = true
-			(m as BaseMaterial3D).uv1_scale = Vector3.ONE / maxf(texture_size, 0.05)
-		_mesh.material_override = m
+		_mesh.mesh = _textured_box()
+		_mesh.material_override = custom_material
 	var bs := BoxShape3D.new()
 	bs.size = size
 	_shape.shape = bs
+
+
+## The box for a custom material: texture coordinates (UV and UV2) are the face's position in
+## the map in metres / Texture Size, upright on the sides; tangents for normal and height maps.
+func _textured_box() -> ArrayMesh:
+	var anchor := global_basis.inverse() * global_position
+	var k := 1.0 / maxf(texture_size, 0.05)
+	var h := size * 0.5
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for f in FACES:
+		var n: Vector3 = f[0]
+		var r: Vector3 = f[1]
+		var u: Vector3 = f[2]
+		var c := n * (h * n.abs()).length()
+		var hr := r * (h * r.abs()).length()
+		var hu := u * (h * u.abs()).length()
+		var corners := [c - hr + hu, c + hr + hu, c + hr - hu, c - hr - hu] # clockwise from outside
+		for i in [0, 1, 2, 0, 2, 3]:
+			var p: Vector3 = corners[i]
+			var w := anchor + p
+			var uv := Vector2(w.dot(r), -w.dot(u)) * k
+			st.set_normal(n)
+			st.set_uv(uv)
+			st.set_uv2(uv)
+			st.add_vertex(p)
+	st.generate_tangents()
+	return st.commit()

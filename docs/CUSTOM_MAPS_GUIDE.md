@@ -161,9 +161,10 @@ FlagStand" only matter if your map is meant for team modes.
 3. Select a block and drag the material onto its **Custom Material** slot. **Texture Size** is
    how many metres one repeat of the texture covers; it tiles evenly whatever the block's size.
 
-Good to know: **Height** (parallax) does nothing on blocks, because Godot can't do it on
-textures wrapped in world space; the **normal map** gives the depth (raise its **Scale** for
-more). **Ambient Occlusion** only darkens the ambient light, so it shows mostly in shade.
+Every setting of the material works on the block and shows as you change it: normal map
+strength, **Height** (parallax: try a Scale of 1–4 first; high values look stretched),
+**Ambient Occlusion** (it only darkens the ambient light, so it shows mostly in shade), UV1
+Scale / Offset and so on.
 
 To try it right away, drag `custom/example_garden/grass.tres` onto your floor (Texture Size
 `4`) and `stone.tres` onto the walls.
@@ -254,7 +255,7 @@ a friend who doesn't have it is told which map pack to get.
 | Textures or models are missing in the pack | Only what's in your map's folder goes into the pack: keep every texture and model in `custom/<your_map>/`. |
 | Players fall through something | Imported models need collision (step 12). |
 | A warning triangle about "non-uniform scale" on a block | Select the block and do anything (e.g. nudge it): the Map Kit plugin turns the scale into Size. Or set Scale back to 1 and type the Size. |
-| Height / parallax on a material does nothing | Not possible on blocks (world-wrapped textures); use the normal map for depth. |
+| The texture looks blurry | Check the Albedo slot holds the full-size texture, not a small preview/thumbnail image. |
 | Clicking a block in the 3D view doesn't select it | The **Yeetwork Map Kit** plugin must be on: *Project → Project Settings → Plugins*, tick *Enable*. (Selecting it in the Scene list always works.) |
 | F6 starts the wrong map | F6 runs the scene in the tab you're looking at: click your map's tab first. |
 | Errors about missing pieces after copying a map | Maps must be made in the Yeetwork project (step 0). |
