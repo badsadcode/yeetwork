@@ -30,19 +30,25 @@ const CLOUDS := {
 }
 
 
+## The editor's map previews (MapSettings) use High quality.
+const EDITOR_GFX := {"gi": 2, "ssao": true, "fog": true, "glow": true, "shadows": 2}
+
+
 ## Quality options (Game.gfx) on top of a preset. Without full GI the ambient light gets a
 ## little boost so the look stays bright; without volumetric fog, spooky maps keep a haze.
 static func apply_quality(env: Environment, preset: String) -> void:
-	var g: Dictionary = Game.gfx if not Game.gfx.is_empty() else Game.GFX_PRESETS[2]
+	# (in the editor the Game autoload isn't running: the map previews use High quality)
+	var g: Dictionary = EDITOR_GFX if Engine.is_editor_hint() else (Game.gfx if not Game.gfx.is_empty() else Game.GFX_PRESETS[2])
+	var brightness: float = 1.0 if Engine.is_editor_hint() else Game.brightness
 	env.sdfgi_enabled = g.gi >= 2
 	env.ssil_enabled = g.gi >= 1
 	env.ssao_enabled = g.ssao
 	env.ssao_detail = 0.3 if g.gi >= 2 else 0.0
 	env.glow_enabled = g.glow
 	# Brightness (Options → Display): an exposure multiplier.
-	env.tonemap_exposure = float(env.get_meta("exposure", env.tonemap_exposure)) * Game.brightness
+	env.tonemap_exposure = float(env.get_meta("exposure", env.tonemap_exposure)) * brightness
 	if not env.has_meta("exposure"):
-		env.set_meta("exposure", env.tonemap_exposure / Game.brightness)
+		env.set_meta("exposure", env.tonemap_exposure / brightness)
 	var fog_d: float = env.get_meta("vol_fog", env.volumetric_fog_density)
 	env.set_meta("vol_fog", fog_d)
 	env.volumetric_fog_enabled = g.fog and fog_d > 0.0
@@ -58,7 +64,7 @@ static func apply_quality(env: Environment, preset: String) -> void:
 
 ## Sun shadow quality from Game.gfx (shadows: 0 off, 1 low, 2 high).
 static func apply_sun(sun: DirectionalLight3D) -> void:
-	var s: int = Game.gfx.get("shadows", 2)
+	var s: int = 2 if Engine.is_editor_hint() else Game.gfx.get("shadows", 2)
 	sun.shadow_enabled = s > 0
 	sun.directional_shadow_max_distance = 160.0 if s >= 2 else 90.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if s >= 2 else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS

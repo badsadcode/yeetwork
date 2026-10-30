@@ -289,7 +289,8 @@ electricity.
 Maps don't have to live in the game: make them in `custom/<your_map>/` (with their own
 textures, materials, models, sounds and even scripts), export them with
 `tools/export_map_pack.bat <your_map>` and drop the `.zip` into the game's `maps` folder.
-The full guide for map makers is `custom/README.md`; `custom/example_garden/` is an example.
+Step by step with pictures: [CUSTOM_MAPS_GUIDE.md](CUSTOM_MAPS_GUIDE.md); the short
+version for map makers is `custom/README.md`; `custom/example_garden/` is an example.
 (Game builds leave `custom/` out; packs leave the game's own files out.)
 
 ## 5. Testing checklist

@@ -281,7 +281,8 @@ the look of jump pads, lifts, doors, buttons and plates) and scripts, export it 
 `tools/export_map_pack.bat <your_map>` and put the `.zip` in a `maps` folder next to the game.
 It shows up in the map list as *(custom)*. Packs with scripts of their own load only after
 the player allows them (Play page); a player who joins without the server's map pack is told
-which one to get. The guide for map makers: `custom/README.md`.
+which one to get. Your first custom map, step by step with pictures:
+**[docs/CUSTOM_MAPS_GUIDE.md](docs/CUSTOM_MAPS_GUIDE.md)** (the short version: `custom/README.md`).
 
 ```bash
 godot --headless --path . -- --map courtyard --validate

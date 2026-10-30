@@ -3,6 +3,9 @@
 Make your own Yeetwork maps in Godot and share them as **map packs**: one `.zip` per map
 that players drop into the game's `maps` folder. Nothing gets compiled into the game.
 
+**New to it? Follow the step-by-step guide with pictures:
+[docs/CUSTOM_MAPS_GUIDE.md](../docs/CUSTOM_MAPS_GUIDE.md).** This page is the short version.
+
 ## What you need
 
 - **Godot 4.7.2** (the standard build, not .NET): <https://godotengine.org/download>
