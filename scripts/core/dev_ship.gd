@@ -62,7 +62,10 @@ func _ready() -> void:
 		if is_instance_valid(p) and p.kind != "flag" and ship.deck_box.has_point(start_local[p]) 				and not ship.deck_box.has_point(inv * p.global_position):
 			overboard += 1
 	print("SHIP cargo overboard: %d" % overboard)
-	var ok := max_roll > deg_to_rad(0.5) and absf(local_end.y - MapHighSeas.DECK) < 0.6 and overboard <= 3
+	# In a storm (~13 deg of roll) loose cargo is meant to go over the side now and then.
+	var allowed := 3 if Game.sea_override != "stormy" else maxi(3, aboard_start / 3)
+	print("SHIP cargo overboard allowed: %d" % allowed)
+	var ok := max_roll > deg_to_rad(0.5) and absf(local_end.y - MapHighSeas.DECK) < 0.6 and overboard <= allowed
 	var moved := {}
 	for p in start_local: # (untyped: props that exploded meanwhile are freed)
 		if is_instance_valid(p):
