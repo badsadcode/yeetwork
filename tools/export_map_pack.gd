@@ -44,6 +44,9 @@ func _init() -> void:
 	var code := OS.execute(OS.get_executable_path(), ["--headless", "--path", ProjectSettings.globalize_path("res://"), "--export-pack", "Map pack", out], output, true)
 	for line in output:
 		print(line)
+	# Leave the preset as it was (no change in the project after an export).
+	cfg.set_value(section, "export_files", PackedStringArray())
+	cfg.save("res://export_presets.cfg")
 	if code != 0 or not FileAccess.file_exists(out):
 		_fail("The export failed (code %d). Export templates for Godot must be installed (Editor > Manage Export Templates)." % code)
 		return
