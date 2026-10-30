@@ -1,6 +1,6 @@
 # Co-op puzzle mode: design
 
-**Status:** steps 1, 2 and 3 are built: plates, doors, logic (gate, window, sequence),
+**Status:** steps 1-4 are built: plates, doors, logic (gate, window, sequence),
 checkpoints, exit, buttons, targets, break sensors, key props that come back and the Reset
 button; the mode with its clock and objective line; *Moving Day* rooms 1-3
 (`maps/moving_day.tscn`) and the *Test Chambers* (`maps/test_chambers.tscn`: Heavy Decisions,
@@ -174,7 +174,7 @@ the Steam Deck (a 64x64 grid), and it covers almost everything:
    Three Idiots One Door.~~ Done.
 3. ~~Mechanisms: Seesaw, Fan, Turntable; Yeetapult and Windy Business in the Test Chambers.~~
    Done.
-4. **Scoring**: end screen, medals, the awards.
+4. ~~Scoring: end screen, medals, stats, the awards.~~ Done.
 5. **Lost Yeet** and an **open level**: the NPC to rescue, receptacles, collectibles, several
    objectives on the HUD, the warehouse.
 6. **Water and fire**: FloodZone (flood, flush, float, float switches, valves and drains),

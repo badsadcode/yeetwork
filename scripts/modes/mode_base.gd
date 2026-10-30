@@ -70,6 +70,23 @@ func on_prop_fell_out(_prop: Prop) -> bool:
 	return false
 
 
+## Server: run statistics (the Puzzle mode keeps score with these).
+func on_player_launched(_pl: Player, _vel: Vector3, _attacker: int) -> void:
+	pass
+
+
+func on_explosion(_pos: Vector3) -> void:
+	pass
+
+
+func on_prop_thrown(_p: Prop, _thrower: Player) -> void:
+	pass
+
+
+func on_prop_impact(_p: Prop) -> void:
+	pass
+
+
 ## Server: a puzzle piece just switched (after it changed on every peer).
 func on_puzzle_changed(_n: PuzzleNode) -> void:
 	pass

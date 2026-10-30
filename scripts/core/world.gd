@@ -67,6 +67,7 @@ var _machine_accum := 0.0
 ## Puzzle mode clock (net time; -1 = not started / not finished), the same on every peer.
 var puzzle_start := -1.0
 var puzzle_finish := -1.0
+var puzzle_results := {} # the end screen (Puzzle mode), the same on every peer
 
 
 func _ready() -> void:
@@ -316,6 +317,7 @@ func _build_init_state() -> Dictionary:
 		"guns": guns,
 		"puzzle": arena.puzzle.map(func(n: PuzzleNode) -> bool: return n.active),
 		"puzzle_time": [puzzle_start, puzzle_finish],
+		"puzzle_results": puzzle_results,
 		"machines": _machine_buffer(),
 	}
 
@@ -357,6 +359,7 @@ func _s_init(state: Dictionary) -> void:
 		arena.puzzle[i].set_active(pz[i], false)
 	if state.has("machines"):
 		_s_machines(state.machines)
+	puzzle_results = state.get("puzzle_results", {})
 	var pt: Array = state.get("puzzle_time", [-1.0, -1.0])
 	puzzle_start = pt[0]
 	puzzle_finish = pt[1]
@@ -656,6 +659,7 @@ func server_freeze_prop(p: Prop) -> void:
 func server_prop_impact(p: Prop, body: Node, rel: Vector3, speed: float) -> void:
 	if not is_instance_valid(p) or not is_instance_valid(body) or p.exploded:
 		return
+	mode_logic.on_prop_impact(p)
 	var t := now()
 	if speed > 3.0 and p.can_sound(t):
 		var energy := 0.5 * p.mass * speed * speed
@@ -859,6 +863,7 @@ func server_explode(p: Prop) -> void:
 	var t := now()
 	var attacker := p.last_thrower if t - p.last_thrown_time < 8.0 else 0
 	server_fx("explosion", pos, Vector3.UP, radius)
+	mode_logic.on_explosion(pos)
 	var to_break: Array[Prop] = []
 	for o: Prop in props.values():
 		if not is_instance_valid(o) or o == p:
@@ -1342,6 +1347,7 @@ func server_launch_player(pl: Player, vel: Vector3, replace: bool, ragdoll: floa
 	if not pl.is_alive():
 		return
 	server_set_last_attacker(pl, attacker)
+	mode_logic.on_player_launched(pl, vel, attacker)
 	_to_owner(pl, "_s_launch", [pl.player_id, vel, replace, ragdoll])
 
 
@@ -1827,6 +1833,16 @@ func _s_machines(buf: PackedFloat32Array) -> void:
 		if idx >= 0 and idx < arena.puzzle.size() and i + 2 + n <= buf.size():
 			arena.puzzle[idx].apply_machine_state(buf.slice(i + 2, i + 2 + n))
 		i += 2 + n
+
+
+func server_puzzle_results(results: Dictionary) -> void:
+	_bc_all("_s_puzzle_results", [results])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_puzzle_results(results: Dictionary) -> void:
+	puzzle_results = results
+	hud.show_puzzle_results(results)
 
 
 func server_puzzle_time(start: float, finish: float) -> void:

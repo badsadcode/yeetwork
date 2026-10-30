@@ -23,6 +23,9 @@ ocean = true
 ocean_level = -3.0
 kill_height = -20.0
 puzzle = true
+gold_time = 90.0
+silver_time = 150.0
+bronze_time = 240.0
 playtest_mode = 4
 playtest_bots = 0
 

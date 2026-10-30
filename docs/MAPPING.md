@@ -112,6 +112,7 @@ All kit nodes preview themselves in the editor. In game they become the real thi
 | Kill Height | anything below dies or respawns. Keep it ≥ 3 m below your lowest floor |
 | Avoid Areas | XZ rectangles bots walk around (pits). `Rect2(x, z, width, depth)` |
 | Puzzle | a level for the Puzzle (co-op) mode: `--validate` skips the team and flag checks and wants a PuzzleExit |
+| Gold / Silver / Bronze Time | Puzzle mode medals: finish within these many seconds (0: no such medal) |
 | Playtest Mode / Playtest Bots | used by F6 |
 
 ### ArenaBlock (StaticBody3D)

@@ -799,6 +799,7 @@ func _throw(dir: Vector3, charge := 0.0) -> void:
 				p.last_thrown_time = now
 				p.live = true
 				w.server_fx("throw", p.global_position, dir, power)
+				w.mode_logic.on_prop_thrown(p, player)
 		Kind.PLAYER:
 			var pl := w.get_player(held_id) as Player
 			held_kind = Kind.NONE

@@ -69,9 +69,15 @@ func _ready() -> void:
 	_shot("04_moat")
 	# The exit.
 	_check("objective before the exit", world.puzzle_objective() == "Get everyone to the exit", world.puzzle_objective())
-	_place_player(_piece("Exit").global_position + Vector3(0, 0.3, 0))
-	await _wait(0.8)
+	# Into the exit by air (an Unscheduled Flight).
+	_place_player(_piece("Exit").global_position + Vector3(0, 0.2, -4.5))
+	await _wait(0.3)
+	world.server_launch_player(pl, Vector3(0, 9.0, 7.0), true, 0.0, 0)
+	await _wait(1.6)
 	_check("everyone at the exit finishes the level", world.puzzle_finish >= 0.0 and world.puzzle_objective() == "Level complete!", "finish %.1f, objective %s" % [world.puzzle_finish, world.puzzle_objective()])
+	var res: Dictionary = world.puzzle_results
+	var award_names: Array = res.get("awards", []).map(func(a): return a[0])
+	_check("results: a gold medal, Big Brain Yeet and Unscheduled Flight", res.get("medal", "") == "gold" and award_names.has("Big Brain Yeet") and award_names.has("Unscheduled Flight"), "medal %s, awards %s" % [res.get("medal", ""), award_names])
 	_look(Vector3(0, 3, 43), Vector3(0, 1.5, 50))
 	await _wait(0.5)
 	_shot("05_exit")
@@ -276,6 +282,9 @@ func _chambers() -> void:
 	_place_player(_piece("Exit").global_position + Vector3(0, 0.3, 0))
 	await _wait(0.8)
 	_check("the exit finishes the level", world.puzzle_finish >= 0.0, "")
+	var res: Dictionary = world.puzzle_results
+	var award_names: Array = res.get("awards", []).map(func(a): return a[0])
+	_check("results: time, medal, stats and awards arrive", res.get("medal", "") == "gold" and res.get("stats", []).size() >= 4 and award_names.has("Structural Disagreement"), "medal %s, awards %s" % [res.get("medal", ""), award_names])
 	_look(Vector3(0, 3, 116), Vector3(0, 1.5, 123))
 	await _wait(0.5)
 	_shot("c08_exit")

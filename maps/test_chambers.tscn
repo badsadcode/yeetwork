@@ -31,6 +31,9 @@ description = "Co-op puzzle chambers, one idea each: heavy decisions, the imposs
 sky = "day"
 kill_height = -20.0
 puzzle = true
+gold_time = 360.0
+silver_time = 540.0
+bronze_time = 780.0
 playtest_mode = 4
 playtest_bots = 0
 

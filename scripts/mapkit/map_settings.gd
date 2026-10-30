@@ -45,6 +45,10 @@ extends Node
 @export var avoid_areas: Array[Rect2] = []
 ## A level made for the Puzzle (co-op) mode: --validate skips the team and flag checks.
 @export var puzzle := false
+## Puzzle mode medals: finish within these times (seconds; 0 = no such medal).
+@export var gold_time := 0.0
+@export var silver_time := 0.0
+@export var bronze_time := 0.0
 ## Playtest settings used when you press F6 on this scene.
 @export_enum("Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash", "Puzzle (co-op)") var playtest_mode := 0
 @export_range(0, 11) var playtest_bots := 3

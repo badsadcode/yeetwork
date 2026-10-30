@@ -34,6 +34,9 @@ var _score_label: Label
 var _objective: Label
 var _objective_plate: HudPlate
 var _use_prompt: Label
+var _results: PanelContainer
+var _results_until := 0.0
+const MEDAL_COLORS := {"gold": Color(1.0, 0.82, 0.25), "silver": Color(0.82, 0.86, 0.95), "bronze": Color(0.85, 0.55, 0.3)}
 var _clock_t := 0.0
 var _killfeed: VBoxContainer
 var _messages: VBoxContainer
@@ -290,6 +293,64 @@ func _panel_style(alpha := 0.82) -> StyleBoxFlat:
 	return sb
 
 
+## The Puzzle mode's end screen: time, medal, stats and awards (on every peer). It stays
+## for 20 s; the scoreboard key shows it again.
+func show_puzzle_results(r: Dictionary) -> void:
+	if _results:
+		_results.queue_free()
+	_results = PanelContainer.new()
+	_results.set_anchors_preset(Control.PRESET_CENTER)
+	_results.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_results.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_results.custom_minimum_size = Vector2(620, 0)
+	_results.add_theme_stylebox_override("panel", _panel_style(0.9))
+	_root.add_child(_results)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	_results.add_child(v)
+	var centred := func(l: Label) -> Label:
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(l)
+		return l
+	centred.call(_label(38, Color(0.45, 1.0, 0.55))).text = "LEVEL COMPLETE"
+	centred.call(_label(56, Color.WHITE)).text = ModePuzzle.clock_text(r.get("time", 0.0))
+	var medal: String = r.get("medal", "")
+	var times: Array = r.get("medal_times", [0.0, 0.0, 0.0])
+	if medal != "":
+		centred.call(_label(30, MEDAL_COLORS[medal])).text = "%s MEDAL" % medal.to_upper()
+	var targets := []
+	for k in 3:
+		if times[k] > 0.0:
+			targets.append("%s %s" % [["Gold", "Silver", "Bronze"][k], ModePuzzle.clock_text(times[k])])
+	if not targets.is_empty():
+		centred.call(_label(18, Color(0.8, 0.82, 0.95))).text = "   ·   ".join(targets)
+	v.add_child(HSeparator.new())
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 24)
+	for row: Array in r.get("stats", []):
+		var a := _label(22, Color(0.85, 0.85, 0.95))
+		a.text = row[0]
+		var b := _label(22, Color.WHITE)
+		b.text = row[1]
+		grid.add_child(a)
+		grid.add_child(b)
+	var gc := CenterContainer.new()
+	gc.add_child(grid)
+	v.add_child(gc)
+	var awards: Array = r.get("awards", [])
+	if not awards.is_empty():
+		v.add_child(HSeparator.new())
+		for aw: Array in awards:
+			centred.call(_label(26, Color(1.0, 0.82, 0.3))).text = aw[0]
+			var d: Label = centred.call(_label(18, Color(0.92, 0.92, 1.0)))
+			d.text = aw[1]
+	var hint: Label = centred.call(_label(16, Color(0.7, 0.72, 0.85)))
+	hint.text = "%s shows this again" % (Controls.pad_of("scoreboard") if _pad_used else Controls.key_of("scoreboard"))
+	_results_until = Time.get_ticks_msec() / 1000.0 + 20.0
+	_results.visible = true
+
+
 func _build_scoreboard() -> void:
 	_scoreboard = PanelContainer.new()
 	_scoreboard.set_anchors_preset(Control.PRESET_CENTER)
@@ -404,7 +465,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	var pl: Player = world.local_player if world else null
-	_scoreboard.visible = Input.is_action_pressed("scoreboard") and not _paused
+	var board := Input.is_action_pressed("scoreboard") and not _paused
+	if _results:
+		# Puzzle results: shown for a while after the level, then on the scoreboard key.
+		_results.visible = (board or Time.get_ticks_msec() / 1000.0 < _results_until) and not _paused
+		board = false
+	_scoreboard.visible = board
 	if _scoreboard.visible:
 		_refresh_scoreboard()
 	_help_time -= delta

@@ -161,7 +161,11 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   screen shows the clock and the current objective. Targets, buttons, timed and ordered
   logic, smashed walls as switches; props a puzzle needs come back when lost, and a big
   red Reset button (press E) tidies a room. Seesaws that yeet you, turntables, and a big fan
-  you can grab and aim. Ice, solid or breakable: Yeets skate on it, crates glide. Levels:
+  you can grab and aim. Ice, solid or breakable: Yeets skate on it, crates glide. At the exit
+  everyone gets the results: the time and its medal, stats (props destroyed, times a friend
+  yeeted you, deaths, the longest throw) and awards for how it went (Big Brain Yeet,
+  Structural Disagreement, Unscheduled Flight, Task Failed Successfully, Certified Yeet
+  Engineer). Levels:
   **Moving Day** and **Test Chambers** (Heavy Decisions, The Impossible Shot, Three Idiots
   One Door, Yeetapult, Windy Business, Thin Ice).
 
