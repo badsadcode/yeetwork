@@ -120,9 +120,15 @@ A solid box with the arena surface shader (soft panels, warm/cool gradient).
 - Color, Roughness, Metallic, Emission (glow).
 - **Ramps:** rotate a block around X or Z. Players can walk up to 46°, and steeper
   slopes are slides.
-- **Surface**: `arena` (the usual panels) or `ice`: clear, frosty blue ice that can't be
-  broken, and slippery: Yeets skate (little grip, long slides), props glide. For ice that
-  breaks, use a BreakableSlab of `ice`.
+- **Surface**: `arena` (the usual panels) or `ice`: frosty blue ice that can't be broken,
+  and slippery: Yeets skate (little grip, long slides), props glide. Blocks thinner than
+  2.5 m are see-through, tinted by how much ice you look through (thin is nearly clear);
+  thicker ice is solid (deep blue, frost inside). For ice that breaks, use a BreakableSlab
+  of `ice` (see-through thin ice).
+  - **Ice Clarity Map** (optional): a greyscale texture, white clear, black cloudy, wrapped
+    onto every face; **Ice Normal Map** (optional): the surface's bumps; **Ice Map Scale**:
+    repeats per metre. Without them the ice makes its own frost and melted bumps.
+    `assets/textures/ice_clarity_noise.tres` and `ice_normal_noise.tres` are examples.
 - **Bounciness** (0-1): a ricochet surface for bank shots. Bouncy blocks are frictionless,
   so things leave at the angle they came in (Test Chambers' BOUNCE panel uses 0.85).
 

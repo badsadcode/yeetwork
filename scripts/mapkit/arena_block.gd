@@ -32,6 +32,21 @@ extends StaticBody3D
 	set(v):
 		surface = v
 		_rebuild()
+## Ice only, optional: a clarity map (greyscale: white clear, black cloudy) and a normal map
+## (the surface's bumps), wrapped onto every face; Ice Map Scale = repeats per metre.
+## Without them the ice makes its own frost and bumps.
+@export var ice_clarity_map: Texture2D:
+	set(v):
+		ice_clarity_map = v
+		_rebuild()
+@export var ice_normal_map: Texture2D:
+	set(v):
+		ice_normal_map = v
+		_rebuild()
+@export_range(0.05, 4.0, 0.05) var ice_map_scale := 0.5:
+	set(v):
+		ice_map_scale = v
+		_rebuild()
 ## Ricochet surfaces: how much bounce things keep off it (0 = like any wall; 0.8 = a lot).
 ## A bouncy block is also frictionless, so things leave it at the angle they came in.
 @export_range(0.0, 1.0, 0.05) var bounciness := 0.0
@@ -64,7 +79,10 @@ func _rebuild() -> void:
 	var bm := BoxMesh.new()
 	bm.size = size
 	_mesh.mesh = bm
-	_mesh.material_override = Mats.ice(size * 0.5) if surface == "ice" else Mats.world(color, roughness, metallic, emission)
+	var maps := {}
+	if ice_clarity_map or ice_normal_map:
+		maps = {"clarity": ice_clarity_map, "normal": ice_normal_map, "scale": ice_map_scale}
+	_mesh.material_override = Mats.ice(size * 0.5, false, false, maps) if surface == "ice" else Mats.world(color, roughness, metallic, emission)
 	var bs := BoxShape3D.new()
 	bs.size = size
 	_shape.shape = bs

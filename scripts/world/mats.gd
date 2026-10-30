@@ -24,33 +24,36 @@ static func world(color: Color, roughness := 0.75, metallic := 0.0, emission := 
 	return m
 
 
-## Ice (ice.gdshader): `box_half` makes a box's edges glow (zero: no edge glow);
-## `damage` draws cracks from vertex colour (breakable ice). Low "simple glass": a plain
-## translucent blue.
-static func ice(box_half := Vector3.ZERO, inner := false, damage := false) -> Material:
+## Ice (ice.gdshaderinc): `box_half` rounds a box's edges and gives the view's path through
+## it (zero: a slab); `damage` draws cracks from vertex colour (breakable ice). Thin ice and
+## blocks thinner than 2.5 m are see-through (ice_clear: the view tinted by how much ice it
+## crosses); thicker ice is solid (ice behind see-through ice would draw wrong, and you
+## can't see through that much ice anyway). The glass quality setting picks the frost layers
+## (Low: 2, no bubbles) and, at its lowest, solid ice everywhere.
+## `maps`: optional {"clarity": Texture2D, "normal": Texture2D, "scale": float} (a material
+## of its own, not shared).
+static func ice(box_half := Vector3.ZERO, inner := false, damage := false, maps := {}) -> Material:
 	var q := 2 if Engine.is_editor_hint() else clampi(int(Game.gfx.get("glass", 2)), 0, 2)
 	var key := "ice%s_%s_%s_%d" % [box_half, inner, damage, q]
-	if _cache.has(key):
+	if maps.is_empty() and _cache.has(key):
 		return _cache[key]
-	var m: Material
-	if q > 0:
-		var im := ShaderMaterial.new()
-		im.shader = preload("res://scripts/world/ice.gdshader")
-		im.set_shader_parameter("box_half", box_half)
-		im.set_shader_parameter("inner", inner)
-		im.set_shader_parameter("use_vertex_damage", damage)
-		m = im
-	else:
-		var s := StandardMaterial3D.new()
-		s.albedo_color = Color(0.7, 0.88, 1.0, 0.55 if not inner else 0.7)
-		s.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		s.roughness = 0.1
-		s.rim_enabled = true
-		s.rim = 0.5
-		s.emission_enabled = true
-		s.emission = Color(0.25, 0.4, 0.55)
-		m = s
-	_cache[key] = m
+	var thin := box_half == Vector3.ZERO or minf(box_half.x, minf(box_half.y, box_half.z)) * 2.0 < 2.5
+	var m := ShaderMaterial.new()
+	m.shader = preload("res://scripts/world/ice_clear.gdshader") if thin and q >= 1 else preload("res://scripts/world/ice.gdshader")
+	m.set_shader_parameter("box_half", box_half)
+	m.set_shader_parameter("inner", inner)
+	m.set_shader_parameter("use_vertex_damage", damage)
+	m.set_shader_parameter("layers", 4 if q >= 2 else 2)
+	m.set_shader_parameter("detail", q >= 1)
+	if maps.get("clarity"):
+		m.set_shader_parameter("clarity_map", maps.clarity)
+		m.set_shader_parameter("use_clarity_map", true)
+	if maps.get("normal"):
+		m.set_shader_parameter("normal_map", maps.normal)
+		m.set_shader_parameter("use_normal_map", true)
+	m.set_shader_parameter("map_scale", maps.get("scale", 0.5))
+	if maps.is_empty():
+		_cache[key] = m
 	return m
 
 
