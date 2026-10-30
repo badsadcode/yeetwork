@@ -21,6 +21,12 @@ Design notes from the brief: motion builds gradually and stays readable (creaks 
 scraping before cargo lets go), most containers stay secured, falling overboard is not
 instant death, everything gameplay-relevant is server-authoritative and deterministic.
 
+## Co-op puzzle mode (proposal)
+
+No bots, 1-4 players get through a level together with physics: collect, open doors,
+physics puzzles, rescue a Lost Yeet, deliver a fragile package. Full proposal, new Map Kit
+pieces and a first level: [PUZZLE_COOP.md](PUZZLE_COOP.md). Waiting for review.
+
 ## Gravity gun: Grapple mode (later)
 
 A second mode for the same gun: amber energy, claws partly retracted, an energy anchor on a
