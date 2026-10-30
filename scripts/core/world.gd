@@ -62,6 +62,10 @@ var _corpses: Array[Node] = []
 var _burning_props := {} # prop id -> [end time, attacker]
 var _burning_players := {} # player id -> [end time, attacker]
 var _fire_accum := 0.0
+var _puzzle_accum := 0.0
+## Puzzle mode clock (net time; -1 = not started / not finished), the same on every peer.
+var puzzle_start := -1.0
+var puzzle_finish := -1.0
 
 
 func _ready() -> void:
@@ -110,8 +114,9 @@ func start(server: bool) -> void:
 		multiplayer.peer_connected.connect(_on_peer_connected)
 		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 		_server_add_player(1, Game.player_name, false, Game.look())
-		for i in Game.bot_count:
-			_server_add_bot()
+		if mode_logic.allows_bots():
+			for i in Game.bot_count:
+				_server_add_bot()
 		hud.on_mode_changed()
 	else:
 		_c_hello.rpc_id(1, Game.player_name, Game.VERSION, Game.look())
@@ -184,6 +189,8 @@ func _make_mode(m: int) -> ModeBase:
 			return ModeDodgeball.new()
 		Game.Mode.PUMPKIN:
 			return ModePumpkin.new()
+		Game.Mode.PUZZLE:
+			return ModePuzzle.new()
 	return ModeBase.new()
 
 
@@ -302,6 +309,8 @@ func _build_init_state() -> Dictionary:
 		"wall_damage": wall_damage,
 		"scores": team_scores,
 		"guns": guns,
+		"puzzle": arena.puzzle.map(func(n: PuzzleNode) -> bool: return n.active),
+		"puzzle_time": [puzzle_start, puzzle_finish],
 	}
 
 
@@ -337,6 +346,12 @@ func _s_init(state: Dictionary) -> void:
 		var pl := get_player(g[0])
 		if pl:
 			pl.gun.set_visual_state(g[1], g[2])
+	var pz: Array = state.get("puzzle", [])
+	for i in mini(pz.size(), arena.puzzle.size()):
+		arena.puzzle[i].set_active(pz[i], false)
+	var pt: Array = state.get("puzzle_time", [-1.0, -1.0])
+	puzzle_start = pt[0]
+	puzzle_finish = pt[1]
 	hud.on_mode_changed()
 
 
@@ -474,6 +489,10 @@ func _physics_process(delta: float) -> void:
 	if _fire_accum >= FIRE_TICK:
 		_fire_accum = 0.0
 		_server_fire_tick()
+	_puzzle_accum += delta
+	if _puzzle_accum >= 0.1 and not arena.puzzle.is_empty():
+		_puzzle_accum = 0.0
+		_server_puzzle_tick()
 
 
 # --- Player state sync ------------------------------------------------------------
@@ -1089,7 +1108,7 @@ func server_set_last_attacker(pl: Player, attacker: int) -> void:
 
 
 func server_damage_player(pl: Player, amount: float, attacker: int, cause: String, point: Vector3, dir: Vector3) -> void:
-	if not pl.is_alive() or amount <= 0.0:
+	if not pl.is_alive() or amount <= 0.0 or not mode_logic.allow_damage(pl, attacker, cause):
 		return
 	var t := now()
 	if attacker == 0 and t - pl.last_attacker_time < 7.0:
@@ -1650,6 +1669,42 @@ func _s_burn(kind: int, id: int, seconds: float) -> void:
 			Sfx.play3d("sizzle", target.global_position, 2.0, 0.8)
 			fx.puffs(target.global_position + Vector3.UP * 0.3, Vector3.UP, 8, [Color(1, 1, 1, 0.6), Color(0.9, 0.92, 0.95, 0.35), Color(0.9, 0.92, 0.95, 0.0)],
 				1.2, 2.2, 1.0, 2.5, 1.6, 30.0, Vector3(0, 1.2, 0))
+
+
+# --- Puzzles ----------------------------------------------------------------------
+# Map Kit puzzle pieces (plates, doors, logic, checkpoints, exits): the server decides
+# every piece's state ten times a second and tells everyone when one changes.
+
+func _server_puzzle_tick() -> void:
+	for n in arena.puzzle:
+		var want := n.evaluate() or (n.latch and n.active)
+		if want != n.active:
+			_bc_all("_s_puzzle", [n.puzzle_index, want])
+			mode_logic.on_puzzle_changed(n)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_puzzle(index: int, on: bool) -> void:
+	if index >= 0 and index < arena.puzzle.size():
+		arena.puzzle[index].set_active(on)
+
+
+func server_puzzle_time(start: float, finish: float) -> void:
+	_bc_all("_s_puzzle_time", [start, finish])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_puzzle_time(start: float, finish: float) -> void:
+	puzzle_start = start
+	puzzle_finish = finish
+
+
+## The objective to show in the Puzzle mode: the first unfinished piece's text.
+func puzzle_objective() -> String:
+	for n in arena.puzzle:
+		if not n.active and n.objective != "":
+			return n.objective
+	return "Level complete!" if puzzle_finish >= 0.0 else ""
 
 
 # --- Effects & messages -----------------------------------------------------------

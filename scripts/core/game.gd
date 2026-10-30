@@ -14,8 +14,8 @@ const L_PROPS := 4
 const L_LIMBS := 8
 const L_TRIGGERS := 16
 
-enum Mode { SANDBOX, CTF, DODGEBALL, PUMPKIN }
-const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash"]
+enum Mode { SANDBOX, CTF, DODGEBALL, PUMPKIN, PUZZLE }
+const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash", "Puzzle (co-op)"]
 const BUILTIN_MAPS := [
 	{"key": "facing", "name": "Facing Yeets"},
 	{"key": "prime", "name": "Yeetwork Prime"},

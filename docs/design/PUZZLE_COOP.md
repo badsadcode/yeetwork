@@ -1,6 +1,8 @@
 # Co-op puzzle mode: design proposal
 
-**Status:** proposal for Tomek to review. Nothing here is built yet.
+**Status:** step 1 of the build order is done (plates, doors, logic, checkpoints, exit,
+the mode and its HUD line, and rooms 1-3 of *Moving Day*, `maps/moving_day.tscn`). Open
+questions at the end still need answers before step 3.
 
 ## The idea
 

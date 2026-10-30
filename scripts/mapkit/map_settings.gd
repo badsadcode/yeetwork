@@ -43,8 +43,10 @@ extends Node
 @export var kill_height := -40.0
 ## Areas (XZ rectangles in world space) bots should walk around, e.g. pits.
 @export var avoid_areas: Array[Rect2] = []
+## A level made for the Puzzle (co-op) mode: --validate skips the team and flag checks.
+@export var puzzle := false
 ## Playtest settings used when you press F6 on this scene.
-@export_enum("Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash") var playtest_mode := 0
+@export_enum("Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash", "Puzzle (co-op)") var playtest_mode := 0
 @export_range(0, 11) var playtest_bots := 3
 
 var _preview: Array[Node] = []

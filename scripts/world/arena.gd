@@ -29,6 +29,8 @@ var initial_props: Array = [] # [kind, Transform3D]
 var kill_y := -45.0
 var avoid_rects: Array[Rect2] = [] # XZ areas bots should route around
 var fire_areas: Array = [] # [Transform3D, size]: burning places (World sets things alight in them)
+var puzzle: Array[PuzzleNode] = [] # puzzle pieces of a Map Kit map, in scene order (same on every peer)
+var map_settings: MapSettings # a Map Kit map's settings (null for code-built maps)
 ## A moving body the whole map rides on (High Seas' ship), or null. When set, spawn points,
 ## flag stands, initial props and props' home transforms are in its local space; use
 ## to_world() / xf_world() / flag_pos() to read them.
@@ -235,6 +237,7 @@ func _build_scene_map(path: String) -> void:
 	var root := packed.instantiate()
 	add_child(root)
 	var settings := _find_settings(root)
+	map_settings = settings
 	if settings:
 		kill_y = settings.kill_height
 		avoid_rects.assign(settings.avoid_areas)
@@ -247,6 +250,9 @@ func _build_scene_map(path: String) -> void:
 	elif settings and settings.weather == "storm" and not get_children().any(func(c: Node) -> bool: return c is Weather):
 		add_child(Weather.new())
 	_collect(root)
+	for i in puzzle.size():
+		puzzle[i].puzzle_index = i
+		puzzle[i].world = world
 
 
 func _find_settings(n: Node) -> MapSettings:
@@ -293,6 +299,8 @@ func _collect(n: Node) -> void:
 	elif n is HazardVolume:
 		var hv := n as HazardVolume
 		hazard(hv.kind, Transform3D(hv.global_transform.basis.orthonormalized(), hv.global_position), hv.size, hv.damage, hv.wind, hv.fire_color)
+	elif n is PuzzleNode:
+		puzzle.append(n)
 	elif n is CSGShape3D:
 		var csg := n as CSGShape3D
 		if csg.is_root_shape() and csg.use_collision:
@@ -305,11 +313,14 @@ func validate() -> Array[String]:
 	var out: Array[String] = []
 	if spawn_points[0].size() < 4:
 		out.append("Only %d 'Any' spawn points (want 4+ for free-for-all)." % spawn_points[0].size())
+	var co_op := map_settings != null and map_settings.puzzle
 	for t in [1, 2]:
-		if spawn_points[t].is_empty():
+		if spawn_points[t].is_empty() and not co_op:
 			out.append("No %s spawn points (team modes will use 'Any' spawns)." % Game.TEAM_NAMES[t])
-	if not flag_stands.has(1) or not flag_stands.has(2):
+	if (not flag_stands.has(1) or not flag_stands.has(2)) and not co_op:
 		out.append("CTF needs one Red and one Blue FlagStand.")
+	if co_op and not puzzle.any(func(n: PuzzleNode) -> bool: return n is PuzzleExit):
+		out.append("A puzzle level needs a PuzzleExit.")
 	var cells := 0
 	for d in destructibles:
 		cells += d.cells.size()
@@ -337,6 +348,8 @@ func validate() -> Array[String]:
 				out.append("Spawn at %s is inside geometry." % p.snapped(Vector3.ONE * 0.1))
 	if lowest < INF and kill_y > lowest - 3.0:
 		out.append("kill_height %.1f is too close to the floor (lowest spawn floor %.1f)." % [kill_y, lowest])
+	for n in puzzle:
+		out.append_array(n.problems())
 	return out
 
 

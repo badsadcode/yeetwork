@@ -70,7 +70,22 @@ func on_prop_fell_out(_prop: Prop) -> bool:
 	return false
 
 
+## Server: a puzzle piece just switched (after it changed on every peer).
+func on_puzzle_changed(_n: PuzzleNode) -> void:
+	pass
+
+
 func allow_build() -> bool:
+	return true
+
+
+## False: no bots join (the Puzzle mode).
+func allows_bots() -> bool:
+	return true
+
+
+## Return false to cancel damage to a player (before it's applied).
+func allow_damage(_pl: Player, _attacker: int, _cause: String) -> bool:
 	return true
 
 

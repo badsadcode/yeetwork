@@ -153,6 +153,11 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
 - **Pumpkin Smash** (Halloween): free-for-all candy grab. Smash jack-o'-lanterns
   (golden ones are worth more) to spill candy, then walk over candy to collect it. Getting
   killed spills everything you carry, so yeet the leader. First to 40 wins the round.
+- **Puzzle (co-op)** (first step, see [the proposal](docs/design/PUZZLE_COOP.md)): no
+  bots, no frags. Get through a puzzle level together: pressure plates that need a crate,
+  an anvil or a friend; gates that open from them; checkpoints you respawn at; an exit that
+  finishes the level when everyone's in it. Friends can't hurt each other. The top of the
+  screen shows the clock and the current objective. First level: **Moving Day**.
 
 **Spooky mode.** During Halloween season (Oct 15 - Nov 3), when set to *Always* in the
 menu, or in Pumpkin Smash, every map gets:
@@ -279,6 +284,9 @@ godot --path . -- --join 192.168.1.20
 
 # Gameplay smoke tests (movement, gun, destruction, explosions, CTF...)
 godot --headless --path . -- --host --map prime --mode ctf --bots 0 --test
+
+# Puzzle mode: Moving Day played through by a script (checks every step; screenshots without --headless)
+godot --headless --path . -- --host --map moving_day --mode puzzle --tour x --tour-mode puzzle
 
 # Headless soak test: quit after N seconds and print a summary
 godot --headless --path . -- --host --bots 8 --autotest 60

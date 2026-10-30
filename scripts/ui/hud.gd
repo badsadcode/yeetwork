@@ -31,6 +31,9 @@ var _speed_label: Label
 var _slots_box: HBoxContainer
 var _slot_labels: Array[Label] = []
 var _score_label: Label
+var _objective: Label
+var _objective_plate: HudPlate
+var _clock_t := 0.0
 var _killfeed: VBoxContainer
 var _messages: VBoxContainer
 var _big_label: Label
@@ -142,6 +145,19 @@ func _ready() -> void:
 	_score_label.position = Vector2(-300, 15)
 	_score_label.custom_minimum_size = Vector2(600, 0)
 	_root.add_child(_score_label)
+	# Puzzle mode: the current objective on its own plate under the score plate.
+	_objective_plate = HudPlate.new()
+	_objective_plate.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_objective_plate.chamfer = 9.0
+	_objective_plate.visible = false
+	_root.add_child(_objective_plate)
+	_objective = _label(22, Color(1.0, 0.86, 0.35))
+	_objective.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_objective.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_objective.position = Vector2(-400, 66)
+	_objective.custom_minimum_size = Vector2(800, 0)
+	_objective.visible = false
+	_root.add_child(_objective)
 
 	_killfeed = VBoxContainer.new()
 	_killfeed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -388,6 +404,11 @@ func _process(delta: float) -> void:
 		_help_pad = _pad_used
 		_help.text = _help_text(_pad_used)
 	_vignette.color.a = maxf(_vignette.color.a - delta * 0.8, 0.0)
+	if world and world.mode == Game.Mode.PUZZLE:
+		_clock_t -= delta
+		if _clock_t <= 0.0:
+			_clock_t = 0.25
+			on_players_changed() # the clock and the objective
 	if pl == null:
 		return
 	var hp := maxf(pl.hp, 0.0)
@@ -458,6 +479,9 @@ func _draw_crosshair() -> void:
 
 
 func on_mode_changed() -> void:
+	# The objective draws over the controls help.
+	_objective_plate.move_to_front()
+	_objective.move_to_front()
 	on_players_changed()
 	show_message("Mode: %s" % world.mode_name(), Color(1, 0.85, 0.3), true)
 
@@ -465,7 +489,20 @@ func on_mode_changed() -> void:
 func on_players_changed() -> void:
 	if world == null or _score_label == null:
 		return
-	if world.mode == Game.Mode.PUMPKIN:
+	_objective.visible = world.mode == Game.Mode.PUZZLE
+	_objective_plate.visible = _objective.visible
+	if world.mode == Game.Mode.PUZZLE:
+		var end: float = world.puzzle_finish if world.puzzle_finish >= 0.0 else world.net_time()
+		var clock := ModePuzzle.clock_text(end - world.puzzle_start) if world.puzzle_start >= 0.0 else "0:00"
+		_score_label.text = "%s     %s" % [world.mode_name(), clock]
+		_objective.text = world.puzzle_objective()
+		_objective_plate.visible = _objective.text != ""
+		var ow := _objective.get_minimum_size().x + 40.0
+		_objective_plate.offset_left = -ow * 0.5
+		_objective_plate.offset_right = ow * 0.5
+		_objective_plate.offset_top = 63
+		_objective_plate.offset_bottom = 97
+	elif world.mode == Game.Mode.PUMPKIN:
 		var pl: Player = world.local_player
 		var leader: Player = null
 		for p: Player in world.players.values():

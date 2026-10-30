@@ -111,6 +111,7 @@ All kit nodes preview themselves in the editor. In game they become the real thi
 | Ocean, Ocean Level | surround the map with an animated sea whose surface sits at *Ocean Level*. Players who fall in sink and drown; wooden and rubber props float. Put your floors above it, and an island's sides look best reaching a few metres below it |
 | Kill Height | anything below dies or respawns. Keep it ≥ 3 m below your lowest floor |
 | Avoid Areas | XZ rectangles bots walk around (pits). `Rect2(x, z, width, depth)` |
+| Puzzle | a level for the Puzzle (co-op) mode: `--validate` skips the team and flag checks and wants a PuzzleExit |
 | Playtest Mode / Playtest Bots | used by F6 |
 
 ### ArenaBlock (StaticBody3D)
@@ -184,6 +185,25 @@ A destructible wall, floor or bridge. In game it fractures into irregular pieces
 - Liquids can't be rotated; only the box's position counts.
 - Water uses the host's water style: *Classic*, or *Sculpted* (sharper waves, ripples and
   wakes; pools are a calm sea state).
+
+### Puzzle pieces (Puzzle co-op mode)
+Every piece is on or off; the server decides and everybody sees the same. Common settings:
+- **Inputs**: other pieces that switch this one on (drag them into the list).
+  **Combine** `all` (AND) or `any` (OR). **Latch**: once on, stay on.
+- **Objective**: in the Puzzle mode the top of the screen shows the first piece (in scene
+  order) that is still off and has an objective, e.g. a gate's "Hold both plates down".
+  Put objectives on what the players must achieve (gates, exits), not on plates that turn
+  off again.
+
+| Node | |
+|---|---|
+| **PressurePlate** | on while the weight on it reaches **Required Mass**. Crate 25, barrel 40, couch 60, big crate 70, player 70, anvil 120. Things held with the gun don't count. Amber rim, green when pressed |
+| **PuzzleDoor** | slides by **Open Offset** (shown as a green ghost in the editor) at **Speed** while its inputs are on. Can't be broken. Red / green lamps. Also a moving bridge or platform |
+| **PuzzleLogic** | invisible: AND / OR of its inputs, **Invert**, and **Hold Time** (stays on for a while after the inputs go off: a timed door) |
+| **Checkpoint** | turns green when a player reaches it; in the Puzzle mode the dead respawn at the last one reached |
+| **PuzzleExit** | on when every living player is inside **Size** (and its inputs are on, if it has any). Finishes the level in the Puzzle mode |
+
+`maps/moving_day.tscn` uses all of them.
 
 ### Anything else
 - **CSG nodes** (`CSGBox3D`, `CSGCylinder3D`, `CSGCombiner3D`...) with *Use Collision*
