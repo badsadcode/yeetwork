@@ -2,8 +2,7 @@
 
 **Status:** step 1 is built (plates, doors, logic, checkpoints, exit, the mode with its
 clock and objective line, and rooms 1-3 of *Moving Day*, `maps/moving_day.tscn`). The plan
-below was revised with Tomek's answers and Noor's puzzle-mode notes (October 2026). The next
-step waits for Tomek's go.
+below includes Tomek's answers and Noor's puzzle-mode notes (October 2026).
 
 ## The idea
 
@@ -84,9 +83,9 @@ Both:
   the HUD lists all of them ("Fuses 1/3", "Gate"). Built with the same pieces (a fuse is a
   key prop dropped in a receptacle).
 
-## Scoring (Tomek: maybe, but how?)
+## Scoring (approved by Tomek)
 
-A light proposal, all optional for the players:
+All optional for the players:
 - **Time**, with a bronze / silver / gold target time set per level in MapSettings.
 - **End screen** with fun stats: time, props destroyed, times a friend yeeted you, deaths,
   the longest throw.
@@ -117,12 +116,38 @@ explosions, throws).
 Built: room 1 (a crate on a plate), room 2 (two heavy plates at once), room 3 (a moat:
 float barrels, build a bridge, freeze a crate). To come: a delivery room and a finale.
 
-## The "Lost Yeet" (explained)
+## The Lost Yeet (approved by Tomek)
 
-An idea from the first proposal: a friendly, helpless NPC Yeet stuck somewhere (in a cage,
-on an island, behind a wall) that the team has to free and carry to the exit with the
-gravity gun, like escorting a VIP. Dropped from too high, it gets dizzy, not hurt; thrown,
-it screams happily. It's an objective type, not a requirement: say if you want it.
+Yeets are a species in this world, and some of them get into trouble: a friendly, helpless
+NPC Yeet stuck somewhere (in a cage, on an island, behind a wall, in a flooding room) that
+the team frees and carries to the exit with the gravity gun, like escorting a VIP. Dropped
+from too high it gets dizzy, not hurt; thrown, it screams happily. A level can have one to
+rescue, or several as a bonus objective.
+
+## Water and fire puzzles (Tomek's idea)
+
+**Flood water**: a 2.5D flood simulation for puzzle areas (a Map Kit **FloodZone**). The area
+is a grid of columns, each holding a water height; water flows to lower neighbours, walls
+come from the level's collision. Much cheaper than true 3D voxel water and fast enough for
+the Steam Deck (a 64x64 grid), and it covers almost everything:
+- **Floods**: a valve (a puzzle output) fills a room; break a wall and the water pours out
+  through the hole; drains empty it.
+- **Flushing**: the flow has a speed and direction that carries Yeets and props along, through
+  a gap or into a pit.
+- **Floating**: rising water lifts crates and barrels toward ledges; a barrel raft rises with
+  the flood.
+- **Water levels as switches**: a float switch turns on when the water reaches it.
+- The host runs it and sends the water heights a few times a second; everyone sees the same.
+- Limits: no water on two floors of the same area, and no arcs of water through the air
+  (waterfalls and pipe outflows between areas are drawn as effects).
+
+**Fire** (the fire system exists: burning, spreading, burning down, water puts it out):
+- **Beacons and torches**: on when lit (carry fire to them).
+- **Fuse lines**: burn from one end to the other, then trigger something.
+- **Wooden barriers** that burn away.
+- **Ice blocks** that melt near fire and become water in a FloodZone.
+- Water and fire together: a flood puts fires out; a burning barrel floats across water still
+  burning.
 
 ## Build order (revised)
 
@@ -131,12 +156,14 @@ it screams happily. It's an objective type, not a requirement: say if you want i
    Button, time-window and sequence logic, breakables as inputs. Chambers 1 and 2.
 3. **Mechanisms**: Seesaw, Fan, rotating platform. Chambers 3 and 4.
 4. **Scoring**: end screen, medals, the awards.
-5. **Open level**: receptacles, collectibles, several objectives on the HUD, the warehouse.
-6. Chambers 5 and 6, Moving Day rooms 4-5 (delivery; the Lost Yeet if wanted), Pass the Yeet.
-7. Later: magnets, ropes and pulleys, electricity and ice.
+5. **Lost Yeet** and an **open level**: the NPC to rescue, receptacles, collectibles, several
+   objectives on the HUD, the warehouse.
+6. **Water and fire**: FloodZone (flood, flush, float, float switches, valves and drains),
+   beacons, fuse lines, burning barriers, ice. A flood chamber and a fire chamber.
+7. Chambers 5 and 6, Moving Day rooms 4-5 (delivery and a Lost Yeet), Pass the Yeet.
+8. Later: magnets, ropes and pulleys, electricity.
 
-## Questions for Tomek
+## Answered
 
-1. Does the scoring proposal (time with medals, fun stats, awards) sound right?
-2. Lost Yeet: yes or no?
-3. Go ahead with step 2?
+Scoring: yes. Lost Yeet: yes. Levels: both linear and open. Water and fire puzzles: planned
+(step 6; can move earlier).
