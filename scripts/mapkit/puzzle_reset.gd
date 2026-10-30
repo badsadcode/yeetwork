@@ -1,10 +1,10 @@
 @tool
 class_name PuzzleReset
 extends PuzzleNode
-## The big red button: press it (walk into it, hit it with something) and every map prop whose
-## home is inside Area goes back home, and the ones that were destroyed come back. Players can
-## always recover a room they've made a mess of. Gates and other pieces are not reset.
-## (It also fires when its Inputs switch on, if it has any.)
+## The big red button: walk up and press Use (E) on it, and every map prop whose home is
+## inside Area goes back home, and the ones that were destroyed come back. Players can always
+## recover a room they've made a mess of; nobody resets it by bumping into it. Gates and
+## other pieces are not reset. (It also fires when its Inputs switch on, if it has any.)
 
 ## The box whose props are reset: Area Center (relative to the button) and its size.
 @export var area := Vector3(16, 8, 16):
@@ -95,16 +95,24 @@ func evaluate() -> bool:
 	var now: float = world.now()
 	if now < _cooldown_until:
 		return true # stays lit for a moment after a reset
-	if not inputs.is_empty() and inputs_on():
-		return true
-	var top := global_position + Vector3(0, 1.05, 0)
-	for pl: Player in world.players.values():
-		if pl.is_alive() and pl.body_center().distance_to(top) < 1.1:
-			return true
-	for p: Prop in world.props.values():
-		if is_instance_valid(p) and p.global_position.distance_to(top) < 0.55 + p.size.length() * 0.5:
-			return true
-	return false
+	return not inputs.is_empty() and inputs_on()
+
+
+func usable() -> bool:
+	return true
+
+
+func use_label() -> String:
+	return "Reset the room"
+
+
+func use_point() -> Vector3:
+	return global_transform * Vector3(0, 1.05, 0)
+
+
+func server_used(_pl: Player) -> void:
+	if world.now() >= _cooldown_until:
+		_cooldown_until = world.now() + 2.5 # on the next check it switches on, which resets
 
 
 func server_switched(on: bool) -> void:

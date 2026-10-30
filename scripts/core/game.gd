@@ -332,6 +332,7 @@ func _setup_input() -> void:
 	_key("suicide", [KEY_K])
 	_key("respawn_props", [KEY_F5])
 	_key("rotate_held", [KEY_E])
+	_key("use", [KEY_E]) # (shares E: rotating needs something held, using needs empty hands)
 	for i in range(1, 10):
 		_key("slot_%d" % i, [KEY_0 + i])
 	_mouse("gun_grab", MOUSE_BUTTON_LEFT)
@@ -347,6 +348,7 @@ func _setup_input() -> void:
 	_pad("crouch", JOY_BUTTON_B)
 	_pad("spawn_prop", JOY_BUTTON_Y)
 	_pad("freeze_prop", JOY_BUTTON_X)
+	_pad("use", JOY_BUTTON_X)
 	_pad("pause", JOY_BUTTON_START)
 	_pad("scoreboard", JOY_BUTTON_BACK)
 	_pad("toggle_view", JOY_BUTTON_DPAD_UP)

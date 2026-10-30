@@ -26,6 +26,10 @@ extends StaticBody3D
 		emission = v
 		_rebuild()
 
+## Ricochet surfaces: how much bounce things keep off it (0 = like any wall; 0.8 = a lot).
+## A bouncy block is also frictionless, so things leave it at the angle they came in.
+@export_range(0.0, 1.0, 0.05) var bounciness := 0.0
+
 var _mesh: MeshInstance3D
 var _shape: CollisionShape3D
 
@@ -33,6 +37,11 @@ var _shape: CollisionShape3D
 func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 0
+	if bounciness > 0.0:
+		var pm := PhysicsMaterial.new()
+		pm.bounce = bounciness
+		pm.friction = 0.0
+		physics_material_override = pm
 	_rebuild()
 
 

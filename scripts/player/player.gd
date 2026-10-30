@@ -391,6 +391,8 @@ func _read_local_input(_delta: float) -> void:
 		world.gun_action(self, GravityGun.Action.THROW_RELEASE)
 	if Input.is_action_just_pressed("freeze_prop"):
 		world.gun_action(self, GravityGun.Action.FREEZE)
+	if Input.is_action_just_pressed("use") and not _holding():
+		world.use_pressed(self)
 	# Push / pull what we hold (wheel or D-pad); otherwise the wheel picks props.
 	var holding := _holding()
 	if holding:

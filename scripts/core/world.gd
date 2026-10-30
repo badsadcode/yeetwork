@@ -1723,6 +1723,50 @@ func server_reset_area(xf: Transform3D, size: Vector3) -> int:
 	return n
 
 
+# --- Using things (the Use key) ---------------------------------------------------------
+
+## The usable piece the player is looking at, within reach (or null).
+func usable_for(pl: Player) -> PuzzleNode:
+	if pl == null or arena == null:
+		return null
+	var eye := pl.eye_position()
+	var aim := pl.aim_direction()
+	var best: PuzzleNode = null
+	var best_d := 2.8
+	for n in arena.puzzle:
+		if not n.usable():
+			continue
+		var to := n.use_point() - eye
+		var d := to.length()
+		# Within reach, and the aim passes within ~0.9 m of it.
+		if d < best_d and to.dot(aim) > 0.0 and (to - aim * to.dot(aim)).length() < 0.9:
+			best = n
+			best_d = d
+	return best
+
+
+func use_pressed(pl: Player) -> void:
+	if is_server:
+		_server_use(pl)
+	else:
+		_c_use.rpc_id(1)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_use() -> void:
+	var pl := get_player(multiplayer.get_remote_sender_id())
+	if pl:
+		_server_use(pl)
+
+
+func _server_use(pl: Player) -> void:
+	if not pl.is_alive():
+		return
+	var n := usable_for(pl)
+	if n:
+		n.server_used(pl)
+
+
 # --- Puzzles ----------------------------------------------------------------------
 # Map Kit puzzle pieces (plates, doors, logic, checkpoints, exits): the server decides
 # every piece's state ten times a second and tells everyone when one changes.

@@ -120,6 +120,8 @@ A solid box with the arena surface shader (soft panels, warm/cool gradient).
 - Color, Roughness, Metallic, Emission (glow).
 - **Ramps:** rotate a block around X or Z. Players can walk up to 46°, and steeper
   slopes are slides.
+- **Bounciness** (0-1): a ricochet surface for bank shots. Bouncy blocks are frictionless,
+  so things leave at the angle they came in (Test Chambers' BOUNCE panel uses 0.85).
 
 ### BreakableSlab
 A destructible wall, floor or bridge. In game it fractures into irregular pieces.
@@ -200,10 +202,10 @@ Every piece is on or off; the server decides and everybody sees the same. Common
 | **PressurePlate** | on while the weight on it reaches **Required Mass**. Crate 25, barrel 40, couch 60, big crate 70, player 70, anvil 120. Things held with the gun don't count. Amber rim, green when pressed |
 | **PuzzleDoor** | slides by **Open Offset** (shown as a green ghost in the editor) at **Speed** while its inputs are on. Can't be broken. Red / green lamps. Also a moving bridge or platform |
 | **PuzzleLogic** | invisible. **Mode** `gate`: AND / OR of its inputs; `window`: every input on within the last **Window** seconds ("all three targets within 3 s"); `sequence`: inputs switched on in list order (a wrong one starts over). **Invert**, and **Hold Time** (stays on for a while after: a timed door) |
-| **PuzzleButton** | on while anything touches its cap: a player, a prop leaning on it, a rolling ball, a thrown Yeet. Floor or wall (rotate it). **Hold Time** keeps it on after release |
+| **PuzzleButton** | **Press** `touch`: on while anything touches its cap (a player, a prop leaning on it, a rolling ball, a thrown Yeet); `use key`: players walk up and press **Use** (E), with a prompt showing **Label**. Floor or wall (rotate it). **Hold Time** keeps it on after release (use key with 0: each press switches it on or off) |
 | **PuzzleTarget** | a bullseye facing its local +Z: on when something thrown hits it at **Min Speed** or more (only **Kind** props, or `any`). **Stay On** seconds (0: for good) |
 | **BreakSensor** | invisible: on once **Percent** of the BreakableSlab it points at (**Slab**) is broken. Smash the wall, the pillar, the statue |
-| **PuzzleReset** | the big red button: touch or hit it and every map prop whose home is inside **Area** (around **Area Center**) goes back home, the destroyed ones come back. Gates stay as they are |
+| **PuzzleReset** | the big red button: walk up and press **Use** (E) on it, and every map prop whose home is inside **Area** (around **Area Center**) goes back home, the destroyed ones come back. Bumping into it does nothing. Gates stay as they are |
 | **Checkpoint** | turns green when a player reaches it; in the Puzzle mode the dead respawn at the last one reached |
 | **PuzzleExit** | on when every living player is inside **Size** (and its inputs are on, if it has any). Finishes the level in the Puzzle mode |
 

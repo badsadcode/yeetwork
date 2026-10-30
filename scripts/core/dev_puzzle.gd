@@ -108,17 +108,43 @@ func _chambers() -> void:
 	var stray_home := stray.home_transform.origin
 	stray.global_position = Vector3(0, 1.0, 44)
 	await _wait(0.5)
-	_place_player(_piece("ResetA").global_position + Vector3(0.6, 0.2, 0.6))
-	await _wait(0.8)
-	_check("reset button puts the room's props back", _piece("ResetA").active and stray.global_position.distance_to(stray_home) < 1.5, "barrel %.1f m from home" % stray.global_position.distance_to(stray_home))
+	var reset: PuzzleNode = _piece("ResetA")
+	_place_player(reset.global_position + Vector3(1.4, 0.0, 0.0))
+	await _wait(0.5)
+	_check("walking into the reset button does nothing", not reset.active, "")
+	_aim_at(reset.use_point())
+	await _wait(0.2)
+	_shot("c02b_use_prompt")
+	var prompt: PuzzleNode = world.usable_for(pl)
+	world.use_pressed(pl)
+	await _wait(0.6)
+	_check("pressing Use on the reset button puts the room's props back", prompt == reset and stray.global_position.distance_to(stray_home) < 1.5, "looking at it: %s, barrel %.1f m from home" % [prompt == reset, stray.global_position.distance_to(stray_home)])
 	# B: a ball thrown at the target across the acid.
 	_place_player(_piece("CheckpointB").global_position + Vector3(0, 0.2, 0))
 	await _wait(0.5)
-	_look(Vector3(-2, 3, 19), Vector3(2, 2, 33))
+	_look(Vector3(-1.5, 2.6, 20), Vector3(-3.5, 2.5, 31))
 	await _wait(0.3)
 	_shot("c03_shot")
 	var target: PuzzleTarget = _piece("TargetB")
-	await _throw_at(target)
+	# The intended way: a bank shot off the bouncy panel, thrown at tap-throw speed from
+	# where players stand. (Any of a few aim heights is enough: it must be possible.)
+	var banked := -1.0
+	var panel := world.arena.map_settings.get_parent().get_node("Geometry/BouncePanel") as Node3D
+	for aim_y in [2.0, 2.5, 3.0, 3.5, 4.0, 4.5]:
+		var from := Vector3(-1.5, 1.8, 21.0)
+		var to := Vector3(panel.global_position.x, aim_y, panel.global_position.z)
+		var t := from.distance_to(to) / 30.0
+		var v := (to - from - 0.5 * Vector3(0, -24.0, 0) * t * t) / t
+		var b: Prop = world.server_spawn_prop("ball", Transform3D(Basis.IDENTITY, from), Vector3.ZERO, Color(0, 0, 0, 0), 0, v)
+		await _wait(1.0)
+		if is_instance_valid(b):
+			world.server_despawn_prop(b)
+		if target.active:
+			banked = aim_y
+			break
+	_check("the bank shot off the panel works", banked > 0.0, "aimed at height %.1f" % banked)
+	if not target.active:
+		await _throw_at(target)
 	_check("a ball on the target opens the gate", target.active and _piece("GateB").active, "target %s" % target.active)
 	# The other way: smash the wall the target hangs on.
 	var sensor: BreakSensor = _piece("WallSensorB")
@@ -191,6 +217,13 @@ func _nearest(kind: String, to: Vector3) -> Prop:
 func _place_player(pos: Vector3) -> void:
 	pl.respawn(pos, 0.0)
 	pl.cmd.move = Vector2.ZERO
+
+
+## Point the player's view at a spot (also when headless).
+func _aim_at(p: Vector3) -> void:
+	var to := p - pl.eye_position()
+	pl.yaw = atan2(-to.x, -to.z)
+	pl.pitch = atan2(to.y, Vector2(to.x, to.z).length())
 
 
 func _wait(t: float) -> void:

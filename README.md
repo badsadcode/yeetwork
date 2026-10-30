@@ -51,6 +51,7 @@ menu art and font (`assets/`): the title background and logo, button and frame a
 | Freeze held prop (sandbox building) | F |
 | Push / pull held object | Mouse wheel (while holding) |
 | Rotate held prop | Hold E + move mouse |
+| Use (puzzle buttons, the Reset button; empty hands) | E (gamepad X) |
 | Spawn prop (sandbox) / pick prop | Q / 1-9 or mouse wheel (when not holding) |
 | Third-person camera | V |
 | Scoreboard | Tab |

@@ -215,11 +215,20 @@ script = ExtResource("block")
 size = Vector3(5, 4, 1.2)
 color = Color(0.9, 0.62, 0.35, 1)
 
-[node name="Block21" type="StaticBody3D" parent="Geometry"]
-transform = Transform3D(0.76604, 0, -0.64279, 0, 1, 0, 0.64279, 0, 0.76604, -4.5, 2, 32.5)
+[node name="BouncePanel" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(0.43837, 0, -0.89879, 0, 1, 0, 0.89879, 0, 0.43837, -4.6, 2.5, 32.4)
 script = ExtResource("block")
-size = Vector3(4, 4, 0.5)
-color = Color(0.9, 0.62, 0.35, 1)
+size = Vector3(5, 5, 0.4)
+color = Color(0.3, 0.85, 0.95, 1)
+emission = 0.6
+bounciness = 0.85
+
+[node name="BounceSign" type="Label3D" parent="Geometry"]
+transform = Transform3D(-0.43837, 0, 0.89879, 0, 1, 0, -0.89879, 0, -0.43837, -4.3, 4.5, 32.2)
+text = "BOUNCE  >>"
+font_size = 72
+outline_size = 14
+modulate = Color(0.7, 1, 1, 1)
 
 [node name="PanelB1" type="Node3D" parent="Breakables"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2, 28.5)

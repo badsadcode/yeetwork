@@ -25,6 +25,7 @@ const ACTIONS := [
 	["spawn_prop", "Spawn prop (sandbox)", "Sandbox"],
 	["next_slot", "Next prop", "Sandbox"],
 	["prev_slot", "Previous prop", "Sandbox"],
+	["use", "Use / interact (empty hands)", "Other"],
 	["toggle_view", "Third-person camera", "Other"],
 	["scoreboard", "Scoreboard", "Other"],
 	["suicide", "Respawn", "Other"],
@@ -82,10 +83,14 @@ static func rebind(action: String, ev: InputEvent) -> void:
 
 
 ## Other actions already using this event (a warning, not an error: some share on purpose).
+## Actions that may share a key: one needs empty hands, the others something held.
+const SHARED := [["use", "rotate_held"], ["use", "freeze_prop"]]
+
+
 static func conflicts(action: String, ev: InputEvent) -> Array[String]:
 	var out: Array[String] = []
 	for a in ACTIONS:
-		if a[0] == action:
+		if a[0] == action or SHARED.has([action, a[0]]) or SHARED.has([a[0], action]):
 			continue
 		for other in InputMap.action_get_events(a[0]):
 			if _same(other, ev):

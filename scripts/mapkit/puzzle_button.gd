@@ -1,15 +1,21 @@
 @tool
 class_name PuzzleButton
 extends PuzzleNode
-## A button on the floor or a wall (rotate it): on while anything touches its cap: a
-## player, a prop leaning on it, a ball rolling over it, a thrown Yeet. Hold Time keeps it on
-## for a while after it's released.
+## A button on the floor or a wall (rotate it). Press:
+##   touch:   on while anything touches its cap: a player, a prop leaning on it, a ball
+##            rolling over it, a thrown Yeet.
+##   use key: players walk up and press Use (E); props can't press it.
+## Hold Time keeps it on for a while after it's released (use key: after the press; 0 makes
+## each press switch it on or off).
 
 @export var size := Vector2(1.2, 1.2):
 	set(v):
 		size = v
 		_rebuild()
+@export_enum("touch", "use key") var press := "touch"
 @export_range(0.0, 60.0, 0.5) var hold_time := 0.0
+## Use key: what the prompt says, "[E] <label>".
+@export var label := "Press"
 @export var color := Color(0.45, 0.48, 0.6):
 	set(v):
 		color = v
@@ -21,6 +27,7 @@ var _parts: Node3D
 var _cap: MeshInstance3D
 var _cap_mat: StandardMaterial3D
 var _held_until := -1.0
+var _toggled := false
 var _press := 0.0
 
 
@@ -62,8 +69,29 @@ func _tint() -> void:
 	_cap_mat.emission_energy_multiplier = 2.2 if active else 0.8
 
 
+func usable() -> bool:
+	return press == "use key"
+
+
+func use_label() -> String:
+	return label
+
+
+func use_point() -> Vector3:
+	return global_transform * Vector3(0, 0.25, 0)
+
+
+func server_used(_pl: Player) -> void:
+	if hold_time > 0.0:
+		_held_until = world.now() + hold_time
+	else:
+		_toggled = not _toggled
+
+
 func evaluate() -> bool:
 	var now: float = world.now()
+	if press == "use key":
+		return _toggled or now < _held_until
 	var inv := global_transform.affine_inverse()
 	var touched := false
 	var reach := Vector2(size.x * 0.5 + 0.15, size.y * 0.5 + 0.15)

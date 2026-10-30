@@ -33,6 +33,7 @@ var _slot_labels: Array[Label] = []
 var _score_label: Label
 var _objective: Label
 var _objective_plate: HudPlate
+var _use_prompt: Label
 var _clock_t := 0.0
 var _killfeed: VBoxContainer
 var _messages: VBoxContainer
@@ -158,6 +159,14 @@ func _ready() -> void:
 	_objective.custom_minimum_size = Vector2(800, 0)
 	_objective.visible = false
 	_root.add_child(_objective)
+	# "[E] Reset the room" under the crosshair when looking at something usable.
+	_use_prompt = _label(22, Color.WHITE)
+	_use_prompt.set_anchors_preset(Control.PRESET_CENTER)
+	_use_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_use_prompt.position = Vector2(-300, 40)
+	_use_prompt.custom_minimum_size = Vector2(600, 0)
+	_use_prompt.visible = false
+	_root.add_child(_use_prompt)
 
 	_killfeed = VBoxContainer.new()
 	_killfeed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -404,6 +413,10 @@ func _process(delta: float) -> void:
 		_help_pad = _pad_used
 		_help.text = _help_text(_pad_used)
 	_vignette.color.a = maxf(_vignette.color.a - delta * 0.8, 0.0)
+	var usable: PuzzleNode = world.usable_for(pl) if world and pl and pl.is_alive() and pl.gun and pl.gun.vis_kind == GravityGun.Kind.NONE else null
+	_use_prompt.visible = usable != null and not _paused
+	if usable:
+		_use_prompt.text = "[%s]  %s" % [Controls.pad_of("use") if _pad_used else Controls.key_of("use"), usable.use_label()]
 	if world and world.mode == Game.Mode.PUZZLE:
 		_clock_t -= delta
 		if _clock_t <= 0.0:

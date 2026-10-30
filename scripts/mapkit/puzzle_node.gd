@@ -26,6 +26,26 @@ func link() -> void:
 	pass
 
 
+## Pieces players press with the Use key (E): the Reset button, use-key buttons.
+func usable() -> bool:
+	return false
+
+
+## What the prompt says: "[E] <use_label>".
+func use_label() -> String:
+	return "Use"
+
+
+## Where the player has to look (world space).
+func use_point() -> Vector3:
+	return global_position
+
+
+## Server: a player pressed Use on this piece.
+func server_used(_pl: Player) -> void:
+	pass
+
+
 ## Server: this piece just switched (on every peer already).
 func server_switched(_on: bool) -> void:
 	pass
