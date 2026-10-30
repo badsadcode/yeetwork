@@ -158,9 +158,17 @@ void fragment() {
 	float hole = hole_top > 0.0 ? 1.0 - smoothstep(hole_top * 0.8, hole_top * 1.1, yy) : 0.0;
 	float fill = 0.14 + 0.86 * edge_glow * edge_glow + wisp * 0.35;
 	fill *= 1.0 - hole * 0.35 * (1.0 - edge_glow);
+	// Coating: patches of flame licking up across the burning thing (thicker low down,
+	// thinning toward its top), each with a bright edge, so it reads as burning rather than
+	// framed by fire.
+	float cn = fbm(vec2(p.x * 2.3 + seed * 3.0, p.y * 1.5 - t * 1.7));
+	float coat_w = hole * mix(1.0, 0.45, clamp(yy / max(hole_top, 0.01), 0.0, 1.0));
+	float coat = smoothstep(0.47, 0.6, cn) * coat_w;
+	float coat_edge = (1.0 - smoothstep(0.0, 0.05, abs(cn - 0.5))) * coat_w;
+	fill = max(fill, coat * 0.7 + coat_edge * 0.6);
 	// Colour: a deep outline, a hot bright band just inside it, the fire's own colour
 	// (see-through) toward the middle, and the tips a little deeper.
-	float heat = clamp(edge_glow * (1.0 - rim) + wisp * 0.3, 0.0, 1.0);
+	float heat = clamp(edge_glow * (1.0 - rim) + wisp * 0.3 + coat_edge * 0.8 + coat * 0.25, 0.0, 1.0);
 	vec3 col = mid_color.rgb;
 	col = mix(col, hot_color.rgb, smoothstep(0.45, 0.95, heat) * 0.75);
 	col = mix(col, edge_color.rgb, rim * 0.75 + smoothstep(0.5, 1.0, yy) * 0.3);

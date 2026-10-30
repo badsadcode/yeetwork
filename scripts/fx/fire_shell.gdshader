@@ -46,12 +46,12 @@ void fragment() {
 	q.x += sin(wpos.y * 4.0 + t * 3.0) * 0.25;
 	float n = noise(q) * 0.65 + noise(q * 2.3 + 7.1) * 0.35;
 	float up = clamp(wnorm.y * 0.5 + 0.6, 0.0, 1.0); // tops burn brighter than undersides
-	float flame = smoothstep(0.5, 0.9, n * (0.8 + 0.4 * up) + fres * 0.3);
+	float flame = smoothstep(0.42, 0.8, n * (0.8 + 0.4 * up) + fres * 0.3);
 	// Flowing wisp lines over the body (the thing stays visible between them).
 	float wisp = 1.0 - smoothstep(0.0, 0.07, abs(noise(q * 0.8 + 3.7) - 0.5));
 	float glow = clamp(fres * 0.9 + wisp * 0.75 + flame * 0.45, 0.0, 1.4);
 	vec3 col = mix(deep_color.rgb, core_color.rgb, smoothstep(0.15, 0.65, glow));
 	col = mix(col, tip_color.rgb, smoothstep(0.85, 1.25, glow));
 	ALBEDO = col * glow * intensity * 1.8;
-	ALPHA = clamp((0.22 + glow * 0.5) * intensity, 0.0, 1.0);
+	ALPHA = clamp((0.3 + glow * 0.55) * intensity, 0.0, 1.0);
 }
