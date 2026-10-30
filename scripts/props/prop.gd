@@ -26,6 +26,9 @@ const DEFS := {
 	"shard": {"shape": "shard", "size": Vector3(1, 1, 0.5), "mass": 20.0, "color": Color(0.9, 0.85, 0.7), "bounce": 0.05, "label": "Fragment"},
 	"flag": {"shape": "flag", "size": Vector3(0.12, 2.4, 0.12), "mass": 12.0, "color": Color(1, 1, 1), "bounce": 0.1, "label": "Flag"},
 	# Puzzles: a big fan (placed by a PuzzleFan, which makes it blow) you can grab and aim.
+	# A Yeet in trouble, to rescue (carry it with the gun), and a fuse to collect.
+	"lost_yeet": {"shape": "yeet", "size": Vector3(0.38, 1.6, 0.38), "mass": 50.0, "color": Color(0.95, 0.72, 0.3), "bounce": 0.2, "label": "Lost Yeet"},
+	"fuse": {"shape": "fuse", "size": Vector3(0.22, 0.62, 0.22), "mass": 5.0, "color": Color(1.0, 0.82, 0.2), "bounce": 0.3, "label": "Fuse", "metal": true},
 	"fan": {"shape": "fan", "size": Vector3(1.5, 1.7, 0.8), "mass": 40.0, "color": Color(0.3, 0.75, 0.95), "bounce": 0.1, "label": "Fan", "metal": true},
 }
 
@@ -213,6 +216,18 @@ func _build(def: Dictionary) -> void:
 			s.size = size
 			shape_node.shape = s
 			_build_fan(mesh)
+		"yeet":
+			var s := CapsuleShape3D.new()
+			s.radius = size.x
+			s.height = size.y
+			shape_node.shape = s
+			_build_lost_yeet(mesh)
+		"fuse":
+			var s := CylinderShape3D.new()
+			s.radius = size.x
+			s.height = size.y
+			shape_node.shape = s
+			_build_fuse(mesh)
 	if mesh.mesh and mat:
 		mesh.material_override = mat
 	add_child(shape_node)
@@ -521,6 +536,56 @@ func _build_fan(parent: MeshInstance3D) -> void:
 	parent.add_child(_wind_sound)
 
 
+var _yeet_model: CharacterModel
+var _help: Label3D
+
+
+## A Yeet in trouble: a character on a capsule, crying for help until it's rescued.
+func _build_lost_yeet(parent: MeshInstance3D) -> void:
+	_yeet_model = CharacterModel.new()
+	parent.add_child(_yeet_model)
+	var seed_value: int = extra.get("look", prop_id)
+	var shirts := [Color(0.95, 0.72, 0.3), Color(0.4, 0.8, 0.45), Color(0.55, 0.6, 1.0), Color(1.0, 0.55, 0.7)]
+	_yeet_model.setup(shirts[seed_value % shirts.size()], seed_value % 6, seed_value)
+	_yeet_model.position.y = -size.y * 0.5
+	_yeet_model.idle_mood = "gasp"
+	_help = Label3D.new()
+	_help.text = "HELP!"
+	_help.font_size = 64
+	_help.outline_size = 14
+	_help.modulate = Color(1.0, 0.85, 0.3)
+	_help.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_help.position.y = size.y * 0.5 + 0.6
+	parent.add_child(_help)
+
+
+## A big fuse: a glowing cylinder with metal caps.
+func _build_fuse(parent: MeshInstance3D) -> void:
+	var glass := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = size.x * 0.8
+	cm.bottom_radius = size.x * 0.8
+	cm.height = size.y * 0.7
+	glass.mesh = cm
+	glass.material_override = Mats.glow(color, 2.5)
+	parent.add_child(glass)
+	for sy in [-1, 1]:
+		var cap := MeshInstance3D.new()
+		var cc := CylinderMesh.new()
+		cc.top_radius = size.x
+		cc.bottom_radius = size.x
+		cc.height = size.y * 0.16
+		cap.mesh = cc
+		cap.position.y = sy * size.y * 0.42
+		cap.material_override = Mats.plastic(Color(0.75, 0.78, 0.85), 0.3)
+		parent.add_child(cap)
+	var light := OmniLight3D.new()
+	light.light_color = color
+	light.omni_range = 2.5
+	light.light_energy = 1.2
+	parent.add_child(light)
+
+
 ## The PuzzleFan this fan belongs to (or null).
 func fan_piece() -> PuzzleFan:
 	var idx: int = extra.get("fan_piece", -1)
@@ -531,6 +596,16 @@ func fan_piece() -> PuzzleFan:
 
 
 func _process(delta: float) -> void:
+	if _yeet_model:
+		var v := motion_velocity()
+		var rescued := has_meta("delivered")
+		# Scared while carried or flying, grinning once rescued.
+		_yeet_model.base_mood = "grin" if rescued else ("scared" if held_by != 0 or v.length() > 5.0 else "")
+		_yeet_model.animate(delta, v, Player.F_GROUNDED if v.length() < 1.0 else 0, 0.0, held_by != 0 and not rescued)
+		_help.modulate = Color(0.45, 1.0, 0.55) if rescued else Color(1.0, 0.85, 0.3)
+		_help.text = "YAY!" if rescued else "HELP!"
+		_help.position.y = size.y * 0.5 + 0.6 + sin(Time.get_ticks_msec() * 0.004 + prop_id) * 0.08
+		return
 	if _rotor:
 		var piece := fan_piece()
 		var on := piece != null and piece.active
@@ -568,6 +643,10 @@ func setup_role(server: bool) -> void:
 func _physics_process(delta: float) -> void:
 	if is_server:
 		_prev_velocity = linear_velocity
+		if kind == "lost_yeet" and held_by == 0 and not freeze and linear_velocity.length() < 3.0:
+			# A Yeet gets back on its feet.
+			angular_velocity += global_transform.basis.y.cross(Vector3.UP) * 10.0 * delta
+			angular_velocity *= 0.92
 		if global_position.y < world.arena.kill_y - 15.0:
 			world.server_prop_fell_out(self)
 	elif _has_target:
@@ -622,7 +701,7 @@ func impact_material() -> String:
 			return "metal"
 		"ball", "beachball", "tire", "cone":
 			return "rubber"
-		"couch", "pumpkin", "pumpkin_gold", "candy":
+		"couch", "pumpkin", "pumpkin_gold", "candy", "lost_yeet":
 			return "soft"
 		"gravestone":
 			return "stone"

@@ -580,7 +580,7 @@ func on_players_changed() -> void:
 		_objective_plate.offset_left = -ow * 0.5
 		_objective_plate.offset_right = ow * 0.5
 		_objective_plate.offset_top = 63
-		_objective_plate.offset_bottom = 97
+		_objective_plate.offset_bottom = 97 + 28 * _objective.text.count("\n")
 	elif world.mode == Game.Mode.PUMPKIN:
 		var pl: Player = world.local_player
 		var leader: Player = null

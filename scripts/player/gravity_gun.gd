@@ -588,6 +588,8 @@ func _try_grab(origin: Vector3, dir: Vector3) -> void:
 	var target: Node = hit.get("collider") if not hit.is_empty() else null
 	if not (target is Prop or target is Player):
 		target = _catch_assist(origin, dir)
+	if target is Prop and target.has_meta("delivered"):
+		return # locked in a Receptacle
 	if target is Prop:
 		var p := target as Prop
 		var d := origin.distance_to(p.global_position)

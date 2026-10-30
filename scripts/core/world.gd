@@ -1718,7 +1718,7 @@ func server_reset_area(xf: Transform3D, size: Vector3) -> int:
 		return absf(l.x) <= half.x and absf(l.y) <= half.y and absf(l.z) <= half.z
 	var n := 0
 	for p: Prop in props.values():
-		if not is_instance_valid(p) or not p.has_meta("map_prop") or not inside.call(p.home_transform):
+		if not is_instance_valid(p) or not p.has_meta("map_prop") or p.has_meta("delivered") or not inside.call(p.home_transform):
 			continue
 		if p.held_by != 0:
 			var holder := get_player(p.held_by)
@@ -1855,11 +1855,18 @@ func _s_puzzle_time(start: float, finish: float) -> void:
 	puzzle_finish = finish
 
 
-## The objective to show in the Puzzle mode: the first unfinished piece's text.
+## The objective to show in the Puzzle mode: the first unfinished piece's text. Open levels
+## (MapSettings) list every unfinished one, a line each, to do in any order.
 func puzzle_objective() -> String:
+	var open := arena.map_settings != null and arena.map_settings.open_level
+	var lines := PackedStringArray()
 	for n in arena.puzzle:
 		if not n.active and n.objective != "":
-			return n.objective
+			lines.append(n.objective_text())
+			if not open:
+				break
+	if not lines.is_empty():
+		return "\n".join(lines)
 	return "Level complete!" if puzzle_finish >= 0.0 else ""
 
 

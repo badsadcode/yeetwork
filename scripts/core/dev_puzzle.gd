@@ -5,6 +5,9 @@ extends Node
 ##                  plates, a checkpoint and a respawn there, the exit.
 ##   test_chambers: 100 kg on a plate, key props coming back, the reset button, a target hit
 ##                  and a smashed wall, three targets within the time window, a button, the exit.
+##   warehouse:     the open level's objective list, the Lost Yeet's cage, glass and ice smashed
+##                  for fuses, fuses pulled with the gun and locked in the fuse box, the Lost
+##                  Yeet carried (scared) to the rescue mat (grinning), the exit.
 ## Usage: godot -- --host --map moving_day --mode puzzle --tour <dir> --tour-mode puzzle
 ## (add --headless to only check)
 
@@ -20,8 +23,12 @@ func _ready() -> void:
 		get_tree().quit(1))
 	await _wait(1.0)
 	pl = world.local_player
-	if world.arena.map_settings and world.arena.map_settings.map_name == "Test Chambers":
-		await _chambers()
+	var map_name: String = world.arena.map_settings.map_name if world.arena.map_settings else ""
+	if map_name == "Test Chambers" or map_name == "The Warehouse":
+		if map_name == "Test Chambers":
+			await _chambers()
+		else:
+			await _warehouse()
 		print("PUZZLE CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
 		get_tree().quit(0 if _failed == 0 else 1)
 		return
@@ -288,6 +295,111 @@ func _chambers() -> void:
 	_look(Vector3(0, 3, 116), Vector3(0, 1.5, 123))
 	await _wait(0.5)
 	_shot("c08_exit")
+
+
+func _warehouse() -> void:
+	var obj: String = world.puzzle_objective()
+	_check("the open level lists every objective", obj.count("\n") == 3 and obj.begins_with("Fuses for the main gate: 0/3"), obj.replace("\n", " | "))
+	_look(Vector3(0, 5, 1), Vector3(0, 1, 20))
+	await _wait(0.4)
+	_shot("w01_hub")
+	# Storage: 100 kg on the plate opens the Lost Yeet's cage.
+	var plate: PressurePlate = _piece("PlateW")
+	var couch := _nearest("couch", plate.global_position)
+	couch.global_position = plate.global_position + Vector3(-0.6, 0.7, 0)
+	couch.linear_velocity = Vector3.ZERO
+	var barrel := _nearest("barrel", plate.global_position)
+	barrel.global_position = plate.global_position + Vector3(0.9, 0.8, 0.6)
+	barrel.linear_velocity = Vector3.ZERO
+	await _wait(1.2)
+	_check("100 kg opens the cage", _piece("CageDoor").active, "%.0f kg" % plate.weight)
+	# The fuse on the top shelf: smash the glass with a ball, pull the fuse down with the gun.
+	var glass: Destructible = null
+	var ice: Destructible = null
+	for d in world.arena.destructibles:
+		if d.material == "glass":
+			glass = d
+		elif d.material == "ice":
+			ice = d
+	_look(Vector3(-27, 2.5, 14), Vector3(-30, 3.8, 23.4))
+	await _wait(0.4)
+	_shot("w02_shelf")
+	var thrown: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, Vector3(-30, 4.5, 19.0)), Vector3.ZERO, Color(0, 0, 0, 0), 0, Vector3(0, 1.5, 16.0))
+	await _wait(0.8)
+	_check("a thrown crate smashes the shelf's glass", glass != null and glass.broken_cells.size() > 0, "broken %d" % (glass.broken_cells.size() if glass else -1))
+	if is_instance_valid(thrown):
+		world.server_despawn_prop(thrown)
+	var fuse1 := _nearest("fuse", Vector3(-30, 3.85, 23.4))
+	_place_player(Vector3(-30, 0, 13))
+	await _wait(0.3)
+	_aim_at(fuse1.global_position)
+	pl.gun.server_action(GravityGun.Action.GRAB_START, pl.eye_position(), fuse1.global_position - pl.eye_position())
+	await _wait(1.6)
+	_check("the gun pulls the fuse down", pl.gun.held_kind == GravityGun.Kind.PROP and pl.gun.held_id == fuse1.prop_id, "holding %d (%d)" % [pl.gun.held_id, pl.gun.held_kind])
+	pl.gun.server_action(GravityGun.Action.GRAB_END, pl.eye_position(), Vector3.FORWARD)
+	# Into the fuse box: it locks in its slot, and the objective counts it.
+	var box: Receptacle = _piece("FuseBox")
+	fuse1.global_position = box.global_position + Vector3(0, 0.8, 0)
+	fuse1.linear_velocity = Vector3.ZERO
+	await _wait(0.6)
+	_check("the fuse box takes the fuse and locks it in", box.delivered.size() == 1 and fuse1.freeze and fuse1.has_meta("delivered"), "%d in, frozen %s" % [box.delivered.size(), fuse1.freeze])
+	_check("the objective counts it", world.puzzle_objective().begins_with("Fuses for the main gate: 1/3"), world.puzzle_objective().get_slice("\n", 0))
+	_place_player(box.global_position + Vector3(0, 0, -3))
+	await _wait(0.3)
+	_aim_at(fuse1.global_position)
+	pl.gun.server_action(GravityGun.Action.GRAB_START, pl.eye_position(), fuse1.global_position - pl.eye_position())
+	await _wait(0.4)
+	_check("a delivered fuse can't be grabbed again", pl.gun.held_kind == GravityGun.Kind.NONE and fuse1.freeze, "holding %d" % pl.gun.held_id)
+	pl.gun.server_action(GravityGun.Action.GRAB_END, pl.eye_position(), Vector3.FORWARD)
+	_look(box.global_position + Vector3(-2.5, 1.8, -3.5), box.global_position + Vector3(0, 0.6, 0))
+	await _wait(0.4)
+	_shot("w03_fuse_box")
+	# Cold Storage: an anvil slid across the ice into the ice wall.
+	var anvil := _nearest("anvil", Vector3(-4, 0.3, -8))
+	anvil.global_position = Vector3(0, 0.6, -19)
+	anvil.linear_velocity = Vector3(0, 0, -14)
+	await _wait(1.5)
+	_check("an anvil smashes the ice wall", ice != null and ice.broken_cells.size() > 0, "broken %d" % (ice.broken_cells.size() if ice else -1))
+	_look(Vector3(3, 2.5, -16), Vector3(0, 1, -25))
+	await _wait(0.4)
+	_shot("w04_ice_wall")
+	# The other two fuses (any solution counts: here, they just get there).
+	for from in [Vector3(17.25, 5.35, 15), Vector3(0, 0.35, -25.8)]:
+		var f := _nearest("fuse", from)
+		f.global_position = box.global_position + Vector3(0, 0.8, 0)
+		f.linear_velocity = Vector3.ZERO
+		await _wait(0.6)
+	await _wait(0.4)
+	_check("three fuses open the main gate", box.active and _piece("MainGate").active, "%d in" % box.delivered.size())
+	_check("finished objectives leave the list", world.puzzle_objective().count("\n") == 1, world.puzzle_objective().replace("\n", " | "))
+	# The Lost Yeet: carried out of its cage with the gun (scared), set down on the mat (happy).
+	var yeet := _nearest("lost_yeet", Vector3(-33.5, 0.85, 2.5))
+	_look(Vector3(-28, 2.5, 9), Vector3(-33.5, 1, 2.5))
+	await _wait(0.4)
+	_shot("w05_cage_open")
+	_place_player(Vector3(-33.5, 0, 9))
+	await _wait(0.3)
+	_aim_at(yeet.global_position)
+	pl.gun.server_action(GravityGun.Action.GRAB_START, pl.eye_position(), yeet.global_position - pl.eye_position())
+	await _wait(1.0)
+	var carried := pl.gun.held_kind == GravityGun.Kind.PROP and pl.gun.held_id == yeet.prop_id
+	_check("the gun carries the Lost Yeet out, scared", carried and yeet._yeet_model.base_mood == "scared", "holding %s, mood %s" % [carried, yeet._yeet_model.base_mood])
+	pl.gun.server_action(GravityGun.Action.GRAB_END, pl.eye_position(), Vector3.FORWARD)
+	var mat: Receptacle = _piece("RescueMat")
+	yeet.global_position = mat.global_position + Vector3(0, 1.2, 0)
+	yeet.linear_velocity = Vector3.ZERO
+	await _wait(0.8)
+	_check("the rescue mat takes the Lost Yeet, grinning", mat.active and yeet._yeet_model.base_mood == "grin", "mat %s, mood %s" % [mat.active, yeet._yeet_model.base_mood])
+	_look(mat.global_position + Vector3(2.5, 2.0, -3.5), mat.global_position + Vector3(0, 1.0, 0))
+	await _wait(0.5)
+	_shot("w06_rescued")
+	_place_player(_piece("Exit").global_position + Vector3(0, 0.3, 0))
+	await _wait(0.8)
+	_check("the exit finishes the level", world.puzzle_finish >= 0.0, "")
+	var res: Dictionary = world.puzzle_results
+	_check("results arrive with a medal", res.get("medal", "") == "gold", "medal %s" % res.get("medal", ""))
+	await _wait(0.3)
+	_shot("w07_results")
 
 
 ## A ball thrown straight at a target from 2 m away.

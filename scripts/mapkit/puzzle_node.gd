@@ -21,6 +21,11 @@ var puzzle_index := -1
 var world: Node
 
 
+## The objective as shown (a Receptacle fills in its count).
+func objective_text() -> String:
+	return objective
+
+
 ## After the map is built (BreakableSlabs have become Destructibles): find what you watch.
 func link() -> void:
 	pass

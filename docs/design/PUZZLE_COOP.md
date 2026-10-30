@@ -1,12 +1,13 @@
 # Co-op puzzle mode: design
 
-**Status:** steps 1-4 are built: plates, doors, logic (gate, window, sequence),
+**Status:** steps 1-5 are built: plates, doors, logic (gate, window, sequence),
 checkpoints, exit, buttons, targets, break sensors, key props that come back and the Reset
 button; the mode with its clock and objective line; *Moving Day* rooms 1-3
 (`maps/moving_day.tscn`) and the *Test Chambers* (`maps/test_chambers.tscn`: Heavy Decisions,
 The Impossible Shot, Three Idiots One Door, Yeetapult, Windy Business, Thin Ice); seesaws,
 turntables and fans; ice (solid and breakable, slippery); the Use key (E) for buttons and
-Reset. The plan
+Reset; scoring; the Lost Yeet, fuses and receptacles, and the open level *The Warehouse*
+(`maps/warehouse.tscn`). The plan
 below includes Tomek's answers and Noor's puzzle-mode notes (October 2026).
 
 ## The idea
@@ -50,7 +51,8 @@ new code.
 | **Fan** | a wind cone players can grab and turn; blows props and Yeets (someone will fly into a wall) | built |
 | **Rotating platform** | turntables (always or while switched on) | built |
 | **Launchers** | springs, cannons (jump pads exist) | later |
-| **Receptacle**, **collectible**, **fragile package** | deliver and collect objectives | after |
+| **Receptacle** and **collectibles** | a fuse box for fuses, a rescue mat for Lost Yeets: counts what's delivered and locks it in | built |
+| **Fragile package** | deliver it without breaking it | later |
 | **Magnets**, **ropes and pulleys**, **electricity / ice** | Noor's later mechanics | later |
 
 Already there and useful: jump pads, lifts, wind volumes, water (floating props, putting
@@ -130,6 +132,10 @@ the team frees and carries to the exit with the gravity gun, like escorting a VI
 from too high it gets dizzy, not hurt; thrown, it screams happily. A level can have one to
 rescue, or several as a bonus objective.
 
+Built as a prop (`lost_yeet`, a PropSpawn kind): a Yeet on a capsule shouting "HELP!", 50 kg,
+carried with the gun like anything else. Scared while carried or flying, back on its feet by
+itself, grinning ("YAY!") once it's on a rescue mat (a Receptacle of kind `lost_yeet`).
+
 ## Water and fire puzzles (Tomek's idea)
 
 **Flood water**: a 2.5D flood simulation for puzzle areas (a Map Kit **FloodZone**). The area
@@ -175,8 +181,10 @@ the Steam Deck (a 64x64 grid), and it covers almost everything:
 3. ~~Mechanisms: Seesaw, Fan, Turntable; Yeetapult and Windy Business in the Test Chambers.~~
    Done.
 4. ~~Scoring: end screen, medals, stats, the awards.~~ Done.
-5. **Lost Yeet** and an **open level**: the NPC to rescue, receptacles, collectibles, several
-   objectives on the HUD, the warehouse.
+5. ~~**Lost Yeet** and an **open level**: the NPC to rescue, receptacles, collectibles, several
+   objectives on the HUD, the warehouse.~~ Done: *The Warehouse* (Storage: a 100 kg plate opens
+   the Lost Yeet's cage, a fuse behind glass on a high shelf; the Loading Bay: a fuse on a
+   ledge, the Yeetapult; Cold Storage: an ice rink and a fuse frozen in behind an ice wall).
 6. **Water and fire**: FloodZone (flood, flush, float, float switches, valves and drains),
    beacons, fuse lines, burning barriers, ice. A flood chamber and a fire chamber.
 7. Chambers 5 and 6, Moving Day rooms 4-5 (delivery and a Lost Yeet), Pass the Yeet.

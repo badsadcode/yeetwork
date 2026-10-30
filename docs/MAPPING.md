@@ -206,6 +206,8 @@ Every piece is on or off; the server decides and everybody sees the same. Common
   **Combine** `all` (AND) or `any` (OR). **Latch**: once on, stay on.
 - **Objective**: in the Puzzle mode the top of the screen shows the first piece (in scene
   order) that is still off and has an objective, e.g. a gate's "Hold both plates down".
+  On an **open level** (MapSettings **Open Level**) it lists every unfinished one instead,
+  to do in any order.
   Put objectives on what the players must achieve (gates, exits), not on plates that turn
   off again.
 
@@ -220,6 +222,7 @@ Every piece is on or off; the server decides and everybody sees the same. Common
 | **Seesaw** | the Yeetapult: a plank along its X on a pivot (the node). Tips toward the heavier side, takes a kick from things landing on it; when an end slams down, whatever stands on the other end is launched up and away (**Launch Boost**). Red end: drop the heavy thing; yellow end: stand and fly. **Max Angle**, **Length**, **Width**, **Pivot Height** |
 | **Turntable** | a round platform turning at **Speed** (degrees per second): always, or while its inputs are on. Things on it ride along (put a fan on it) |
 | **PuzzleFan** | a big fan blowing along the node's forward (-Z; the editor shows its stream): it's a prop players can grab, carry and aim with the gun, block with crates, or turn on a turntable. Blows while its inputs are on (always without inputs). **Strength** (m/s², gravity is 24): light props fly, heavy ones barely move; Yeets get **Player Push**. **Reach**, **Radius**. Comes back home if lost |
+| **Receptacle** | somewhere to bring things: a fuse box, a rescue mat. Props of **Kind** (`fuse`, `lost_yeet`, any prop, or `any`) set down inside **Size** lock into a slot for good (no grabbing them back out); on once **Required** are in. A counter shows how many (**Title** over it), and the objective can count too: "Fuses: {count}/{required}". Make the props Key Props so lost ones come back |
 | **PuzzleReset** | the big red button: walk up and press **Use** (E) on it, and every map prop whose home is inside **Area** (around **Area Center**) goes back home, the destroyed ones come back. Bumping into it does nothing. Gates stay as they are |
 | **Checkpoint** | turns green when a player reaches it; in the Puzzle mode the dead respawn at the last one reached |
 | **PuzzleExit** | on when every living player is inside **Size** (and its inputs are on, if it has any). Finishes the level in the Puzzle mode |
@@ -229,7 +232,11 @@ PropSpawn (they come back 2.5 s after being destroyed or falling out, instead of
 and give rooms a PuzzleReset. Any solution counts: puzzles check *that* something
 happened, never *how*.
 
-`maps/moving_day.tscn` and `maps/test_chambers.tscn` use all of them.
+PropSpawn kinds for puzzles: `fuse` (a glowing fuse, 5 kg) and `lost_yeet` (a Yeet in
+trouble to rescue, 50 kg: scared while carried, grinning on a rescue mat).
+
+`maps/moving_day.tscn` and `maps/test_chambers.tscn` use all of them; `maps/warehouse.tscn` is
+an open level with receptacles, fuses and a Lost Yeet.
 
 ### Anything else
 - **CSG nodes** (`CSGBox3D`, `CSGCylinder3D`, `CSGCombiner3D`...) with *Use Collision*

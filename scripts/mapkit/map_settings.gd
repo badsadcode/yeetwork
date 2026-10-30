@@ -45,6 +45,9 @@ extends Node
 @export var avoid_areas: Array[Rect2] = []
 ## A level made for the Puzzle (co-op) mode: --validate skips the team and flag checks.
 @export var puzzle := false
+## An open level: the HUD lists every unfinished objective (do them in any order), not just
+## the first one.
+@export var open_level := false
 ## Puzzle mode medals: finish within these times (seconds; 0 = no such medal).
 @export var gold_time := 0.0
 @export var silver_time := 0.0

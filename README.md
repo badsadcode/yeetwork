@@ -165,9 +165,11 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   everyone gets the results: the time and its medal, stats (props destroyed, times a friend
   yeeted you, deaths, the longest throw) and awards for how it went (Big Brain Yeet,
   Structural Disagreement, Unscheduled Flight, Task Failed Successfully, Certified Yeet
-  Engineer). Levels:
+  Engineer). Lost Yeets to rescue: carry them (screaming) to a rescue mat with the gun.
+  Fuse boxes that want their fuses. Levels:
   **Moving Day** and **Test Chambers** (Heavy Decisions, The Impossible Shot, Three Idiots
-  One Door, Yeetapult, Windy Business, Thin Ice).
+  One Door, Yeetapult, Windy Business, Thin Ice), and **The Warehouse**, an open level: three
+  fuses for the main gate, one in each wing, and a Lost Yeet in a cage; split up, any order.
 
 **Spooky mode.** During Halloween season (Oct 15 - Nov 3), when set to *Always* in the
 menu, or in Pumpkin Smash, every map gets:
@@ -298,6 +300,7 @@ godot --headless --path . -- --host --map prime --mode ctf --bots 0 --test
 # Puzzle mode: a level played through by a script (checks every step; screenshots without --headless)
 godot --headless --path . -- --host --map moving_day --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map test_chambers --mode puzzle --tour x --tour-mode puzzle
+godot --headless --path . -- --host --map warehouse --mode puzzle --tour x --tour-mode puzzle
 
 # Headless soak test: quit after N seconds and print a summary
 godot --headless --path . -- --host --bots 8 --autotest 60
