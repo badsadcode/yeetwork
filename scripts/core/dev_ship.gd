@@ -21,6 +21,12 @@ func _ready() -> void:
 	pl.cmd.move = Vector2.ZERO
 	var spot := Vector3(-14.0, MapHighSeas.DECK + 0.2, 14.0)
 	pl.respawn(ship.global_transform * spot, 0.0)
+	# This checks the ship's motion: no boom barrels (their blasts and the fires they start
+	# throw cargo around for reasons that have nothing to do with the swell).
+	for p: Prop in world.props.values():
+		if is_instance_valid(p) and p.explosive:
+			world.server_despawn_prop(p)
+	await get_tree().physics_frame
 	var aboard_start := _aboard(ship)
 	var start_local := {}
 	for p: Prop in world.props.values():
@@ -48,7 +54,15 @@ func _ready() -> void:
 		Game.sea_override if Game.sea_override != "" else "ocean", rad_to_deg(max_roll), rad_to_deg(max_pitch), rad_to_deg(max_tilt), heave_min, heave_max])
 	print("SHIP player drifted %.2f m on deck (still on deck: %s, height above deck %.2f m), cargo aboard %d -> %d" % [
 		drift, absf(local_end.y - MapHighSeas.DECK) < 0.6, local_end.y - MapHighSeas.DECK, aboard_start, aboard_end])
-	var ok := max_roll > deg_to_rad(0.5) and absf(local_end.y - MapHighSeas.DECK) < 0.6 and aboard_end >= aboard_start - 3
+	# Cargo lost overboard: props that are still around but no longer on deck (props that
+	# exploded, burnt down or broke apart on deck don't count).
+	var overboard := 0
+	var inv := ship.global_transform.affine_inverse()
+	for p in start_local: # (untyped: props that exploded meanwhile are freed)
+		if is_instance_valid(p) and p.kind != "flag" and ship.deck_box.has_point(start_local[p]) 				and not ship.deck_box.has_point(inv * p.global_position):
+			overboard += 1
+	print("SHIP cargo overboard: %d" % overboard)
+	var ok := max_roll > deg_to_rad(0.5) and absf(local_end.y - MapHighSeas.DECK) < 0.6 and overboard <= 3
 	var moved := {}
 	for p in start_local: # (untyped: props that exploded meanwhile are freed)
 		if is_instance_valid(p):
