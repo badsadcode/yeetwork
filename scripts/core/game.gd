@@ -96,6 +96,8 @@ var water_style := "classic"
 var sea_override := ""
 ## The host's environment pick for every map ("" = the map's own MapSettings.sky).
 var sky_override := ""
+## Build Prime and Facing from code instead of their Map Kit scenes (dev: --map-source code).
+var code_maps := false
 var join_address := "127.0.0.1"
 var port := DEFAULT_PORT
 var is_hosting := true
@@ -255,6 +257,8 @@ func list_maps() -> Array:
 		files.sort()
 		for f in files:
 			var path: String = MAPS_DIR + "/" + f
+			if Arena.MAPKIT_SCENES.values().has(path):
+				continue # a built-in map (listed above)
 			out.append({"key": path, "name": _scene_map_name(path)})
 	_map_cache = out
 	return out

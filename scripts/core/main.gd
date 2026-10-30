@@ -10,6 +10,7 @@ extends Node
 ##   --faces expressive|classic (character faces on this screen)
 ##   --sky sunset|day|tropical|desert|snow|volcano|night|space (environment for this match)
 ##   --water-style classic|sculpted  --sea calm|lake|ocean|stormy (ocean sea state, sculpted water)
+##   --map-source code  (Prime and Facing from their code builders, not their Map Kit scenes)
 
 var menu: MainMenu
 var world: World
@@ -91,6 +92,9 @@ func _handle_cmdline(execute := true) -> bool:
 				i += 1
 			"--water-style":
 				Game.water_style = "sculpted" if next == "sculpted" else "classic"
+				i += 1
+			"--map-source":
+				Game.code_maps = next == "code"
 				i += 1
 			"--faces":
 				Game.expressive_faces = next != "classic"

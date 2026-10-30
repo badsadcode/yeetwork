@@ -227,7 +227,9 @@ Arenas are built in the Godot editor with the **Map Kit**: drop-in nodes for blo
 breakable slabs, spawns, flags, props, jump pads, lifts, hazards and lighting presets.
 Save a scene in `res://maps/` and it appears in the map list. Press **F6** on it to
 playtest with bots. The full guide is in **[docs/MAPPING.md](docs/MAPPING.md)**, and
-`maps/courtyard.tscn` is a complete example.
+`maps/courtyard.tscn` is a complete example. The built-in Yeetwork Prime and Facing Yeets
+are Map Kit scenes too (`maps/prime.tscn`, `maps/facing.tscn`), so you can tweak them in
+the editor.
 
 ```bash
 godot --headless --path . -- --map courtyard --validate

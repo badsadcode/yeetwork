@@ -34,11 +34,18 @@ var fire_areas: Array = [] # [Transform3D, size]: burning places (World sets thi
 ## to_world() / xf_world() / flag_pos() to read them.
 var carrier: Node3D
 var _spinners: Array[Node3D] = []
+## Built-in maps that are loaded from Map Kit scenes.
+const MAPKIT_SCENES := {"prime": "res://maps/prime.tscn", "facing": "res://maps/facing.tscn"}
 
 
 func build(p_world: Node, map_key: String) -> void:
 	world = p_world
 	name = "Arena"
+	# Prime and Facing are Map Kit scenes now (editable in the editor); --map-source code
+	# builds them from the code below instead (that's what --tour-mode export_maps saves).
+	if MAPKIT_SCENES.has(map_key) and not Game.code_maps and ResourceLoader.exists(MAPKIT_SCENES[map_key]):
+		_build_scene_map(MAPKIT_SCENES[map_key])
+		return
 	if map_key == "facing":
 		MapFacing.build(self)
 		return
@@ -86,6 +93,7 @@ func box(center: Vector3, size: Vector3, color: Color, basis := Basis.IDENTITY, 
 	mi.material_override = Mats.world(color, 0.7, 0.0, emission)
 	body.add_child(mi)
 	add_child(body)
+	body.set_meta("mk", {"type": "block", "size": size, "color": color, "emission": emission})
 	return body
 
 
@@ -110,9 +118,10 @@ func glow_strip(center: Vector3, size: Vector3, color: Color, energy := 2.5) -> 
 	mi.material_override = Mats.glow(color, energy)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
+	mi.set_meta("mk", {"type": "glow"})
 
 
-func light(pos: Vector3, color: Color, range_m: float, energy := 2.0, shadows := false) -> void:
+func light(pos: Vector3, color: Color, range_m: float, energy := 2.0, shadows := false) -> OmniLight3D:
 	var l := OmniLight3D.new()
 	l.position = pos
 	l.light_color = color
@@ -120,6 +129,7 @@ func light(pos: Vector3, color: Color, range_m: float, energy := 2.0, shadows :=
 	l.light_energy = energy
 	l.shadow_enabled = shadows
 	add_child(l)
+	return l
 
 
 ## A breakable slab of `size` meters (local X by local Y) and `thickness` along local Z.
@@ -129,6 +139,7 @@ func breakable(center: Vector3, basis: Basis, slab_size: Vector2, thickness: flo
 	add_child(d)
 	d.setup(destructibles.size(), slab_size, thickness, color, anchors, material, hp_scale)
 	destructibles.append(d)
+	d.set_meta("mk", {"type": "slab", "size": slab_size, "thickness": thickness, "anchors": anchors, "material": material, "color": color, "hp_scale": hp_scale})
 	return d
 
 
@@ -137,6 +148,7 @@ func jump_pad(pos: Vector3, velocity: Vector3) -> void:
 	t.position = pos + Vector3(0, 0.6, 0)
 	add_child(t)
 	t.setup(TriggerVolume.Kind.JUMP_PAD, Vector3(2.4, 1.2, 2.4), velocity)
+	t.set_meta("mk", {"type": "pad", "pos": pos, "velocity": velocity})
 	var mi := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
 	cm.top_radius = 1.1
@@ -155,13 +167,16 @@ func jump_pad(pos: Vector3, velocity: Vector3) -> void:
 	arrow.position = pos + Vector3(0, 0.6, 0)
 	arrow.material_override = Mats.glow(C_PAD.lightened(0.4), 3.0)
 	add_child(arrow)
-	light(pos + Vector3(0, 1.5, 0), C_PAD, 6.0, 1.5)
+	var l := light(pos + Vector3(0, 1.5, 0), C_PAD, 6.0, 1.5)
+	for n: Node in [mi, arrow, l]:
+		n.set_meta("mk_part", true) # (the Map Kit pad makes these itself)
 
 
 func lift(a: Vector3, b: Vector3, period: float, phase: float, size := Vector3(3, 0.5, 3)) -> void:
 	var l := Lift.new()
 	add_child(l)
 	l.setup(world, a, b, size, period, phase, C_STEEL)
+	l.set_meta("mk", {"type": "lift", "a": a, "b": b, "period": period, "phase": phase, "size": size})
 
 
 ## Glowing team pedestal + flag base registration for Capture the Flag.
@@ -177,7 +192,9 @@ func flag_stand(team: int, stand: Vector3) -> void:
 	ped.position = stand + Vector3(0, 0.2, 0)
 	ped.material_override = Mats.glow(tc, 2.0)
 	add_child(ped)
-	light(stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
+	var l := light(stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
+	ped.set_meta("mk", {"type": "flag", "team": team, "stand": stand})
+	l.set_meta("mk_part", true)
 
 
 ## Liquid pool (acid, lava or water), kill volume, wind volume or a burning place (fire).
@@ -185,6 +202,8 @@ func hazard(kind: String, xf: Transform3D, size: Vector3, damage := 22.0, wind :
 	var t := TriggerVolume.new()
 	t.transform = xf
 	add_child(t)
+	var mk := {"type": "hazard", "kind": kind, "xf": xf, "size": size, "damage": damage, "wind": wind, "fire_color": fire_color}
+	t.set_meta("mk", mk)
 	match kind:
 		"kill":
 			t.setup(TriggerVolume.Kind.KILL, size)
@@ -193,12 +212,14 @@ func hazard(kind: String, xf: Transform3D, size: Vector3, damage := 22.0, wind :
 		"fire":
 			# A burning place: World sets alight whoever and whatever stands in it.
 			t.queue_free()
-			Burning.area(self, xf, size, fire_color)
+			Burning.area(self, xf, size, fire_color).set_meta("mk", mk)
 			fire_areas.append([xf, size])
 		_:
 			# Liquids: the surface sits 30% of the way up the box; the Liquid makes its own volume.
 			t.queue_free()
-			add_child(Liquid.create(kind, xf.origin + Vector3(0, size.y * 0.3, 0), Vector3(size.x, size.y * 0.8, size.z), damage))
+			var liq := Liquid.create(kind, xf.origin + Vector3(0, size.y * 0.3, 0), Vector3(size.x, size.y * 0.8, size.z), damage)
+			liq.set_meta("mk", mk)
+			add_child(liq)
 
 
 # --- Scene maps (made with the Map Kit) ---------------------------------------------
@@ -423,7 +444,7 @@ func _floor_and_pit() -> void:
 	for s in [-1, 1]:
 		glow_strip(Vector3(s * 14.0, 0.03, 0), Vector3(0.3, 0.06, 28.3), C_ACID, 2.0)
 		glow_strip(Vector3(0, 0.03, s * 14.0), Vector3(28.3, 0.06, 0.3), C_ACID, 2.0)
-	add_child(Liquid.create("acid", Vector3(0, -6.4, 0), Vector3(28, 1.6, 28), 22.0))
+	hazard("acid", Transform3D(Basis.IDENTITY, Vector3(0, -7.0, 0)), Vector3(28, 2, 28), 22.0) # surface at -6.4, 1.6 m deep
 
 
 func _outer_walls() -> void:

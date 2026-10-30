@@ -147,6 +147,7 @@ static func _tower(a: Arena, s: int) -> void:
 	ped.position = stand + Vector3(0, 0.2, 0)
 	ped.material_override = Mats.glow(tc, 2.0)
 	a.add_child(ped)
+	ped.set_meta("mk_part", true) # (a Map Kit FlagStand makes its own)
 	for i in 4:
 		a.spawn_points[team].append(Vector3(s * (73.0 + i * 1.6), 0.2, 2.0))
 		a.spawn_points[team].append(Vector3(s * (73.0 + i * 1.2), 15.2, -4.0 + i * 0.5))

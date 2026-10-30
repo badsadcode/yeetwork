@@ -13,6 +13,12 @@ extends Node3D
 	set(v):
 		arc_height = v
 		_rebuild()
+## If set, launch with exactly this velocity (relative to the pad) instead of aiming at
+## `target` (the converted built-in maps use it to keep their original pads).
+@export var velocity_override := Vector3.ZERO:
+	set(v):
+		velocity_override = v
+		_rebuild()
 
 var _preview: MeshInstance3D
 
@@ -28,6 +34,8 @@ func gravity() -> float:
 
 ## World-space launch velocity.
 func launch_velocity() -> Vector3:
+	if velocity_override != Vector3.ZERO:
+		return global_transform.basis * velocity_override
 	var g := gravity()
 	var t := global_transform.basis * target
 	var apex := maxf(t.y, 0.0) + arc_height

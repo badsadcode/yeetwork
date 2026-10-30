@@ -8,6 +8,13 @@ The example map `maps/courtyard.tscn` uses every node type; `maps/lagoon.tscn` s
 (a swimmable `water` HazardVolume and an ocean). Open it, look around,
 press **F6**, and you are playing it with bots.
 
+The built-in arenas **Yeetwork Prime** (`maps/prime.tscn`) and **Facing Yeets**
+(`maps/facing.tscn`) are Map Kit scenes too: open them and tweak anything. They keep their
+built-in names in the map list. (They were generated from the old code builders; see
+*Converting the code-built maps* at the end. Regenerating overwrites your edits.)
+**High Seas** stays in code: the whole map rides a moving ship, which the Map Kit can't
+express yet.
+
 ---
 
 ## 1. Quick start
@@ -148,6 +155,8 @@ A destructible wall, floor or bridge. In game it fractures into irregular pieces
 ### JumpPadNode
 - Move the **Target** (relative to the pad). The launch velocity is computed so the arc
   peaks **Arc Height** above the higher end. The editor draws the predicted arc in green.
+- **Velocity Override**: launch with exactly this velocity instead (the converted Prime and
+  Facing pads use it). Set it back to zero to aim with Target again.
 - Props get launched too.
 
 ### LiftPlatform
@@ -182,6 +191,8 @@ A destructible wall, floor or bridge. In game it fractures into irregular pieces
 - **Imported meshes**: add a `StaticBody3D` with a collision shape (or use *Mesh →
   Create Collision Shape*). StaticBody3D's default collision layer is already correct.
 - **Lights, decals, particles, decorative meshes**: used as-is.
+- **Spinner** (`scripts/mapkit/spinner.gd`): a Node3D that slowly turns its children around
+  its Y axis in game (Prime's orb ring, Facing's crystal). Decoration only, no collision.
 - Use the arena look on your own meshes by giving them a `ShaderMaterial` with
   `res://scripts/world/world_surface.gdshader`.
 
@@ -215,3 +226,14 @@ path, and later which cells broke. Built-in maps (`prime`, `facing`) are code-bu
 
 Kit scripts live in `scripts/mapkit/`. Adding a new node type means writing a `@tool`
 script there and handling it in `Arena._collect()`.
+
+### Converting the code-built maps
+`Arena` (Prime) and `MapFacing` still contain the original builders, and every builder tags
+what it makes. To regenerate the scenes from them (this **overwrites** `maps/prime.tscn` /
+`maps/facing.tscn`):
+
+```bash
+godot --headless --path . -- --host --map prime --map-source code --bots 0 --tour x --tour-mode export_maps
+```
+
+`--map-source code` also plays the code version, for comparing.
