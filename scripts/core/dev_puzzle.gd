@@ -373,28 +373,22 @@ func _chambers() -> void:
 	await _wait(0.4)
 	var potato := _nearest("crate", Vector3(2, 0.6, 149))
 	var start_b: Beacon = _piece("BeaconStart")
-	potato.global_position = start_b.bowl_position() + Vector3(0.9, 0.2, 0)
-	potato.linear_velocity = Vector3.ZERO
-	await _wait(1.5)
+	await _hold_in_flames(potato, start_b)
 	_check("the crate catches fire at the first beacon", world.is_burning(potato), "")
 	potato.global_position = Vector3(0, -1.0, 158.5)
 	potato.linear_velocity = Vector3.ZERO
 	await _wait(1.0)
 	_check("dropped in the channel, the fire goes out", not world.is_burning(potato), "")
-	potato.global_position = start_b.bowl_position() + Vector3(0.9, 0.2, 0)
-	potato.linear_velocity = Vector3.ZERO
-	var tl: float = world.now()
-	while not world.is_burning(potato) and world.now() - tl < 4.0:
-		await _wait(0.1)
+	await _hold_in_flames(potato, start_b)
 	var relit: bool = world.is_burning(potato)
 	var far: Beacon = _piece("BeaconH")
 	potato.global_position = far.bowl_position() + Vector3(0, 0.9, 0)
 	potato.linear_velocity = Vector3.ZERO
-	tl = world.now()
+	var tl: float = world.now()
 	while not far.active and world.now() - tl < 3.0:
 		await _wait(0.1)
 	await _wait(0.4)
-	_check("lit again and carried to the far beacon: the gate opens", far.active and _piece("GateH").active, "relit %s, burning there %s, beacon %s, crate %.1f m from its bowl" % [relit, world.is_burning(potato), far.active, potato.global_position.distance_to(far.bowl_position())])
+	_check("lit again and carried to the far beacon: the gate opens", far.active and _piece("GateH").active, "relit %s, beacon %s" % [relit, far.active])
 	_look(Vector3(-4, 3.0, 161), Vector3(3, 1.2, 169))
 	await _wait(0.3)
 	_shot("c11_hot_potato")
@@ -403,13 +397,9 @@ func _chambers() -> void:
 	await _wait(0.4)
 	var keg := _nearest("boom_barrel", Vector3(4, 0.7, 175))
 	var bi: Beacon = _piece("BeaconI")
-	t0 = world.now()
-	while not world.is_burning(keg) and world.now() - t0 < 3.0:
-		# Held in the flames (as with the gun).
-		keg.global_position = bi.bowl_position() + Vector3(0.5, 0.5, 0)
-		keg.linear_velocity = Vector3.ZERO
-		await _wait(0.1)
-	_check("the boom barrel catches fire at the beacon", world.is_burning(keg), "")
+	await _hold_in_flames(keg, bi)
+	# (once lit, a boom barrel is counted as about to go off, not as burning)
+	_check("the boom barrel catches fire at the beacon", is_instance_valid(keg) and keg.exploded, "")
 	# Through the hatch (thrown from in front of the wall).
 	keg.global_position = Vector3(0, 3.2, 180.5)
 	keg.linear_velocity = Vector3(0, 2.0, 8.0)
@@ -625,9 +615,7 @@ func _pump_house() -> void:
 	var lit: Beacon = _piece("BeaconLit")
 	_check("one beacon burns from the start", lit.active and not _piece("BeaconA").active, "")
 	var torch := _nearest("crate", Vector3(2, 0.6, 33))
-	torch.global_position = lit.bowl_position() + Vector3(0.9, 0.2, 0)
-	torch.linear_velocity = Vector3.ZERO
-	await _wait(1.5)
+	await _hold_in_flames(torch, lit)
 	_check("a crate held in the flames catches fire", world.is_burning(torch), "")
 	_look(Vector3(0, 2.2, 31), Vector3(-2, 1.2, 35))
 	await _wait(0.3)
@@ -675,6 +663,16 @@ func _pump_house() -> void:
 	_place_player(_piece("Exit").global_position + Vector3(0, 0.3, 0))
 	await _wait(0.8)
 	_check("the exit finishes the level", world.puzzle_finish >= 0.0, "")
+
+
+## Holds a prop just above a beacon's bowl (as with the gun; clear of the stand, which would
+## throw it out) until it catches fire (a boom barrel: its fuse is lit), at most 4 s.
+func _hold_in_flames(p: Prop, b: Beacon) -> void:
+	var t: float = world.now()
+	while is_instance_valid(p) and not world.is_burning(p) and not p.exploded and world.now() - t < 4.0:
+		p.global_position = b.bowl_position() + Vector3(0, 0.5 + p.size.y * 0.5, 0)
+		p.linear_velocity = Vector3.ZERO
+		await _wait(0.1)
 
 
 ## A ball thrown straight at a target from 2 m away.
