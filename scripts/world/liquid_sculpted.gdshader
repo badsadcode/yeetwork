@@ -154,7 +154,28 @@ vec3 scene_view_pos(vec2 uv, mat4 inv_proj) {
 	return v.xyz / v.w;
 }
 
+// Ocean only: XZ rectangles (min x, min z, max x, max z) of pools, acid and lava inside the
+// ocean's area. The ocean isn't drawn there, so the two surfaces never overlap.
+uniform vec4 holes[8];
+uniform int hole_count = 0;
+
+bool in_hole(vec2 p) {
+	for (int i = 0; i < 8; i++) {
+		if (i >= hole_count) {
+			break;
+		}
+		vec4 h = holes[i];
+		if (p.x > h.x && p.y > h.y && p.x < h.z && p.y < h.w) {
+			return true;
+		}
+	}
+	return false;
+}
+
 void fragment() {
+	if (in_hole(world_pos.xz)) {
+		discard;
+	}
 	float t = wave_time;
 	float dist = length(VERTEX);
 	bool under = !FRONT_FACING;

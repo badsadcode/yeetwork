@@ -183,10 +183,12 @@ func _ready() -> void:
 		_add_fizz()
 	all.append(self)
 	_world = get_node_or_null("/root/Main/World")
+	Liquid._update_ocean_holes()
 
 
 func _exit_tree() -> void:
 	all.erase(self)
+	Liquid._update_ocean_holes()
 	if Game.settings_changed.is_connected(_on_settings_changed):
 		Game.settings_changed.disconnect(_on_settings_changed)
 
@@ -437,6 +439,20 @@ func height_at(x: float, z: float) -> float:
 	var o := _gerstner(p, t)
 	o = _gerstner(p - Vector2(o.x, o.z), t)
 	return global_position.y + o.y
+
+
+## Pools, acid and lava cut holes in the ocean around them (where both would cover the same
+## ground, the smaller liquid wins: here in the picture, and in Liquid.at() for physics).
+static func _update_ocean_holes() -> void:
+	var holes := PackedVector4Array()
+	for l in all:
+		if is_instance_valid(l) and l.is_inside_tree() and not l.ocean and holes.size() < 8:
+			var c := l.global_position
+			holes.append(Vector4(c.x - l.size.x * 0.5, c.z - l.size.z * 0.5, c.x + l.size.x * 0.5, c.z + l.size.z * 0.5))
+	for l in all:
+		if is_instance_valid(l) and l.ocean and l.material:
+			l.material.set_shader_parameter("holes", holes)
+			l.material.set_shader_parameter("hole_count", holes.size())
 
 
 func contains_xz(p: Vector3) -> bool:

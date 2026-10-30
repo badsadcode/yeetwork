@@ -20,6 +20,18 @@ func _ready() -> void:
 		await _fire()
 		get_tree().quit()
 		return
+	if "break" in OS.get_cmdline_user_args():
+		# A crate smashed against a wall: the dust should stay subtle.
+		_look(Vector3(17, 1.6, -5), Vector3(17, 1.0, -11))
+		await _wait(0.5)
+		var crate: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, Vector3(17, 0.6, -10)))
+		await _wait(0.3)
+		world.server_break_prop(crate, Vector3(0, 0, -15))
+		for t in [0.1, 0.3, 0.7]:
+			await _until(t)
+			_shot("break_%.1f" % t)
+		get_tree().quit()
+		return
 	# Lagoon: standing on the north side of the ring, looking along it (open sky).
 	_look(Vector3(17, 1.8, -3), Vector3(17, 4.0, -13))
 	await _wait(0.8)

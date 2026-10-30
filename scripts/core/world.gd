@@ -1717,7 +1717,7 @@ func server_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal :
 func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vector3) -> void:
 	if kind.begins_with("impact:"):
 		var mat_name := kind.substr(7)
-		fx.impact(pos, normal, amount, mat_name)
+		fx.impact(pos, normal, amount, mat_name, 0.3) # props hitting things: a subtle puff
 		Sfx.impact(mat_name, pos, amount)
 		if local_player and amount > 0.6:
 			var d := local_player.global_position.distance_to(pos)

@@ -25,7 +25,9 @@ instant death, everything gameplay-relevant is server-authoritative and determin
 
 No bots, 1-4 players get through a level together with physics: collect, open doors,
 physics puzzles, rescue a Lost Yeet, deliver a fragile package. Full proposal, new Map Kit
-pieces and a first level: [PUZZLE_COOP.md](PUZZLE_COOP.md). Waiting for review.
+pieces and a first level: [PUZZLE_COOP.md](PUZZLE_COOP.md). Step 1 is built; the plan was
+revised with Noor's notes (multiple solutions always count, nothing stays broken, celebrate
+ridiculous solutions; six test chambers).
 
 ## Gravity gun: Grapple mode (later)
 

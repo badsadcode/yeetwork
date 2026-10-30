@@ -343,6 +343,11 @@ func _build_pool(c: Vector3) -> Liquid:
 
 func _water_tests() -> void:
 	var pool := _build_pool(Vector3(300, 0, 0))
+	# An ocean around (and under) the pool, its surface lower than the pool's, like Lagoon:
+	# the pool must win inside it (no sinking from the ocean's rough water).
+	var around := Liquid.create("water", Vector3(300, -1.4, 0), Vector3(80, 30, 80))
+	around.ocean = true
+	world.arena.add_child(around)
 	await ticks(5)
 
 	# 14. Swimming: idle in deep water you float with your head out; holding jump rises.
@@ -384,6 +389,7 @@ func _water_tests() -> void:
 	check("beach ball floats", by > -0.4 and by < 0.8, "ball centre %.2f m from the surface" % by)
 	check("anvil sinks", anvil.global_position.y < -2.5, "anvil at y %.2f (pool floor -3)" % anvil.global_position.y)
 
+	around.queue_free()
 	# 17. The open ocean is too rough to swim: you sink and drown.
 	var sea := Liquid.create("water", Vector3(-300, 0, 0), Vector3(40, 40, 40))
 	sea.ocean = true

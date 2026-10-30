@@ -36,8 +36,19 @@ func setup(p_kind: int, size: Vector3, p_velocity := Vector3.ZERO, p_strength :=
 	body_exited.connect(_on_body_exited)
 
 
+## The ocean leaves alone whatever is in a pool (or acid, lava) inside its area: there the
+## smaller liquid's rules apply, not both at once.
+func _ceded(body: Node3D) -> bool:
+	if liquid == null or not liquid.ocean or not is_instance_valid(body):
+		return false
+	for l in Liquid.all:
+		if is_instance_valid(l) and l != liquid and not l.ocean and l.contains_xz(body.global_position):
+			return true
+	return false
+
+
 func _on_body_entered(body: Node3D) -> void:
-	if liquid == null:
+	if liquid == null or _ceded(body):
 		return
 	var v := Vector3.ZERO
 	var scale := 1.0
@@ -68,7 +79,7 @@ static func _prune(d: Dictionary, now: float) -> void:
 
 ## Bursting back out of a liquid (jumping out, being yanked out) splashes too.
 func _on_body_exited(body: Node3D) -> void:
-	if liquid == null or not is_instance_valid(body):
+	if liquid == null or not is_instance_valid(body) or _ceded(body):
 		return
 	var v := Vector3.ZERO
 	if body is Player:
@@ -84,6 +95,8 @@ func _on_body_exited(body: Node3D) -> void:
 func _physics_process(delta: float) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	for body in get_overlapping_bodies():
+		if _ceded(body):
+			continue
 		if body is Player:
 			var pl := body as Player
 			if pl.is_controlled_here():

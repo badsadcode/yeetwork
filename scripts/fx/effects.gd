@@ -295,15 +295,23 @@ func shard(poly: PackedVector2Array, t: float, xf: Transform3D, vel: Vector3, sp
 
 ## Physical hit: flash, dust ring along the surface, flicked bits/sparks per material.
 ## `strength` ~ 0.05 (tap) .. 3 (huge).
-func impact(pos: Vector3, normal: Vector3, strength: float, material: String) -> void:
+## dust_scale: how much dust (1 for players landing; props hitting things and breaking
+## use less, so a crate smashing on a wall gives a subtle puff, not a cloud).
+func impact(pos: Vector3, normal: Vector3, strength: float, material: String, dust_scale := 1.0) -> void:
 	var s := clampf(strength, 0.0, 3.0)
 	if s < 0.08:
 		return
 	var n := normal.normalized() if normal.length() > 0.01 else Vector3.UP
 	if s > 0.5:
 		_flash(pos + n * 0.1, 0.25 + s * 0.25)
-	if material != "rubber" and material != "glass" and material != "body":
-		dust_ring(pos, n, s, _dust_color(material))
+	if material != "rubber" and material != "glass" and material != "body" and dust_scale > 0.0:
+		if dust_scale >= 1.0:
+			dust_ring(pos, n, s, _dust_color(material))
+		else:
+			var c := _dust_color(material).lightened(0.25)
+			var k := s * dust_scale
+			puffs(pos + n * 0.1, n, int(3 + k * 8), [Color(c, 0.6), Color(c, 0.4), Color(c, 0.0)],
+				0.5 + k * 0.4, 0.9 + k * 0.6, 0.3, 0.9 + k, 0.7 + k * 0.3, 80.0, Vector3(0, 0.3, 0), 5.0, 0.0, 0.15, 1.8, 3.0)
 	var count := int(4 + s * 14)
 	match material:
 		"metal":
@@ -322,8 +330,8 @@ func impact(pos: Vector3, normal: Vector3, strength: float, material: String) ->
 			var bit := BoxMesh.new()
 			bit.size = Vector3(0.07, 0.06, 0.07)
 			_burst(pos, n, count, bit, Mats.plastic(_dust_color(material).darkened(0.15), 0.9), 2.0, 5.0 + s * 4.0, 0.9)
-	if s > 0.6:
-		dust(pos, _dust_color(material), s)
+	if s * dust_scale > 0.6:
+		dust(pos, _dust_color(material), s * dust_scale)
 
 
 func _dust_color(material: String) -> Color:
