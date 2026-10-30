@@ -117,7 +117,10 @@ All kit nodes preview themselves in the editor. In game they become the real thi
 
 ### ArenaBlock (StaticBody3D)
 A solid box with the arena surface shader (soft panels, warm/cool gradient).
-- **Size**: use this, **do not scale** the node.
+- **Size**: type it in the Inspector, or drag the **handles** on the block's faces in the 3D
+  view (the opposite face stays put; hold Ctrl to snap to whole metres). The **Scale tool**
+  (R) works too: when you let go, the scale becomes Size and the scale goes back to 1 (a
+  scaled block would collide wrong).
 - Color, Roughness, Metallic, Emission (glow).
 - **Ramps:** rotate a block around X or Z. Players can walk up to 46°, and steeper
   slopes are slides.
@@ -289,7 +292,9 @@ electricity.
 The Map Kit's pieces draw themselves with internal meshes (not saved in the map), which
 Godot doesn't pick when you click. The **Yeetwork Map Kit** editor plugin
 (`addons/yeetwork_mapkit/`, on by default under *Project Settings → Plugins*) gives every
-piece a click shape, so clicking a block, a slab, a prop or a puzzle piece selects it.
+piece a click shape, so clicking a block, a slab, a prop or a puzzle piece selects it. It
+also puts resize handles on boxes (blocks, hazard volumes, doors, lifts) and turns a Scale
+tool drag on any sized piece into its Size.
 
 ### Custom maps (map packs)
 Maps don't have to live in the game: make them in `custom/<your_map>/` (with their own

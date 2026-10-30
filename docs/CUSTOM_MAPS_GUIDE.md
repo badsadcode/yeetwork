@@ -86,7 +86,11 @@ Every Map Kit piece is added the same way (Ctrl+A, type its name): `ArenaBlock`,
 2. In the Inspector, set **Size** to `30, 1, 30` (30 × 30 m, 1 m thick).
 3. Under **Node3D → Transform**, set **Position y** to `-0.5`, so the top of the floor is at 0.
 
-> **Use Size, never Scale**, to make blocks bigger: scaled blocks look and collide wrong.
+> **Resizing in the 3D view:** a selected block has a small handle on each face: drag one
+> and that face moves while the opposite one stays put (hold **Ctrl** to snap to whole
+> metres). The **Scale tool** (R) works too: when you let go, the scale is turned into
+> **Size** and the scale goes back to 1, because a scaled block collides wrong. Ctrl+Z undoes
+> either.
 
 | | |
 |---|---|
@@ -244,7 +248,8 @@ a friend who doesn't have it is told which map pack to get.
 | The game says the pack is "waiting to be allowed" | It has scripts: click **Allow** on the PLAY page (only for packs you trust). |
 | The export fails | Godot's export templates must be installed (step 0), and `GODOT` must point to your Godot. |
 | Textures or models are missing in the pack | Only what's in your map's folder goes into the pack: keep every texture and model in `custom/<your_map>/`. |
-| Players fall through something | Blocks: change **Size**, not Scale. Imported models need collision (step 12). |
+| Players fall through something | Imported models need collision (step 12). |
+| A warning triangle about "non-uniform scale" on a block | Select the block and do anything (e.g. nudge it): the Map Kit plugin turns the scale into Size. Or set Scale back to 1 and type the Size. |
 | Clicking a block in the 3D view doesn't select it | The **Yeetwork Map Kit** plugin must be on: *Project → Project Settings → Plugins*, tick *Enable*. (Selecting it in the Scene list always works.) |
 | F6 starts the wrong map | F6 runs the scene in the tab you're looking at: click your map's tab first. |
 | Errors about missing pieces after copying a map | Maps must be made in the Yeetwork project (step 0). |

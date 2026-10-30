@@ -1,24 +1,30 @@
 @tool
 extends EditorPlugin
-## The Map Kit in the editor. Its pieces (blocks, slabs, spawn points, props, puzzle pieces...)
-## draw themselves with internal meshes that aren't saved in the map, and Godot only picks
-## nodes of the scene when you click in the 3D view: so clicking a block selected nothing.
-## This adds a pick shape to every Map Kit piece: click it, and it's selected. The shape
-## follows the piece when you change it in the Inspector (a block's Size).
+## The Map Kit in the editor:
+## - Click a piece in the 3D view to select it. Its look is drawn with internal meshes that
+##   aren't saved in the map, which Godot doesn't pick by itself: the gizmo adds a click shape.
+## - Resize boxes (blocks, hazard volumes, doors, lifts) with the handles on their faces.
+## - Or with the Scale tool (R): when you let go, the scale becomes the piece's Size (a scaled
+##   physics body misbehaves; Godot warns about it) and the scale goes back to 1.
 
 var _gizmos: EditorNode3DGizmoPlugin
+var _baking := false
 
 
 func _enter_tree() -> void:
 	_gizmos = preload("res://addons/yeetwork_mapkit/pick_gizmos.gd").new()
+	_gizmos.undo = get_undo_redo()
 	add_node_3d_gizmo_plugin(_gizmos)
 	EditorInterface.get_inspector().property_edited.connect(_on_property_edited)
+	get_undo_redo().history_changed.connect(_on_history_changed)
 
 
 func _exit_tree() -> void:
 	remove_node_3d_gizmo_plugin(_gizmos)
 	if EditorInterface.get_inspector().property_edited.is_connected(_on_property_edited):
 		EditorInterface.get_inspector().property_edited.disconnect(_on_property_edited)
+	if get_undo_redo().history_changed.is_connected(_on_history_changed):
+		get_undo_redo().history_changed.disconnect(_on_history_changed)
 
 
 func _on_property_edited(_property: String) -> void:
@@ -26,3 +32,37 @@ func _on_property_edited(_property: String) -> void:
 	if n:
 		# After the piece has rebuilt its look.
 		n.update_gizmos.call_deferred()
+
+
+## A new action was made (a scale, or anything else; undo and redo don't count): scaled
+## Map Kit boxes among the selection get their scale folded into Size.
+func _on_history_changed() -> void:
+	if not _baking:
+		_bake_scales.call_deferred()
+
+
+func _bake_scales() -> void:
+	var scaled: Array[Node3D] = []
+	for n in EditorInterface.get_selection().get_selected_nodes():
+		if n is Node3D and n.get("size") is Vector3 and _is_mapkit(n) and not (n as Node3D).scale.is_equal_approx(Vector3.ONE):
+			scaled.append(n)
+	if scaled.is_empty():
+		return
+	_baking = true
+	var ur := get_undo_redo()
+	ur.create_action("Scale into Size")
+	for n in scaled:
+		var new_size: Vector3 = (n.get("size") as Vector3) * n.scale.abs()
+		ur.add_do_property(n, "size", new_size)
+		ur.add_do_property(n, "scale", Vector3.ONE)
+		ur.add_undo_property(n, "size", n.get("size"))
+		ur.add_undo_property(n, "scale", n.scale)
+		ur.add_do_method(n, "update_gizmos")
+		ur.add_undo_method(n, "update_gizmos")
+	ur.commit_action()
+	_baking = false
+
+
+func _is_mapkit(n: Node) -> bool:
+	var s: Script = n.get_script()
+	return s != null and s.resource_path.begins_with("res://scripts/mapkit/")
