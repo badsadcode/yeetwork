@@ -56,7 +56,7 @@ extends Node
 @export var silver_time := 0.0
 @export var bronze_time := 0.0
 ## Playtest settings used when you press F6 on this scene.
-@export_enum("Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash", "Puzzle (co-op)") var playtest_mode := 0
+@export_enum("Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash", "Puzzle (co-op)", "Yeetball") var playtest_mode := 0
 @export_range(0, 11) var playtest_bots := 3
 
 var _preview: Array[Node] = []

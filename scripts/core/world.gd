@@ -199,6 +199,8 @@ func _make_mode(m: int) -> ModeBase:
 			return ModePumpkin.new()
 		Game.Mode.PUZZLE:
 			return ModePuzzle.new()
+		Game.Mode.YEETBALL:
+			return ModeYeetball.new()
 	return ModeBase.new()
 
 
@@ -207,7 +209,7 @@ func mode_name() -> String:
 
 
 func is_team_mode() -> bool:
-	return mode == Game.Mode.CTF or mode == Game.Mode.DODGEBALL
+	return mode == Game.Mode.CTF or mode == Game.Mode.DODGEBALL or mode == Game.Mode.YEETBALL
 
 
 func get_player(id: int) -> Player:
@@ -2008,6 +2010,13 @@ func _s_flood(index: int, ids: PackedInt32Array, blobs: Array) -> void:
 		fz.decode_chunk(ids[k], blobs[k])
 
 
+## Puts a player back at a spawn point of the mode's choosing, alive and well (a kickoff).
+func server_place_player(pl: Player) -> void:
+	_respawn_at.erase(pl.player_id)
+	var pos := mode_logic.spawn_point(pl)
+	_bc_all("_s_respawn", [pl.player_id, pos, _yaw_toward_center(pos)])
+
+
 ## Electricity: a jolt (some damage) and a hop.
 func server_zap(pl: Player, amount: float) -> void:
 	if not pl.is_alive():
@@ -2067,7 +2076,7 @@ func _server_yank(pl: Player, what: int, id: int) -> void:
 	var to := pl.body_center() + Vector3.UP * 0.5
 	if what == 0:
 		var p := get_prop(id)
-		if p == null or p.freeze or p.mass > Grapple.YANK_MASS or p.held_by != 0 or p.has_meta("delivered") or to.distance_to(p.global_position) > Grapple.RANGE + 2.0:
+		if p == null or p.freeze or p.mass > Grapple.YANK_MASS or p.held_by != 0 or p.has_meta("delivered") or p.has_meta("no_grab") or to.distance_to(p.global_position) > Grapple.RANGE + 2.0:
 			return
 		var d := to - p.global_position
 		p.linear_velocity = d.normalized() * clampf(d.length() * 1.5 + 6.0, 8.0, 22.0) + Vector3.UP * 3.0

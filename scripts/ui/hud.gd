@@ -35,6 +35,7 @@ var _score_label: Label
 var _objective: Label
 var _objective_plate: HudPlate
 var _use_prompt: Label
+var _fps: Label
 var _results: PanelContainer
 var _results_until := 0.0
 const MEDAL_COLORS := {"gold": Color(1.0, 0.82, 0.25), "silver": Color(0.82, 0.86, 0.95), "bronze": Color(0.85, 0.55, 0.3)}
@@ -234,6 +235,14 @@ func _ready() -> void:
 	_hold_hint.custom_minimum_size = Vector2(600, 0)
 	_hold_hint.visible = false
 	_root.add_child(_hold_hint)
+
+	_fps = _label(16, Color(0.8, 1.0, 0.8))
+	_fps.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_fps.position = Vector2(-120, 12)
+	_fps.custom_minimum_size = Vector2(100, 0)
+	_fps.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_fps.visible = false
+	_root.add_child(_fps)
 
 	_build_scoreboard()
 	_build_pause()
@@ -466,6 +475,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	var pl: Player = world.local_player if world else null
+	_fps.visible = Game.show_fps
+	if _fps.visible:
+		_fps.text = "%d FPS" % Engine.get_frames_per_second()
 	var board := Input.is_action_pressed("scoreboard") and not _paused
 	if _results:
 		# Puzzle results: shown for a while after the level, then on the scoreboard key.

@@ -79,7 +79,7 @@ func fire() -> void:
 	var col: Object = hit.get("collider")
 	if col is Prop:
 		var p := col as Prop
-		if p.has_meta("delivered"):
+		if p.has_meta("delivered") or p.has_meta("no_grab"):
 			_miss()
 			return
 		if p.mass <= YANK_MASS and not p.freeze:

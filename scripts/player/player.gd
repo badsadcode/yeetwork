@@ -946,12 +946,12 @@ func _expire_exceptions() -> void:
 
 
 func shake(amount: float) -> void:
-	_shake = maxf(_shake, amount)
+	_shake = maxf(_shake, amount * Game.camera_shake)
 
 
 ## Brief FOV kick for hits you feel (getting launched, big nearby impacts).
 func punch(amount: float) -> void:
-	_punch = maxf(_punch, amount)
+	_punch = maxf(_punch, amount * Game.camera_shake)
 
 
 # --- Networking -------------------------------------------------------------------

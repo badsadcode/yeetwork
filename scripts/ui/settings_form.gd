@@ -9,6 +9,7 @@ static func build_settings_controls() -> GridContainer:
 	g.add_theme_constant_override("h_separation", 16)
 	g.add_theme_constant_override("v_separation", 8)
 
+	_display_rows(g)
 	_row(g, "Mouse sensitivity", _slider(0.0005, 0.006, 0.0001, Game.mouse_sensitivity, func(v): Game.mouse_sensitivity = v))
 	_row(g, "Field of view", _slider(70.0, 120.0, 1.0, Game.fov, func(v): Game.fov = v))
 	_row(g, "Volume", _slider(0.0, 1.0, 0.01, Game.master_volume, func(v):
@@ -44,6 +45,52 @@ static func build_settings_controls() -> GridContainer:
 	skill.item_selected.connect(func(i): Game.bot_skill = i)
 	_row(g, "Bot skill (host)", skill)
 	return g
+
+
+## Window mode, size, monitor, brightness, camera shake, the FPS counter.
+static func _display_rows(g: GridContainer) -> void:
+	var head := Label.new()
+	head.text = "Display"
+	head.add_theme_color_override("font_color", Color(1.0, 0.8, 0.25))
+	g.add_child(head)
+	g.add_child(Control.new())
+	var size_opt := OptionButton.new()
+	var wm := OptionButton.new()
+	for item in ["Windowed", "Borderless fullscreen", "Fullscreen (exclusive)"]:
+		wm.add_item(item)
+	wm.selected = clampi(Game.window_mode, 0, 2)
+	wm.item_selected.connect(func(i):
+		Game.window_mode = i
+		size_opt.disabled = i != 0
+		Game.apply_display())
+	_row(g, "Window mode (F11)", wm)
+	for s: Vector2i in Game.WINDOW_SIZES:
+		size_opt.add_item("%d x %d" % [s.x, s.y])
+	size_opt.selected = clampi(Game.window_size, 0, Game.WINDOW_SIZES.size() - 1)
+	size_opt.disabled = Game.window_mode != 0
+	size_opt.item_selected.connect(func(i):
+		Game.window_size = i
+		Game.apply_display())
+	_row(g, "Window size", size_opt)
+	var mon := OptionButton.new()
+	mon.add_item("Current")
+	for i in DisplayServer.get_screen_count():
+		var r := DisplayServer.screen_get_size(i)
+		mon.add_item("Monitor %d (%d x %d)" % [i + 1, r.x, r.y])
+	mon.selected = Game.monitor + 1 if Game.monitor < DisplayServer.get_screen_count() else 0
+	mon.item_selected.connect(func(i):
+		Game.monitor = i - 1
+		Game.apply_display())
+	_row(g, "Monitor", mon)
+	_row(g, "Brightness", _slider(0.6, 1.6, 0.05, Game.brightness, func(v):
+		Game.brightness = v
+		Game.settings_changed.emit()))
+	_row(g, "Camera shake", _slider(0.0, 1.0, 0.05, Game.camera_shake, func(v): Game.camera_shake = v))
+	var fps := CheckBox.new()
+	fps.text = "Show frames per second"
+	fps.button_pressed = Game.show_fps
+	fps.toggled.connect(func(on): Game.show_fps = on)
+	_row(g, "FPS counter", fps)
 
 
 const SCALES := [0.5, 0.6, 0.67, 0.75, 0.85, 0.9, 1.0]

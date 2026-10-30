@@ -35,6 +35,8 @@ const DEFS := {
 	# A Pulley's platforms, and a battery for power sockets (Receptacle kind battery).
 	"lift": {"shape": "box", "size": Vector3(2.2, 0.25, 2.2), "mass": 30.0, "color": Color(0.55, 0.6, 0.68), "bounce": 0.05, "label": "Lift", "metal": true},
 	"battery": {"shape": "box", "size": Vector3(0.5, 0.7, 0.5), "mass": 15.0, "color": Color(0.2, 0.85, 0.45), "bounce": 0.1, "label": "Battery", "metal": true},
+	# Yeetball: big, light, bouncy and easy to spot.
+	"yeetball": {"shape": "sphere", "size": Vector3(0.7, 0.7, 0.7), "mass": 6.0, "color": Color(0.97, 0.97, 1.0), "bounce": 0.7, "label": "Yeetball", "damp": 0.15},
 	"fan": {"shape": "fan", "size": Vector3(1.5, 1.7, 0.8), "mass": 40.0, "color": Color(0.3, 0.75, 0.95), "bounce": 0.1, "label": "Fan", "metal": true},
 }
 
@@ -166,6 +168,8 @@ func _build(def: Dictionary) -> void:
 			mesh.mesh = sm
 			if kind == "beachball":
 				_add_beachball_stripes(mesh)
+			elif kind == "yeetball":
+				_build_yeetball(mesh)
 		"cyl":
 			var s := CylinderShape3D.new()
 			s.radius = size.x
@@ -581,6 +585,25 @@ func _add_battery_parts(parent: MeshInstance3D) -> void:
 		t.position = Vector3((k - 0.5) * size.x * 0.5, size.y * 0.5 + 0.05, 0)
 		t.material_override = Mats.plastic(Color(0.9, 0.15, 0.1) if k == 0 else Color(0.1, 0.1, 0.1), 0.4)
 		parent.add_child(t)
+
+
+## The Yeetball: white, with two glowing orange bands and a light, readable in any scrum.
+func _build_yeetball(parent: MeshInstance3D) -> void:
+	for k in 2:
+		var band := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = size.x * 0.97
+		tm.outer_radius = size.x * 1.05
+		tm.rings = 32
+		band.mesh = tm
+		band.material_override = Mats.glow(Color(1.0, 0.55, 0.1), 2.2)
+		band.rotation_degrees = Vector3(90, 0, 0) if k == 0 else Vector3(0, 0, 90)
+		parent.add_child(band)
+	var light := OmniLight3D.new()
+	light.light_color = Color(1.0, 0.75, 0.4)
+	light.omni_range = 3.5
+	light.light_energy = 0.8
+	parent.add_child(light)
 
 
 ## A big fuse: a glowing cylinder with metal caps.

@@ -24,7 +24,7 @@ jobs:
         run: godot --headless -- --host --map prime --mode ctf --bots 0 --spooky off --test
       - name: Validate maps
         run: |
-          for m in prime facing courtyard lagoon highseas moving_day test_chambers warehouse pump_house scrapyard; do
+          for m in prime facing courtyard lagoon highseas moving_day test_chambers warehouse pump_house scrapyard yeetball_stadium; do
             godot --headless -- --map "$m" --validate
           done
       - name: Ship check (High Seas rides the swell, players and cargo stay aboard)
@@ -39,6 +39,9 @@ jobs:
           for m in moving_day test_chambers warehouse pump_house scrapyard; do
             timeout 180 godot --headless -- --host --map "$m" --mode puzzle --spooky off --tour x --tour-mode puzzle
           done
+      - name: Yeetball check (kickoff, goals, hold limit, lost ball, bots playing, the win)
+        timeout-minutes: 4
+        run: timeout 150 godot --headless -- --host --map yeetball_stadium --mode yeetball --bots 3 --spooky off --tour x --tour-mode yeetball
 
   export:
     name: Export ${{ matrix.platform }}

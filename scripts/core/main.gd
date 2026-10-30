@@ -52,7 +52,7 @@ func _handle_cmdline(execute := true) -> bool:
 				Game.join_address = next
 				i += 1
 			"--mode":
-				Game.mode = {"sandbox": Game.Mode.SANDBOX, "ctf": Game.Mode.CTF, "dodgeball": Game.Mode.DODGEBALL, "pumpkin": Game.Mode.PUMPKIN, "puzzle": Game.Mode.PUZZLE}.get(next, Game.Mode.SANDBOX)
+				Game.mode = {"sandbox": Game.Mode.SANDBOX, "ctf": Game.Mode.CTF, "dodgeball": Game.Mode.DODGEBALL, "pumpkin": Game.Mode.PUMPKIN, "puzzle": Game.Mode.PUZZLE, "yeetball": Game.Mode.YEETBALL}.get(next, Game.Mode.SANDBOX)
 				i += 1
 			"--spooky":
 				Game.halloween = 2 if next != "off" else 0

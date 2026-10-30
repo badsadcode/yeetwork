@@ -588,8 +588,8 @@ func _try_grab(origin: Vector3, dir: Vector3) -> void:
 	var target: Node = hit.get("collider") if not hit.is_empty() else null
 	if not (target is Prop or target is Player):
 		target = _catch_assist(origin, dir)
-	if target is Prop and target.has_meta("delivered"):
-		return # locked in a Receptacle
+	if target is Prop and (target.has_meta("delivered") or target.has_meta("no_grab")):
+		return # locked in a Receptacle, or waiting for a kickoff
 	if target is Prop:
 		var p := target as Prop
 		var d := origin.distance_to(p.global_position)
@@ -763,6 +763,13 @@ func _cancel_charge() -> void:
 	if _charging:
 		_charging = false
 		player.world.server_gun_charge(self, false)
+
+
+## The rules take it off you (Yeetball's hold limit): no grabbing anything again for a moment.
+func force_release(block_time: float) -> void:
+	release(false)
+	_regrab_block = maxf(_regrab_block, block_time)
+	_pull_id = 0
 
 
 func release(throw_ragdoll: bool) -> void:

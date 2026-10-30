@@ -14,8 +14,8 @@ const L_PROPS := 4
 const L_LIMBS := 8
 const L_TRIGGERS := 16
 
-enum Mode { SANDBOX, CTF, DODGEBALL, PUMPKIN, PUZZLE }
-const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash", "Puzzle (co-op)"]
+enum Mode { SANDBOX, CTF, DODGEBALL, PUMPKIN, PUZZLE, YEETBALL }
+const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash", "Puzzle (co-op)", "Yeetball"]
 const BUILTIN_MAPS := [
 	{"key": "facing", "name": "Facing Yeets"},
 	{"key": "prime", "name": "Yeetwork Prime"},
@@ -82,6 +82,15 @@ var look_color := -1
 var look_character := 0
 ## Faces that blink and react (false: the classic, unchanging faces). Only changes what you see.
 var expressive_faces := true
+# Display (persisted). Window mode: 0 windowed, 1 borderless fullscreen, 2 exclusive fullscreen
+# (-1 = pick automatically: fullscreen on the Steam Deck, a window elsewhere).
+var window_mode := -1
+var window_size := 1 # index into WINDOW_SIZES (windowed only)
+var monitor := -1 # -1 = the one the game opened on
+var brightness := 1.0
+var camera_shake := 1.0
+var show_fps := false
+const WINDOW_SIZES := [Vector2i(1280, 720), Vector2i(1600, 900), Vector2i(1920, 1080), Vector2i(2560, 1440), Vector2i(3840, 2160)]
 
 # Session config (set by the menu before a match starts).
 var mode: int = Mode.SANDBOX
@@ -111,12 +120,50 @@ func _ready() -> void:
 	Controls.init(cfg if cfg.load(SETTINGS_PATH) == OK else null)
 	if graphics < 0:
 		graphics = 0 if is_steam_deck() else 2
+	if window_mode < 0:
+		window_mode = 1 if is_steam_deck() else 0
+	apply_display()
 	if graphics <= 2 or gfx.is_empty():
 		var saved := gfx
 		gfx = GFX_PRESETS[clampi(graphics, 0, 2)].duplicate()
 		if graphics == 3:
 			gfx.merge(saved, true)
 	apply_graphics()
+
+
+## Window mode, size and monitor (not when headless: dev checks and servers).
+func apply_display() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var screens := DisplayServer.get_screen_count()
+	var screen := DisplayServer.window_get_current_screen() if monitor < 0 else clampi(monitor, 0, screens - 1)
+	if DisplayServer.window_get_current_screen() != screen:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		DisplayServer.window_set_current_screen(screen)
+	match window_mode:
+		1:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		2:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+		_:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			var usable := DisplayServer.screen_get_usable_rect(screen)
+			var size: Vector2i = WINDOW_SIZES[clampi(window_size, 0, WINDOW_SIZES.size() - 1)]
+			size = Vector2i(mini(size.x, usable.size.x), mini(size.y, usable.size.y))
+			DisplayServer.window_set_size(size)
+			DisplayServer.window_set_position(usable.position + (usable.size - size) / 2)
+
+
+## F11 / Alt+Enter: fullscreen on and off (borderless; back to a window).
+func _input(event: InputEvent) -> void:
+	var k := event as InputEventKey
+	if k == null or not k.pressed or k.echo:
+		return
+	if k.keycode == KEY_F11 or (k.keycode == KEY_ENTER and k.alt_pressed):
+		window_mode = 0 if window_mode != 0 else 1
+		apply_display()
+		save_settings()
+		get_viewport().set_input_as_handled()
 
 
 ## The character choices sent to the server when joining.
@@ -172,6 +219,12 @@ func save_settings() -> void:
 	cfg.set_value("player", "name", player_name)
 	cfg.set_value("player", "sensitivity", mouse_sensitivity)
 	cfg.set_value("player", "fov", fov)
+	cfg.set_value("display", "window_mode", window_mode)
+	cfg.set_value("display", "window_size", window_size)
+	cfg.set_value("display", "monitor", monitor)
+	cfg.set_value("display", "brightness", brightness)
+	cfg.set_value("display", "camera_shake", camera_shake)
+	cfg.set_value("display", "show_fps", show_fps)
 	cfg.set_value("player", "gore", gore_level)
 	cfg.set_value("player", "auto_bhop", auto_bhop)
 	cfg.set_value("player", "always_run", always_run)
@@ -210,6 +263,12 @@ func load_settings() -> void:
 	player_name = cfg.get_value("player", "name", player_name)
 	mouse_sensitivity = cfg.get_value("player", "sensitivity", mouse_sensitivity)
 	fov = cfg.get_value("player", "fov", fov)
+	window_mode = cfg.get_value("display", "window_mode", window_mode)
+	window_size = cfg.get_value("display", "window_size", window_size)
+	monitor = cfg.get_value("display", "monitor", monitor)
+	brightness = cfg.get_value("display", "brightness", brightness)
+	camera_shake = cfg.get_value("display", "camera_shake", camera_shake)
+	show_fps = cfg.get_value("display", "show_fps", show_fps)
 	gore_level = cfg.get_value("player", "gore", gore_level)
 	auto_bhop = cfg.get_value("player", "auto_bhop", auto_bhop)
 	always_run = cfg.get_value("player", "always_run", always_run)

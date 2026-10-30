@@ -56,6 +56,9 @@ func think(delta: float) -> void:
 		return
 	_think -= delta
 	_punt_cd -= delta
+	if world.mode == Game.Mode.YEETBALL:
+		_think_yeetball(delta)
+		return
 	if _think <= 0.0:
 		_think = 0.25 + _rng.randf() * 0.2 + (2 - _skill()) * 0.1
 		_miss = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-0.5, 1), _rng.randf_range(-1, 1)) * AIM_SLOP[_skill()]
@@ -114,6 +117,51 @@ func think(delta: float) -> void:
 					_punt_cd = PUNT_REST[_skill()] + _rng.randf()
 	_aim(look_at, delta)
 	_steer(delta, want_move)
+
+
+## Yeetball: get behind the ball (on the far side from the goal we attack) and punt it at
+## the goal; the nearest teammate goes for it, the others hang back between it and home.
+func _think_yeetball(delta: float) -> void:
+	var mode := world.mode_logic as ModeYeetball
+	var b: Prop = mode.ball() if mode else null
+	var target: GoalZone = mode.goal_of(Game.TEAM_BLUE if pl.team == Game.TEAM_RED else Game.TEAM_RED) if mode else null
+	var home: GoalZone = mode.goal_of(pl.team) if mode else null
+	if b == null or target == null or home == null:
+		_aim(pl.eye_position() + Vector3.FORWARD, delta)
+		_steer(delta, false)
+		return
+	var bp := b.global_position
+	var to_goal := target.mouth() - bp
+	to_goal.y = 0.0
+	var dir := to_goal.normalized()
+	# Am I the closest of my team to the ball?
+	var mine := pl.global_position.distance_to(bp)
+	var chaser := true
+	for q: Player in world.players.values():
+		if q != pl and q.team == pl.team and q.is_alive() and q.global_position.distance_to(bp) < mine - 0.5:
+			chaser = false
+	var look_at := bp
+	if chaser:
+		var behind := bp - dir * 2.0
+		behind.y = pl.global_position.y
+		var lined_up := (bp - pl.global_position).normalized().dot(dir) > 0.6
+		_goal = bp if lined_up else behind
+		if mine < 6.0 and lined_up:
+			# Aim at the goal mouth (a punt goes where you look) with the ball in the punt cone.
+			look_at = target.mouth() + _miss * 0.4
+			var eye := pl.eye_position()
+			# (within 1.5 m a punt takes anything, wherever it is; farther out, it must be in the cone)
+			var in_cone := eye.distance_to(bp) < 1.5 or pl.aim_direction().dot((bp - eye).normalized()) > GravityGun.PUNT_COS + 0.05
+			if in_cone and _punt_cd <= 0.0 and _aim_error(look_at) < 0.2:
+				world.gun_action(pl, GravityGun.Action.THROW)
+				_punt_cd = PUNT_REST[_skill()] * 0.6 + _rng.randf() * 0.4
+	else:
+		# Hang back: between the ball and our goal.
+		_goal = bp.lerp(home.global_position, 0.55)
+		look_at = bp
+	_hopping = _rng.randf() < HOP[_skill()] * 0.3
+	_aim(look_at, delta)
+	_steer(delta, pl.global_position.distance_to(_goal) > 1.0)
 
 
 ## Starts winding up a throw; farther targets get a longer charge.

@@ -39,6 +39,10 @@ static func apply_quality(env: Environment, preset: String) -> void:
 	env.ssao_enabled = g.ssao
 	env.ssao_detail = 0.3 if g.gi >= 2 else 0.0
 	env.glow_enabled = g.glow
+	# Brightness (Options → Display): an exposure multiplier.
+	env.tonemap_exposure = float(env.get_meta("exposure", env.tonemap_exposure)) * Game.brightness
+	if not env.has_meta("exposure"):
+		env.set_meta("exposure", env.tonemap_exposure / Game.brightness)
 	var fog_d: float = env.get_meta("vol_fog", env.volumetric_fog_density)
 	env.set_meta("vol_fog", fog_d)
 	env.volumetric_fog_enabled = g.fog and fog_d > 0.0

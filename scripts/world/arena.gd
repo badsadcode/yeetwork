@@ -25,6 +25,8 @@ var world: Node
 var destructibles: Array[Destructible] = []
 var spawn_points := {0: [], 1: [], 2: []}
 var flag_stands := {} # team -> Vector3 (base of the flag)
+var goals: Array = [] # Yeetball GoalZones
+var ball_spot := Vector3(0, 1.2, 0) # Yeetball kickoff spot (a BallSpot)
 var initial_props: Array = [] # [kind, Transform3D, key prop?]
 var kill_y := -45.0
 var avoid_rects: Array[Rect2] = [] # XZ areas bots should route around
@@ -304,6 +306,10 @@ func _collect(n: Node) -> void:
 		hazard(hv.kind, Transform3D(hv.global_transform.basis.orthonormalized(), hv.global_position), hv.size, hv.damage, hv.wind, hv.fire_color)
 	elif n is PuzzleNode:
 		puzzle.append(n)
+	elif n is GoalZone:
+		goals.append(n)
+	elif n is BallSpot:
+		ball_spot = (n as Node3D).global_position
 	elif n is CSGShape3D:
 		var csg := n as CSGShape3D
 		if csg.is_root_shape() and csg.use_collision:
@@ -320,8 +326,11 @@ func validate() -> Array[String]:
 	for t in [1, 2]:
 		if spawn_points[t].is_empty() and not co_op:
 			out.append("No %s spawn points (team modes will use 'Any' spawns)." % Game.TEAM_NAMES[t])
-	if (not flag_stands.has(1) or not flag_stands.has(2)) and not co_op:
+	var sport := not goals.is_empty()
+	if (not flag_stands.has(1) or not flag_stands.has(2)) and not co_op and not sport:
 		out.append("CTF needs one Red and one Blue FlagStand.")
+	if sport and (goals.filter(func(g: GoalZone) -> bool: return g.team == 1).size() != 1 or goals.filter(func(g: GoalZone) -> bool: return g.team == 2).size() != 1):
+		out.append("Yeetball needs one Red and one Blue GoalZone.")
 	if co_op and not puzzle.any(func(n: PuzzleNode) -> bool: return n is PuzzleExit):
 		out.append("A puzzle level needs a PuzzleExit.")
 	var cells := 0

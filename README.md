@@ -30,7 +30,8 @@ The step-by-step install and multiplayer guide is in **[docs/STEAM_DECK.md](docs
 2. Open `project.godot` and press **F5** (or run `godot --path .`).
 3. In the menu: **PLAY** (pick mode, map, bots and water style, then *Start match*),
    **JOIN** (a friend's address), **CHARACTER** (name, hat, head extra, skin, shirt) and
-   **OPTIONS** (controls, sound and graphics). Friends on your network (or with the port
+   **OPTIONS** (display: windowed / borderless / fullscreen, window size, monitor, brightness,
+   camera shake, FPS counter; controls, sound and graphics). Friends on your network (or with the port
    forwarded) join with your IP. The default port is `24642` (UDP).
    If your ISP doesn't let you host (CGNAT), run a UDP tunnel such as **playit.gg** pointed
    at local UDP port `24642`; friends paste the address it gives you (`host:port`) into
@@ -61,6 +62,7 @@ menu art and font (`assets/`): the title background and logo, button and frame a
 | Scoreboard | Tab |
 | Respawn | K |
 | Menu and settings | Esc |
+| Fullscreen on / off | F11 or Alt+Enter |
 
 Gamepads work too (sticks, triggers for the gun, A jump, B crouch).
 
@@ -187,6 +189,14 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   melts ice, and **The Scrapyard**: grapple ring to ring over a chasm, ride a counterweight
   lift, work a magnet crane (a battery powers it), close a circuit (metal, water, or a
   brave Yeet who gets zapped), burn through the rope an anvil hangs on.
+
+**Yeetball** (sports, prototype). Football with gravity guns: two teams, one big glowing
+ball, two goals. Punt it, throw it, pass it, catch it, bank it off the walls; the whole ball
+over the line is a goal ("GOOOOOOOYEET!"). Kickoff after a countdown with everyone in their
+own half; the gun holds the ball 2.5 s at most (no carrying it into the net); the ball never
+hurts anyone; lost or stuck balls come back to the middle. First to 5 goals. Bots play too
+(the nearest chases the ball and punts it at the goal, the others hang back).
+Map: **Yeetball Stadium**.
 
 **Spooky mode.** During Halloween season (Oct 15 - Nov 3), when set to *Always* in the
 menu, or in Pumpkin Smash, every map gets:
@@ -320,6 +330,9 @@ godot --headless --path . -- --host --map test_chambers --mode puzzle --tour x -
 godot --headless --path . -- --host --map warehouse --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map pump_house --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map scrapyard --mode puzzle --tour x --tour-mode puzzle
+
+# Yeetball: kickoff, goals, the hold limit, a lost ball, bots playing, the win
+godot --headless --path . -- --host --map yeetball_stadium --mode yeetball --bots 3 --tour x --tour-mode yeetball
 
 # Headless soak test: quit after N seconds and print a summary
 godot --headless --path . -- --host --bots 8 --autotest 60
