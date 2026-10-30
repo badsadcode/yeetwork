@@ -296,6 +296,9 @@ func _fire_tests() -> void:
 	await reset(Vector3(300, -1.0, 0), 0.0) # into the test pool
 	await ticks(30)
 	check("fire place burns, water puts it out", lit and hurt and not world.is_burning(pl), "burning %s, hp %.0f, still burning in water %s" % [lit, pl.hp, world.is_burning(pl)])
+	# Earlier tests' explosions may still have things burning (the fire cap): put them out.
+	for id in world._burning_props.keys():
+		world._server_put_out(0, id)
 	var crate: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, Vector3(-50, 0.6, -30)))
 	var crate_id := crate.prop_id
 	await ticks(2)
