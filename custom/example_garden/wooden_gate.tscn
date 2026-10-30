@@ -1,0 +1,28 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Material" path="res://custom/example_garden/wood.tres" id="wood"]
+
+[sub_resource type="BoxMesh" id="plank"]
+size = Vector3(0.9, 3.6, 0.3)
+
+[node name="WoodenGate" type="Node3D"]
+
+[node name="Plank0" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0, 0)
+mesh = SubResource("plank")
+surface_material_override/0 = ExtResource("wood")
+
+[node name="Plank1" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 0)
+mesh = SubResource("plank")
+surface_material_override/0 = ExtResource("wood")
+
+[node name="Plank2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 0)
+mesh = SubResource("plank")
+surface_material_override/0 = ExtResource("wood")
+
+[node name="Plank3" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0, 0)
+mesh = SubResource("plank")
+surface_material_override/0 = ExtResource("wood")

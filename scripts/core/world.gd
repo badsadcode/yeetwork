@@ -9,6 +9,8 @@ extends Node3D
 ##   * Effects that only change how things look are broadcast and played locally.
 
 signal leave_requested
+## Why we're leaving (shown in the menu), if not because the player chose to.
+var leave_reason := ""
 
 const STATE_RATE := 1.0 / 30.0
 const PROP_RATE := 1.0 / 30.0
@@ -337,6 +339,12 @@ func _player_info(pl: Player) -> Dictionary:
 
 @rpc("authority", "call_remote", "reliable")
 func _s_init(state: Dictionary) -> void:
+	var m: String = state.map
+	if m.begins_with(MapPacks.CUSTOM_DIR) and not ResourceLoader.exists(m):
+		# A custom map we don't have: say which pack to get.
+		leave_reason = "This server plays a custom map you don't have: get its map pack (%s.zip) and put it in the game's maps folder." % MapPacks.pack_of(m)
+		leave_requested.emit()
+		return
 	mode = state.mode
 	Game.spooky = state.get("spooky", false)
 	Liquid.style = state.get("water_style", "classic")

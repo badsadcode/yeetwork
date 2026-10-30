@@ -275,6 +275,14 @@ playtest with bots. The full guide is in **[docs/MAPPING.md](docs/MAPPING.md)**,
 are Map Kit scenes too (`maps/prime.tscn`, `maps/facing.tscn`), so you can tweak them in
 the editor.
 
+**Custom maps (map packs).** Maps can also live outside the game: make one in
+`custom/<your_map>/` with its own textures (PBR materials on blocks), models (as scenery or as
+the look of jump pads, lifts, doors, buttons and plates) and scripts, export it with
+`tools/export_map_pack.bat <your_map>` and put the `.zip` in a `maps` folder next to the game.
+It shows up in the map list as *(custom)*. Packs with scripts of their own load only after
+the player allows them (Play page); a player who joins without the server's map pack is told
+which one to get. The guide for map makers: `custom/README.md`.
+
 ```bash
 godot --headless --path . -- --map courtyard --validate
 ```

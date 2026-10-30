@@ -14,12 +14,21 @@ extends PuzzleNode
 	set(v):
 		color = v
 		_rebuild()
+## Your own model for it (a scene: a mesh, an imported .glb...), instead of the built-in look.
+## It works the same; only the look changes. A child named "Plate" sinks when it's
+## pressed. The plate's collision stays a slab of Size.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
 
 const PLAYER_MASS := 70.0
 const HEIGHT := 0.16
 
 var weight := 0.0 # server: what's on it now
-var _plate: MeshInstance3D
+var _plate: Node3D
+var _custom: Node3D
+var _plate_rest := 0.0
 var _rim: MeshInstance3D
 var _body: StaticBody3D
 var _rim_mat: StandardMaterial3D
@@ -33,9 +42,12 @@ func _ready() -> void:
 func _rebuild() -> void:
 	if not is_inside_tree():
 		return
-	for n in [_plate, _rim, _body]:
+	for n in [_plate, _rim, _body, _custom]:
 		if n:
 			n.queue_free()
+	_plate = null
+	_rim = null
+	_custom = null
 	_body = StaticBody3D.new()
 	_body.collision_layer = 1 # Game.L_WORLD (no autoloads in the editor)
 	_body.collision_mask = 0
@@ -46,7 +58,16 @@ func _rebuild() -> void:
 	cs.position.y = HEIGHT * 0.5
 	_body.add_child(cs)
 	add_child(_body, false, Node.INTERNAL_MODE_FRONT)
+	_custom = model.instantiate() as Node3D if model else null
+	if _custom:
+		# The map's own look: a child named "Plate" (if any) sinks when pressed.
+		add_child(_custom, false, Node.INTERNAL_MODE_FRONT)
+		_plate = _custom.find_child("Plate", true, false) as Node3D
+		if _plate:
+			_plate_rest = _plate.position.y
+		return
 	_plate = PuzzleNode.box_mesh(Vector3(size.x - 0.3, HEIGHT, size.y - 0.3), Mats.world(color, 0.5, 0.2), Vector3(0, HEIGHT * 0.5, 0))
+	_plate_rest = _plate.position.y
 	add_child(_plate, false, Node.INTERNAL_MODE_FRONT)
 	_rim_mat = StandardMaterial3D.new()
 	_rim_mat.emission_enabled = true
@@ -90,4 +111,4 @@ func _process(delta: float) -> void:
 	if _plate == null:
 		return
 	_press = move_toward(_press, 1.0 if active else 0.0, delta * 6.0)
-	_plate.position.y = HEIGHT * 0.5 - _press * 0.07
+	_plate.position.y = _plate_rest - _press * 0.07

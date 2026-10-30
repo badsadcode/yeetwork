@@ -9,7 +9,7 @@ var phase := 0.0
 var world: Node
 
 
-func setup(p_world: Node, a: Vector3, b: Vector3, size: Vector3, p_period: float, p_phase: float, color: Color) -> void:
+func setup(p_world: Node, a: Vector3, b: Vector3, size: Vector3, p_period: float, p_phase: float, color: Color, model: PackedScene = null) -> void:
 	world = p_world
 	point_a = a
 	point_b = b
@@ -24,6 +24,11 @@ func setup(p_world: Node, a: Vector3, b: Vector3, size: Vector3, p_period: float
 	shape.size = size
 	cs.shape = shape
 	add_child(cs)
+	if model:
+		var inst := model.instantiate()
+		if inst:
+			add_child(inst)
+			return
 	var mi := MeshInstance3D.new()
 	var bm := BoxMesh.new()
 	bm.size = size

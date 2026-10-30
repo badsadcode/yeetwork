@@ -1,0 +1,61 @@
+[gd_scene load_steps=6 format=3]
+
+[sub_resource type="CylinderMesh" id="stem"]
+top_radius = 0.35
+bottom_radius = 0.45
+height = 0.5
+
+[sub_resource type="StandardMaterial3D" id="stem_mat"]
+albedo_color = Color(0.95, 0.9, 0.8, 1)
+
+[sub_resource type="SphereMesh" id="cap"]
+radius = 1.3
+height = 1.0
+is_hemisphere = true
+
+[sub_resource type="StandardMaterial3D" id="cap_mat"]
+albedo_color = Color(0.9, 0.15, 0.12, 1)
+emission_enabled = true
+emission = Color(1, 0.25, 0.2, 1)
+emission_energy_multiplier = 0.6
+
+[sub_resource type="SphereMesh" id="dot"]
+radius = 0.18
+height = 0.36
+
+[node name="MushroomPad" type="Node3D"]
+
+[node name="Stem" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+mesh = SubResource("stem")
+surface_material_override/0 = SubResource("stem_mat")
+
+[node name="Cap" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.6, 0, 0, 0, 1, 0, 0.45, 0)
+mesh = SubResource("cap")
+surface_material_override/0 = SubResource("cap_mat")
+
+[node name="Dot0" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0, 0, 0, 1, 0.8, 0.82, 0)
+mesh = SubResource("dot")
+surface_material_override/0 = SubResource("stem_mat")
+
+[node name="Dot1" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0, 0, 0, 1, 0.244654, 0.82, 0.761672)
+mesh = SubResource("dot")
+surface_material_override/0 = SubResource("stem_mat")
+
+[node name="Dot2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0, 0, 0, 1, -0.650362, 0.82, 0.465865)
+mesh = SubResource("dot")
+surface_material_override/0 = SubResource("stem_mat")
+
+[node name="Dot3" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0, 0, 0, 1, -0.642437, 0.82, -0.476734)
+mesh = SubResource("dot")
+surface_material_override/0 = SubResource("stem_mat")
+
+[node name="Dot4" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0, 0, 0, 1, 0.257426, 0.82, -0.757451)
+mesh = SubResource("dot")
+surface_material_override/0 = SubResource("stem_mat")

@@ -14,6 +14,9 @@ extends Node3D
 		_rebuild()
 @export_range(1.0, 60.0, 0.5) var period := 8.0
 @export_range(0.0, 1.0, 0.05) var phase := 0.0
+## Your own model for it (a scene: a mesh, an imported .glb...), instead of the built-in look.
+## It works the same; only the look changes. (Its collision stays a box of Size.)
+@export var model: PackedScene
 
 var _preview: MeshInstance3D
 

@@ -20,6 +20,13 @@ extends PuzzleNode
 	set(v):
 		color = v
 		_rebuild()
+## Your own model for it (a scene: a mesh, an imported .glb...), instead of the built-in look.
+## It works the same; only the look changes. It moves with the door; its collision
+## stays a box of Size.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
 
 var _body: AnimatableBody3D
 var _lamp_mat: StandardMaterial3D
@@ -48,6 +55,11 @@ func _rebuild() -> void:
 	bs.size = size
 	cs.shape = bs
 	_body.add_child(cs)
+	var custom: Node = model.instantiate() if model else null
+	if custom:
+		_body.add_child(custom)
+		add_child(_body, false, Node.INTERNAL_MODE_FRONT)
+		return
 	_body.add_child(PuzzleNode.box_mesh(size, Mats.world(color, 0.45, 0.35)))
 	# Hazard stripes across the middle, and a frame.
 	var stripe := Mats.world(Color(1.0, 0.75, 0.15), 0.5, 0.1)

@@ -90,6 +90,8 @@ var monitor := -1 # -1 = the one the game opened on
 var brightness := 1.0
 var camera_shake := 1.0
 var show_fps := false
+## Map packs with scripts the player allowed ("file name:size" -> true; see MapPacks).
+var trusted_packs := {}
 const WINDOW_SIZES := [Vector2i(1280, 720), Vector2i(1600, 900), Vector2i(1920, 1080), Vector2i(2560, 1440), Vector2i(3840, 2160)]
 
 # Session config (set by the menu before a match starts).
@@ -123,6 +125,7 @@ func _ready() -> void:
 	if window_mode < 0:
 		window_mode = 1 if is_steam_deck() else 0
 	apply_display()
+	MapPacks.scan_and_mount(trusted_packs)
 	if graphics <= 2 or gfx.is_empty():
 		var saved := gfx
 		gfx = GFX_PRESETS[clampi(graphics, 0, 2)].duplicate()
@@ -225,6 +228,7 @@ func save_settings() -> void:
 	cfg.set_value("display", "brightness", brightness)
 	cfg.set_value("display", "camera_shake", camera_shake)
 	cfg.set_value("display", "show_fps", show_fps)
+	cfg.set_value("maps", "trusted_packs", trusted_packs)
 	cfg.set_value("player", "gore", gore_level)
 	cfg.set_value("player", "auto_bhop", auto_bhop)
 	cfg.set_value("player", "always_run", always_run)
@@ -269,6 +273,7 @@ func load_settings() -> void:
 	brightness = cfg.get_value("display", "brightness", brightness)
 	camera_shake = cfg.get_value("display", "camera_shake", camera_shake)
 	show_fps = cfg.get_value("display", "show_fps", show_fps)
+	trusted_packs = cfg.get_value("maps", "trusted_packs", trusted_packs)
 	gore_level = cfg.get_value("player", "gore", gore_level)
 	auto_bhop = cfg.get_value("player", "auto_bhop", auto_bhop)
 	always_run = cfg.get_value("player", "always_run", always_run)
@@ -319,8 +324,22 @@ func list_maps() -> Array:
 			if Arena.MAPKIT_SCENES.values().has(path):
 				continue # a built-in map (listed above)
 			out.append({"key": path, "name": _scene_map_name(path)})
+	# Custom maps (map packs, and the Map Kit's work in progress): scenes with MapSettings.
+	for path in MapPacks.custom_maps():
+		var n := _scene_map_name(path, true)
+		if n != "":
+			out.append({"key": path, "name": n + "  (custom)", "custom": true})
 	_map_cache = out
 	return out
+
+
+## Allows a map pack with scripts (the player said yes), loads it and lists its maps.
+func allow_pack(info: Dictionary) -> bool:
+	trusted_packs[MapPacks.key(info)] = true
+	var ok := MapPacks.allow(info)
+	_map_cache.clear()
+	save_settings()
+	return ok
 
 
 func map_display_name(key: String) -> String:
@@ -330,7 +349,9 @@ func map_display_name(key: String) -> String:
 	return key.get_file().get_basename().capitalize()
 
 
-func _scene_map_name(path: String) -> String:
+## The map's name from its MapSettings (or the file name). only_maps: "" when it has none
+## (a model scene in a custom map's folder is not a map).
+func _scene_map_name(path: String, only_maps := false) -> String:
 	var packed := load(path) as PackedScene
 	if packed:
 		var root := packed.instantiate()
@@ -338,7 +359,7 @@ func _scene_map_name(path: String) -> String:
 		root.free()
 		if n != "":
 			return n
-	return path.get_file().get_basename().capitalize()
+	return "" if only_maps else path.get_file().get_basename().capitalize()
 
 
 func _find_map_name(n: Node) -> String:

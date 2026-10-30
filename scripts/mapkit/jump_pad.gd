@@ -20,7 +20,15 @@ extends Node3D
 		velocity_override = v
 		_rebuild()
 
+## Your own model for it (a scene: a mesh, an imported .glb...), instead of the built-in look.
+## It works the same; only the look changes.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var _preview: MeshInstance3D
+var _model: Node3D
 
 
 func _ready() -> void:
@@ -49,6 +57,13 @@ func launch_velocity() -> Vector3:
 func _rebuild() -> void:
 	if not Engine.is_editor_hint() or not is_inside_tree():
 		return
+	if _model:
+		_model.queue_free()
+		_model = null
+	if model:
+		_model = model.instantiate() as Node3D
+		if _model:
+			add_child(_model, false, Node.INTERNAL_MODE_FRONT)
 	if _preview == null:
 		_preview = MeshInstance3D.new()
 		_preview.top_level = true

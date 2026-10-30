@@ -294,6 +294,7 @@ func _run() -> void:
 	_logic_test()
 	_controls_test()
 	await _grapple_test()
+	_map_pack_test()
 
 
 ## Ice: Yeets skate (keep their speed with no input), props glide.
@@ -501,3 +502,29 @@ func _water_tests() -> void:
 			drowned = true
 			break
 	check("drown in the ocean", drowned and pl.deaths == deaths + 1, "alive %s, depth %.1f m" % [pl.is_alive(), -pl.global_position.y])
+
+
+## Map packs: the safety check tells safe packs from ones with scripts or native code.
+func _map_pack_test() -> void:
+	var dir := ProjectSettings.globalize_path("user://pack_test")
+	DirAccess.make_dir_recursive_absolute(dir)
+	var make := func(name: String, files: Dictionary) -> String:
+		var path: String = dir.path_join(name)
+		var z := ZIPPacker.new()
+		z.open(path)
+		for f in files:
+			z.start_file(f)
+			z.write_file((files[f] as String).to_utf8_buffer())
+			z.close_file()
+		z.close()
+		return path
+	var safe := MapPacks.inspect(make.call("safe.zip", {"custom/a/a.tscn.remap": "[remap]", ".godot/exported/x/a.scn": "RSRC ArenaBlock Script", "custom/a/rock.png": "png"}))
+	var embedded := MapPacks.inspect(make.call("embedded.zip", {".godot/exported/x/b.scn": "RSRC GDScript source"}))
+	var own_script := MapPacks.inspect(make.call("script.zip", {"custom/c/spin.gd": "extends Node"}))
+	var game_script := MapPacks.inspect(make.call("game.zip", {"scripts/mapkit/arena_block.gd": "same as the game's"}))
+	var native := MapPacks.inspect(make.call("native.zip", {"custom/d/evil.dll": "MZ"}))
+	check("map packs: safe ones load, scripts and native code are caught",
+		not safe.scripts and not safe.native and safe.maps.size() == 1 and embedded.scripts and own_script.scripts and not game_script.scripts and native.native,
+		"safe %s, embedded %s, own script %s, game script %s, native %s" % [not safe.scripts, embedded.scripts, own_script.scripts, not game_script.scripts, native.native])
+	for f in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute(dir.path_join(f))

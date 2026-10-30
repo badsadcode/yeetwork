@@ -152,12 +152,7 @@ func _page_play(stack: Control) -> Control:
 	_mode.selected = Game.mode
 	_field(grid, "Mode", _mode)
 	_map = OptionButton.new()
-	var maps := Game.list_maps()
-	for i in maps.size():
-		_map.add_item(maps[i].name)
-		_map.set_item_metadata(i, maps[i].key)
-		if maps[i].key == Game.map:
-			_map.selected = i
+	_fill_maps()
 	_field(grid, "Map", _map)
 	_bots = SpinBox.new()
 	_bots.min_value = 0
@@ -193,7 +188,42 @@ func _page_play(stack: Control) -> Control:
 	hint.add_theme_font_size_override("font_size", 16)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(hint)
+	_pack_notices(v)
 	return v
+
+
+func _fill_maps() -> void:
+	_map.clear()
+	var maps := Game.list_maps()
+	for i in maps.size():
+		_map.add_item(maps[i].name)
+		_map.set_item_metadata(i, maps[i].key)
+		if maps[i].key == Game.map:
+			_map.selected = i
+
+
+## Map packs with scripts of their own wait for the player's OK (one button each).
+func _pack_notices(v: Control) -> void:
+	var waiting := MapPacks.waiting()
+	if waiting.is_empty():
+		return
+	var note := Label.new()
+	note.text = "These map packs run their own code on your computer. Only allow packs from people you trust:"
+	note.add_theme_font_size_override("font_size", 16)
+	note.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(note)
+	for info in waiting:
+		var b := Button.new()
+		b.text = "Allow %s" % info.name
+		b.pressed.connect(func():
+			if Game.allow_pack(info):
+				b.text = "%s allowed" % info.name
+				b.disabled = true
+				_fill_maps()
+			else:
+				b.text = "%s could not be loaded" % info.name)
+		v.add_child(b)
 
 
 func _page_join(stack: Control) -> Control:

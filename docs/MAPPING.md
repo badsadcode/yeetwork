@@ -132,6 +132,10 @@ A solid box with the arena surface shader (soft panels, warm/cool gradient).
     `assets/textures/ice_clarity_noise.tres` and `ice_normal_noise.tres` are examples.
 - **Bounciness** (0-1): a ricochet surface for bank shots. Bouncy blocks are frictionless,
   so things leave at the angle they came in (Test Chambers' BOUNCE panel uses 0.85).
+- **Custom Material** (optional): your own material instead of the colour, e.g. a PBR
+  `StandardMaterial3D` with albedo / normal / roughness / metallic / AO textures. It's wrapped
+  onto every face in world space, so it tiles evenly at any size: **Texture Size** = metres
+  per repeat. Other materials (your own shaders) are used as they are.
 
 ### BreakableSlab
 A destructible wall, floor or bridge. In game it fractures into irregular pieces.
@@ -173,10 +177,14 @@ A destructible wall, floor or bridge. In game it fractures into irregular pieces
 - **Velocity Override**: launch with exactly this velocity instead (the converted Prime and
   Facing pads use it). Set it back to zero to aim with Target again.
 - Props get launched too.
+- **Model** (optional): your own look for it (a scene or an imported model).
 
 ### LiftPlatform
 - **Size**, **Travel** (relative end point), **Period** (seconds per round trip),
   **Phase** (0-1, to offset several lifts). Every player sees it in the same place.
+- **Model** (optional): your own look (the collision stays a box of Size). Doors, buttons
+  and pressure plates have the same **Model** slot (a button model's `Cap` child moves when
+  pressed, a plate model's `Plate` child sinks).
 
 ### HazardVolume
 - **Kind**:
@@ -276,6 +284,13 @@ electricity.
   `res://scripts/world/world_surface.gdshader`.
 
 ---
+
+### Custom maps (map packs)
+Maps don't have to live in the game: make them in `custom/<your_map>/` (with their own
+textures, materials, models, sounds and even scripts), export them with
+`tools/export_map_pack.bat <your_map>` and drop the `.zip` into the game's `maps` folder.
+The full guide for map makers is `custom/README.md`; `custom/example_garden/` is an example.
+(Game builds leave `custom/` out; packs leave the game's own files out.)
 
 ## 5. Testing checklist
 

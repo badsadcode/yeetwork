@@ -147,12 +147,19 @@ func breakable(center: Vector3, basis: Basis, slab_size: Vector2, thickness: flo
 	return d
 
 
-func jump_pad(pos: Vector3, velocity: Vector3) -> void:
+func jump_pad(pos: Vector3, velocity: Vector3, model: PackedScene = null, basis := Basis.IDENTITY) -> void:
 	var t := TriggerVolume.new()
 	t.position = pos + Vector3(0, 0.6, 0)
 	add_child(t)
 	t.setup(TriggerVolume.Kind.JUMP_PAD, Vector3(2.4, 1.2, 2.4), velocity)
 	t.set_meta("mk", {"type": "pad", "pos": pos, "velocity": velocity})
+	if model:
+		# The map's own look for it.
+		var inst := model.instantiate() as Node3D
+		if inst:
+			inst.transform = Transform3D(basis, pos)
+			add_child(inst)
+			return
 	var mi := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
 	cm.top_radius = 1.1
@@ -176,10 +183,10 @@ func jump_pad(pos: Vector3, velocity: Vector3) -> void:
 		n.set_meta("mk_part", true) # (the Map Kit pad makes these itself)
 
 
-func lift(a: Vector3, b: Vector3, period: float, phase: float, size := Vector3(3, 0.5, 3)) -> void:
+func lift(a: Vector3, b: Vector3, period: float, phase: float, size := Vector3(3, 0.5, 3), model: PackedScene = null) -> void:
 	var l := Lift.new()
 	add_child(l)
-	l.setup(world, a, b, size, period, phase, C_STEEL)
+	l.setup(world, a, b, size, period, phase, C_STEEL, model)
 	l.set_meta("mk", {"type": "lift", "a": a, "b": b, "period": period, "phase": phase, "size": size})
 
 
@@ -297,10 +304,10 @@ func _collect(n: Node) -> void:
 		initial_props.append([ps.kind, Transform3D(ps.global_transform.basis.orthonormalized(), ps.global_position), ps.key_prop])
 	elif n is JumpPadNode:
 		var jp := n as JumpPadNode
-		jump_pad(jp.global_position, jp.launch_velocity())
+		jump_pad(jp.global_position, jp.launch_velocity(), jp.model, jp.global_transform.basis.orthonormalized())
 	elif n is LiftPlatform:
 		var lp := n as LiftPlatform
-		lift(lp.global_position, lp.global_position + lp.global_transform.basis * lp.travel, lp.period, lp.phase, lp.size)
+		lift(lp.global_position, lp.global_position + lp.global_transform.basis * lp.travel, lp.period, lp.phase, lp.size, lp.model)
 	elif n is HazardVolume:
 		var hv := n as HazardVolume
 		hazard(hv.kind, Transform3D(hv.global_transform.basis.orthonormalized(), hv.global_position), hv.size, hv.damage, hv.wind, hv.fire_color)

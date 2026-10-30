@@ -78,6 +78,14 @@ func _handle_cmdline(execute := true) -> bool:
 				i += 1
 			"--test":
 				_test = true
+			"--list-maps":
+				# Dev: every map the game can play (custom ones too) and the map packs, then quit.
+				for m in Game.list_maps():
+					print("MAP %s  [%s]" % [m.name, m.key])
+				for p in MapPacks.packs:
+					print("PACK %s  mounted %s, scripts %s, native %s %s" % [p.name, p.mounted, p.scripts, p.native, p.error])
+				get_tree().quit()
+				return false
 			"--validate":
 				_validate = true
 				action = "host"
@@ -224,7 +232,7 @@ func _start_world(server: bool) -> void:
 		menu.visible = false
 	world = World.new()
 	add_child(world)
-	world.leave_requested.connect(func(): leave(""))
+	world.leave_requested.connect(func(): leave(world.leave_reason))
 	world.start(server)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if _validate:

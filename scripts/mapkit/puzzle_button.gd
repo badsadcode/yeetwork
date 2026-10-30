@@ -20,12 +20,19 @@ extends PuzzleNode
 	set(v):
 		color = v
 		_rebuild()
+## Your own model for it (a scene: a mesh, an imported .glb...), instead of the built-in look.
+## It works the same; a child named "Cap" moves down when it's pressed.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
 
 const CAP := 0.22
 
 var _parts: Node3D
-var _cap: MeshInstance3D
+var _cap: Node3D
 var _cap_mat: StandardMaterial3D
+var _cap_rest := 0.0
 var _held_until := -1.0
 var _toggled := false
 var _press := 0.0
@@ -52,10 +59,20 @@ func _rebuild() -> void:
 	cs.position.y = 0.06
 	body.add_child(cs)
 	_parts.add_child(body)
+	var custom: Node3D = model.instantiate() as Node3D if model else null
+	if custom:
+		# The map's own look: a child named "Cap" (if any) moves down when pressed.
+		_parts.add_child(custom)
+		_cap = custom.find_child("Cap", true, false) as Node3D
+		_cap_mat = null
+		if _cap:
+			_cap_rest = _cap.position.y
+		return
 	_parts.add_child(PuzzleNode.box_mesh(Vector3(size.x + 0.3, 0.12, size.y + 0.3), Mats.world(color, 0.5, 0.3), Vector3(0, 0.06, 0)))
 	_cap_mat = StandardMaterial3D.new()
 	_cap_mat.emission_enabled = true
 	_cap = PuzzleNode.box_mesh(Vector3(size.x, CAP, size.y), _cap_mat, Vector3(0, 0.12 + CAP * 0.5, 0))
+	_cap_rest = _cap.position.y
 	_parts.add_child(_cap)
 	_tint()
 
@@ -128,4 +145,4 @@ func _process(delta: float) -> void:
 	if _cap == null:
 		return
 	_press = move_toward(_press, 1.0 if active else 0.0, delta * 8.0)
-	_cap.position.y = 0.12 + CAP * 0.5 - _press * CAP * 0.6
+	_cap.position.y = _cap_rest - _press * CAP * 0.6

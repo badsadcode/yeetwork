@@ -47,6 +47,18 @@ extends StaticBody3D
 	set(v):
 		ice_map_scale = v
 		_rebuild()
+## Your own material instead of the colour above: PBR textures (albedo, normal, roughness,
+## metallic, AO...). A StandardMaterial3D / ORMMaterial3D is wrapped onto every face in
+## world space, so it tiles evenly whatever the block's size: Texture Size = the metres one
+## repeat covers. Other materials (your own shaders) are used as they are.
+@export var custom_material: Material:
+	set(v):
+		custom_material = v
+		_rebuild()
+@export_range(0.1, 20.0, 0.1) var texture_size := 2.0:
+	set(v):
+		texture_size = v
+		_rebuild()
 ## Ricochet surfaces: how much bounce things keep off it (0 = like any wall; 0.8 = a lot).
 ## A bouncy block is also frictionless, so things leave it at the angle they came in.
 @export_range(0.0, 1.0, 0.05) var bounciness := 0.0
@@ -83,6 +95,14 @@ func _rebuild() -> void:
 	if ice_clarity_map or ice_normal_map:
 		maps = {"clarity": ice_clarity_map, "normal": ice_normal_map, "scale": ice_map_scale}
 	_mesh.material_override = Mats.ice(size * 0.5, false, false, maps) if surface == "ice" else Mats.world(color, roughness, metallic, emission)
+	if custom_material and surface != "ice":
+		var m := custom_material
+		if m is BaseMaterial3D:
+			m = m.duplicate()
+			(m as BaseMaterial3D).uv1_triplanar = true
+			(m as BaseMaterial3D).uv1_world_triplanar = true
+			(m as BaseMaterial3D).uv1_scale = Vector3.ONE / maxf(texture_size, 0.05)
+		_mesh.material_override = m
 	var bs := BoxShape3D.new()
 	bs.size = size
 	_shape.shape = bs
