@@ -9,6 +9,10 @@ extends Node3D
 		kind = v
 		_rebuild()
 
+## A prop a puzzle needs: comes back here 2.5 s after it's destroyed or falls out of the
+## level (other map props take 10-25 s), and a PuzzleReset puts it back home.
+@export var key_prop := false
+
 var _preview: MeshInstance3D
 
 

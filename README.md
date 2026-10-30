@@ -157,7 +157,10 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   bots, no frags. Get through a puzzle level together: pressure plates that need a crate,
   an anvil or a friend; gates that open from them; checkpoints you respawn at; an exit that
   finishes the level when everyone's in it. Friends can't hurt each other. The top of the
-  screen shows the clock and the current objective. First level: **Moving Day**.
+  screen shows the clock and the current objective. Targets, buttons, timed and ordered
+  logic, smashed walls as switches; props a puzzle needs come back when lost, and a big
+  red Reset button tidies a room. Levels: **Moving Day** and **Test Chambers** (Heavy
+  Decisions, The Impossible Shot, Three Idiots One Door).
 
 **Spooky mode.** During Halloween season (Oct 15 - Nov 3), when set to *Always* in the
 menu, or in Pumpkin Smash, every map gets:
@@ -285,8 +288,9 @@ godot --path . -- --join 192.168.1.20
 # Gameplay smoke tests (movement, gun, destruction, explosions, CTF...)
 godot --headless --path . -- --host --map prime --mode ctf --bots 0 --test
 
-# Puzzle mode: Moving Day played through by a script (checks every step; screenshots without --headless)
+# Puzzle mode: a level played through by a script (checks every step; screenshots without --headless)
 godot --headless --path . -- --host --map moving_day --mode puzzle --tour x --tour-mode puzzle
+godot --headless --path . -- --host --map test_chambers --mode puzzle --tour x --tour-mode puzzle
 
 # Headless soak test: quit after N seconds and print a summary
 godot --headless --path . -- --host --bots 8 --autotest 60

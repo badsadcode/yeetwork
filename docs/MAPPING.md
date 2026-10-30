@@ -199,11 +199,20 @@ Every piece is on or off; the server decides and everybody sees the same. Common
 |---|---|
 | **PressurePlate** | on while the weight on it reaches **Required Mass**. Crate 25, barrel 40, couch 60, big crate 70, player 70, anvil 120. Things held with the gun don't count. Amber rim, green when pressed |
 | **PuzzleDoor** | slides by **Open Offset** (shown as a green ghost in the editor) at **Speed** while its inputs are on. Can't be broken. Red / green lamps. Also a moving bridge or platform |
-| **PuzzleLogic** | invisible: AND / OR of its inputs, **Invert**, and **Hold Time** (stays on for a while after the inputs go off: a timed door) |
+| **PuzzleLogic** | invisible. **Mode** `gate`: AND / OR of its inputs; `window`: every input on within the last **Window** seconds ("all three targets within 3 s"); `sequence`: inputs switched on in list order (a wrong one starts over). **Invert**, and **Hold Time** (stays on for a while after: a timed door) |
+| **PuzzleButton** | on while anything touches its cap: a player, a prop leaning on it, a rolling ball, a thrown Yeet. Floor or wall (rotate it). **Hold Time** keeps it on after release |
+| **PuzzleTarget** | a bullseye facing its local +Z: on when something thrown hits it at **Min Speed** or more (only **Kind** props, or `any`). **Stay On** seconds (0: for good) |
+| **BreakSensor** | invisible: on once **Percent** of the BreakableSlab it points at (**Slab**) is broken. Smash the wall, the pillar, the statue |
+| **PuzzleReset** | the big red button: touch or hit it and every map prop whose home is inside **Area** (around **Area Center**) goes back home, the destroyed ones come back. Gates stay as they are |
 | **Checkpoint** | turns green when a player reaches it; in the Puzzle mode the dead respawn at the last one reached |
 | **PuzzleExit** | on when every living player is inside **Size** (and its inputs are on, if it has any). Finishes the level in the Puzzle mode |
 
-`maps/moving_day.tscn` uses all of them.
+Puzzles must never get stuck: mark the props a puzzle needs as **Key Prop** on their
+PropSpawn (they come back 2.5 s after being destroyed or falling out, instead of 10-25 s),
+and give rooms a PuzzleReset. Any solution counts: puzzles check *that* something
+happened, never *how*.
+
+`maps/moving_day.tscn` and `maps/test_chambers.tscn` use all of them.
 
 ### Anything else
 - **CSG nodes** (`CSGBox3D`, `CSGCylinder3D`, `CSGCombiner3D`...) with *Use Collision*

@@ -1,7 +1,10 @@
 extends Node
-## Developer check for the Puzzle mode: plays through Moving Day by itself (a crate on the
-## first plate, a player and the anvil on the two heavy plates, a checkpoint and a respawn
-## there, the exit), checks every step and saves screenshots. Exits 1 if a step fails.
+## Developer check for the Puzzle mode: plays through a puzzle level by itself and checks
+## every step, saving screenshots. Exits 1 if a step fails.
+##   moving_day:    a crate on the first plate, a player and the anvil on the two heavy
+##                  plates, a checkpoint and a respawn there, the exit.
+##   test_chambers: 100 kg on a plate, key props coming back, the reset button, a target hit
+##                  and a smashed wall, three targets within the time window, a button, the exit.
 ## Usage: godot -- --host --map moving_day --mode puzzle --tour <dir> --tour-mode puzzle
 ## (add --headless to only check)
 
@@ -17,6 +20,11 @@ func _ready() -> void:
 		get_tree().quit(1))
 	await _wait(1.0)
 	pl = world.local_player
+	if world.arena.map_settings and world.arena.map_settings.map_name == "Test Chambers":
+		await _chambers()
+		print("PUZZLE CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
+		get_tree().quit(0 if _failed == 0 else 1)
+		return
 	var hud_ok: bool = world.mode == Game.Mode.PUZZLE and world.puzzle_start >= 0.0
 	_check("puzzle mode running, no bots", hud_ok and world.players.size() == 1, "mode %d, players %d" % [world.mode, world.players.size()])
 	_check("first objective shown", world.puzzle_objective() == "Put a crate on the plate to open the gate", world.puzzle_objective())
@@ -69,6 +77,93 @@ func _ready() -> void:
 	_shot("05_exit")
 	print("PUZZLE CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
 	get_tree().quit(0 if _failed == 0 else 1)
+
+
+func _chambers() -> void:
+	_look(Vector3(0, 4, 1), Vector3(0, 0.5, 12))
+	await _wait(0.4)
+	_shot("c01_heavy")
+	# A: 100 kg. The couch alone (60) is not enough; the couch and a barrel (100) are.
+	var plate: PressurePlate = _piece("PlateA")
+	var couch := _nearest("couch", plate.global_position)
+	couch.global_position = plate.global_position + Vector3(-0.6, 0.7, 0)
+	couch.linear_velocity = Vector3.ZERO
+	await _wait(1.2)
+	_check("60 kg is not enough", not _piece("GateA").active, "%.0f kg" % plate.weight)
+	var barrel := _nearest("barrel", plate.global_position)
+	barrel.global_position = plate.global_position + Vector3(0.9, 0.8, 0.6)
+	barrel.linear_velocity = Vector3.ZERO
+	await _wait(1.2)
+	_check("100 kg opens the gate", _piece("GateA").active, "%.0f kg" % plate.weight)
+	_shot("c02_heavy_open")
+	# Key props come back: a crate smashed is back home 2.5 s later.
+	var crate := _nearest("crate", Vector3(-5, 0.6, 5))
+	var home := crate.home_transform.origin
+	world.server_break_prop(crate, Vector3.UP)
+	await _wait(3.2)
+	var back := _nearest("crate", home)
+	_check("a smashed key prop comes back", back != null and back.global_position.distance_to(home) < 1.5, "%.1f m from home" % (back.global_position.distance_to(home) if back else -1.0))
+	# The reset button: throw the room's barrel into room C, press reset, it's home again.
+	var stray := _nearest("barrel", Vector3(5, 0.7, 4))
+	var stray_home := stray.home_transform.origin
+	stray.global_position = Vector3(0, 1.0, 44)
+	await _wait(0.5)
+	_place_player(_piece("ResetA").global_position + Vector3(0.6, 0.2, 0.6))
+	await _wait(0.8)
+	_check("reset button puts the room's props back", _piece("ResetA").active and stray.global_position.distance_to(stray_home) < 1.5, "barrel %.1f m from home" % stray.global_position.distance_to(stray_home))
+	# B: a ball thrown at the target across the acid.
+	_place_player(_piece("CheckpointB").global_position + Vector3(0, 0.2, 0))
+	await _wait(0.5)
+	_look(Vector3(-2, 3, 19), Vector3(2, 2, 33))
+	await _wait(0.3)
+	_shot("c03_shot")
+	var target: PuzzleTarget = _piece("TargetB")
+	await _throw_at(target)
+	_check("a ball on the target opens the gate", target.active and _piece("GateB").active, "target %s" % target.active)
+	# The other way: smash the wall the target hangs on.
+	var sensor: BreakSensor = _piece("WallSensorB")
+	for k in 6:
+		world.server_damage_destructible(sensor._d, target.global_position + Vector3(randf_range(-2, 2), randf_range(-1.5, 1.5), 0.2), 1.2, 400.0, Vector3(0, 0, 8), 0)
+	await _wait(0.5)
+	_check("smashing the target's wall counts too", sensor.active, "%d of %d pieces broken" % [sensor._d.broken_cells.size(), sensor._d.cells.size()])
+	# C: three targets inside the time window.
+	_place_player(_piece("CheckpointC").global_position + Vector3(0, 0.2, 0))
+	await _wait(0.5)
+	_look(Vector3(0, 3, 38), Vector3(0, 2.5, 50))
+	await _wait(0.3)
+	_shot("c04_three")
+	await _throw_at(_piece("TargetC1"))
+	await _throw_at(_piece("TargetC2"))
+	await _wait(3.4)
+	await _throw_at(_piece("TargetC3"))
+	await _wait(0.3)
+	_check("too slow: the window closed", not _piece("GateC").active, "")
+	_throw_at(_piece("TargetC1"))
+	_throw_at(_piece("TargetC2"))
+	await _throw_at(_piece("TargetC3"))
+	await _wait(0.5)
+	_check("all three within 3 s open the gate", _piece("GateC").active, "")
+	# The button drops the ledge with the spare balls.
+	_place_player(_piece("ButtonC").global_position + Vector3(0, 0.2, 0))
+	await _wait(1.6)
+	var ball := _nearest("ball", Vector3(6.0, 4.3, 46.2))
+	_check("the button drops the ball ledge", _piece("BallLedge").active and ball.global_position.y < 2.0, "ball at y %.1f" % ball.global_position.y)
+	_place_player(_piece("Exit").global_position + Vector3(0, 0.3, 0))
+	await _wait(0.8)
+	_check("the exit finishes the level", world.puzzle_finish >= 0.0, "")
+	_look(Vector3(0, 3, 50), Vector3(0, 1.5, 57))
+	await _wait(0.5)
+	_shot("c05_exit")
+
+
+## A ball thrown straight at a target from 2 m away.
+func _throw_at(t: PuzzleNode) -> void:
+	var face := t.global_transform.basis.z.normalized()
+	var start := t.global_position + face * 2.2
+	var b: Prop = world.server_spawn_prop("ball", Transform3D(Basis.IDENTITY, start), Vector3.ZERO, Color(0, 0, 0, 0), 0, -face * 12.0)
+	await _wait(0.45)
+	if is_instance_valid(b):
+		world.server_despawn_prop(b)
 
 
 func _check(what: String, ok: bool, detail: String) -> void:

@@ -52,7 +52,7 @@ var _prop_accum := 0.0
 var _prop_cursor := 0
 var _sent_xforms := {} # prop id -> Transform3D last sent
 var _respawn_at := {} # player id -> time
-var _restock: Array = [] # [time, kind, Transform3D]
+var _restock: Array = [] # [time, kind, Transform3D (home, map space), key prop?]
 var _debris: Array[int] = []
 var _crumbling := {} # Destructible -> next crumble time
 var _spawned_by := {} # player id -> Array[int]
@@ -109,6 +109,8 @@ func start(server: bool) -> void:
 		for entry in arena.initial_props:
 			var p := server_spawn_prop(entry[0], arena.xf_world(entry[1]))
 			p.set_meta("map_prop", true)
+			if entry.size() > 2 and entry[2]:
+				p.set_meta("key_prop", true)
 		mode_logic.spawn_mode_props()
 		_start_ambience()
 		multiplayer.peer_connected.connect(_on_peer_connected)
@@ -473,10 +475,7 @@ func _physics_process(delta: float) -> void:
 				_bc_all("_s_respawn", [id, pos, _yaw_toward_center(pos)])
 	for i in range(_restock.size() - 1, -1, -1):
 		if t >= _restock[i][0]:
-			var p := server_spawn_prop(_restock[i][1], arena.xf_world(_restock[i][2]))
-			p.set_meta("map_prop", true)
-			server_fx("spawn", p.global_position, Vector3.UP, 1.0)
-			_restock.remove_at(i)
+			_restock_now(i)
 	_state_accum += delta
 	if _state_accum >= STATE_RATE:
 		_state_accum = 0.0
@@ -625,8 +624,7 @@ func server_prop_fell_out(p: Prop) -> void:
 		return
 	if mode_logic.on_prop_fell_out(p):
 		return
-	if p.has_meta("map_prop"):
-		_restock.append([now() + 10.0, p.kind, p.home_transform])
+	_queue_restock(p, 10.0)
 	server_despawn_prop(p)
 
 
@@ -671,6 +669,8 @@ func server_prop_impact(p: Prop, body: Node, rel: Vector3, speed: float) -> void
 	if p.explosive and speed > 13.0:
 		_schedule_explosion(p, 0.0)
 		return
+	if body.has_meta("puzzle_target"):
+		(body.get_meta("puzzle_target") as PuzzleTarget).server_hit(p, speed)
 	if body.has_meta("destructible") and speed > 7.0:
 		var energy := 0.5 * p.mass * speed * speed
 		if energy > 900.0:
@@ -743,8 +743,7 @@ func server_break_prop(p: Prop, rel: Vector3) -> void:
 	var col := p.color
 	var thickness := p.size.z
 	mode_logic.on_prop_broken(p)
-	if p.has_meta("map_prop"):
-		_restock.append([now() + 20.0, kind, p.home_transform])
+	_queue_restock(p, 20.0)
 	server_despawn_prop(p)
 	if kind.begins_with("pumpkin"):
 		server_fx("pumpkin", xf.origin, rel, 2.0 if kind == "pumpkin_gold" else 1.0)
@@ -898,8 +897,7 @@ func server_explode(p: Prop) -> void:
 	var shrapnel := _prop_pieces("barrel", {"breaks_into": "staves"}, p.size, p.prop_id)
 	var bxf := p.global_transform
 	var bcol := p.color
-	if p.has_meta("map_prop"):
-		_restock.append([t + 25.0, p.kind, p.home_transform])
+	_queue_restock(p, 25.0)
 	server_despawn_prop(p)
 	_server_scatter_pieces(shrapnel, bxf, Vector3.UP * 6.0, Vector3.DOWN * 20.0, bcol, "metal")
 
@@ -1671,6 +1669,60 @@ func _s_burn(kind: int, id: int, seconds: float) -> void:
 				1.2, 2.2, 1.0, 2.5, 1.6, 30.0, Vector3(0, 1.2, 0))
 
 
+# --- Map props coming back ------------------------------------------------------------
+
+## A map prop that's gone (destroyed, fallen out) comes back home after `delay` seconds;
+## a puzzle's key props after 2.5 s.
+func _queue_restock(p: Prop, delay: float) -> void:
+	if not p.has_meta("map_prop"):
+		return
+	var key := p.has_meta("key_prop")
+	_restock.append([now() + (2.5 if key else delay), p.kind, p.home_transform, key])
+
+
+func _restock_now(i: int) -> void:
+	var e: Array = _restock[i]
+	_restock.remove_at(i)
+	var p := server_spawn_prop(e[1], arena.xf_world(e[2]))
+	p.set_meta("map_prop", true)
+	if e.size() > 3 and e[3]:
+		p.set_meta("key_prop", true)
+	server_fx("spawn", p.global_position, Vector3.UP, 1.0)
+
+
+## Puts every map prop whose home is inside the box (xf, size) back home now, and brings back
+## the ones that are gone (PuzzleReset). Burning ones are put out.
+func server_reset_area(xf: Transform3D, size: Vector3) -> int:
+	var inv := xf.affine_inverse()
+	var half := size * 0.5
+	var inside := func(home: Transform3D) -> bool:
+		var l: Vector3 = inv * arena.xf_world(home).origin
+		return absf(l.x) <= half.x and absf(l.y) <= half.y and absf(l.z) <= half.z
+	var n := 0
+	for p: Prop in props.values():
+		if not is_instance_valid(p) or not p.has_meta("map_prop") or not inside.call(p.home_transform):
+			continue
+		if p.held_by != 0:
+			var holder := get_player(p.held_by)
+			if holder:
+				holder.gun.release(false)
+		if _burning_props.has(p.prop_id):
+			_server_put_out(0, p.prop_id)
+		server_fx("spawn", p.global_position, Vector3.UP, 0.6)
+		p.freeze = false
+		p.global_transform = arena.xf_world(p.home_transform)
+		p.linear_velocity = Vector3.ZERO
+		p.angular_velocity = Vector3.ZERO
+		p.sleeping = false
+		server_fx("spawn", p.global_position, Vector3.UP, 1.0)
+		n += 1
+	for i in range(_restock.size() - 1, -1, -1):
+		if inside.call(_restock[i][2]):
+			_restock_now(i)
+			n += 1
+	return n
+
+
 # --- Puzzles ----------------------------------------------------------------------
 # Map Kit puzzle pieces (plates, doors, logic, checkpoints, exits): the server decides
 # every piece's state ten times a second and tells everyone when one changes.
@@ -1680,6 +1732,7 @@ func _server_puzzle_tick() -> void:
 		var want := n.evaluate() or (n.latch and n.active)
 		if want != n.active:
 			_bc_all("_s_puzzle", [n.puzzle_index, want])
+			n.server_switched(want)
 			mode_logic.on_puzzle_changed(n)
 
 

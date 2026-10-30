@@ -281,7 +281,40 @@ func _run() -> void:
 
 	await _water_tests()
 	await _fire_tests()
+	_logic_test()
 	_controls_test()
+
+
+## Puzzle logic: switches in order (sequence) and all within a time window.
+func _logic_test() -> void:
+	var root := Node3D.new()
+	world.add_child(root)
+	var ins: Array[PuzzleNode] = []
+	for k in 3:
+		var n := PuzzleNode.new()
+		n.name = "In%d" % k
+		root.add_child(n)
+		ins.append(n)
+	var seq := PuzzleLogic.new()
+	seq.name = "Seq"
+	seq.mode = "sequence"
+	root.add_child(seq)
+	seq.world = world
+	for k in 3:
+		seq.inputs.append(NodePath("../In%d" % k))
+	var pulse := func(k: int) -> bool:
+		ins[k].active = true
+		seq.evaluate()
+		ins[k].active = false
+		return seq.evaluate()
+	pulse.call(0)
+	pulse.call(2) # wrong: starts over
+	var early: bool = pulse.call(1)
+	pulse.call(0)
+	pulse.call(1)
+	var done: bool = pulse.call(2)
+	root.queue_free()
+	check("puzzle logic: sequence in order only", not early and done, "wrong order on: %s, right order on: %s" % [early, done])
 
 
 ## Fire: a burning place sets a player alight and hurts them; jumping in water puts the fire

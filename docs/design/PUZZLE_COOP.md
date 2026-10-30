@@ -1,7 +1,10 @@
 # Co-op puzzle mode: design
 
-**Status:** step 1 is built (plates, doors, logic, checkpoints, exit, the mode with its
-clock and objective line, and rooms 1-3 of *Moving Day*, `maps/moving_day.tscn`). The plan
+**Status:** steps 1 and 2 are built: plates, doors, logic (gate, window, sequence),
+checkpoints, exit, buttons, targets, break sensors, key props that come back and the Reset
+button; the mode with its clock and objective line; *Moving Day* rooms 1-3
+(`maps/moving_day.tscn`) and the *Test Chambers* (`maps/test_chambers.tscn`: Heavy Decisions,
+The Impossible Shot, Three Idiots One Door). The plan
 below includes Tomek's answers and Noor's puzzle-mode notes (October 2026).
 
 ## The idea
@@ -36,11 +39,11 @@ new code.
 | **PuzzleDoor** | slides open from inputs; can't be broken; also bridges and moving platforms | built |
 | **PuzzleLogic** | AND / OR / invert / hold time | built |
 | **Checkpoint**, **PuzzleExit** | respawn point, level end | built |
-| **Target** | hit it with a thrown thing (optionally: of a kind, faster than a speed); stays on for a while or for good | next |
-| **Button** | on while touched or pushed by anything (a prop, a punt, a thrown Yeet) | next |
-| **Logic: time window / sequence** | "all three targets within 3 s", "in this order" | next |
-| **Breakable as input** | a BreakableSlab or structure that counts as "on" once broken (destruction puzzles) | next |
-| **Key props and reset** | important props respawn at home when they fall out of the level or get destroyed; a big red **Reset** button restores a room's props | next |
+| **Target** | hit it with a thrown thing (optionally: of a kind, faster than a speed); stays on for a while or for good | built |
+| **Button** | on while touched or pushed by anything (a prop, a punt, a thrown Yeet) | built |
+| **Logic: time window / sequence** | "all three targets within 3 s", "in this order" | built |
+| **Breakable as input** | a BreakableSlab that counts as "on" once broken (BreakSensor) | built |
+| **Key props and reset** | important props respawn at home when they fall out of the level or get destroyed; a big red **Reset** button restores a room's props | built |
 | **Seesaw** ("Yeetapult") | a physics plank on a hinge: drop something heavy on one end, launch the Yeet on the other | after |
 | **Fan** | a wind cone players can grab and turn; blows props and Yeets (someone will fly into a wall) | after |
 | **Rotating platform**, **launcher** | turntables, springs, cannons (jump pads exist) | after |
@@ -163,8 +166,9 @@ the Steam Deck (a 64x64 grid), and it covers almost everything:
 ## Build order (revised)
 
 1. ~~Plates, doors, logic, checkpoints, exit, the mode, Moving Day rooms 1-3.~~ Done.
-2. **Never stuck, and more switches**: key props that respawn, the Reset button, Target,
-   Button, time-window and sequence logic, breakables as inputs. Chambers 1 and 2.
+2. ~~Never stuck, and more switches: key props, Reset, Target, Button, window and sequence
+   logic, breakables as inputs; Test Chambers with Heavy Decisions, The Impossible Shot and
+   Three Idiots One Door.~~ Done.
 3. **Mechanisms**: Seesaw, Fan, rotating platform. Chambers 3 and 4.
 4. **Scoring**: end screen, medals, the awards.
 5. **Lost Yeet** and an **open level**: the NPC to rescue, receptacles, collectibles, several

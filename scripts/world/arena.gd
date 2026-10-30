@@ -25,7 +25,7 @@ var world: Node
 var destructibles: Array[Destructible] = []
 var spawn_points := {0: [], 1: [], 2: []}
 var flag_stands := {} # team -> Vector3 (base of the flag)
-var initial_props: Array = [] # [kind, Transform3D]
+var initial_props: Array = [] # [kind, Transform3D, key prop?]
 var kill_y := -45.0
 var avoid_rects: Array[Rect2] = [] # XZ areas bots should route around
 var fire_areas: Array = [] # [Transform3D, size]: burning places (World sets things alight in them)
@@ -253,6 +253,8 @@ func _build_scene_map(path: String) -> void:
 	for i in puzzle.size():
 		puzzle[i].puzzle_index = i
 		puzzle[i].world = world
+	for n in puzzle:
+		n.link()
 
 
 func _find_settings(n: Node) -> MapSettings:
@@ -281,7 +283,8 @@ func _collect(n: Node) -> void:
 		_collect(c)
 	if n is BreakableSlab:
 		var b := n as BreakableSlab
-		breakable(b.global_position, b.slab_basis(), b.size, b.thickness, b.anchors(), b.material, b.color, b.hp_scale)
+		var d := breakable(b.global_position, b.slab_basis(), b.size, b.thickness, b.anchors(), b.material, b.color, b.hp_scale)
+		b.set_meta("built", d) # (a BreakSensor finds the Destructible through the slab it names)
 		b.queue_free()
 	elif n is SpawnPoint:
 		spawn_points[(n as SpawnPoint).team].append((n as Node3D).global_position + Vector3.UP * 0.2)
@@ -289,7 +292,7 @@ func _collect(n: Node) -> void:
 		flag_stand((n as FlagStand).team_id(), (n as Node3D).global_position)
 	elif n is PropSpawn:
 		var ps := n as PropSpawn
-		initial_props.append([ps.kind, Transform3D(ps.global_transform.basis.orthonormalized(), ps.global_position)])
+		initial_props.append([ps.kind, Transform3D(ps.global_transform.basis.orthonormalized(), ps.global_position), ps.key_prop])
 	elif n is JumpPadNode:
 		var jp := n as JumpPadNode
 		jump_pad(jp.global_position, jp.launch_velocity())

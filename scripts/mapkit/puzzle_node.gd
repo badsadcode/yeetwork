@@ -21,6 +21,16 @@ var puzzle_index := -1
 var world: Node
 
 
+## After the map is built (BreakableSlabs have become Destructibles): find what you watch.
+func link() -> void:
+	pass
+
+
+## Server: this piece just switched (on every peer already).
+func server_switched(_on: bool) -> void:
+	pass
+
+
 ## The state the server wants this piece in now (inputs by default).
 func evaluate() -> bool:
 	return inputs_on()
