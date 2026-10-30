@@ -229,6 +229,12 @@ Every piece is on or off; the server decides and everybody sees the same. Common
 | **FloatSwitch** | a float on a post: on while the water stands **Level** above the node. Invert it with a PuzzleLogic for "drained" |
 | **Beacon** | a brazier, on while it burns. Lit by fire (a burning prop or Yeet, a FuseLine's spark, another beacon's flames) or its inputs; water up to the bowl puts it out. Its flames set alight wood and Yeets that touch them. **Start Lit**, **Burn Time** (0 forever), **Palette** |
 | **FuseLine** | a cord along the floor to **End**: fire at its start lights a spark that runs along it at **Speed**; at the end it's on for good. Water puts the spark out (light it again where it stopped) |
+| **GrapplePoint** | a yellow ring for the grapple hook. On maps whose MapSettings **Grapple** is `grapple points` (puzzle levels) the hook only takes hold on these (and on props and friends); aiming near one is enough |
+| **RopeAnchor** | a rope from the node holding a prop it spawns (**Kind**) **Length** below. It swings, can be pushed and grabbed, but stays on the rope. Fire burns through it in a second (hold something burning to it); its inputs let go of it. On once cut (for good): drop the anvil on the plate |
+| **Pulley** | two wheels **Width** apart, one rope, a lift platform on each end (**Drop A**, **Drop B** below the wheels). A counterweight: the heavier side (platform, what lies on it, 70 kg per Yeet) sinks, the other rises, until one meets the floor or its wheel |
+| **Magnet** | an electromagnet facing its local -Y: while its inputs are on (always without inputs) it pulls metal props (barrels, anvils, batteries, fuses, fans) within **Reach** and holds them at its face; switched off, they drop. **Strength** |
+| **Wire** | a power cable through **Points**, live (glowing) while its inputs are on, and an input for others like a relay: show where the power goes. **Zap Water**: a live end in water shocks the Yeets swimming near it |
+| **Contacts** | two copper pads **Gap** apart: on while powered (inputs on, or always without inputs) and bridged by a metal prop, water over both, or a Yeet standing between them (who gets zapped) |
 | **PuzzleReset** | the big red button: walk up and press **Use** (E) on it, and every map prop whose home is inside **Area** (around **Area Center**) goes back home, the destroyed ones come back. Bumping into it does nothing. Gates stay as they are |
 | **Checkpoint** | turns green when a player reaches it; in the Puzzle mode the dead respawn at the last one reached |
 | **PuzzleExit** | on when every living player is inside **Size** (and its inputs are on, if it has any). Finishes the level in the Puzzle mode |
@@ -240,7 +246,11 @@ happened, never *how*.
 
 PropSpawn kinds for puzzles: `fuse` (a glowing fuse, 5 kg), `lost_yeet` (a Yeet in trouble
 to rescue, 50 kg: scared while carried, grinning on a rescue mat), `boulder` (a 120 kg stone
-ball that rolls) and `platform` (a 7 m wooden deck, 90 kg, to rest on breakable pillars).
+ball that rolls) and `platform` (a 7 m wooden deck, 90 kg, to rest on breakable pillars) and `battery` (15 kg,
+metal: power for a Receptacle of kind `battery`, the classic power socket).
+
+**Grapple** (MapSettings): `anywhere` (the default: any surface), `grapple points` (only on
+GrapplePoints, plus props and friends: use it for puzzle levels) or `off`.
 
 Fire and walls: a BreakableSlab of **wood** catches fire when fire touches it, burns for 6 s
 and falls apart (make it tough with **HP Scale** so burning is the way); one of **ice** melts
@@ -249,7 +259,8 @@ BreakSensor on the slab makes either one a switch.
 
 `maps/moving_day.tscn` and `maps/test_chambers.tscn` use all of them; `maps/warehouse.tscn` is
 an open level with receptacles, fuses and a Lost Yeet; `maps/pump_house.tscn` uses the water
-and fire pieces.
+and fire pieces; `maps/scrapyard.tscn` the grapple points, ropes, pulleys, magnets and
+electricity.
 
 ### Anything else
 - **CSG nodes** (`CSGBox3D`, `CSGCylinder3D`, `CSGCombiner3D`...) with *Use Collision*

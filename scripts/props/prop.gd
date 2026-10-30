@@ -32,6 +32,9 @@ const DEFS := {
 	# Structural Engineering: a heavy stone ball that rolls, and a long wooden platform.
 	"boulder": {"shape": "sphere", "size": Vector3(0.55, 0.55, 0.55), "mass": 120.0, "color": Color(0.58, 0.55, 0.52), "bounce": 0.05, "label": "Boulder"},
 	"platform": {"shape": "box", "size": Vector3(7.0, 0.3, 2.6), "mass": 90.0, "color": Color(0.72, 0.52, 0.32), "bounce": 0.05, "label": "Platform"},
+	# A Pulley's platforms, and a battery for power sockets (Receptacle kind battery).
+	"lift": {"shape": "box", "size": Vector3(2.2, 0.25, 2.2), "mass": 30.0, "color": Color(0.55, 0.6, 0.68), "bounce": 0.05, "label": "Lift", "metal": true},
+	"battery": {"shape": "box", "size": Vector3(0.5, 0.7, 0.5), "mass": 15.0, "color": Color(0.2, 0.85, 0.45), "bounce": 0.1, "label": "Battery", "metal": true},
 	"fan": {"shape": "fan", "size": Vector3(1.5, 1.7, 0.8), "mass": 40.0, "color": Color(0.3, 0.75, 0.95), "bounce": 0.1, "label": "Fan", "metal": true},
 }
 
@@ -151,6 +154,8 @@ func _build(def: Dictionary) -> void:
 				mat = Mats.world(color)
 			elif kind.begins_with("crate"):
 				_add_crate_trim(mesh)
+			elif kind == "battery":
+				_add_battery_parts(mesh)
 		"sphere":
 			var s := SphereShape3D.new()
 			s.radius = size.x
@@ -562,6 +567,22 @@ func _build_lost_yeet(parent: MeshInstance3D) -> void:
 	parent.add_child(_help)
 
 
+## A battery: a dark band and two terminals (red +, black -), a glowing charge stripe.
+func _add_battery_parts(parent: MeshInstance3D) -> void:
+	parent.add_child(PuzzleNode.box_mesh(Vector3(size.x + 0.02, size.y * 0.2, size.z + 0.02), Mats.plastic(Color(0.12, 0.13, 0.15), 0.6), Vector3(0, size.y * 0.25, 0)))
+	parent.add_child(PuzzleNode.box_mesh(Vector3(size.x + 0.03, 0.05, size.z * 0.4), Mats.glow(Color(0.4, 1.0, 0.55), 2.0), Vector3(0, -size.y * 0.1, 0)))
+	for k in 2:
+		var t := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.05
+		cm.bottom_radius = 0.06
+		cm.height = 0.1
+		t.mesh = cm
+		t.position = Vector3((k - 0.5) * size.x * 0.5, size.y * 0.5 + 0.05, 0)
+		t.material_override = Mats.plastic(Color(0.9, 0.15, 0.1) if k == 0 else Color(0.1, 0.1, 0.1), 0.4)
+		parent.add_child(t)
+
+
 ## A big fuse: a glowing cylinder with metal caps.
 func _build_fuse(parent: MeshInstance3D) -> void:
 	var glass := MeshInstance3D.new()
@@ -700,7 +721,7 @@ func impact_material() -> String:
 	match kind:
 		"crate", "crate_big", "plank", "platform":
 			return "wood"
-		"barrel", "boom_barrel", "anvil", "flag", "fan":
+		"barrel", "boom_barrel", "anvil", "flag", "fan", "lift", "battery", "fuse":
 			return "metal"
 		"ball", "beachball", "tire", "cone":
 			return "rubber"

@@ -45,6 +45,9 @@ extends Node
 @export var avoid_areas: Array[Rect2] = []
 ## A level made for the Puzzle (co-op) mode: --validate skips the team and flag checks.
 @export var puzzle := false
+## The grapple hook: on any surface, only on GrapplePoints (puzzle levels: so it doesn't skip
+## the puzzles; props and friends can always be grappled), or not at all.
+@export_enum("anywhere", "grapple points", "off") var grapple := "anywhere"
 ## An open level: the HUD lists every unfinished objective (do them in any order), not just
 ## the first one.
 @export var open_level := false

@@ -22,6 +22,7 @@ const ACTIONS := [
 	["hold_farther", "Push held object", "Gravity gun"],
 	["hold_closer", "Pull held object", "Gravity gun"],
 	["freeze_prop", "Freeze held prop", "Gravity gun"],
+	["grapple", "Grapple hook (hold)", "Gravity gun"],
 	["spawn_prop", "Spawn prop (sandbox)", "Sandbox"],
 	["next_slot", "Next prop", "Sandbox"],
 	["prev_slot", "Previous prop", "Sandbox"],

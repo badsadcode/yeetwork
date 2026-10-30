@@ -60,6 +60,7 @@ class Cmd:
 	var jump_pressed := false
 	var crouch := false
 	var run := true # bots and tests always run; local humans walk unless running
+	var grapple := false # the grapple key is held
 
 
 # Identity (replicated).
@@ -90,6 +91,7 @@ var cmd := Cmd.new()
 var world: Node
 var model: CharacterModel
 var gun: GravityGun
+var grapple: Grapple
 var bot_brain: RefCounted
 
 var crouched := false
@@ -209,6 +211,9 @@ func _ready() -> void:
 	gun = GravityGun.new()
 	gun.player = self
 	add_child(gun)
+	grapple = Grapple.new()
+	grapple.player = self
+	add_child(grapple)
 
 	_trail = CPUParticles3D.new()
 	_trail.amount = 24
@@ -363,6 +368,7 @@ func _read_local_input(_delta: float) -> void:
 		cmd.jump_pressed = false
 		cmd.crouch = false
 		cmd.run = false
+		cmd.grapple = false
 		return
 	# Gamepad look.
 	var look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
@@ -401,6 +407,9 @@ func _read_local_input(_delta: float) -> void:
 		world.gun_action(self, GravityGun.Action.FREEZE)
 	if Input.is_action_just_pressed("use") and not _holding():
 		world.use_pressed(self)
+	cmd.grapple = Input.is_action_pressed("grapple")
+	if Input.is_action_just_pressed("grapple"):
+		grapple.fire()
 	# Push / pull what we hold (wheel or D-pad); otherwise the wheel picks props.
 	var holding := _holding()
 	if holding:
@@ -444,6 +453,11 @@ func _simulate(delta: float) -> void:
 	_jump_buffer = maxf(_jump_buffer - delta, 0.0)
 	if cmd.jump_pressed:
 		_jump_buffer = 0.15
+	if grapple:
+		if state == State.NORMAL:
+			grapple.constrain(delta, cmd.grapple or grapple.test_hold, cmd.crouch)
+		elif grapple.kind != Grapple.Kind.NONE:
+			grapple.release()
 	match state:
 		State.NORMAL:
 			_move_normal(delta)
@@ -783,6 +797,12 @@ func _release_from_hold(ragdoll_time: float) -> void:
 
 
 ## Called on the controlling peer. `replace` sets velocity instead of adding to it.
+## Leave the ground this step (something pulls you up: a grapple's rope).
+func lift_off() -> void:
+	_prev_grounded = false
+	_launch_lift = true
+
+
 func external_launch(vel: Vector3, replace: bool, ragdoll_time: float) -> void:
 	if state == State.DEAD:
 		return

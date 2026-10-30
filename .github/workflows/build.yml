@@ -24,7 +24,7 @@ jobs:
         run: godot --headless -- --host --map prime --mode ctf --bots 0 --spooky off --test
       - name: Validate maps
         run: |
-          for m in prime facing courtyard lagoon highseas moving_day test_chambers warehouse pump_house; do
+          for m in prime facing courtyard lagoon highseas moving_day test_chambers warehouse pump_house scrapyard; do
             godot --headless -- --map "$m" --validate
           done
       - name: Ship check (High Seas rides the swell, players and cargo stay aboard)
@@ -33,10 +33,10 @@ jobs:
           for sea in calm stormy; do
             timeout 120 godot --headless -- --host --map highseas --bots 0 --spooky off --tour x --tour-mode ship --sea "$sea"
           done
-      - name: Puzzle check (Moving Day, Test Chambers, the Warehouse and the Pump House played through by a script)
-        timeout-minutes: 9
+      - name: Puzzle check (Moving Day, Test Chambers, the Warehouse, the Pump House and the Scrapyard played through by a script)
+        timeout-minutes: 11
         run: |
-          for m in moving_day test_chambers warehouse pump_house; do
+          for m in moving_day test_chambers warehouse pump_house scrapyard; do
             timeout 180 godot --headless -- --host --map "$m" --mode puzzle --spooky off --tour x --tour-mode puzzle
           done
 

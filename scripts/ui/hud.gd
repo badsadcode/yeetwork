@@ -14,6 +14,7 @@ const KILL_VERBS := {
 	"fire": ["{k} roasted {v}", "{k} set {v} on fire", "{k} turned {v} into a marshmallow"],
 	"drown": ["{k} sent {v} to sleep with the fishes", "{k} threw {v} overboard"],
 	"void": ["{k} yeeted {v} out of the world", "{k} sent {v} into the void"],
+	"zap": ["{k} electrocuted {v}", "{k} gave {v} a shocking surprise"],
 	"player": ["{k} body-slammed {v}", "{k} bowled over {v}"],
 	"dodgeball": ["{k} dodgeballed {v}"],
 	"caught": ["{k} caught {v}'s ball"],
@@ -277,7 +278,7 @@ func _help_text(pad: bool) -> String:
 	var lines := [
 		"%s move  ·  %s jump (hold to bunny hop)  ·  %s run  ·  %s crouch & slide" % [move, k.call("jump"), k.call("run") if not pad else k.call("run_toggle"), k.call("crouch")],
 		"Run along walls to wall-run, jump off them to wall-jump",
-		"%s hold: grab / pull / catch  ·  %s throw (hold to charge) or punt (punt a wall to gravity-jump)" % [k.call("gun_grab"), k.call("gun_throw")],
+		"%s hold: grab / pull / catch  ·  %s throw (hold to charge) or punt (punt a wall to gravity-jump)  ·  %s hold: grapple" % [k.call("gun_grab"), k.call("gun_throw"), k.call("grapple")],
 		"%s freeze held prop  ·  %s spawn prop  ·  %s camera  ·  %s scores  ·  %s respawn  ·  %s menu" % [k.call("freeze_prop"), k.call("spawn_prop"), k.call("toggle_view"), k.call("scoreboard"), k.call("suicide"), k.call("pause")],
 	]
 	return "\n".join(lines)
@@ -647,6 +648,8 @@ func add_kill(victim: Player, killer: Player, cause: String) -> void:
 				text = "%s fell out of the world" % victim.display_name
 			"explosion":
 				text = "%s hugged a barrel" % victim.display_name
+			"zap":
+				text = "%s licked the battery" % victim.display_name
 			_:
 				text = "%s got yeeted" % victim.display_name
 	var row := HBoxContainer.new()

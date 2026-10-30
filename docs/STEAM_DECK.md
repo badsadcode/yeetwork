@@ -56,6 +56,7 @@ gravity-gun shots and catches much easier.
 | Gravity gun: grab, pull, catch | L2 (left trigger) |
 | Throw (hold to charge) / punt | R2 (right trigger) |
 | Freeze held prop | R1 / X |
+| Grapple hook (hold) | Click R3 |
 | Push / pull held object | D-pad up / down (while holding) |
 | Rotate held prop | Hold LB + right stick |
 | Spawn prop (sandbox) / pick prop | Y / D-pad left & right |

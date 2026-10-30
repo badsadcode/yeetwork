@@ -26,6 +26,7 @@ ocean = true
 ocean_level = -3.0
 kill_height = -20.0
 puzzle = true
+grapple = "grapple points"
 gold_time = 240.0
 silver_time = 360.0
 bronze_time = 540.0

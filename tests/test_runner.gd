@@ -293,6 +293,7 @@ func _run() -> void:
 	await _fire_tests()
 	_logic_test()
 	_controls_test()
+	await _grapple_test()
 
 
 ## Ice: Yeets skate (keep their speed with no input), props glide.
@@ -388,11 +389,40 @@ func _controls_test() -> void:
 	Controls.init(cfg)
 	var swapped := Controls.key_of("gun_grab") == throw0 and Controls.key_of("gun_throw") == grab0
 	var k := InputEventKey.new()
-	k.physical_keycode = KEY_G
+	k.physical_keycode = KEY_H
 	Controls.rebind("freeze_prop", k)
-	var rebound := Controls.key_of("freeze_prop") == "G" and Controls.pad_of("freeze_prop") != "-"
+	var rebound := Controls.key_of("freeze_prop") == "H" and Controls.pad_of("freeze_prop") != "-"
 	Controls.reset_all()
-	check("controls: swap, save, reset, load, rebind", reset_ok and swapped and rebound, "grab %s -> %s, freeze rebound to G: %s" % [grab0, throw0, rebound])
+	check("controls: swap, save, reset, load, rebind", reset_ok and swapped and rebound, "grab %s -> %s, freeze rebound to H: %s" % [grab0, throw0, rebound])
+
+
+## The grapple hook on an ordinary map (anywhere): it takes hold of a ceiling, reels the Yeet
+## up off the ground, and lets go when the key is released.
+func _grapple_test() -> void:
+	var c := Vector3(-60, 0, -60)
+	var roof := ArenaBlock.new()
+	roof.size = Vector3(6, 1, 6)
+	world.arena.add_child(roof)
+	roof.global_position = c + Vector3(0, 9, -4)
+	var floor_b := ArenaBlock.new()
+	floor_b.size = Vector3(10, 1, 10)
+	world.arena.add_child(floor_b)
+	floor_b.global_position = c + Vector3(0, -0.5, 0)
+	await reset(c + Vector3(0, 0.2, 0), 0.0)
+	pl.yaw = 0.0
+	var to := roof.global_position - pl.eye_position()
+	pl.pitch = atan2(to.y, Vector2(to.x, to.z).length())
+	pl.grapple.fire()
+	var hooked := pl.grapple.kind == Grapple.Kind.WORLD
+	pl.grapple.test_hold = true
+	var y0 := pl.global_position.y
+	await ticks(60)
+	var lifted := pl.global_position.y - y0
+	pl.grapple.test_hold = false
+	await ticks(3)
+	check("grapple: hooks a ceiling, reels a Yeet up, lets go", hooked and lifted > 2.0 and pl.grapple.kind == Grapple.Kind.NONE, "hooked %s, lifted %.1f m, kind after %d" % [hooked, lifted, pl.grapple.kind])
+	roof.queue_free()
+	floor_b.queue_free()
 
 
 ## A concrete tub of water (surface at y -0.4, floor at -3) off to the side of the map.

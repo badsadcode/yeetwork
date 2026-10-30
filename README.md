@@ -52,6 +52,7 @@ menu art and font (`assets/`): the title background and logo, button and frame a
 | Gravity gun: grab, pull, catch | Hold left mouse |
 | Throw held object (hold to charge) / punt | Right mouse |
 | Freeze held prop (sandbox building) | F |
+| Grapple hook (hold: hang on and reel in; hold Ctrl to let rope out) | G or middle mouse (gamepad R3) |
 | Push / pull held object | Mouse wheel (while holding) |
 | Rotate held prop | Hold E + move mouse |
 | Use (puzzle buttons, the Reset button; empty hands) | E (gamepad X) |
@@ -77,6 +78,12 @@ dodgeballs. Push or pull what you hold, and rotate props to line up a build or a
 throw them across the map. Hold the throw button to **charge** a throw: the object shakes and the crackling
 electric arc goes white-hot, and a full charge yeets about 1.8× as hard. Punt everything in a cone. Punt a
 wall right in front of you to gravity-jump. Thrown objects inherit your velocity, so moving fast means throwing hard.
+
+**Grapple hook.** Hold G (or the middle mouse button, R3 on a gamepad): it takes hold of the
+level and reels you up to it, swinging on the rope; let go to drop. Hook a light prop and
+it's yanked over to you; a heavy one and you're reeled in to it; a friend and they're yanked
+to you (pull them up a ledge). Puzzle levels let it take hold only on yellow grapple rings
+(MapSettings → Grapple), so it can't skip the puzzles.
 
 **Movement.** Quake-style ground and air acceleration (strafe jumping, bunny hopping),
 CPM-style air control, crouch slides with slope gravity, wall running, wall jumps,
@@ -175,9 +182,11 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   Windy Business, Thin Ice, Structural Engineering (Gone Wrong), Hot Potato, Pass the Yeet),
   **The Warehouse**, an open level: three
   fuses for the main gate, one in each wing, and a Lost Yeet in a cage; split up, any order,
-  and **The Pump House**: flood water that fills rooms, floats crates and drains away, and
+  **The Pump House**: flood water that fills rooms, floats crates and drains away, and
   fire that spreads from beacon to beacon, burns wooden walls down, runs along fuses and
-  melts ice.
+  melts ice, and **The Scrapyard**: grapple ring to ring over a chasm, ride a counterweight
+  lift, work a magnet crane (a battery powers it), close a circuit (metal, water, or a
+  brave Yeet who gets zapped), burn through the rope an anvil hangs on.
 
 **Spooky mode.** During Halloween season (Oct 15 - Nov 3), when set to *Always* in the
 menu, or in Pumpkin Smash, every map gets:
@@ -310,6 +319,7 @@ godot --headless --path . -- --host --map moving_day --mode puzzle --tour x --to
 godot --headless --path . -- --host --map test_chambers --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map warehouse --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map pump_house --mode puzzle --tour x --tour-mode puzzle
+godot --headless --path . -- --host --map scrapyard --mode puzzle --tour x --tour-mode puzzle
 
 # Headless soak test: quit after N seconds and print a summary
 godot --headless --path . -- --host --bots 8 --autotest 60

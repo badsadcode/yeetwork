@@ -33,6 +33,7 @@ description = "Co-op puzzle chambers, one idea each: heavy decisions, the imposs
 sky = "day"
 kill_height = -20.0
 puzzle = true
+grapple = "grapple points"
 gold_time = 540.0
 silver_time = 780.0
 bronze_time = 1080.0

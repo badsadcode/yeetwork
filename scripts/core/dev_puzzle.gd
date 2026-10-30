@@ -12,6 +12,10 @@ extends Node
 ##   warehouse:     the open level's objective list, the Lost Yeet's cage, glass and ice smashed
 ##                  for fuses, fuses pulled with the gun and locked in the fuse box, the Lost
 ##                  Yeet carried (scared) to the rescue mat (grinning), the exit.
+##   scrapyard:     the grapple (ring to ring over the chasm, a crate yanked over), the
+##                  counterweight lift, the magnet crane (battery, switch on, barrels up,
+##                  switch off, onto the plate), closing the circuit (a barrel, a zapped Yeet),
+##                  a rope burnt through, the exit.
 ##   pump_house:    flood water: valves fill a room (volume kept), crates float, Yeets swim,
 ##                  the network encoding, an anvil sunk on the plug drains a bathtub, the door
 ##                  under the water opens once it's drained; fire carried from beacon to
@@ -32,11 +36,13 @@ func _ready() -> void:
 	await _wait(1.0)
 	pl = world.local_player
 	var map_name: String = world.arena.map_settings.map_name if world.arena.map_settings else ""
-	if map_name in ["Test Chambers", "The Warehouse", "The Pump House"]:
+	if map_name in ["Test Chambers", "The Warehouse", "The Pump House", "The Scrapyard"]:
 		if map_name == "Test Chambers":
 			await _chambers()
 		elif map_name == "The Warehouse":
 			await _warehouse()
+		elif map_name == "The Scrapyard":
+			await _scrapyard()
 		else:
 			await _pump_house()
 		print("PUZZLE CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
@@ -663,6 +669,153 @@ func _pump_house() -> void:
 	_place_player(_piece("Exit").global_position + Vector3(0, 0.3, 0))
 	await _wait(0.8)
 	_check("the exit finishes the level", world.puzzle_finish >= 0.0, "")
+
+
+func _scrapyard() -> void:
+	_check("grapple mode: grapple points", world.grapple_mode() == "grapple points", world.grapple_mode())
+	# 1: the grapple. A crate first: it's yanked over.
+	var crate := _nearest("crate", Vector3(5, 0.6, 4))
+	_place_player(Vector3(0, 0, 3))
+	await _wait(0.3)
+	var c0 := crate.global_position.distance_to(pl.body_center())
+	_aim_at(crate.global_position)
+	pl.grapple.fire()
+	await _wait(0.5)
+	_check("the grapple yanks a crate over", crate.global_position.distance_to(pl.body_center()) < c0 - 1.5, "%.1f m -> %.1f m" % [c0, crate.global_position.distance_to(pl.body_center())])
+	await _wait(0.3)
+	# Aiming at a bare wall in grapple-points mode: nothing.
+	_aim_at(Vector3(-8, 3, 5))
+	pl.grapple.fire()
+	_check("in grapple-points mode a bare wall doesn't take the hook", pl.grapple.kind == Grapple.Kind.NONE, "kind %d" % pl.grapple.kind)
+	# Ring to ring over the chasm.
+	_place_player(Vector3(0, 0, 7.2))
+	await _wait(0.4)
+	_look(Vector3(-5, 4, 4), Vector3(0, 5, 14))
+	_place_player(Vector3(0, 0, 7.2))
+	await _wait(0.2)
+	_aim_at(_ring("Ring1"))
+	pl.grapple.test_hold = true
+	pl.grapple.fire()
+	await _wait(1.6)
+	var near1 := pl.body_center().distance_to(_ring("Ring1"))
+	_check("hooked on the first ring, reeled up to it", pl.grapple.kind == Grapple.Kind.WORLD and near1 < 3.0, "%.1f m from it, kind %d" % [near1, pl.grapple.kind])
+	_shot("s01_grapple")
+	pl.grapple.test_hold = false
+	await _wait(0.05)
+	_aim_at(_ring("Ring2"))
+	pl.grapple.test_hold = true
+	pl.grapple.fire()
+	await _wait(1.8)
+	pl.grapple.test_hold = false
+	await _wait(1.5)
+	var across := pl.is_alive() and pl.global_position.z > 20.0 and pl.global_position.y > -0.5
+	_check("ring to ring over the chasm", across, "now at %s, alive %s" % [pl.global_position.snapped(Vector3.ONE * 0.1), pl.is_alive()])
+	if not across:
+		_place_player(Vector3(0, 0.3, 24))
+	await _wait(0.6)
+	_check("across: checkpoint", _piece("Checkpoint1").active, "")
+	# 2: the counterweight. On the left platform, barrels onto the right one: up we go.
+	var pulley: Pulley = _piece("Pulley2")
+	var a := pulley.platform(0)
+	var b := pulley.platform(1)
+	_check("the pulley's platforms hang still", a != null and b != null and absf(a.linear_velocity.y) < 0.5 and absf(b.linear_velocity.y) < 0.5, "")
+	_place_player(a.global_position + Vector3(0, 0.4, 0))
+	await _wait(0.8)
+	var a0 := a.global_position.y
+	_check("a Yeet on the platform keeps it down", a.global_position.y < a0 + 0.2, "a at y %.1f" % a.global_position.y)
+	for k in 4:
+		var bar := _nearest("barrel", Vector3(5, 0.7, 34))
+		bar.global_position = b.global_position + Vector3(randf_range(-0.5, 0.5), 0.9 + k * 0.1, randf_range(-0.5, 0.5))
+		bar.linear_velocity = Vector3.ZERO
+		await _wait(0.4)
+	var t0: float = world.now()
+	while a.global_position.y < 5.5 and world.now() - t0 < 8.0:
+		await _wait(0.25)
+	_check("loaded, the other side sinks and the Yeet rides up", a.global_position.y > 5.5 and pl.global_position.y > 5.0, "platform at y %.1f, player at y %.1f" % [a.global_position.y, pl.global_position.y])
+	_look(Vector3(5, 7, 33), Vector3(0, 4, 41))
+	await _wait(0.3)
+	_shot("s02_counterweight")
+	_place_player(_piece("Checkpoint2").global_position + Vector3(0, 0.3, 0))
+	await _wait(0.6)
+	_check("on the ledge: checkpoint", _piece("Checkpoint2").active, "")
+	# 3: the magnet crane.
+	var magnet: Magnet = _piece("MagnetM")
+	var battery := _nearest("battery", Vector3(-6, 6.4, 68))
+	battery.global_position = _piece("Socket").global_position + Vector3(0, 1.0, 0)
+	battery.linear_velocity = Vector3.ZERO
+	await _wait(0.8)
+	_check("the battery in its socket", _piece("Socket").active and _piece("WireA").active, "")
+	var sw: PuzzleNode = _piece("Switch")
+	_place_player(sw.global_position + Vector3(1.2, 0.2, 0))
+	await _wait(0.3)
+	_aim_at(sw.use_point())
+	world.use_pressed(pl)
+	await _wait(3.0)
+	var stuck := 0
+	for p: Prop in world.props.values():
+		if is_instance_valid(p) and p.kind == "barrel" and p.global_position.distance_to(magnet.face_point()) < 1.8:
+			stuck += 1
+	_check("switched on, the magnet lifts the barrels", magnet.active and stuck >= 3, "%d barrels at the magnet" % stuck)
+	_look(Vector3(-4, 9, 56), Vector3(4, 10, 65))
+	await _wait(0.3)
+	_shot("s03_magnet")
+	_place_player(sw.global_position + Vector3(1.2, 0.2, 0)) # (back at the switch after the picture)
+	await _wait(0.2)
+	_aim_at(sw.use_point())
+	world.use_pressed(pl)
+	await _wait(2.5)
+	var where := PackedStringArray()
+	for p: Prop in world.props.values():
+		if is_instance_valid(p) and p.kind == "barrel" and p.global_position.z > 55.0 and p.global_position.z < 72.0:
+			where.append(str(p.global_position.snapped(Vector3.ONE * 0.1)))
+	_check("switched off, they drop on the plate", not magnet.active and _piece("PlateM").active and _piece("DoorM").active, "magnet %s, %.0f kg on the plate, barrels at %s" % [magnet.active, (_piece("PlateM") as PressurePlate).weight, ", ".join(where)])
+	# 4: the circuit. A barrel across the contacts; then a Yeet across them gets zapped.
+	var ct: Contacts = _piece("Contacts4")
+	var bar4 := _nearest("barrel", Vector3(-5, 6.7, 86))
+	bar4.global_position = ct.global_position + Vector3(0, 0.5, 0)
+	bar4.rotation = Vector3(0, 0, PI * 0.5) # lying across
+	bar4.linear_velocity = Vector3.ZERO
+	await _wait(1.0)
+	_check("a barrel across the contacts closes the circuit", _piece("Door4").active, "bridged by '%s'" % ct.bridged_by)
+	bar4.global_position = ct.global_position + Vector3(0, 0.5, 3)
+	await _wait(0.6)
+	var hp0: float = pl.hp
+	_place_player(ct.global_position + Vector3(0, 0.1, 0))
+	await _wait(0.4)
+	_check("a Yeet across the contacts gets zapped", pl.hp < hp0, "hp %.0f -> %.0f" % [hp0, pl.hp])
+	_look(Vector3(-3, 8.5, 78), Vector3(0, 6.3, 82))
+	await _wait(0.2)
+	_shot("s04_circuit")
+	# 5: the rope burnt through: the anvil drops on the plate.
+	_place_player(_piece("Checkpoint5").global_position + Vector3(0, 0.3, 0))
+	pl.hp = 100.0
+	await _wait(0.4)
+	var rope: RopeAnchor = _piece("RopeHang")
+	var anv := rope.hung_prop()
+	_check("the anvil hangs on its rope", anv != null and absf(anv.global_position.y - 10.25) < 0.6, "anvil at y %.1f" % (anv.global_position.y if anv else -1.0))
+	var torch := _nearest("crate", Vector3(-3, 6.6, 96))
+	await _hold_in_flames(torch, _piece("BeaconFire"))
+	_check("a crate lit at the beacon", world.is_burning(torch), "")
+	t0 = world.now()
+	while not rope.cut and world.now() - t0 < 4.0:
+		torch.global_position = rope.global_position + Vector3(0.7, -1.6, 0) # held by the rope (with the gun)
+		torch.linear_velocity = Vector3.ZERO
+		await _wait(0.1)
+	torch.global_position = Vector3(-5, 7, 104)
+	await _wait(2.0)
+	_check("the rope burns through, the anvil drops on the plate", rope.active and _piece("PlateHang").active, "cut %s, plate %.0f kg" % [rope.cut, (_piece("PlateHang") as PressurePlate).weight])
+	_look(Vector3(-3, 9, 96), Vector3(3, 8, 102))
+	await _wait(0.3)
+	_shot("s05_rope")
+	_place_player(_piece("Exit").global_position + Vector3(0, 0.3, 0))
+	await _wait(0.8)
+	_check("the exit finishes the level", world.puzzle_finish >= 0.0, "")
+
+
+## A GrapplePoint's position (they aren't puzzle pieces: found in the scene).
+func _ring(n: String) -> Vector3:
+	var r := world.arena.map_settings.get_parent().get_node_or_null("Puzzle/" + n) as Node3D
+	return r.global_position if r else Vector3.ZERO
 
 
 ## Holds a prop just above a beacon's bowl (as with the gun; clear of the stand, which would

@@ -30,6 +30,7 @@ description = "Water and fire: flood a room to swim up, drain a bathtub, carry f
 sky = "day"
 kill_height = -20.0
 puzzle = true
+grapple = "grapple points"
 gold_time = 360.0
 silver_time = 540.0
 bronze_time = 780.0

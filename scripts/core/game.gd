@@ -337,6 +337,9 @@ func _setup_input() -> void:
 		_key("slot_%d" % i, [KEY_0 + i])
 	_mouse("gun_grab", MOUSE_BUTTON_LEFT)
 	_mouse("gun_throw", MOUSE_BUTTON_RIGHT)
+	_key("grapple", [KEY_G])
+	_mouse("grapple", MOUSE_BUTTON_MIDDLE)
+	_pad("grapple", JOY_BUTTON_RIGHT_STICK)
 	# The mouse wheel is read as raw events in Player (prop slots, or push/pull when
 	# holding something); on gamepads the D-pad does the same through these actions.
 	_ensure("next_slot")

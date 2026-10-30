@@ -23,6 +23,7 @@ description = "An open co-op level: three fuses for the main gate, one in each w
 sky = "day"
 kill_height = -20.0
 puzzle = true
+grapple = "grapple points"
 open_level = true
 gold_time = 300.0
 silver_time = 480.0

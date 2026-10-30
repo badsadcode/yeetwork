@@ -1,0 +1,576 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://scripts/mapkit/map_settings.gd" id="settings"]
+[ext_resource type="Script" path="res://scripts/mapkit/arena_block.gd" id="block"]
+[ext_resource type="Script" path="res://scripts/mapkit/spawn_point.gd" id="spawn"]
+[ext_resource type="Script" path="res://scripts/mapkit/prop_spawn.gd" id="prop"]
+[ext_resource type="Script" path="res://scripts/mapkit/hazard_volume.gd" id="hazard"]
+[ext_resource type="Script" path="res://scripts/mapkit/pressure_plate.gd" id="plate"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_door.gd" id="door"]
+[ext_resource type="Script" path="res://scripts/mapkit/checkpoint.gd" id="cp"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_exit.gd" id="exit"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_reset.gd" id="reset"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_button.gd" id="button"]
+[ext_resource type="Script" path="res://scripts/mapkit/receptacle.gd" id="receptacle"]
+[ext_resource type="Script" path="res://scripts/mapkit/beacon.gd" id="beacon"]
+[ext_resource type="Script" path="res://scripts/mapkit/grapple_point.gd" id="gpoint"]
+[ext_resource type="Script" path="res://scripts/mapkit/pulley.gd" id="pulley"]
+[ext_resource type="Script" path="res://scripts/mapkit/magnet.gd" id="magnet"]
+[ext_resource type="Script" path="res://scripts/mapkit/wire.gd" id="wire"]
+[ext_resource type="Script" path="res://scripts/mapkit/contacts.gd" id="contacts"]
+[ext_resource type="Script" path="res://scripts/mapkit/rope_anchor.gd" id="rope"]
+
+[node name="Scrapyard" type="Node3D"]
+
+[node name="MapSettings" type="Node" parent="."]
+script = ExtResource("settings")
+map_name = "The Scrapyard"
+author = "Yeetwork"
+description = "Grapple hooks, pulleys, magnets and electricity: swing over the chasm, ride the counterweight, work the magnet crane, close the circuit, burn the rope. Any solution counts."
+sky = "sunset"
+kill_height = -15.0
+puzzle = true
+grapple = "grapple points"
+gold_time = 300.0
+silver_time = 450.0
+bronze_time = 660.0
+playtest_mode = 4
+playtest_bots = 0
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="Puzzle" type="Node3D" parent="."]
+
+[node name="Spawns" type="Node3D" parent="."]
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Lights" type="Node3D" parent="."]
+
+[node name="Signs" type="Node3D" parent="."]
+
+[node name="Block1" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.5, 6, 56)
+script = ExtResource("block")
+size = Vector3(1, 24, 112)
+color = Color(0.62, 0.58, 0.52, 1)
+
+[node name="Block2" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.5, 6, 56)
+script = ExtResource("block")
+size = Vector3(1, 24, 112)
+color = Color(0.62, 0.58, 0.52, 1)
+
+[node name="Block3" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, -0.5)
+script = ExtResource("block")
+size = Vector3(18, 24, 1)
+color = Color(0.62, 0.58, 0.52, 1)
+
+[node name="Block4" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 112.5)
+script = ExtResource("block")
+size = Vector3(18, 16, 1)
+color = Color(0.62, 0.58, 0.52, 1)
+
+[node name="Block5" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.5, 4)
+script = ExtResource("block")
+size = Vector3(16, 5, 8)
+color = Color(0.46, 0.42, 0.38, 1)
+
+[node name="Block6" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.5, 25)
+script = ExtResource("block")
+size = Vector3(16, 5, 10)
+color = Color(0.46, 0.42, 0.38, 1)
+
+[node name="Chasm" type="Node3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -12, 14)
+script = ExtResource("hazard")
+kind = "kill"
+size = Vector3(16, 4, 12)
+
+[node name="Block7" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9.4, 13)
+script = ExtResource("block")
+size = Vector3(16, 0.4, 0.4)
+color = Color(0.62, 0.36, 0.22, 1)
+
+[node name="Block8" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9.4, 22.5)
+script = ExtResource("block")
+size = Vector3(16, 0.4, 0.4)
+color = Color(0.62, 0.36, 0.22, 1)
+
+[node name="Ring1" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8.5, 13)
+script = ExtResource("gpoint")
+
+[node name="Ring2" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8.5, 22.5)
+script = ExtResource("gpoint")
+
+[node name="Checkpoint1" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 24)
+script = ExtResource("cp")
+radius = 2.5
+objective = "Grapple across the chasm: hold the grapple key at a ring"
+
+[node name="Sign1" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 0.4)
+text = "SWING SET"
+font_size = 80
+outline_size = 16
+modulate = Color(1, 0.85, 0.5, 1)
+
+[node name="Block9" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.5, 34.75)
+script = ExtResource("block")
+size = Vector3(16, 5, 9.5)
+color = Color(0.46, 0.42, 0.38, 1)
+
+[node name="Block10" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.25, -2.5, 41)
+script = ExtResource("block")
+size = Vector3(9.5, 5, 3)
+color = Color(0.46, 0.42, 0.38, 1)
+
+[node name="Block11" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.25, -2.5, 41)
+script = ExtResource("block")
+size = Vector3(3.5, 5, 3)
+color = Color(0.46, 0.42, 0.38, 1)
+
+[node name="Block12" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.5, 46.1)
+script = ExtResource("block")
+size = Vector3(16, 5, 7.8)
+color = Color(0.46, 0.42, 0.38, 1)
+
+[node name="Block13" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, -4.75, 41)
+script = ExtResource("block")
+size = Vector3(3, 0.5, 3)
+color = Color(0.45, 0.48, 0.55, 1)
+
+[node name="Block14" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 46.1)
+script = ExtResource("block")
+size = Vector3(16, 6, 7.8)
+color = Color(0.62, 0.58, 0.52, 1)
+
+[node name="Pulley2" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 9.5, 41)
+script = ExtResource("pulley")
+width = 5.0
+drop_a = 9.25
+drop_b = 7.0
+
+[node name="Checkpoint2" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 6, 45)
+script = ExtResource("cp")
+radius = 2.0
+objective = "Ride the lift up: load the other platform"
+
+[node name="Reset2" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 0, 31.5)
+script = ExtResource("reset")
+area = Vector3(16, 14, 12)
+area_center = Vector3(-7.5, 4, 4)
+
+[node name="Sign2" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.5, 30.4)
+text = "COUNTERWEIGHT"
+font_size = 80
+outline_size = 16
+modulate = Color(1, 0.85, 0.5, 1)
+
+[node name="Block15" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 61)
+script = ExtResource("block")
+size = Vector3(16, 6, 22)
+color = Color(0.46, 0.42, 0.38, 1)
+
+[node name="Block16" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 7.5, 65)
+script = ExtResource("block")
+size = Vector3(4, 3, 6)
+color = Color(0.45, 0.48, 0.55, 1)
+
+[node name="Block17" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.1, 9.25, 65)
+script = ExtResource("block")
+size = Vector3(0.2, 0.5, 6)
+color = Color(0.45, 0.48, 0.55, 1)
+
+[node name="Block18" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 9.25, 62.1)
+script = ExtResource("block")
+size = Vector3(4, 0.5, 0.2)
+color = Color(0.45, 0.48, 0.55, 1)
+
+[node name="Block19" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 9.25, 67.9)
+script = ExtResource("block")
+size = Vector3(4, 0.5, 0.2)
+color = Color(0.45, 0.48, 0.55, 1)
+
+[node name="PlateM" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 9, 65)
+script = ExtResource("plate")
+size = Vector2(3.6, 5.6)
+required_mass = 100.0
+
+[node name="Socket" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 6, 54)
+script = ExtResource("receptacle")
+kind = "battery"
+required = 1
+size = Vector3(1.4, 1.5, 1.4)
+title = "POWER"
+
+[node name="Switch" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 6, 55)
+script = ExtResource("button")
+press = "use key"
+label = "Magnet on / off"
+
+[node name="MagnetM" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 13.3, 65)
+script = ExtResource("magnet")
+inputs = Array[NodePath]([NodePath("../Socket"), NodePath("../Switch")])
+reach = 9.0
+strength = 80.0
+
+[node name="Block20" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 14.5, 65)
+script = ExtResource("block")
+size = Vector3(0.3, 2, 0.3)
+color = Color(0.45, 0.48, 0.55, 1)
+
+[node name="WireA" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 6.6, 54)
+script = ExtResource("wire")
+inputs = Array[NodePath]([NodePath("../Socket")])
+points = PackedVector3Array(0, 0, 0, 0, 0, -3.4, 3.5, 0, -3.4)
+
+[node name="WireB" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 6.6, 50.6)
+script = ExtResource("wire")
+inputs = Array[NodePath]([NodePath("../MagnetM")])
+points = PackedVector3Array(0, 0, 0, 0, 8, 0, 9, 8, 14.4)
+
+[node name="Block21" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 10, 72)
+script = ExtResource("block")
+size = Vector3(6, 8, 0.6)
+color = Color(0.62, 0.58, 0.52, 1)
+
+[node name="Block22" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 10, 72)
+script = ExtResource("block")
+size = Vector3(6, 8, 0.6)
+color = Color(0.62, 0.58, 0.52, 1)
+
+[node name="Block23" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, 72)
+script = ExtResource("block")
+size = Vector3(4, 4, 0.6)
+color = Color(0.62, 0.58, 0.52, 1)
+
+[node name="DoorM" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, 72)
+script = ExtResource("door")
+inputs = Array[NodePath]([NodePath("../PlateM")])
+latch = true
+size = Vector3(4, 4, 0.5)
+objective = "Power the magnet, lift the barrels, drop them on the plate"
+
+[node name="Reset3" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 6, 60)
+script = ExtResource("reset")
+area = Vector3(16, 14, 22)
+area_center = Vector3(7.5, 4, 1)
+
+[node name="Sign3" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 11, 50.4)
+text = "MAGNET CRANE"
+font_size = 80
+outline_size = 16
+modulate = Color(1, 0.85, 0.5, 1)
+
+[node name="Block24" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 82)
+script = ExtResource("block")
+size = Vector3(16, 6, 20)
+color = Color(0.46, 0.42, 0.38, 1)
+
+[node name="Checkpoint4" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 74.5)
+script = ExtResource("cp")
+radius = 2.0
+
+[node name="Contacts4" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 82)
+script = ExtResource("contacts")
+gap = 1.4
+
+[node name="Wire4" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 6.05, 82.6)
+script = ExtResource("wire")
+inputs = Array[NodePath]([NodePath("../Contacts4")])
+points = PackedVector3Array(0, 0, 0, 0, 0, 2, 6.5, 0, 2, 6.5, 0, 9.2, 3, 3, 9.4)
+
+[node name="Block25" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 10, 92)
+script = ExtResource("block")
+size = Vector3(6, 8, 0.6)
+color = Color(0.62, 0.58, 0.52, 1)
+
+[node name="Block26" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 10, 92)
+script = ExtResource("block")
+size = Vector3(6, 8, 0.6)
+color = Color(0.62, 0.58, 0.52, 1)
+
+[node name="Block27" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, 92)
+script = ExtResource("block")
+size = Vector3(4, 4, 0.6)
+color = Color(0.62, 0.58, 0.52, 1)
+
+[node name="Door4" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, 92)
+script = ExtResource("door")
+inputs = Array[NodePath]([NodePath("../Contacts4")])
+latch = true
+size = Vector3(4, 4, 0.5)
+objective = "Close the circuit: something metal across the contacts (or a brave Yeet)"
+
+[node name="Reset4" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 6, 75)
+script = ExtResource("reset")
+area = Vector3(16, 12, 18)
+area_center = Vector3(7.5, 4, 7)
+
+[node name="Sign4" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 11, 72.4)
+text = "SHORT CIRCUIT"
+font_size = 80
+outline_size = 16
+modulate = Color(1, 0.85, 0.5, 1)
+
+[node name="Block28" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 102)
+script = ExtResource("block")
+size = Vector3(16, 6, 20)
+color = Color(0.46, 0.42, 0.38, 1)
+
+[node name="Checkpoint5" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 94.5)
+script = ExtResource("cp")
+radius = 2.0
+
+[node name="BeaconFire" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 6, 97)
+script = ExtResource("beacon")
+start_lit = true
+
+[node name="RopeHang" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 14, 102)
+script = ExtResource("rope")
+kind = "anvil"
+length = 3.5
+
+[node name="Block29" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 14.3, 102)
+script = ExtResource("block")
+size = Vector3(0.6, 0.4, 0.6)
+color = Color(0.45, 0.48, 0.55, 1)
+
+[node name="PlateHang" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 6, 102)
+script = ExtResource("plate")
+size = Vector2(2.4, 2.4)
+required_mass = 250.0
+
+[node name="Exit" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 6, 108.5)
+script = ExtResource("exit")
+size = Vector3(6, 3, 5)
+inputs = Array[NodePath]([NodePath("../PlateHang")])
+objective = "Burn the rope (hold something burning to it), then everyone to the exit"
+
+[node name="Reset5" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 6, 95)
+script = ExtResource("reset")
+area = Vector3(16, 12, 18)
+area_center = Vector3(-7.5, 4, 7)
+
+[node name="Sign5" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 11, 92.4)
+text = "HANG TIME"
+font_size = 80
+outline_size = 16
+modulate = Color(1, 0.85, 0.5, 1)
+
+[node name="Spawn0" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 2)
+script = ExtResource("spawn")
+
+[node name="Spawn1" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 2)
+script = ExtResource("spawn")
+
+[node name="Spawn2" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 2)
+script = ExtResource("spawn")
+
+[node name="Spawn3" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 2)
+script = ExtResource("spawn")
+
+[node name="Crate0" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.6, 4)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Barrel1" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.7, 33)
+script = ExtResource("prop")
+kind = "barrel"
+key_prop = true
+
+[node name="Barrel2" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.7, 34)
+script = ExtResource("prop")
+kind = "barrel"
+key_prop = true
+
+[node name="Barrel3" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.7, 35.5)
+script = ExtResource("prop")
+kind = "barrel"
+key_prop = true
+
+[node name="Barrel4" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 0.7, 36.5)
+script = ExtResource("prop")
+kind = "barrel"
+key_prop = true
+
+[node name="Crate5" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.6, 33)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Crate6" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1.6, 33)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Battery7" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 6.4, 68)
+script = ExtResource("prop")
+kind = "battery"
+key_prop = true
+
+[node name="Barrel8" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 6.7, 62)
+script = ExtResource("prop")
+kind = "barrel"
+key_prop = true
+
+[node name="Barrel9" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 6.7, 63.5)
+script = ExtResource("prop")
+kind = "barrel"
+key_prop = true
+
+[node name="Barrel10" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 6.7, 65)
+script = ExtResource("prop")
+kind = "barrel"
+key_prop = true
+
+[node name="Barrel11" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 6.7, 66.5)
+script = ExtResource("prop")
+kind = "barrel"
+key_prop = true
+
+[node name="Barrel12" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 6.7, 86)
+script = ExtResource("prop")
+kind = "barrel"
+key_prop = true
+
+[node name="Crate13" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 6.6, 78)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Crate14" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 6.6, 79.5)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Crate15" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 6.6, 96)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Plank16" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 6.3, 99)
+script = ExtResource("prop")
+kind = "plank"
+key_prop = true
+
+[node name="Crate17" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 6.6, 100)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Light0" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7, 4)
+light_color = Color(1, 0.88, 0.7, 1)
+omni_range = 16.0
+light_energy = 1.3
+
+[node name="Light1" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7, 25)
+light_color = Color(1, 0.88, 0.7, 1)
+omni_range = 16.0
+light_energy = 1.3
+
+[node name="Light2" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, 40)
+light_color = Color(1, 0.88, 0.7, 1)
+omni_range = 16.0
+light_energy = 1.3
+
+[node name="Light3" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, 61)
+light_color = Color(1, 0.88, 0.7, 1)
+omni_range = 16.0
+light_energy = 1.3
+
+[node name="Light4" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, 82)
+light_color = Color(1, 0.88, 0.7, 1)
+omni_range = 16.0
+light_energy = 1.3
+
+[node name="Light5" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, 102)
+light_color = Color(1, 0.88, 0.7, 1)
+omni_range = 16.0
+light_energy = 1.3

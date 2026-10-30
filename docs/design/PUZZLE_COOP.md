@@ -1,6 +1,6 @@
 # Co-op puzzle mode: design
 
-**Status:** steps 1-7 are built: plates, doors, logic (gate, window, sequence),
+**Status:** steps 1-8 are built: plates, doors, logic (gate, window, sequence),
 checkpoints, exit, buttons, targets, break sensors, key props that come back and the Reset
 button; the mode with its clock and objective line; *Moving Day* (`maps/moving_day.tscn`, five
 rooms: a plate, two plates, the moat, Load the Van, the Lost Yeet on the wardrobe) and the
@@ -11,7 +11,8 @@ turntables and fans; ice (solid and breakable, slippery); the Use key (E) for bu
 Reset; scoring; the Lost Yeet, fuses and receptacles, and the open level *The Warehouse*
 (`maps/warehouse.tscn`); flood water (FloodZone, valves, drains, float switches) and fire
 pieces (beacons, fuse lines, wooden walls that burn, ice walls that melt) in *The Pump House*
-(`maps/pump_house.tscn`). The plan
+(`maps/pump_house.tscn`); the grapple hook, ropes, pulleys, magnets and electricity in *The
+Scrapyard* (`maps/scrapyard.tscn`). The plan
 below includes Tomek's answers and Noor's puzzle-mode notes (October 2026).
 
 ## The idea
@@ -57,7 +58,8 @@ new code.
 | **Launchers** | springs, cannons (jump pads exist) | later |
 | **Receptacle** and **collectibles** | a fuse box for fuses, a rescue mat for Lost Yeets: counts what's delivered and locks it in | built |
 | **Fragile package** | deliver it without breaking it | later |
-| **Magnets**, **ropes and pulleys**, **electricity / ice** | Noor's later mechanics | later |
+| **Magnets**, **ropes and pulleys**, **electricity** | Noor's later mechanics | built (Magnet, RopeAnchor, Pulley, Wire, Contacts, battery sockets) |
+| **Grapple hook** | Tomek's: swing on rings, yank props and friends | built (puzzle levels: grapple points only) |
 
 Already there and useful: jump pads, lifts, wind volumes, water (floating props, putting
 out fires), fire (burning wood, burning boom barrels), explosions, breakable slabs, the gun's
@@ -202,7 +204,11 @@ the Steam Deck (a 64x64 grid), and it covers almost everything:
    the boulder into the goal pit), Hot Potato (carry fire past a water channel and boom
    barrels to the far beacon), Pass the Yeet (a vault only a blast can break, behind a wall
    with a hatch: light a boom barrel at the beacon and get it through in time).
-8. Later: magnets, ropes and pulleys, electricity.
+8. ~~Later: magnets, ropes and pulleys, electricity.~~ Done, with the grapple hook: *The
+   Scrapyard* (Swing Set: ring to ring over a chasm; Counterweight: load the other platform
+   to ride up; Magnet Crane: a battery powers the magnet, on lifts the barrels, off drops
+   them on the plate; Short Circuit: metal, water or a zapped Yeet closes it; Hang Time:
+   burn through the rope an anvil hangs on).
 
 ## Answered
 

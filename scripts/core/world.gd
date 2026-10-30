@@ -2008,6 +2008,85 @@ func _s_flood(index: int, ids: PackedInt32Array, blobs: Array) -> void:
 		fz.decode_chunk(ids[k], blobs[k])
 
 
+## Electricity: a jolt (some damage) and a hop.
+func server_zap(pl: Player, amount: float) -> void:
+	if not pl.is_alive():
+		return
+	server_damage_player(pl, amount, 0, "zap", pl.body_center(), Vector3.UP)
+	if pl.is_alive():
+		server_launch_player(pl, Vector3(rng.randf_range(-2, 2), 7.0, rng.randf_range(-2, 2)), false, 0.0, 0)
+
+
+# --- The grapple hook ---------------------------------------------------------------------
+
+## "anywhere", "grapple points" or "off" (MapSettings; code-built maps: anywhere).
+func grapple_mode() -> String:
+	return arena.map_settings.grapple if arena.map_settings else "anywhere"
+
+
+## The grappling player's rope changed (kind, point, target): everyone draws it.
+func grapple_state(pl: Player, kind: int, point: Vector3, target: int) -> void:
+	if is_server:
+		_bc("_s_grapple", [pl.player_id, kind, point, target])
+	else:
+		_c_grapple.rpc_id(1, kind, point, target)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_grapple(kind: int, point: Vector3, target: int) -> void:
+	var pl := _sender_player()
+	if pl:
+		_bc_all("_s_grapple", [pl.player_id, kind, point, target])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_grapple(id: int, kind: int, point: Vector3, target: int) -> void:
+	var pl := get_player(id)
+	if pl and not pl.is_controlled_here() and pl.grapple:
+		pl.grapple.apply_state(kind, point, target)
+
+
+## A grapple yanks a light prop (what 0) or a player (what 1) toward the one who grappled.
+func grapple_yank(pl: Player, what: int, id: int) -> void:
+	if is_server:
+		_server_yank(pl, what, id)
+	else:
+		_c_grapple_yank.rpc_id(1, what, id)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_grapple_yank(what: int, id: int) -> void:
+	var pl := _sender_player()
+	if pl:
+		_server_yank(pl, what, id)
+
+
+func _server_yank(pl: Player, what: int, id: int) -> void:
+	if not pl.is_alive():
+		return
+	var to := pl.body_center() + Vector3.UP * 0.5
+	if what == 0:
+		var p := get_prop(id)
+		if p == null or p.freeze or p.mass > Grapple.YANK_MASS or p.held_by != 0 or p.has_meta("delivered") or to.distance_to(p.global_position) > Grapple.RANGE + 2.0:
+			return
+		var d := to - p.global_position
+		p.linear_velocity = d.normalized() * clampf(d.length() * 1.5 + 6.0, 8.0, 22.0) + Vector3.UP * 3.0
+		p.sleeping = false
+		p.last_thrower = pl.player_id
+		p.last_thrown_time = now()
+		server_fx("throw", p.global_position, d.normalized(), 0.8)
+	else:
+		var q := get_player(id)
+		if q == null or q == pl or not q.is_alive() or to.distance_to(q.body_center()) > Grapple.RANGE + 2.0:
+			return
+		var d := to - q.body_center()
+		server_launch_player(q, d.normalized() * clampf(d.length() * 1.3 + 5.0, 8.0, 20.0) + Vector3.UP * 5.0, true, 0.0, pl.player_id)
+
+
+func _sender_player() -> Player:
+	return get_player(multiplayer.get_remote_sender_id())
+
+
 func server_puzzle_results(results: Dictionary) -> void:
 	_bc_all("_s_puzzle_results", [results])
 
