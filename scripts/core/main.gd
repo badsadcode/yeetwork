@@ -199,14 +199,20 @@ func host() -> void:
 
 
 func join() -> void:
+	# "host:port" (what tunnels like playit.gg hand out) overrides the Port field.
+	var address := Game.join_address
+	var port := Game.port
+	if address.count(":") == 1 and address.get_slice(":", 1).is_valid_int():
+		port = int(address.get_slice(":", 1))
+		address = address.get_slice(":", 0)
 	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_client(Game.join_address, Game.port)
+	var err := peer.create_client(address, port)
 	if err != OK:
 		show_menu("Could not start client: %s" % error_string(err))
 		return
 	multiplayer.multiplayer_peer = peer
 	if menu:
-		menu.set_status("Connecting to %s:%d..." % [Game.join_address, Game.port])
+		menu.set_status("Connecting to %s:%d..." % [address, port])
 
 
 func _on_connected() -> void:

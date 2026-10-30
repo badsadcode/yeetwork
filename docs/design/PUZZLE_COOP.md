@@ -1,13 +1,15 @@
 # Co-op puzzle mode: design
 
-**Status:** steps 1-5 are built: plates, doors, logic (gate, window, sequence),
+**Status:** steps 1-6 are built: plates, doors, logic (gate, window, sequence),
 checkpoints, exit, buttons, targets, break sensors, key props that come back and the Reset
 button; the mode with its clock and objective line; *Moving Day* rooms 1-3
 (`maps/moving_day.tscn`) and the *Test Chambers* (`maps/test_chambers.tscn`: Heavy Decisions,
 The Impossible Shot, Three Idiots One Door, Yeetapult, Windy Business, Thin Ice); seesaws,
 turntables and fans; ice (solid and breakable, slippery); the Use key (E) for buttons and
 Reset; scoring; the Lost Yeet, fuses and receptacles, and the open level *The Warehouse*
-(`maps/warehouse.tscn`). The plan
+(`maps/warehouse.tscn`); flood water (FloodZone, valves, drains, float switches) and fire
+pieces (beacons, fuse lines, wooden walls that burn, ice walls that melt) in *The Pump House*
+(`maps/pump_house.tscn`). The plan
 below includes Tomek's answers and Noor's puzzle-mode notes (October 2026).
 
 ## The idea
@@ -185,8 +187,12 @@ the Steam Deck (a 64x64 grid), and it covers almost everything:
    objectives on the HUD, the warehouse.~~ Done: *The Warehouse* (Storage: a 100 kg plate opens
    the Lost Yeet's cage, a fuse behind glass on a high shelf; the Loading Bay: a fuse on a
    ledge, the Yeetapult; Cold Storage: an ice rink and a fuse frozen in behind an ice wall).
-6. **Water and fire**: FloodZone (flood, flush, float, float switches, valves and drains),
-   beacons, fuse lines, burning barriers, ice. A flood chamber and a fire chamber.
+6. ~~**Water and fire**: FloodZone (flood, flush, float, float switches, valves and drains),
+   beacons, fuse lines, burning barriers, ice. A flood chamber and a fire chamber.~~ Done:
+   *The Pump House* (Rising Tide: flood the room to swim up; Bathtub: sink the anvil on the
+   plug to drain it; Light the Way: carry fire from beacon to beacon; Fuse and Ice: burn a
+   wooden wall down, its fire lights a fuse, the fuse a beacon that melts an ice wall).
+   Measured: a 10 x 15 m flood steps in 0.7 ms on the host, its surface texture 0.13 ms.
 7. Chambers 5 and 6, Moving Day rooms 4-5 (delivery and a Lost Yeet), Pass the Yeet.
 8. Later: magnets, ropes and pulleys, electricity.
 

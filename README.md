@@ -32,6 +32,9 @@ The step-by-step install and multiplayer guide is in **[docs/STEAM_DECK.md](docs
    **JOIN** (a friend's address), **CHARACTER** (name, hat, head extra, skin, shirt) and
    **OPTIONS** (controls, sound and graphics). Friends on your network (or with the port
    forwarded) join with your IP. The default port is `24642` (UDP).
+   If your ISP doesn't let you host (CGNAT), run a UDP tunnel such as **playit.gg** pointed
+   at local UDP port `24642`; friends paste the address it gives you (`host:port`) into
+   **Address** (or `--join host:port`).
 
 Geometry, materials, characters and sounds are generated in code. The only assets are the
 menu art and font (`assets/`): the title background and logo, button and frame art made by
@@ -168,8 +171,11 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   Engineer). Lost Yeets to rescue: carry them (screaming) to a rescue mat with the gun.
   Fuse boxes that want their fuses. Levels:
   **Moving Day** and **Test Chambers** (Heavy Decisions, The Impossible Shot, Three Idiots
-  One Door, Yeetapult, Windy Business, Thin Ice), and **The Warehouse**, an open level: three
-  fuses for the main gate, one in each wing, and a Lost Yeet in a cage; split up, any order.
+  One Door, Yeetapult, Windy Business, Thin Ice), **The Warehouse**, an open level: three
+  fuses for the main gate, one in each wing, and a Lost Yeet in a cage; split up, any order,
+  and **The Pump House**: flood water that fills rooms, floats crates and drains away, and
+  fire that spreads from beacon to beacon, burns wooden walls down, runs along fuses and
+  melts ice.
 
 **Spooky mode.** During Halloween season (Oct 15 - Nov 3), when set to *Always* in the
 menu, or in Pumpkin Smash, every map gets:
@@ -301,6 +307,7 @@ godot --headless --path . -- --host --map prime --mode ctf --bots 0 --test
 godot --headless --path . -- --host --map moving_day --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map test_chambers --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map warehouse --mode puzzle --tour x --tour-mode puzzle
+godot --headless --path . -- --host --map pump_house --mode puzzle --tour x --tour-mode puzzle
 
 # Headless soak test: quit after N seconds and print a summary
 godot --headless --path . -- --host --bots 8 --autotest 60

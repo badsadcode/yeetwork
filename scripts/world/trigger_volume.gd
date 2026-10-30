@@ -50,6 +50,8 @@ func _ceded(body: Node3D) -> bool:
 func _on_body_entered(body: Node3D) -> void:
 	if liquid == null or _ceded(body):
 		return
+	if liquid.height_at(body.global_position.x, body.global_position.z) < body.global_position.y - 1.0:
+		return # a flood zone's dry part
 	var v := Vector3.ZERO
 	var scale := 1.0
 	if body is Player:
@@ -138,6 +140,11 @@ func _swim(pl: Player, delta: float) -> void:
 	var sub := clampf(depth / 1.5, 0.0, 1.0)
 	var drag := 2.6 if liquid.ocean else 1.8
 	pl.velocity *= exp(-drag * sub * delta)
+	if liquid.flood:
+		# Flood water runs: the current carries you along (wading or swimming).
+		var cur := liquid.flood.current_at(pl.global_position)
+		if cur.length() > 0.3:
+			pl.velocity += (cur * 1.4 - Vector3(pl.velocity.x, 0, pl.velocity.z)) * 2.5 * maxf(sub, 0.35) * delta
 	if liquid.ocean:
 		pl.velocity.y += Player.GRAVITY * 0.8 * sub * delta
 		if depth > 6.0 and pl.is_alive():
@@ -205,5 +212,9 @@ func _float(p: Prop, delta: float) -> void:
 	p.linear_velocity.y += Player.GRAVITY * floaty * sub * delta
 	p.linear_velocity *= exp(-1.6 * sub * delta)
 	p.angular_velocity *= exp(-2.0 * sub * delta)
+	if liquid.flood:
+		var cur := liquid.flood.current_at(p.global_position)
+		var hv := Vector3(p.linear_velocity.x, 0, p.linear_velocity.z)
+		p.linear_velocity += (cur * 1.4 - hv) * 1.5 * sub * delta
 	if liquid.ocean:
 		p.linear_velocity += Vector3(cos(0.3), 0, sin(0.3)) * 0.8 * sub * delta

@@ -223,6 +223,12 @@ Every piece is on or off; the server decides and everybody sees the same. Common
 | **Turntable** | a round platform turning at **Speed** (degrees per second): always, or while its inputs are on. Things on it ride along (put a fan on it) |
 | **PuzzleFan** | a big fan blowing along the node's forward (-Z; the editor shows its stream): it's a prop players can grab, carry and aim with the gun, block with crates, or turn on a turntable. Blows while its inputs are on (always without inputs). **Strength** (m/s², gravity is 24): light props fly, heavy ones barely move; Yeets get **Player Push**. **Reach**, **Radius**. Comes back home if lost |
 | **Receptacle** | somewhere to bring things: a fuse box, a rescue mat. Props of **Kind** (`fuse`, `lost_yeet`, any prop, or `any`) set down inside **Size** lock into a slot for good (no grabbing them back out); on once **Required** are in. A counter shows how many (**Title** over it), and the objective can count too: "Fuses: {count}/{required}". Make the props Key Props so lost ones come back |
+| **FloodZone** | flood water over a box (**Size**, standing on the node; not rotated): a 0.5 m grid of water columns that runs toward lower water, fills rooms, piles up behind doors, pours through holes in broken walls and out into pits below the box. The floor is whatever the level's collision says (rescanned all the time). **Start Level**: water already there, up to this height. Yeets swim in it, wood floats, the current carries things, fire goes out. Keep it under ~25 x 25 m (Steam Deck hosts); one floor per column |
+| **FloodValve** | a pipe pouring water into its FloodZone while its inputs are on (always, without inputs). **Rate** m³/s (a 10 x 12 m room rises 1 m per 120 m³), **Total** (stops after this much; 0 never) |
+| **FloodDrain** | a floor grate taking water out while its inputs are on. **Rate**, **Radius** |
+| **FloatSwitch** | a float on a post: on while the water stands **Level** above the node. Invert it with a PuzzleLogic for "drained" |
+| **Beacon** | a brazier, on while it burns. Lit by fire (a burning prop or Yeet, a FuseLine's spark, another beacon's flames) or its inputs; water up to the bowl puts it out. Its flames set alight wood and Yeets that touch them. **Start Lit**, **Burn Time** (0 forever), **Palette** |
+| **FuseLine** | a cord along the floor to **End**: fire at its start lights a spark that runs along it at **Speed**; at the end it's on for good. Water puts the spark out (light it again where it stopped) |
 | **PuzzleReset** | the big red button: walk up and press **Use** (E) on it, and every map prop whose home is inside **Area** (around **Area Center**) goes back home, the destroyed ones come back. Bumping into it does nothing. Gates stay as they are |
 | **Checkpoint** | turns green when a player reaches it; in the Puzzle mode the dead respawn at the last one reached |
 | **PuzzleExit** | on when every living player is inside **Size** (and its inputs are on, if it has any). Finishes the level in the Puzzle mode |
@@ -235,8 +241,14 @@ happened, never *how*.
 PropSpawn kinds for puzzles: `fuse` (a glowing fuse, 5 kg) and `lost_yeet` (a Yeet in
 trouble to rescue, 50 kg: scared while carried, grinning on a rescue mat).
 
+Fire and walls: a BreakableSlab of **wood** catches fire when fire touches it, burns for 6 s
+and falls apart (make it tough with **HP Scale** so burning is the way); one of **ice** melts
+where fire stays on it for 2 s, and the meltwater runs into the FloodZone there. A
+BreakSensor on the slab makes either one a switch.
+
 `maps/moving_day.tscn` and `maps/test_chambers.tscn` use all of them; `maps/warehouse.tscn` is
-an open level with receptacles, fuses and a Lost Yeet.
+an open level with receptacles, fuses and a Lost Yeet; `maps/pump_house.tscn` uses the water
+and fire pieces.
 
 ### Anything else
 - **CSG nodes** (`CSGBox3D`, `CSGCylinder3D`, `CSGCombiner3D`...) with *Use Collision*

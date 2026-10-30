@@ -1140,6 +1140,8 @@ func _update_underwater() -> void:
 			_underwater_mat.set_shader_parameter("shaft_noise", Liquid.shaft_noise())
 			_underwater_mat.set_shader_parameter("shaft_steps", [5, 8, 12][Liquid.water_quality()])
 		_underwater_mat.set_shader_parameter("wave_time", Liquid.wave_time())
+		if liq.flood:
+			_underwater_mat.set_shader_parameter("surface_y", liq.height_at(cam_pos.x, cam_pos.z))
 	_underwater.visible = near
 	Sfx.set_underwater(under)
 	if _was_under and not under and lens and liq and liq.kind == "water":

@@ -102,6 +102,8 @@ var _splash_time := 0.0
 var _spacing := 0.5
 ## Sculpted water: sea state (calm, lake, ocean, stormy; empty picks one) and ripples.
 var sea := ""
+## A FloodZone's water: the surface follows the flood's heights (a texture in the shader).
+var flood: FloodZone
 var sculpted := false
 var _ripples := PackedVector4Array()
 var _ripple_i := 0
@@ -162,6 +164,13 @@ func _ready() -> void:
 	var u := wave_uniforms()
 	for key in u:
 		material.set_shader_parameter(key, u[key])
+	if flood:
+		material.set_shader_parameter("flood_on", true)
+		material.set_shader_parameter("flood_tex", flood.flood_texture())
+		material.set_shader_parameter("flood_rect", flood.flood_rect())
+		for c in get_children():
+			if c is MeshInstance3D:
+				(c as MeshInstance3D).extra_cull_margin = size.y + 4.0 # the plane bends down to the floor
 	if sculpted:
 		material.set_shader_parameter("normal_step", _spacing)
 		_ripples.resize(RIPPLE_SLOTS)
@@ -434,6 +443,8 @@ func _wakes(delta: float) -> void:
 
 ## World height of the surface at (x, z).
 func height_at(x: float, z: float) -> float:
+	if flood:
+		return flood.surface_at(Vector3(x, 0, z))
 	var t := wave_time()
 	var p := Vector2(x, z)
 	var o := _gerstner(p, t)
@@ -446,7 +457,7 @@ func height_at(x: float, z: float) -> float:
 static func _update_ocean_holes() -> void:
 	var holes := PackedVector4Array()
 	for l in all:
-		if is_instance_valid(l) and l.is_inside_tree() and not l.ocean and holes.size() < 8:
+		if is_instance_valid(l) and l.is_inside_tree() and not l.ocean and l.flood == null and holes.size() < 8:
 			var c := l.global_position
 			holes.append(Vector4(c.x - l.size.x * 0.5, c.z - l.size.z * 0.5, c.x + l.size.x * 0.5, c.z + l.size.z * 0.5))
 	for l in all:
@@ -486,6 +497,8 @@ static func at(p: Vector3, margin := 1.5) -> Liquid:
 	var best: Liquid = null
 	for l: Liquid in all:
 		if is_instance_valid(l) and l.contains_xz(p) and p.y > l.global_position.y - l.size.y - 0.5 and p.y < l.global_position.y + margin:
+			if l.flood and l.flood.depth_at(p) <= FloodZone.WET:
+				continue # dry here
 			if best == null or l.size.x * l.size.z < best.size.x * best.size.z:
 				best = l
 	return best

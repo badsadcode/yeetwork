@@ -61,6 +61,8 @@ var _pair_cd := {}
 var _corpses: Array[Node] = []
 var _burning_props := {} # prop id -> [end time, attacker]
 var _burning_players := {} # player id -> [end time, attacker]
+var _burning_walls := {} # wooden wall id -> burnt through at (time)
+var _melting := {} # ice wall id -> {cell: seconds of fire on it}
 var _fire_accum := 0.0
 var _puzzle_accum := 0.0
 var _machine_accum := 0.0
@@ -319,6 +321,7 @@ func _build_init_state() -> Dictionary:
 		"puzzle_time": [puzzle_start, puzzle_finish],
 		"puzzle_results": puzzle_results,
 		"machines": _machine_buffer(),
+		"floods": arena.puzzle.filter(func(n: PuzzleNode) -> bool: return n is FloodZone).map(func(n: FloodZone) -> Array: return [n.puzzle_index] + n.full_state()),
 	}
 
 
@@ -359,6 +362,8 @@ func _s_init(state: Dictionary) -> void:
 		arena.puzzle[i].set_active(pz[i], false)
 	if state.has("machines"):
 		_s_machines(state.machines)
+	for f: Array in state.get("floods", []):
+		_s_flood(f[0], f[1], f[2])
 	puzzle_results = state.get("puzzle_results", {})
 	var pt: Array = state.get("puzzle_time", [-1.0, -1.0])
 	puzzle_start = pt[0]
@@ -1599,8 +1604,161 @@ func _in_water(pos: Vector3) -> bool:
 	return l != null and l.kind == "water" and pos.y < l.height_at(pos.x, pos.z)
 
 
+func in_water(pos: Vector3) -> bool:
+	return _in_water(pos)
+
+
+## Where fire is right now (server): burning props and Yeets, lit beacons, running fuse
+## sparks, burning walls. [position, reach] pairs.
+func fire_sources(exclude: Node = null) -> Array:
+	var out := []
+	for id in _burning_props:
+		var p := get_prop(id)
+		if p and p != exclude:
+			out.append([p.global_position, maxf(p.size.x, p.size.z) * 0.5 + 0.3])
+	for id in _burning_players:
+		var pl := get_player(id)
+		if pl and pl != exclude:
+			out.append([pl.body_center(), 0.5])
+	for n in arena.puzzle:
+		if n == exclude:
+			continue
+		if n is Beacon and n.active:
+			out.append([(n as Beacon).bowl_position(), 0.6])
+		elif n is FuseLine and (n as FuseLine).lit:
+			out.append([(n as FuseLine).spark_position(), 0.15])
+	for wall_id in _burning_walls:
+		# A burning wall: fire along it (about a dozen of its pieces).
+		var d: Destructible = arena.destructibles[wall_id]
+		for i in range(0, d.cells.size(), maxi(1, d.cells.size() / 12)):
+			if d.is_alive(i):
+				out.append([d.cell_world(i), 0.6])
+	return out
+
+
+## Is there fire within r of pos (anything burning, a lit beacon, a fuse spark, a burning place)?
+func fire_near(pos: Vector3, r: float, exclude: Node = null) -> bool:
+	for s in fire_sources(exclude):
+		if (s[0] as Vector3).distance_to(pos) < r + float(s[1]):
+			return true
+	for area: Array in arena.fire_areas:
+		var l: Vector3 = (area[0] as Transform3D).affine_inverse() * pos
+		var half: Vector3 = area[1] * 0.5 + Vector3.ONE * r
+		if absf(l.x) < half.x and absf(l.y) < half.y + 0.6 and absf(l.z) < half.z:
+			return true
+	return false
+
+
+## Fire at a spot (a beacon's flames, a fuse's spark): sets alight what's touching it.
+func server_fire_spot(pos: Vector3, r: float, _source: Node = null) -> void:
+	for p: Prop in props.values():
+		if is_instance_valid(p) and not _burning_props.has(p.prop_id) and is_flammable(p) \
+				and p.global_position.distance_to(pos) < r + maxf(p.size.x, p.size.z) * 0.5 and rng.randf() < 0.3:
+			server_ignite_prop(p, rng.randf_range(8.0, 12.0))
+	for pl: Player in players.values():
+		if pl.is_alive() and not _burning_players.has(pl.player_id) and pl.body_center().distance_to(pos) < r + 0.5:
+			server_ignite_player(pl, 2.0)
+
+
+## Wooden walls catch fire from fire touching them, burn for a while and fall apart; ice
+## walls melt where fire stays on them, and the meltwater runs into the flood zone there.
+func _server_walls_and_fire(t: float) -> void:
+	var sources := fire_sources()
+	for wall_id in _burning_walls.keys():
+		var d: Destructible = arena.destructibles[wall_id]
+		if _in_water(d.global_position):
+			_burning_walls.erase(wall_id)
+			_bc_all("_s_wall_fire", [wall_id, false])
+			server_fx("steam", d.global_position, Vector3.UP, 1.5)
+		elif t >= _burning_walls[wall_id]:
+			_burning_walls.erase(wall_id)
+			_bc_all("_s_wall_fire", [wall_id, false])
+			var alive := PackedInt32Array()
+			for i in d.cells.size():
+				if d.is_alive(i):
+					alive.append(i)
+			if not alive.is_empty():
+				_bc_all("_s_break", [wall_id, alive, d.global_position, Vector3.DOWN * 2.0, PackedInt32Array(), PackedByteArray(), BREAK_SHATTER])
+				for o: Prop in props.values():
+					if is_instance_valid(o) and o.kind == "shard" and o.global_position.distance_to(d.global_position) < maxf(d.size.x, d.size.y) and rng.randf() < 0.4:
+						server_ignite_prop(o, rng.randf_range(2.5, 4.5))
+	if sources.is_empty():
+		return
+	for d: Destructible in arena.destructibles:
+		if d.material == "wood" and not _burning_walls.has(d.wall_id):
+			for s in sources:
+				if not d.cells_near(s[0], float(s[1]) + 0.5).is_empty():
+					_burning_walls[d.wall_id] = t + 6.0
+					_bc_all("_s_wall_fire", [d.wall_id, true])
+					break
+		elif d.material == "ice":
+			var heat: Dictionary = _melting.get(d.wall_id, {})
+			var melted := PackedInt32Array()
+			for s in sources:
+				for c in d.cells_near(s[0], float(s[1]) + 1.0):
+					if d.is_alive(c):
+						heat[c] = heat.get(c, 0.0) + FIRE_TICK
+						if heat[c] >= 2.0 and not c in melted:
+							melted.append(c)
+			_melting[d.wall_id] = heat
+			if not melted.is_empty():
+				for c in melted:
+					heat.erase(c)
+					var at := d.cell_world(c)
+					var fz := FloodZone.at(self, at)
+					if fz:
+						fz.pour(at, 0.5, _cell_area(d.cells[c]) * d.thickness * 0.9)
+				_bc_all("_s_melt", [d.wall_id, melted])
+				_server_check_supports(d)
+
+
+static func _cell_area(poly: PackedVector2Array) -> float:
+	var a := 0.0
+	for k in poly.size():
+		var p := poly[k]
+		var q := poly[(k + 1) % poly.size()]
+		a += p.x * q.y - q.x * p.y
+	return absf(a) * 0.5
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_wall_fire(wall_id: int, on: bool) -> void:
+	if wall_id >= arena.destructibles.size():
+		return
+	var d := arena.destructibles[wall_id]
+	if on:
+		Burning.on(d, 0.0, AABB(Vector3(-d.size.x * 0.5, -d.size.y * 0.5, -d.thickness * 0.5 - 0.1), Vector3(d.size.x, d.size.y, d.thickness + 0.2)))
+		Sfx.play3d("whoosh", d.global_position, 0.0, 0.7)
+	else:
+		Burning.off(d)
+
+
+## Ice cells melted away (no pieces: drips and steam).
+@rpc("authority", "call_remote", "reliable")
+func _s_melt(wall_id: int, cells: PackedInt32Array) -> void:
+	if wall_id >= arena.destructibles.size():
+		return
+	var d := arena.destructibles[wall_id]
+	var live := PackedInt32Array()
+	for c in cells:
+		if d.is_alive(c):
+			live.append(c)
+	if live.is_empty():
+		return
+	d.remove_cells(live)
+	var at := d.cell_world(live[0])
+	_steam(at, 0.6)
+	Sfx.play3d("sizzle", at, -4.0, rng.randf_range(0.8, 1.0))
+
+
+func _steam(pos: Vector3, amount: float) -> void:
+	fx.puffs(pos, Vector3.UP, int(4 + amount * 6), [Color(1, 1, 1, 0.6), Color(0.9, 0.92, 0.95, 0.35), Color(0.9, 0.92, 0.95, 0.0)],
+		1.0, 2.0 + amount, 1.0, 2.5, 1.6, 30.0, Vector3(0, 1.2, 0))
+
+
 func _server_fire_tick() -> void:
 	var t := now()
+	_server_walls_and_fire(t)
 	# Burning places set alight whatever stands in them.
 	for area: Array in arena.fire_areas:
 		var inv: Transform3D = (area[0] as Transform3D).affine_inverse()
@@ -1835,6 +1993,21 @@ func _s_machines(buf: PackedFloat32Array) -> void:
 		i += 2 + n
 
 
+## Flood water: the host sends the chunks of a FloodZone that changed (reliable, ~10 a second).
+func server_flood(index: int, ids: PackedInt32Array, blobs: Array[PackedByteArray]) -> void:
+	if not ready_peers.is_empty():
+		_bc("_s_flood", [index, ids, blobs])
+
+
+@rpc("authority", "call_remote", "reliable", 5)
+func _s_flood(index: int, ids: PackedInt32Array, blobs: Array) -> void:
+	if index < 0 or index >= arena.puzzle.size() or not arena.puzzle[index] is FloodZone:
+		return
+	var fz: FloodZone = arena.puzzle[index]
+	for k in mini(ids.size(), blobs.size()):
+		fz.decode_chunk(ids[k], blobs[k])
+
+
 func server_puzzle_results(results: Dictionary) -> void:
 	_bc_all("_s_puzzle_results", [results])
 
@@ -1950,6 +2123,9 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 		"score":
 			fx.explosion(pos + Vector3.UP * 2.0, 3.0)
 			Sfx.play_ui("score", 0.0)
+		"steam":
+			_steam(pos, amount)
+			Sfx.play3d("sizzle", pos, -2.0, rng.randf_range(0.9, 1.1))
 
 
 func local_blood(pos: Vector3, normal: Vector3, dir: Vector3, amount: float) -> void:

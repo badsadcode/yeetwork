@@ -201,7 +201,7 @@ func _page_join(stack: Control) -> Control:
 	var grid := _grid(v)
 	_address = LineEdit.new()
 	_address.text = Game.join_address
-	_address.placeholder_text = "IP address"
+	_address.placeholder_text = "IP address, or host:port"
 	_field(grid, "Address", _address)
 	_port = SpinBox.new()
 	_port.min_value = 1024
@@ -214,7 +214,7 @@ func _page_join(stack: Control) -> Control:
 		_store()
 		join_pressed.emit())
 	var hint := Label.new()
-	hint.text = "Over the internet: forward UDP port %d on the host's router, or use Tailscale / ZeroTier." % Game.DEFAULT_PORT
+	hint.text = "Over the internet: forward UDP port %d on the host's router, use Tailscale / ZeroTier, or a UDP tunnel such as playit.gg (paste the address it gives you, host:port)." % Game.DEFAULT_PORT
 	hint.add_theme_font_size_override("font_size", 16)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(hint)

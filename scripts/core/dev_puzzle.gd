@@ -8,6 +8,10 @@ extends Node
 ##   warehouse:     the open level's objective list, the Lost Yeet's cage, glass and ice smashed
 ##                  for fuses, fuses pulled with the gun and locked in the fuse box, the Lost
 ##                  Yeet carried (scared) to the rescue mat (grinning), the exit.
+##   pump_house:    flood water: valves fill a room (volume kept), crates float, Yeets swim,
+##                  the network encoding, an anvil sunk on the plug drains a bathtub, the door
+##                  under the water opens once it's drained; fire carried from beacon to
+##                  beacon, a wooden wall burnt down, a fuse, an ice wall melted into water.
 ## Usage: godot -- --host --map moving_day --mode puzzle --tour <dir> --tour-mode puzzle
 ## (add --headless to only check)
 
@@ -18,17 +22,19 @@ var _failed := 0
 
 
 func _ready() -> void:
-	get_tree().create_timer(60.0).timeout.connect(func():
+	get_tree().create_timer(150.0).timeout.connect(func():
 		print("PUZZLE CHECK FAILED (timed out)")
 		get_tree().quit(1))
 	await _wait(1.0)
 	pl = world.local_player
 	var map_name: String = world.arena.map_settings.map_name if world.arena.map_settings else ""
-	if map_name == "Test Chambers" or map_name == "The Warehouse":
+	if map_name in ["Test Chambers", "The Warehouse", "The Pump House"]:
 		if map_name == "Test Chambers":
 			await _chambers()
-		else:
+		elif map_name == "The Warehouse":
 			await _warehouse()
+		else:
+			await _pump_house()
 		print("PUZZLE CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
 		get_tree().quit(0 if _failed == 0 else 1)
 		return
@@ -400,6 +406,143 @@ func _warehouse() -> void:
 	_check("results arrive with a medal", res.get("medal", "") == "gold", "medal %s" % res.get("medal", ""))
 	await _wait(0.3)
 	_shot("w07_results")
+
+
+func _pump_house() -> void:
+	var f1: FloodZone = _piece("Flood1")
+	var f2: FloodZone = _piece("Flood2")
+	_check("the bathtub starts full", absf(f2.depth_at(Vector3(2, 0, 21)) - 2.6) < 0.05 and f1.volume() < 0.01, "depth %.2f m, room 1 %.1f m³" % [f2.depth_at(Vector3(2, 0, 21)), f1.volume()])
+	_look(Vector3(0, 4.5, 1), Vector3(0, 1, 12))
+	await _wait(0.4)
+	_shot("p01_rising_tide")
+	# 1: the button opens the valves; the room fills.
+	var button: PuzzleNode = _piece("Button1")
+	_place_player(button.global_position + Vector3(1.2, 0, 0))
+	await _wait(0.3)
+	_aim_at(button.use_point())
+	world.use_pressed(pl)
+	await _wait(0.5)
+	_check("the button opens the valves", _piece("Valve1a").active and _piece("Valve1b").active, "")
+	_place_player(Vector3(0, 3, 13.5))
+	var t0: float = world.now()
+	while f1.depth_at(Vector3(0, 0, 7)) < 1.9 and world.now() - t0 < 40.0:
+		await _wait(0.5)
+	var poured: float = (_piece("Valve1a") as FloodValve).poured + (_piece("Valve1b") as FloodValve).poured
+	_check("the room fills up", f1.depth_at(Vector3(0, 0, 7)) >= 1.9, "%.2f m after %.0f s" % [f1.depth_at(Vector3(0, 0, 7)), world.now() - t0])
+	_check("no water is lost or made", absf(f1.volume() - poured) < poured * 0.02 + 0.5, "%.1f m³ in, %.1f m³ there" % [poured, f1.volume()])
+	await _wait(1.0)
+	var crate := _nearest("crate", Vector3(-3, 0.6, 5))
+	var surface := f1.surface_at(Vector3(0, 0, 7))
+	_check("crates float up with the water", crate.global_position.y > surface - 0.8, "crate at y %.1f, water at %.1f" % [crate.global_position.y, surface])
+	_look(Vector3(-1, 4.7, 13.0), Vector3(1, 1.2, 3))
+	await _wait(0.4)
+	_shot("p02_flooded")
+	# What the water costs (host step, everyone's surface texture), the room 1 grid full.
+	var us := Time.get_ticks_usec()
+	for k in 30:
+		f1._step(1.0 / 60.0)
+	var step_ms := (Time.get_ticks_usec() - us) / 30000.0
+	us = Time.get_ticks_usec()
+	for k in 30:
+		f1._changed = true
+		f1._update_texture()
+	var tex_ms := (Time.get_ticks_usec() - us) / 30000.0
+	_check("the water is cheap enough", step_ms < 6.0 and tex_ms < 6.0, "step %.2f ms, texture %.2f ms (%d x %d cells)" % [step_ms, tex_ms, f1.nx, f1.nz])
+	# A Yeet let go in the middle of the water floats (swims), it doesn't sink to the bottom.
+	_place_player(Vector3(1, 1.0, 7))
+	await _wait(2.0)
+	_check("Yeets float in deep water", pl.global_position.y > 0.8 and pl.is_alive(), "player at y %.1f, water at %.1f" % [pl.global_position.y, f1.surface_at(Vector3(1, 0, 7))])
+	_shot("p03_swimming")
+	# The network: every chunk encoded and decoded again is the same water (to the mm).
+	var before := f1.depth.duplicate()
+	var st: Array = f1.full_state()
+	f1.depth.fill(0.0)
+	for k in st[0].size():
+		f1.decode_chunk(st[0][k], st[1][k])
+	var worst := 0.0
+	for k in before.size():
+		worst = maxf(worst, absf(before[k] - f1.depth[k]))
+	_check("flood chunks survive the trip over the network", worst < 0.001 and st[0].size() > 0, "%d chunks, worst %.4f m" % [st[0].size(), worst])
+	_place_player(Vector3(0, 3, 13.5))
+	await _wait(0.6)
+	_check("up on the ledge: checkpoint", _piece("Checkpoint2").active, "")
+	# 2: a crate floats (no good); the anvil sinks onto the plug and the bathtub drains.
+	var crate2 := _nearest("crate", Vector3(3, 3.6, 16.5))
+	crate2.global_position = Vector3(0, 2.0, 24)
+	crate2.linear_velocity = Vector3.ZERO
+	await _wait(2.0)
+	_check("a crate floats in the bathtub (not on the plug)", crate2.global_position.y > 1.8 and not _piece("PlugPlate").active, "crate at y %.1f" % crate2.global_position.y)
+	crate2.global_position = Vector3(3, 3.6, 16.5)
+	_look(Vector3(-2, 4.8, 17.4), Vector3(0, 1.0, 27))
+	await _wait(0.5)
+	_shot("p04_bathtub")
+	var anvil := _nearest("anvil", Vector3(-3, 3.3, 16.5))
+	anvil.global_position = Vector3(0, 3.2, 23.5)
+	anvil.linear_velocity = Vector3(0, -2, 0)
+	await _wait(2.5)
+	_check("the anvil sinks onto the plug", _piece("PlugPlate").active and anvil.global_position.y < 1.0, "anvil at y %.1f" % anvil.global_position.y)
+	_check("the door stays shut while it's full", not _piece("Door2").active and _piece("Level2").active, "")
+	t0 = world.now()
+	while not _piece("Door2").active and world.now() - t0 < 40.0:
+		await _wait(0.5)
+	_check("drained: the door opens", _piece("Door2").active and f2.depth_at(Vector3(0, 0, 24)) < 0.5, "%.2f m left after %.0f s" % [f2.depth_at(Vector3(0, 0, 24)), world.now() - t0])
+	_look(Vector3(-3, 4.8, 16.5), Vector3(0, 0.5, 28))
+	await _wait(0.5)
+	_shot("p05_drained")
+	# 3: fire from the lit beacon, carried in a crate to the other two.
+	var lit: Beacon = _piece("BeaconLit")
+	_check("one beacon burns from the start", lit.active and not _piece("BeaconA").active, "")
+	var torch := _nearest("crate", Vector3(2, 0.6, 33))
+	torch.global_position = lit.bowl_position() + Vector3(0.9, 0.2, 0)
+	torch.linear_velocity = Vector3.ZERO
+	await _wait(1.5)
+	_check("a crate held in the flames catches fire", world.is_burning(torch), "")
+	_look(Vector3(0, 2.2, 31), Vector3(-2, 1.2, 35))
+	await _wait(0.3)
+	_shot("p06_beacon")
+	for b_name in ["BeaconA", "BeaconB"]:
+		var b: Beacon = _piece(b_name)
+		torch.global_position = b.bowl_position() + Vector3(0, 0.9, 0)
+		torch.linear_velocity = Vector3.ZERO
+		await _wait(1.2)
+	_check("the burning crate lights both beacons", _piece("BeaconA").active and _piece("BeaconB").active, "A %s, B %s" % [_piece("BeaconA").active, _piece("BeaconB").active])
+	await _wait(1.0)
+	_check("both beacons open the gate", _piece("Gate3").active, "")
+	# 4: the wooden wall burns down; its fire lights the fuse; the fuse lights the beacon by
+	# the ice wall, which melts a way through.
+	_check("the wooden wall is too tough to need burning? (still standing)", not _piece("WoodGone").active, "")
+	torch.global_position = Vector3(1.5, 0.6, 47.6)
+	torch.linear_velocity = Vector3.ZERO
+	if not world.is_burning(torch):
+		world.server_ignite_prop(torch, 10.0)
+	await _wait(1.5)
+	_check("the wooden wall catches fire", not world._burning_walls.is_empty(), "")
+	_look(Vector3(-2, 2.0, 45.8), Vector3(1, 1.5, 48.5))
+	await _wait(0.2)
+	_shot("p07_wall_burning")
+	t0 = world.now()
+	while not _piece("WoodGone").active and world.now() - t0 < 12.0:
+		await _wait(0.5)
+	_check("it burns down", _piece("WoodGone").active, "%.0f s" % (world.now() - t0))
+	var fuse: FuseLine = _piece("Fuse4")
+	_check("its fire lights the fuse behind it", fuse.lit or fuse.burned > 0.0, "burned %.2f" % fuse.burned)
+	if not fuse.lit and fuse.burned == 0.0:
+		fuse.lit = true # (go on with the rest anyway)
+	_look(Vector3(-1, 2.0, 50), Vector3(3, 0.2, 54))
+	await _wait(1.5)
+	_shot("p08_fuse")
+	t0 = world.now()
+	while not _piece("IceGone").active and world.now() - t0 < 15.0:
+		await _wait(0.5)
+	_check("the fuse lights the beacon, the beacon melts the ice", _piece("BeaconC").active and _piece("IceGone").active, "beacon %s after %.0f s" % [_piece("BeaconC").active, world.now() - t0])
+	var f4: FloodZone = _piece("Flood4")
+	_check("the meltwater runs into the room", f4.volume() > 0.3, "%.2f m³" % f4.volume())
+	_look(Vector3(-1.5, 2.2, 54), Vector3(2.5, 1.3, 58.5))
+	await _wait(0.5)
+	_shot("p09_melted")
+	_place_player(_piece("Exit").global_position + Vector3(0, 0.3, 0))
+	await _wait(0.8)
+	_check("the exit finishes the level", world.puzzle_finish >= 0.0, "")
 
 
 ## A ball thrown straight at a target from 2 m away.

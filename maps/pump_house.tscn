@@ -1,0 +1,488 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://scripts/mapkit/map_settings.gd" id="settings"]
+[ext_resource type="Script" path="res://scripts/mapkit/arena_block.gd" id="block"]
+[ext_resource type="Script" path="res://scripts/mapkit/spawn_point.gd" id="spawn"]
+[ext_resource type="Script" path="res://scripts/mapkit/prop_spawn.gd" id="prop"]
+[ext_resource type="Script" path="res://scripts/mapkit/pressure_plate.gd" id="plate"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_door.gd" id="door"]
+[ext_resource type="Script" path="res://scripts/mapkit/checkpoint.gd" id="cp"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_exit.gd" id="exit"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_reset.gd" id="reset"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_logic.gd" id="logic"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_button.gd" id="button"]
+[ext_resource type="Script" path="res://scripts/mapkit/flood_zone.gd" id="flood"]
+[ext_resource type="Script" path="res://scripts/mapkit/flood_valve.gd" id="valve"]
+[ext_resource type="Script" path="res://scripts/mapkit/flood_drain.gd" id="drain"]
+[ext_resource type="Script" path="res://scripts/mapkit/float_switch.gd" id="float"]
+[ext_resource type="Script" path="res://scripts/mapkit/beacon.gd" id="beacon"]
+[ext_resource type="Script" path="res://scripts/mapkit/fuse_line.gd" id="fuse"]
+[ext_resource type="Script" path="res://scripts/mapkit/breakable_slab.gd" id="slab"]
+[ext_resource type="Script" path="res://scripts/mapkit/break_sensor.gd" id="sensor"]
+
+[node name="PumpHouse" type="Node3D"]
+
+[node name="MapSettings" type="Node" parent="."]
+script = ExtResource("settings")
+map_name = "The Pump House"
+author = "Yeetwork"
+description = "Water and fire: flood a room to swim up, drain a bathtub, carry fire, burn a wall down, melt the ice. Any solution counts."
+sky = "day"
+kill_height = -20.0
+puzzle = true
+gold_time = 360.0
+silver_time = 540.0
+bronze_time = 780.0
+playtest_mode = 4
+playtest_bots = 0
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="Breakables" type="Node3D" parent="."]
+
+[node name="Puzzle" type="Node3D" parent="."]
+
+[node name="Spawns" type="Node3D" parent="."]
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Lights" type="Node3D" parent="."]
+
+[node name="Signs" type="Node3D" parent="."]
+
+[node name="Block1" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.5, 35)
+script = ExtResource("block")
+size = Vector3(10, 5, 70)
+color = Color(0.42, 0.48, 0.52, 1)
+
+[node name="Block2" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.3, 3.5, 35)
+script = ExtResource("block")
+size = Vector3(0.6, 9, 70)
+color = Color(0.62, 0.7, 0.72, 1)
+
+[node name="Block3" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.3, 3.5, 35)
+script = ExtResource("block")
+size = Vector3(0.6, 9, 70)
+color = Color(0.62, 0.7, 0.72, 1)
+
+[node name="Block4" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5, -0.3)
+script = ExtResource("block")
+size = Vector3(11.2, 9, 0.6)
+color = Color(0.62, 0.7, 0.72, 1)
+
+[node name="Block5" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5, 70.3)
+script = ExtResource("block")
+size = Vector3(11.2, 9, 0.6)
+color = Color(0.62, 0.7, 0.72, 1)
+
+[node name="Block6" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 13.5)
+script = ExtResource("block")
+size = Vector3(10, 3, 3)
+color = Color(0.75, 0.86, 0.88, 1)
+
+[node name="Flood1" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 7.5)
+script = ExtResource("flood")
+size = Vector3(10, 6, 15)
+
+[node name="Button1" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0, 2.5)
+script = ExtResource("button")
+press = "use key"
+label = "Open the valves"
+
+[node name="Valve1a" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 6.5, 7)
+script = ExtResource("valve")
+inputs = Array[NodePath]([NodePath("../Button1")])
+rate = 6.0
+total = 160.0
+
+[node name="Valve1b" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 6.5, 7)
+script = ExtResource("valve")
+inputs = Array[NodePath]([NodePath("../Button1")])
+rate = 6.0
+total = 160.0
+
+[node name="Checkpoint2" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 13.5)
+script = ExtResource("cp")
+radius = 1.8
+objective = "Open the valves, flood the room and swim up to the ledge"
+
+[node name="Reset1" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0, 1.5)
+script = ExtResource("reset")
+area = Vector3(10, 10, 12)
+area_center = Vector3(-4.5, 3, 5)
+
+[node name="Sign1" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 0.4)
+text = "RISING TIDE"
+font_size = 80
+outline_size = 16
+modulate = Color(0.75, 0.95, 1, 1)
+
+[node name="Block7" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 3.5, 15)
+script = ExtResource("block")
+size = Vector3(3, 9, 0.6)
+color = Color(0.62, 0.7, 0.72, 1)
+
+[node name="Block8" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 3.5, 15)
+script = ExtResource("block")
+size = Vector3(3, 9, 0.6)
+color = Color(0.62, 0.7, 0.72, 1)
+
+[node name="Block9" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 15)
+script = ExtResource("block")
+size = Vector3(4, 3, 0.6)
+color = Color(0.75, 0.86, 0.88, 1)
+
+[node name="Block10" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 16.5)
+script = ExtResource("block")
+size = Vector3(10, 3, 3)
+color = Color(0.75, 0.86, 0.88, 1)
+
+[node name="Block11" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.6, 17.9)
+script = ExtResource("block")
+size = Vector3(10, 1.2, 0.2)
+color = Color(0.3, 0.45, 0.6, 1)
+
+[node name="Flood2" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 24)
+script = ExtResource("flood")
+size = Vector3(10, 6, 12)
+start_level = 2.6
+
+[node name="PlugPlate" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 24)
+script = ExtResource("plate")
+size = Vector2(2.4, 2.4)
+required_mass = 100.0
+
+[node name="Drain2" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 27.5)
+script = ExtResource("drain")
+inputs = Array[NodePath]([NodePath("../PlugPlate")])
+rate = 14.0
+radius = 1.0
+
+[node name="Level2" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 28.5)
+script = ExtResource("float")
+level = 0.5
+
+[node name="Drained" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 29)
+script = ExtResource("logic")
+inputs = Array[NodePath]([NodePath("../Level2")])
+invert = true
+
+[node name="Block12" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 3.5, 30)
+script = ExtResource("block")
+size = Vector3(3, 9, 0.6)
+color = Color(0.62, 0.7, 0.72, 1)
+
+[node name="Block13" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 3.5, 30)
+script = ExtResource("block")
+size = Vector3(3, 9, 0.6)
+color = Color(0.62, 0.7, 0.72, 1)
+
+[node name="Block14" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 30)
+script = ExtResource("block")
+size = Vector3(4, 6, 0.6)
+color = Color(0.62, 0.7, 0.72, 1)
+
+[node name="Door2" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 30)
+script = ExtResource("door")
+inputs = Array[NodePath]([NodePath("../Drained")])
+size = Vector3(4, 2.5, 0.5)
+open_offset = Vector3(0, 2.4, 0)
+objective = "Drain the bathtub: sink something heavy onto the plug"
+
+[node name="Reset2" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 3, 16.5)
+script = ExtResource("reset")
+area = Vector3(10, 10, 16)
+area_center = Vector3(-4.5, 1, 6)
+
+[node name="Sign2" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 15.4)
+text = "BATHTUB"
+font_size = 80
+outline_size = 16
+modulate = Color(0.75, 0.95, 1, 1)
+
+[node name="Checkpoint3" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 32.5)
+script = ExtResource("cp")
+radius = 2.0
+
+[node name="BeaconLit" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 0, 34)
+script = ExtResource("beacon")
+start_lit = true
+
+[node name="BeaconA" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6, 0, 41)
+script = ExtResource("beacon")
+
+[node name="Block15" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 1.25, 43.3)
+script = ExtResource("block")
+size = Vector3(3, 2.5, 3.4)
+color = Color(0.75, 0.86, 0.88, 1)
+
+[node name="BeaconB" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 2.5, 43.3)
+script = ExtResource("beacon")
+
+[node name="Block16" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 3.5, 45)
+script = ExtResource("block")
+size = Vector3(3, 9, 0.6)
+color = Color(0.62, 0.7, 0.72, 1)
+
+[node name="Block17" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 3.5, 45)
+script = ExtResource("block")
+size = Vector3(3, 9, 0.6)
+color = Color(0.62, 0.7, 0.72, 1)
+
+[node name="Block18" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, 45)
+script = ExtResource("block")
+size = Vector3(4, 6, 0.6)
+color = Color(0.62, 0.7, 0.72, 1)
+
+[node name="Gate3" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 45)
+script = ExtResource("door")
+inputs = Array[NodePath]([NodePath("../BeaconA"), NodePath("../BeaconB")])
+latch = true
+size = Vector3(4, 2.5, 0.5)
+open_offset = Vector3(0, 2.4, 0)
+objective = "Light both beacons (fire spreads to wood)"
+
+[node name="Reset3" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0, 31.5)
+script = ExtResource("reset")
+area = Vector3(10, 10, 14)
+area_center = Vector3(-4.5, 3, 6)
+
+[node name="Sign3" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 30.4)
+text = "LIGHT THE WAY"
+font_size = 80
+outline_size = 16
+modulate = Color(0.75, 0.95, 1, 1)
+
+[node name="WoodWall" type="Node3D" parent="Breakables"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 48.5)
+script = ExtResource("slab")
+size = Vector2(10, 4)
+thickness = 0.4
+material = "wood"
+color = Color(0.62, 0.42, 0.24, 1)
+anchor_bottom = true
+anchor_left = true
+anchor_right = true
+hp_scale = 5.0
+
+[node name="WoodGone" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 48)
+script = ExtResource("sensor")
+slab = NodePath("../../Breakables/WoodWall")
+percent = 60.0
+objective = "Burn down the wooden wall"
+
+[node name="Checkpoint4" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 51)
+script = ExtResource("cp")
+radius = 1.8
+
+[node name="Fuse4" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.2, 0, 49.3)
+script = ExtResource("fuse")
+end = Vector3(-0.1, 0, 7.9)
+speed = 1.6
+
+[node name="BeaconC" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 57.75)
+script = ExtResource("beacon")
+inputs = Array[NodePath]([NodePath("../Fuse4")])
+
+[node name="IceWall" type="Node3D" parent="Breakables"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 58.5)
+script = ExtResource("slab")
+size = Vector2(10, 4)
+thickness = 0.4
+material = "ice"
+anchor_bottom = true
+anchor_left = true
+anchor_right = true
+hp_scale = 4.0
+
+[node name="IceGone" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 58)
+script = ExtResource("sensor")
+slab = NodePath("../../Breakables/IceWall")
+percent = 10.0
+objective = "Melt the ice wall (light the fuse)"
+
+[node name="Flood4" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 55)
+script = ExtResource("flood")
+size = Vector3(10, 3, 10)
+
+[node name="Sign4" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 45.4)
+text = "FUSE AND ICE"
+font_size = 80
+outline_size = 16
+modulate = Color(0.75, 0.95, 1, 1)
+
+[node name="Checkpoint5" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 61.5)
+script = ExtResource("cp")
+radius = 1.8
+
+[node name="Exit" type="Node3D" parent="Puzzle"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 66.5)
+script = ExtResource("exit")
+size = Vector3(6, 3, 5)
+objective = "Everyone to the exit"
+
+[node name="Spawn0" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 1.5)
+script = ExtResource("spawn")
+
+[node name="Spawn1" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 1.5)
+script = ExtResource("spawn")
+
+[node name="Spawn2" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1.5)
+script = ExtResource("spawn")
+
+[node name="Spawn3" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 1.5)
+script = ExtResource("spawn")
+
+[node name="Crate0" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.6, 5)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Crate1" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.6, 5)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Barrel2" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.7, 9)
+script = ExtResource("prop")
+kind = "barrel"
+key_prop = true
+
+[node name="Barrel3" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.7, 9)
+script = ExtResource("prop")
+kind = "barrel"
+key_prop = true
+
+[node name="Beachball4" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 6)
+script = ExtResource("prop")
+kind = "beachball"
+key_prop = true
+
+[node name="Anvil5" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 3.3, 16.5)
+script = ExtResource("prop")
+kind = "anvil"
+key_prop = true
+
+[node name="Crate6" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 3.6, 16.5)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Crate7" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.6, 33)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Crate8" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0.6, 35)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Plank9" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 38)
+script = ExtResource("prop")
+kind = "plank"
+key_prop = true
+
+[node name="Crate10" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.6, 40)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Crate11" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.6, 46.5)
+script = ExtResource("prop")
+kind = "crate"
+key_prop = true
+
+[node name="Light0" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.5, 7)
+light_color = Color(0.92, 0.97, 1, 1)
+omni_range = 14.0
+light_energy = 1.2
+
+[node name="Light1" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.5, 24)
+light_color = Color(0.92, 0.97, 1, 1)
+omni_range = 14.0
+light_energy = 1.2
+
+[node name="Light2" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.5, 37)
+light_color = Color(0.92, 0.97, 1, 1)
+omni_range = 14.0
+light_energy = 1.2
+
+[node name="Light3" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.5, 53)
+light_color = Color(0.92, 0.97, 1, 1)
+omni_range = 14.0
+light_energy = 1.2
+
+[node name="Light4" type="OmniLight3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.5, 65)
+light_color = Color(0.92, 0.97, 1, 1)
+omni_range = 14.0
+light_energy = 1.2

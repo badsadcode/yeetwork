@@ -9,6 +9,7 @@ shader_type spatial;
 render_mode blend_mix, depth_draw_always, cull_disabled, specular_schlick_ggx;
 
 #include "res://scripts/world/liquid_waves_sculpted.gdshaderinc"
+#include "res://scripts/world/liquid_flood.gdshaderinc"
 
 uniform vec4 shallow_color : source_color = vec4(0.12, 0.62, 0.62, 1.0);
 uniform vec4 deep_color : source_color = vec4(0.02, 0.13, 0.24, 1.0);
@@ -97,6 +98,15 @@ vec4 ripple_field(vec2 p) {
 
 void vertex() {
 	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	float fw = 1.0;
+	vec2 fslope = vec2(0.0);
+	flood_depth = 1.0;
+	if (flood_on) {
+		float fh = flood_height(wp.xz, flood_depth, fslope);
+		VERTEX.y += fh - wp.y;
+		wp.y = fh;
+		fw = clamp(flood_depth / 0.6, 0.0, 1.0); // shallow floods barely wave
+	}
 	float c;
 	float cx;
 	float cz;
@@ -112,6 +122,12 @@ void vertex() {
 	fold = clamp(1.0 - (tx.x * tz.z - tx.z * tz.x), 0.0, 1.0);
 	crest = c;
 	off.y += ripple_field(wp.xz).x * 1.5;
+	if (flood_on) {
+		off *= fw;
+		n = normalize(mix(vec3(0.0, 1.0, 0.0), n, fw) + vec3(-fslope.x, 0.0, -fslope.y));
+		fold *= fw;
+		crest *= fw;
+	}
 	VERTEX += off; // liquids are never rotated or scaled, so world offset == local offset
 	NORMAL = n;
 	wave_n = n;
@@ -173,7 +189,7 @@ bool in_hole(vec2 p) {
 }
 
 void fragment() {
-	if (in_hole(world_pos.xz)) {
+	if (in_hole(world_pos.xz) || (flood_on && flood_depth < 0.02)) {
 		discard;
 	}
 	float t = wave_time;
