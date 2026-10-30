@@ -120,6 +120,9 @@ A solid box with the arena surface shader (soft panels, warm/cool gradient).
 - Color, Roughness, Metallic, Emission (glow).
 - **Ramps:** rotate a block around X or Z. Players can walk up to 46°, and steeper
   slopes are slides.
+- **Surface**: `arena` (the usual panels) or `ice`: clear, frosty blue ice that can't be
+  broken, and slippery: Yeets skate (little grip, long slides), props glide. For ice that
+  breaks, use a BreakableSlab of `ice`.
 - **Bounciness** (0-1): a ricochet surface for bank shots. Bouncy blocks are frictionless,
   so things leave at the angle they came in (Test Chambers' BOUNCE panel uses 0.85).
 
@@ -131,7 +134,9 @@ A destructible wall, floor or bridge. In game it fractures into irregular pieces
   - *FLOOR*: flat. Length is local X, width is local Z. Rotate around Y to aim a bridge.
 - **Size** (meters), **Thickness**.
 - **Material**: `plaster`, `concrete`, `brick` (brick-shaped chunks), `wood` (plank
-  splinters along the slab's length), `glass` (shards), `metal` (very tough).
+  splinters along the slab's length), `glass` (shards), `metal` (very tough), `ice`
+  (breakable ice: cracks spread, bursts into icy chunks; slippery to walk on while it
+  holds; thin ice over water as a FLOOR slab).
 - **Anchors** (Bottom/Top/Left/Right): the edges glued to the world. A wall standing on
   the floor uses *Bottom*. A bridge uses *Left* and *Right*. A window uses all four.
   Pieces cut off from every anchored edge crumble and fall.

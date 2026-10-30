@@ -240,12 +240,42 @@ func _chambers() -> void:
 	pl.cmd.move = Vector2.ZERO
 	pl.cmd.jump = false
 	_check("the wind carries a Yeet across the pit", furthest > 95.0 and pl.global_position.y > -1.0, "got to z %.1f, now at y %.1f" % [furthest, pl.global_position.y])
+	# F: Thin Ice.
+	_look(Vector3(2.5, 2.2, 103.5), Vector3(-3, 0.5, 112))
+	await _wait(0.4)
+	_shot("c07_ice")
+	_look(Vector3(-3.5, 1.4, 106.2), Vector3(-5.5, 0.8, 108))
+	await _wait(0.3)
+	_shot("c07b_ice_close")
+	_place_player(Vector3(-2, 0.2, 106))
+	await _wait(0.4)
+	_check("standing on the pond is standing on ice", pl.on_ice, "")
+	var slider := _nearest("crate", Vector3(3, 0.6, 103.5))
+	slider.global_position = Vector3(4, 0.6, 105.5)
+	slider.linear_velocity = Vector3(0, 0, 8)
+	var from_z := slider.global_position.z
+	await _wait(2.0)
+	_check("a crate glides across the ice", slider.global_position.z - from_z > 7.0, "slid %.1f m" % (slider.global_position.z - from_z))
+	_check("the exit stays shut until the plate is pressed", not _piece("Exit").active and not _piece("PlateF").active, "")
+	slider.global_position = _piece("PlateF").global_position + Vector3(0, 0.7, 0)
+	slider.linear_velocity = Vector3.ZERO
+	await _wait(0.8)
+	_check("a crate on the far plate", _piece("PlateF").active, "")
+	var anvil_f := _nearest("anvil", Vector3(6, 0.3, 103.5))
+	anvil_f.global_position = Vector3(0, 3.5, 111)
+	anvil_f.linear_velocity = Vector3.ZERO
+	await _wait(2.0)
+	var thin: Destructible = null
+	for d in world.arena.destructibles:
+		if d.material == "ice":
+			thin = d
+	_check("the anvil goes through the thin ice", thin != null and thin.broken_cells.size() > 0 and anvil_f.global_position.y < -0.5, "broken %d, anvil at y %.1f" % [thin.broken_cells.size() if thin else -1, anvil_f.global_position.y])
 	_place_player(_piece("Exit").global_position + Vector3(0, 0.3, 0))
 	await _wait(0.8)
 	_check("the exit finishes the level", world.puzzle_finish >= 0.0, "")
-	_look(Vector3(0, 3, 94), Vector3(0, 1.5, 101))
+	_look(Vector3(0, 3, 116), Vector3(0, 1.5, 123))
 	await _wait(0.5)
-	_shot("c07_exit")
+	_shot("c08_exit")
 
 
 ## A ball thrown straight at a target from 2 m away.

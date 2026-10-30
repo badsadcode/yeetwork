@@ -550,7 +550,7 @@ func impact(material: String, pos: Vector3, strength: float) -> void:
 			body = "metal"
 		"rubber":
 			body = "boing"
-		"glass":
+		"glass", "ice":
 			body = "glass"
 		"body":
 			body = "smack"

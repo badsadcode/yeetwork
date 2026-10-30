@@ -24,8 +24,40 @@ static func world(color: Color, roughness := 0.75, metallic := 0.0, emission := 
 	return m
 
 
+## Ice (ice.gdshader): `box_half` makes a box's edges glow (zero: no edge glow);
+## `damage` draws cracks from vertex colour (breakable ice). Low "simple glass": a plain
+## translucent blue.
+static func ice(box_half := Vector3.ZERO, inner := false, damage := false) -> Material:
+	var q := 2 if Engine.is_editor_hint() else clampi(int(Game.gfx.get("glass", 2)), 0, 2)
+	var key := "ice%s_%s_%s_%d" % [box_half, inner, damage, q]
+	if _cache.has(key):
+		return _cache[key]
+	var m: Material
+	if q > 0:
+		var im := ShaderMaterial.new()
+		im.shader = preload("res://scripts/world/ice.gdshader")
+		im.set_shader_parameter("box_half", box_half)
+		im.set_shader_parameter("inner", inner)
+		im.set_shader_parameter("use_vertex_damage", damage)
+		m = im
+	else:
+		var s := StandardMaterial3D.new()
+		s.albedo_color = Color(0.7, 0.88, 1.0, 0.55 if not inner else 0.7)
+		s.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		s.roughness = 0.1
+		s.rim_enabled = true
+		s.rim = 0.5
+		s.emission_enabled = true
+		s.emission = Color(0.25, 0.4, 0.55)
+		m = s
+	_cache[key] = m
+	return m
+
+
 ## Destructible slab outer faces (cracks from vertex damage) and fracture faces.
 static func slab(color: Color, material: String, inner := false) -> Material:
+	if material == "ice":
+		return Mats.ice(Vector3.ZERO, inner, not inner)
 	var glass_q := 0
 	if material == "glass":
 		glass_q = 2 if Engine.is_editor_hint() else clampi(int(Game.gfx.get("glass", 2)), 0, 2)

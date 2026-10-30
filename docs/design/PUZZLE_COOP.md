@@ -4,8 +4,9 @@
 checkpoints, exit, buttons, targets, break sensors, key props that come back and the Reset
 button; the mode with its clock and objective line; *Moving Day* rooms 1-3
 (`maps/moving_day.tscn`) and the *Test Chambers* (`maps/test_chambers.tscn`: Heavy Decisions,
-The Impossible Shot, Three Idiots One Door, Yeetapult, Windy Business); seesaws, turntables
-and fans; the Use key (E) for buttons and Reset. The plan
+The Impossible Shot, Three Idiots One Door, Yeetapult, Windy Business, Thin Ice); seesaws,
+turntables and fans; ice (solid and breakable, slippery); the Use key (E) for buttons and
+Reset. The plan
 below includes Tomek's answers and Noor's puzzle-mode notes (October 2026).
 
 ## The idea

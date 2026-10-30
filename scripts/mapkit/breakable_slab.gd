@@ -21,7 +21,7 @@ enum Layout { WALL, FLOOR }
 	set(v):
 		thickness = v
 		_rebuild()
-@export_enum("plaster", "concrete", "brick", "wood", "glass", "metal") var material := "plaster":
+@export_enum("plaster", "concrete", "brick", "wood", "glass", "metal", "ice") var material := "plaster":
 	set(v):
 		material = v
 		_rebuild()

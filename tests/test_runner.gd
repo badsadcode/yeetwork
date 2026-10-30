@@ -288,10 +288,35 @@ func _run() -> void:
 		pad_peak = maxf(pad_peak, pl.global_position.y)
 	check("jump pad launches along its whole arc", pad_peak > 5.0, "peak %.1f m (full arc ~6)" % pad_peak)
 
+	await _ice_tests()
 	await _water_tests()
 	await _fire_tests()
 	_logic_test()
 	_controls_test()
+
+
+## Ice: Yeets skate (keep their speed with no input), props glide.
+func _ice_tests() -> void:
+	var ice := ArenaBlock.new()
+	ice.size = Vector3(30, 1, 40)
+	ice.surface = "ice"
+	ice.position = Vector3(200, -0.5, -200)
+	world.arena.add_child(ice)
+	await ticks(3)
+	await reset(Vector3(200, 0.2, -215), 0.0)
+	pl.cmd.run = false
+	pl.velocity = Vector3(0, 0, 9)
+	await ticks(60)
+	var skate := Vector2(pl.velocity.x, pl.velocity.z).length()
+	check("ice: a Yeet keeps sliding", pl.on_ice and skate > 4.0, "on ice %s, %.1f m/s after 1 s" % [pl.on_ice, skate])
+	var crate: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, Vector3(195, 0.6, -210)))
+	await ticks(20)
+	crate.linear_velocity = Vector3(0, 0, 7)
+	var start := crate.global_position.z
+	await ticks(90)
+	check("ice: a crate glides", crate.global_position.z - start > 6.0, "slid %.1f m" % (crate.global_position.z - start))
+	world.server_despawn_prop(crate)
+	ice.queue_free()
 
 
 ## Puzzle logic: switches in order (sequence) and all within a time window.

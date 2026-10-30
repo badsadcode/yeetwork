@@ -33,6 +33,9 @@ const AIR_ACCEL := 14.0
 const AIR_CAP := 0.75
 const AIR_CONTROL := 1.2
 const FRICTION := 6.0
+## On ice: little grip, so speed builds slowly and runs out slowly (skating).
+const ICE_FRICTION := 0.06
+const ICE_ACCEL := 0.15
 const STOP_SPEED := 3.0
 const JUMP_VELOCITY := 8.6
 const SLIDE_MIN_SPEED := 7.0
@@ -134,6 +137,8 @@ var _prev_grounded := true
 ## Set by an upward launch: the next movement step is airborne even though the last move
 ## ended on the floor (otherwise the ground's friction and slope slide eat the launch).
 var _launch_lift := false
+## Standing on ice (the floor's collider has the "ice" meta), from the last move.
+var on_ice := false
 var _view_third_person := false
 var _corpse: Node3D
 var _punch := 0.0
@@ -513,9 +518,9 @@ func _move_normal(delta: float) -> void:
 		if sliding:
 			_slide(delta, wish_dir)
 		else:
-			_friction(delta, FRICTION)
+			_friction(delta, FRICTION * (ICE_FRICTION if on_ice else 1.0))
 			var top := CROUCH_SPEED if crouched else (MAX_SPEED if cmd.run else WALK_SPEED)
-			_accelerate(wish_dir, top * wish_speed, GROUND_ACCEL, delta)
+			_accelerate(wish_dir, top * wish_speed, GROUND_ACCEL * (ICE_ACCEL if on_ice else 1.0), delta)
 		var floor_n := get_floor_normal()
 		if floor_n.is_normalized():
 			velocity = velocity.slide(floor_n)
@@ -826,6 +831,13 @@ func _move_and_collide_events() -> void:
 	var pre := velocity
 	var was_air := not is_on_floor()
 	move_and_slide()
+	on_ice = false
+	if is_on_floor():
+		# (A short ray down: while sliding the floor holds us by snapping, which reports no
+		# collision to look at.)
+		var q := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.2, global_position + Vector3.DOWN * 0.35, Game.L_WORLD)
+		var hit := get_world_3d().direct_space_state.intersect_ray(q)
+		on_ice = not hit.is_empty() and hit.collider and (hit.collider as Object).has_meta("ice")
 	var now := Time.get_ticks_msec() / 1000.0
 	var launched := state == State.RAGDOLL or state == State.HELD or now < _launched_until
 	var worst := 0.0

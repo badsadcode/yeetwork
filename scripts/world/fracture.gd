@@ -19,6 +19,8 @@ const MATERIALS := {
 	"wood": {"cell": Vector2(0.55, 1.6), "jitter": 0.3, "shatter": 3, "hp": 70.0, "density": 55.0, "jag": 0.1, "sound": "splinter", "grain": Vector2(1.0, 0.35)},
 	"glass": {"cell": Vector2(0.6, 0.6), "jitter": 0.48, "shatter": 6, "hp": 25.0, "density": 90.0, "jag": 0.08, "sound": "glass"},
 	"metal": {"cell": Vector2(1.2, 1.2), "jitter": 0.3, "shatter": 2, "hp": 500.0, "density": 300.0, "jag": 0.03, "sound": "clang"},
+	# Ice: cracks spread far before it gives way, then bursts into chunky shards.
+	"ice": {"cell": Vector2(0.75, 0.75), "jitter": 0.45, "shatter": 4, "hp": 45.0, "density": 92.0, "jag": 0.1, "sound": "glass"},
 }
 
 

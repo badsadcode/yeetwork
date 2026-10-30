@@ -26,6 +26,12 @@ extends StaticBody3D
 		emission = v
 		_rebuild()
 
+## arena: the usual soft panels. ice: clear, frosty blue ice that can't be broken, and is
+## slippery (Yeets skate on it, props glide). For breakable ice use a BreakableSlab of ice.
+@export_enum("arena", "ice") var surface := "arena":
+	set(v):
+		surface = v
+		_rebuild()
 ## Ricochet surfaces: how much bounce things keep off it (0 = like any wall; 0.8 = a lot).
 ## A bouncy block is also frictionless, so things leave it at the angle they came in.
 @export_range(0.0, 1.0, 0.05) var bounciness := 0.0
@@ -37,11 +43,13 @@ var _shape: CollisionShape3D
 func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 0
-	if bounciness > 0.0:
+	if bounciness > 0.0 or surface == "ice":
 		var pm := PhysicsMaterial.new()
 		pm.bounce = bounciness
-		pm.friction = 0.0
+		pm.friction = 0.0 if bounciness > 0.0 else 0.03
 		physics_material_override = pm
+	if surface == "ice":
+		set_meta("ice", true)
 	_rebuild()
 
 
@@ -56,7 +64,7 @@ func _rebuild() -> void:
 	var bm := BoxMesh.new()
 	bm.size = size
 	_mesh.mesh = bm
-	_mesh.material_override = Mats.world(color, roughness, metallic, emission)
+	_mesh.material_override = Mats.ice(size * 0.5) if surface == "ice" else Mats.world(color, roughness, metallic, emission)
 	var bs := BoxShape3D.new()
 	bs.size = size
 	_shape.shape = bs

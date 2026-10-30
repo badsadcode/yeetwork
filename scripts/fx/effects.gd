@@ -287,9 +287,10 @@ func shard(poly: PackedVector2Array, t: float, xf: Transform3D, vel: Vector3, sp
 		var old = _chunks.pop_front()
 		if is_instance_valid(old):
 			old.queue_free()
-	var life := (2.5 if material == "glass" else 5.0) + _rng.randf() * 3.0
+	var glassy := material == "glass" or material == "ice"
+	var life := (2.5 if glassy else 5.0) + _rng.randf() * 3.0
 	get_tree().create_timer(life).timeout.connect(_fade_body.bind(rb.get_instance_id()))
-	if material == "glass" and _rng.randf() < 0.3:
+	if glassy and _rng.randf() < 0.3:
 		_burst(xf.origin, vel, 3, _drop_mesh, Mats.glow(Color(0.8, 1.0, 1.0), 2.0), 1.0, 4.0, 0.5)
 
 
@@ -304,7 +305,7 @@ func impact(pos: Vector3, normal: Vector3, strength: float, material: String, du
 	var n := normal.normalized() if normal.length() > 0.01 else Vector3.UP
 	if s > 0.5:
 		_flash(pos + n * 0.1, 0.25 + s * 0.25)
-	if material != "rubber" and material != "glass" and material != "body" and dust_scale > 0.0:
+	if material != "rubber" and material != "glass" and material != "ice" and material != "body" and dust_scale > 0.0:
 		if dust_scale >= 1.0:
 			dust_ring(pos, n, s, _dust_color(material))
 		else:

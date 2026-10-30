@@ -67,6 +67,8 @@ func setup(id: int, p_size: Vector2, p_thickness: float, p_color: Color, p_ancho
 		body.collision_layer = Game.L_WORLD
 		body.collision_mask = 0
 		body.set_meta("destructible", self)
+		if material == "ice":
+			body.set_meta("ice", true) # slippery while it holds
 		body.set_meta("cell", i)
 		var cs3 := CollisionShape3D.new()
 		var shape := ConvexPolygonShape3D.new()
