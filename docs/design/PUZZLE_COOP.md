@@ -1,10 +1,12 @@
 # Co-op puzzle mode: design
 
-**Status:** steps 1-6 are built: plates, doors, logic (gate, window, sequence),
+**Status:** steps 1-7 are built: plates, doors, logic (gate, window, sequence),
 checkpoints, exit, buttons, targets, break sensors, key props that come back and the Reset
-button; the mode with its clock and objective line; *Moving Day* rooms 1-3
-(`maps/moving_day.tscn`) and the *Test Chambers* (`maps/test_chambers.tscn`: Heavy Decisions,
-The Impossible Shot, Three Idiots One Door, Yeetapult, Windy Business, Thin Ice); seesaws,
+button; the mode with its clock and objective line; *Moving Day* (`maps/moving_day.tscn`, five
+rooms: a plate, two plates, the moat, Load the Van, the Lost Yeet on the wardrobe) and the
+*Test Chambers* (`maps/test_chambers.tscn`: Heavy Decisions, The Impossible Shot, Three
+Idiots One Door, Yeetapult, Windy Business, Thin Ice, Structural Engineering (Gone Wrong),
+Hot Potato, Pass the Yeet); seesaws,
 turntables and fans; ice (solid and breakable, slippery); the Use key (E) for buttons and
 Reset; scoring; the Lost Yeet, fuses and receptacles, and the open level *The Warehouse*
 (`maps/warehouse.tscn`); flood water (FloodZone, valves, drains, float switches) and fire
@@ -124,7 +126,9 @@ explosions, throws).
 ## Moving Day (the first level)
 
 Built: room 1 (a crate on a plate), room 2 (two heavy plates at once), room 3 (a moat:
-float barrels, build a bridge, freeze a crate). To come: a delivery room and a finale.
+float barrels, build a bridge, freeze a crate), room 4 Load the Van (boxes up on a landing:
+pull them down, three into the van), room 5 the Lost Yeet stuck on the wardrobe (the
+Yeetapult throws someone up, or pull it down from across the room; then to the rescue mat).
 
 ## The Lost Yeet (approved by Tomek)
 
@@ -193,7 +197,11 @@ the Steam Deck (a 64x64 grid), and it covers almost everything:
    plug to drain it; Light the Way: carry fire from beacon to beacon; Fuse and Ice: burn a
    wooden wall down, its fire lights a fuse, the fuse a beacon that melts an ice wall).
    Measured: a 10 x 15 m flood steps in 0.7 ms on the host, its surface texture 0.13 ms.
-7. Chambers 5 and 6, Moving Day rooms 4-5 (delivery and a Lost Yeet), Pass the Yeet.
+7. ~~Chambers 5 and 6, Moving Day rooms 4-5 (delivery and a Lost Yeet), Pass the Yeet.~~ Done:
+   Structural Engineering (a platform on concrete pillars: break the goal side and it tips
+   the boulder into the goal pit), Hot Potato (carry fire past a water channel and boom
+   barrels to the far beacon), Pass the Yeet (a vault only a blast can break, behind a wall
+   with a hatch: light a boom barrel at the beacon and get it through in time).
 8. Later: magnets, ropes and pulleys, electricity.
 
 ## Answered

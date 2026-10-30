@@ -238,8 +238,9 @@ PropSpawn (they come back 2.5 s after being destroyed or falling out, instead of
 and give rooms a PuzzleReset. Any solution counts: puzzles check *that* something
 happened, never *how*.
 
-PropSpawn kinds for puzzles: `fuse` (a glowing fuse, 5 kg) and `lost_yeet` (a Yeet in
-trouble to rescue, 50 kg: scared while carried, grinning on a rescue mat).
+PropSpawn kinds for puzzles: `fuse` (a glowing fuse, 5 kg), `lost_yeet` (a Yeet in trouble
+to rescue, 50 kg: scared while carried, grinning on a rescue mat), `boulder` (a 120 kg stone
+ball that rolls) and `platform` (a 7 m wooden deck, 90 kg, to rest on breakable pillars).
 
 Fire and walls: a BreakableSlab of **wood** catches fire when fire touches it, burns for 6 s
 and falls apart (make it tough with **HP Scale** so burning is the way); one of **ice** melts

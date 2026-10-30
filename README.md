@@ -170,8 +170,10 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   Structural Disagreement, Unscheduled Flight, Task Failed Successfully, Certified Yeet
   Engineer). Lost Yeets to rescue: carry them (screaming) to a rescue mat with the gun.
   Fuse boxes that want their fuses. Levels:
-  **Moving Day** and **Test Chambers** (Heavy Decisions, The Impossible Shot, Three Idiots
-  One Door, Yeetapult, Windy Business, Thin Ice), **The Warehouse**, an open level: three
+  **Moving Day** (five rooms, up to loading the van and a Lost Yeet stuck on the wardrobe),
+  **Test Chambers** (Heavy Decisions, The Impossible Shot, Three Idiots One Door, Yeetapult,
+  Windy Business, Thin Ice, Structural Engineering (Gone Wrong), Hot Potato, Pass the Yeet),
+  **The Warehouse**, an open level: three
   fuses for the main gate, one in each wing, and a Lost Yeet in a cage; split up, any order,
   and **The Pump House**: flood water that fills rooms, floats crates and drains away, and
   fire that spreads from beacon to beacon, burns wooden walls down, runs along fuses and

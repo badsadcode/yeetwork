@@ -2,9 +2,13 @@ extends Node
 ## Developer check for the Puzzle mode: plays through a puzzle level by itself and checks
 ## every step, saving screenshots. Exits 1 if a step fails.
 ##   moving_day:    a crate on the first plate, a player and the anvil on the two heavy
-##                  plates, a checkpoint and a respawn there, the exit.
+##                  plates, a checkpoint and a respawn there, across the moat, boxes pulled
+##                  down and loaded into the van, the Yeetapult up the wardrobe, the Lost Yeet
+##                  rescued, the exit.
 ##   test_chambers: 100 kg on a plate, key props coming back, the reset button, a target hit
-##                  and a smashed wall, three targets within the time window, a button, the exit.
+##                  and a smashed wall, three targets within the time window, a button, the
+##                  Yeetapult, the fan, thin ice, pillars broken to tip a boulder into the goal,
+##                  fire carried past water, a lit boom barrel through a hatch, the exit.
 ##   warehouse:     the open level's objective list, the Lost Yeet's cage, glass and ice smashed
 ##                  for fuses, fuses pulled with the gun and locked in the fuse box, the Lost
 ##                  Yeet carried (scared) to the rescue mat (grinning), the exit.
@@ -80,6 +84,50 @@ func _ready() -> void:
 	_look(Vector3(0, 4, 31), Vector3(0, 0, 44))
 	await _wait(0.4)
 	_shot("04_moat")
+	_check("objective: across the moat", world.puzzle_objective() == "Get across the moat", world.puzzle_objective())
+	_place_player(_piece("Checkpoint3").global_position + Vector3(0, 0.3, 0))
+	await _wait(0.6)
+	_check("across the moat: checkpoint", _piece("Checkpoint3").active, "")
+	# Room 4: the boxes on the landing, pulled down with the gun, into the van.
+	var van: Receptacle = _piece("Van")
+	_check("objective: load the van", world.puzzle_objective() == "Load the van: 0/3 boxes", world.puzzle_objective())
+	var box := _nearest("crate", Vector3(-5, 4.0, 69.6))
+	_place_player(Vector3(2, 0, 58))
+	await _wait(0.3)
+	_aim_at(box.global_position)
+	pl.gun.server_action(GravityGun.Action.GRAB_START, pl.eye_position(), box.global_position - pl.eye_position())
+	await _wait(1.6)
+	_check("the gun pulls a box down from the landing", pl.gun.held_kind == GravityGun.Kind.PROP and pl.gun.held_id == box.prop_id, "holding %d" % pl.gun.held_id)
+	pl.gun.server_action(GravityGun.Action.GRAB_END, pl.eye_position(), Vector3.FORWARD)
+	for k in 3:
+		var c := _nearest("crate", Vector3(-5, 4.0, 69.6)) if k > 0 else box
+		c.global_position = van.global_position + Vector3(0, 1.0, 0)
+		c.linear_velocity = Vector3.ZERO
+		await _wait(0.6)
+	await _wait(0.6)
+	_check("three boxes in the van open the gate", van.delivered.size() == 3 and _piece("Gate4").active, "%d in" % van.delivered.size())
+	_look(Vector3(0, 3.5, 56), Vector3(6, 1.2, 64))
+	await _wait(0.4)
+	_shot("04b_van")
+	# Room 5: the Yeetapult throws the player up onto the wardrobe; the Lost Yeet comes down.
+	var saw: Seesaw = _piece("Seesaw5")
+	_place_player(saw.global_transform * Vector3(-3.0, 0.5, 0))
+	await _wait(1.2)
+	var anvil5 := _nearest("anvil", saw.global_position)
+	anvil5.global_position = saw.global_transform * Vector3(3.0, 3.2, 0)
+	anvil5.linear_velocity = Vector3.ZERO
+	await _wait(2.5)
+	var up := pl.global_position.y > 4.5 and pl.global_position.x < -5.3
+	_check("the Yeetapult throws a Yeet onto the wardrobe", up, "now at %s" % pl.global_position.snapped(Vector3.ONE * 0.1))
+	_look(Vector3(2, 4, 77), Vector3(-6.5, 5, 84))
+	await _wait(0.4)
+	_shot("04c_wardrobe")
+	var lost := _nearest("lost_yeet", Vector3(-6.9, 5.85, 84))
+	var mat: Receptacle = _piece("RescueMat")
+	lost.global_position = mat.global_position + Vector3(0, 1.2, 0)
+	lost.linear_velocity = Vector3.ZERO
+	await _wait(0.8)
+	_check("the Lost Yeet on the rescue mat", mat.active, "")
 	# The exit.
 	_check("objective before the exit", world.puzzle_objective() == "Get everyone to the exit", world.puzzle_objective())
 	# Into the exit by air (an Unscheduled Flight).
@@ -91,7 +139,7 @@ func _ready() -> void:
 	var res: Dictionary = world.puzzle_results
 	var award_names: Array = res.get("awards", []).map(func(a): return a[0])
 	_check("results: a gold medal, Big Brain Yeet and Unscheduled Flight", res.get("medal", "") == "gold" and award_names.has("Big Brain Yeet") and award_names.has("Unscheduled Flight"), "medal %s, awards %s" % [res.get("medal", ""), award_names])
-	_look(Vector3(0, 3, 43), Vector3(0, 1.5, 50))
+	_look(Vector3(-1, 3, 84), Vector3(-1, 1.5, 91))
 	await _wait(0.5)
 	_shot("05_exit")
 	print("PUZZLE CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
@@ -292,15 +340,99 @@ func _chambers() -> void:
 		if d.material == "ice":
 			thin = d
 	_check("the anvil goes through the thin ice", thin != null and thin.broken_cells.size() > 0 and anvil_f.global_position.y < -0.5, "broken %d, anvil at y %.1f" % [thin.broken_cells.size() if thin else -1, anvil_f.global_position.y])
+	_check("the plate opens the gate out of the ice room", _piece("GateF").active, "")
+	# G: Structural Engineering. The pillars on the goal's side smashed (as a thrown anvil
+	# would): the platform tips and the boulder rolls into the goal.
+	_place_player(_piece("CheckpointG").global_position + Vector3(0, 0.3, 0))
+	await _wait(0.5)
+	_look(Vector3(5, 3.5, 127), Vector3(-3, 2.5, 135))
+	await _wait(0.3)
+	_shot("c09_structural")
+	var boulder := _nearest("boulder", Vector3(0, 4.55, 135))
+	for d in world.arena.destructibles:
+		if d.material == "concrete" and d.global_position.x < -2.0 and absf(d.global_position.z - 135.0) < 3.0:
+			world.server_damage_destructible(d, d.global_position + Vector3(0, -1.0, 0), 1.2, 3000.0, Vector3(-3, 0, 0), 0)
+	var t0: float = world.now()
+	while not _piece("GoalG").active and world.now() - t0 < 8.0:
+		await _wait(0.25)
+	var pillars := 0
+	for d in world.arena.destructibles:
+		if d.material == "concrete" and d.global_position.x < -2.0 and absf(d.global_position.z - 135.0) < 3.0 and not d.broken_cells.is_empty():
+			pillars += 1
+	_check("the goal-side pillars break", pillars == 2, "%d of 2 damaged" % pillars)
+	_check("the platform tips the boulder into the goal", _piece("GoalG").active and _piece("GateG").active, "boulder at %s" % boulder.global_position.snapped(Vector3.ONE * 0.1))
+	if not _piece("GoalG").active:
+		boulder.global_position = _piece("GoalG").global_position + Vector3(0, 1.0, 0) # (go on anyway)
+		boulder.linear_velocity = Vector3.ZERO
+		await _wait(0.8)
+	_look(Vector3(5, 3.5, 127), Vector3(-4, 1.0, 135))
+	await _wait(0.3)
+	_shot("c10_structural_done")
+	# H: Hot Potato. Fire from the first beacon, out in the channel, lit again, to the far one.
+	_place_player(_piece("CheckpointH").global_position + Vector3(0, 0.3, 0))
+	await _wait(0.4)
+	var potato := _nearest("crate", Vector3(2, 0.6, 149))
+	var start_b: Beacon = _piece("BeaconStart")
+	potato.global_position = start_b.bowl_position() + Vector3(0.9, 0.2, 0)
+	potato.linear_velocity = Vector3.ZERO
+	await _wait(1.5)
+	_check("the crate catches fire at the first beacon", world.is_burning(potato), "")
+	potato.global_position = Vector3(0, -1.0, 158.5)
+	potato.linear_velocity = Vector3.ZERO
+	await _wait(1.0)
+	_check("dropped in the channel, the fire goes out", not world.is_burning(potato), "")
+	potato.global_position = start_b.bowl_position() + Vector3(0.9, 0.2, 0)
+	potato.linear_velocity = Vector3.ZERO
+	var tl: float = world.now()
+	while not world.is_burning(potato) and world.now() - tl < 4.0:
+		await _wait(0.1)
+	var relit: bool = world.is_burning(potato)
+	var far: Beacon = _piece("BeaconH")
+	potato.global_position = far.bowl_position() + Vector3(0, 0.9, 0)
+	potato.linear_velocity = Vector3.ZERO
+	tl = world.now()
+	while not far.active and world.now() - tl < 3.0:
+		await _wait(0.1)
+	await _wait(0.4)
+	_check("lit again and carried to the far beacon: the gate opens", far.active and _piece("GateH").active, "relit %s, burning there %s, beacon %s, crate %.1f m from its bowl" % [relit, world.is_burning(potato), far.active, potato.global_position.distance_to(far.bowl_position())])
+	_look(Vector3(-4, 3.0, 161), Vector3(3, 1.2, 169))
+	await _wait(0.3)
+	_shot("c11_hot_potato")
+	# I: Pass the Yeet. A boom barrel lit at the beacon, through the hatch: the vault goes.
+	_place_player(_piece("CheckpointI").global_position + Vector3(0, 0.3, 0))
+	await _wait(0.4)
+	var keg := _nearest("boom_barrel", Vector3(4, 0.7, 175))
+	var bi: Beacon = _piece("BeaconI")
+	t0 = world.now()
+	while not world.is_burning(keg) and world.now() - t0 < 3.0:
+		# Held in the flames (as with the gun).
+		keg.global_position = bi.bowl_position() + Vector3(0.5, 0.5, 0)
+		keg.linear_velocity = Vector3.ZERO
+		await _wait(0.1)
+	_check("the boom barrel catches fire at the beacon", world.is_burning(keg), "")
+	# Through the hatch (thrown from in front of the wall).
+	keg.global_position = Vector3(0, 3.2, 180.5)
+	keg.linear_velocity = Vector3(0, 2.0, 8.0)
+	await _wait(3.5)
+	var vault: Destructible = null
+	for d in world.arena.destructibles:
+		if d.material == "concrete" and d.size.x > 10.0:
+			vault = d
+	_check("through the hatch, the blast breaks the vault", vault != null and _piece("VaultGone").active, "%d of %d pieces" % [vault.broken_cells.size() if vault else -1, vault.cells.size() if vault else -1])
+	_check("the vault blown, the door opens", _piece("DoorI").active, "")
+	_look(Vector3(6.5, 2.5, 179), Vector3(0, 1.5, 188))
+	await _wait(0.5)
+	_shot("c12_vault")
 	_place_player(_piece("Exit").global_position + Vector3(0, 0.3, 0))
 	await _wait(0.8)
 	_check("the exit finishes the level", world.puzzle_finish >= 0.0, "")
 	var res: Dictionary = world.puzzle_results
 	var award_names: Array = res.get("awards", []).map(func(a): return a[0])
-	_check("results: time, medal, stats and awards arrive", res.get("medal", "") == "gold" and res.get("stats", []).size() >= 4 and award_names.has("Structural Disagreement"), "medal %s, awards %s" % [res.get("medal", ""), award_names])
-	_look(Vector3(0, 3, 116), Vector3(0, 1.5, 123))
+	# (the vault blast right before its door opened: Task Failed Successfully)
+	_check("results: time, medal, stats and awards arrive", res.get("medal", "") == "gold" and res.get("stats", []).size() >= 4 and award_names.has("Task Failed Successfully"), "medal %s, awards %s" % [res.get("medal", ""), award_names])
+	_look(Vector3(0, 3, 184), Vector3(0, 1.5, 191))
 	await _wait(0.5)
-	_shot("c08_exit")
+	_shot("c13_exit")
 
 
 func _warehouse() -> void:

@@ -29,6 +29,9 @@ const DEFS := {
 	# A Yeet in trouble, to rescue (carry it with the gun), and a fuse to collect.
 	"lost_yeet": {"shape": "yeet", "size": Vector3(0.38, 1.6, 0.38), "mass": 50.0, "color": Color(0.95, 0.72, 0.3), "bounce": 0.2, "label": "Lost Yeet"},
 	"fuse": {"shape": "fuse", "size": Vector3(0.22, 0.62, 0.22), "mass": 5.0, "color": Color(1.0, 0.82, 0.2), "bounce": 0.3, "label": "Fuse", "metal": true},
+	# Structural Engineering: a heavy stone ball that rolls, and a long wooden platform.
+	"boulder": {"shape": "sphere", "size": Vector3(0.55, 0.55, 0.55), "mass": 120.0, "color": Color(0.58, 0.55, 0.52), "bounce": 0.05, "label": "Boulder"},
+	"platform": {"shape": "box", "size": Vector3(7.0, 0.3, 2.6), "mass": 90.0, "color": Color(0.72, 0.52, 0.32), "bounce": 0.05, "label": "Platform"},
 	"fan": {"shape": "fan", "size": Vector3(1.5, 1.7, 0.8), "mass": 40.0, "color": Color(0.3, 0.75, 0.95), "bounce": 0.1, "label": "Fan", "metal": true},
 }
 
@@ -695,7 +698,7 @@ func _on_body_entered(body: Node) -> void:
 ## Surface material for impact sounds and particles.
 func impact_material() -> String:
 	match kind:
-		"crate", "crate_big", "plank":
+		"crate", "crate_big", "plank", "platform":
 			return "wood"
 		"barrel", "boom_barrel", "anvil", "flag", "fan":
 			return "metal"

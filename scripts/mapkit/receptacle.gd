@@ -7,7 +7,7 @@ extends PuzzleNode
 ## shows how many are in, and the objective can say it too: "Fuses: {count}/{required}".
 ## Zone: Size around this node, standing on its floor (local +Y is up).
 
-@export_enum("fuse", "lost_yeet", "any", "crate", "crate_big", "barrel", "ball", "beachball", "anvil", "couch", "tire", "cone") var kind := "fuse":
+@export_enum("fuse", "lost_yeet", "any", "crate", "crate_big", "barrel", "ball", "beachball", "anvil", "couch", "tire", "cone", "boulder") var kind := "fuse":
 	set(v):
 		kind = v
 		_rebuild()
