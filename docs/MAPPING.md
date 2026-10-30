@@ -138,7 +138,10 @@ A solid box with the arena surface shader (soft panels, warm/cool gradient).
 - **Custom Material** (optional): your own material instead of the colour, e.g. a PBR
   `StandardMaterial3D` with albedo / normal / roughness / metallic / AO textures. It's wrapped
   onto every face in world space, so it tiles evenly at any size: **Texture Size** = metres
-  per repeat. Other materials (your own shaders) are used as they are.
+  per repeat. Other materials (your own shaders) are used as they are. Edits to the material
+  show on the block straight away. **Height** (parallax) does nothing on blocks: Godot can't do
+  it on world-wrapped textures. Use the normal map for depth (its **Scale** makes it
+  stronger). AO only darkens the ambient light, so it shows most in shade.
 
 ### BreakableSlab
 A destructible wall, floor or bridge. In game it fractures into irregular pieces.
