@@ -103,6 +103,7 @@ var _map_cache: Array = []
 var bot_count := 3
 var yeetball_rules := 0 # 0 = Classic Chaos, 1 = TOTAL YEET
 var match_minutes := 5 # Yeetball match length; 0 = no clock (first to 5 goals)
+var ball_knockdown := false # Yeetball: a fast ball knocks players over (always in TOTAL YEET)
 const MATCH_LENGTHS := [0, 3, 5, 8, 10]
 ## Water look the host picks: "classic" or "sculpted" (see Liquid.style).
 var water_style := "classic"
@@ -256,6 +257,7 @@ func save_settings() -> void:
 	cfg.set_value("match", "bots", bot_count)
 	cfg.set_value("match", "yeetball_rules", yeetball_rules)
 	cfg.set_value("match", "match_minutes", match_minutes)
+	cfg.set_value("match", "ball_knockdown", ball_knockdown)
 	cfg.set_value("match", "water_style", water_style)
 	cfg.set_value("match", "sky", sky_override)
 	cfg.set_value("match", "map", map)
@@ -306,6 +308,7 @@ func load_settings() -> void:
 	bot_count = cfg.get_value("match", "bots", bot_count)
 	yeetball_rules = cfg.get_value("match", "yeetball_rules", yeetball_rules)
 	match_minutes = cfg.get_value("match", "match_minutes", match_minutes)
+	ball_knockdown = cfg.get_value("match", "ball_knockdown", ball_knockdown)
 	water_style = cfg.get_value("match", "water_style", water_style)
 	sky_override = cfg.get_value("match", "sky", sky_override)
 	var m = cfg.get_value("match", "map", map)

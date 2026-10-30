@@ -198,10 +198,14 @@ ball never hurts anyone. Lost balls, and balls lying still too long or with nobo
 come back to the middle; standing in your own net for more than 5 s gets you bounced out.
 - **Match length** (menu): 3, 5, 8 or 10 minutes, or *first to 5 goals*. The clock runs
   only while the ball is in play; the team ahead at full time wins, five goals win early,
-  and level at full time it's **golden goal** (the next goal wins). Then a new match.
+  and level at full time it's **golden goal** (the next goal wins). Then a **full-time
+  screen** for everyone (the score, who scored, player of the match, the longest goal):
+  the host picks *Next match* or *Back to menu*.
 - **Rules** (menu): *Classic Chaos* (recognisable football, 2.5 s holds) or **TOTAL YEET**:
   4 s holds, a faster ball that bowls people over, **multi-ball** now and then, and
   exploding barrels falling near the ball.
+- **Ball hits players** (menu): *a harmless bonk*, or *knocks them over* (a short tumble,
+  never any damage; always on in TOTAL YEET).
 - A commentator who gets far too excited (long-range screamers, goals straight from the
   kickoff, last-second winners, hat-tricks, own goals), a crowd that goes wild, and a
   player of the match.
@@ -338,7 +342,8 @@ Command-line options (after `--`):
 ```bash
 # Host directly: mode, map and bot count
 godot --path . -- --host --mode ctf --map facing --bots 6 --bot-skill 1
-# Yeetball with TOTAL YEET rules and a 3-minute clock (--rules classic|total, --minutes 0 = first to 5)
+# Yeetball with TOTAL YEET rules and a 3-minute clock (--rules classic|total, --minutes 0 = first to 5,
+# --knockdown on|off: the ball knocks players over)
 godot --path . -- --host --mode yeetball --map yeetball_stadium --bots 5 --rules total --minutes 3
 
 # Join a server

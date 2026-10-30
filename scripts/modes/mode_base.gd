@@ -53,8 +53,9 @@ func on_kill(_victim: Player, _killer: Player, _cause: String) -> void:
 	pass
 
 
-## Return true to replace the default prop damage.
-func on_prop_hit_player(_prop: Prop, _pl: Player, _attacker: Player) -> bool:
+## Return true to replace the default prop damage. rel: the prop's velocity relative to the
+## player as they met (the prop may have bounced off by now).
+func on_prop_hit_player(_prop: Prop, _pl: Player, _attacker: Player, _rel := Vector3.ZERO) -> bool:
 	return false
 
 

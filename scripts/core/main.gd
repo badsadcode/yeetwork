@@ -57,6 +57,9 @@ func _handle_cmdline(execute := true) -> bool:
 			"--rules":
 				Game.yeetball_rules = 1 if next == "total" else 0
 				i += 1
+			"--knockdown":
+				Game.ball_knockdown = next != "off"
+				i += 1
 			"--minutes":
 				Game.match_minutes = int(next)
 				i += 1

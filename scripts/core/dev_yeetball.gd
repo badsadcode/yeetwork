@@ -105,8 +105,17 @@ func _ready() -> void:
 	b.linear_velocity = Vector3.ZERO
 	await _wait(0.3)
 	_check("the fifth goal wins: full time", mode.phase == ModeYeetball.Phase.FULL_TIME and world.team_scores.get(Game.TEAM_BLUE, 0) == ModeYeetball.GOALS_TO_WIN, "phase %d, %s" % [mode.phase, world.team_scores])
-	await _wait(ModeYeetball.FULL_TIME + 0.3)
-	_check("after full time a new match: scores reset, kickoff", world.team_scores.get(Game.TEAM_BLUE, 0) == 0 and world.team_scores.get(Game.TEAM_RED, 0) == 0 and mode.phase == ModeYeetball.Phase.KICKOFF, "%s, phase %d" % [world.team_scores, mode.phase])
+	await _wait(0.5)
+	var r: Dictionary = world.mode_state.get("results", {})
+	var shown_end: bool = world.hud._match_end != null if DisplayServer.get_name() != "headless" else true
+	_check("full time: the results screen, for every peer", r.get("winner", 0) == Game.TEAM_BLUE and r.get("blue", 0) == ModeYeetball.GOALS_TO_WIN and shown_end, "%s, panel %s" % [r, shown_end])
+	_shot("y06_results")
+	await _wait(3.0)
+	_check("full time waits for the host", mode.phase == ModeYeetball.Phase.FULL_TIME, "phase %d" % mode.phase)
+	mode.next_match()
+	await _wait(0.3)
+	var gone: bool = world.hud._match_end == null
+	_check("Next match: scores reset, kickoff, the screen closes", world.team_scores.get(Game.TEAM_BLUE, 0) == 0 and world.team_scores.get(Game.TEAM_RED, 0) == 0 and mode.phase == ModeYeetball.Phase.KICKOFF and gone and world.mode_state.get("results", {}).is_empty(), "%s, phase %d, screen gone %s" % [world.team_scores, mode.phase, gone])
 	# The clock: runs in play only, shared with the HUD.
 	mode.minutes = 1
 	mode._new_match()
@@ -125,6 +134,8 @@ func _ready() -> void:
 	b.linear_velocity = Vector3.ZERO
 	await _wait(0.3)
 	_check("the golden goal ends it", mode.phase == ModeYeetball.Phase.FULL_TIME and world.team_scores.get(Game.TEAM_RED, 0) == 2, "phase %d, %s" % [mode.phase, world.team_scores])
+	await _wait(0.3)
+	mode.next_match()
 	# (the rules run on physics time, which can fall behind the wall clock in a hitch)
 	await _until(func() -> bool: return mode.phase == ModeYeetball.Phase.PLAY, 20.0)
 	# No camping in your own net.
@@ -137,6 +148,26 @@ func _ready() -> void:
 	await _wait(ModeYeetball.CAMP_TIME + 1.5)
 	var out := not home.contains_ball(pl.global_position + Vector3.UP * 0.5, 0.0)
 	_check("no camping in your own net", camping and out and mode.phase == ModeYeetball.Phase.PLAY, "in the net at first %s, now at %s, phase %d" % [camping, pl.global_position.snapped(Vector3.ONE * 0.1), mode.phase])
+	# Knockdown on (Classic rules): a fast ball bowls a Yeet over, without hurting.
+	mode.knockdown = true
+	var victim: Player = null
+	for q: Player in world.players.values():
+		if q.is_bot and q.is_alive():
+			victim = q
+			break
+	victim.respawn(world.arena.ball_spot + Vector3(0, -1.2, 6), 0.0)
+	await _wait(0.4)
+	var hp0 := victim.hp
+	var target := victim.body_center()
+	b.global_position = target + Vector3(0, 0, -5)
+	b.linear_velocity = Vector3(0, 0, 22)
+	var knocked := false
+	for k in 12:
+		await _wait(0.05)
+		knocked = knocked or victim.state != 0 or victim.velocity.length() > 6.0
+	_check("knockdown: a fast ball bowls a Yeet over, no damage", knocked and victim.hp >= hp0, "state %d, speed %.1f, hp %d -> %d" % [victim.state, victim.velocity.length(), hp0, victim.hp])
+	mode.knockdown = false
+	await _wait(1.5)
 	# TOTAL YEET: multi-ball and barrels; a goal with an extra ball counts.
 	mode.rules = ModeYeetball.Rules.TOTAL
 	mode._multiball_t = 0.0

@@ -38,6 +38,7 @@ var _use_prompt: Label
 var _fps: Label
 var _results: PanelContainer
 var _results_until := 0.0
+var _match_end: PanelContainer # Yeetball's full-time screen
 const MEDAL_COLORS := {"gold": Color(1.0, 0.82, 0.25), "silver": Color(0.82, 0.86, 0.95), "bronze": Color(0.85, 0.55, 0.3)}
 var _clock_t := 0.0
 var _ball_marks: Control # Yeetball: arrows at the screen edge pointing at balls out of view
@@ -310,6 +311,105 @@ func _panel_style(alpha := 0.82) -> StyleBoxFlat:
 	return sb
 
 
+## Yeetball's full-time screen (on every peer): the score, who scored, the player of the
+## match. The host starts the next match or goes back to the menu; everyone can leave.
+func show_match_results(r: Dictionary) -> void:
+	if _match_end:
+		_match_end.queue_free()
+	_match_end = PanelContainer.new()
+	_match_end.set_anchors_preset(Control.PRESET_CENTER)
+	_match_end.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_match_end.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_match_end.custom_minimum_size = Vector2(640, 0)
+	_match_end.theme = UiTheme.get_theme()
+	_match_end.add_theme_stylebox_override("panel", _panel_style(0.92))
+	_root.add_child(_match_end)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	_match_end.add_child(v)
+	var centred := func(l: Label) -> Label:
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(l)
+		return l
+	var winner: int = r.get("winner", 0)
+	centred.call(_label(30, Color(1.0, 0.85, 0.35))).text = "FULL TIME" + (" · GOLDEN GOAL" if r.get("golden", false) else "")
+	centred.call(_label(44, Game.team_color(winner))).text = "%s TEAM WINS!" % Game.TEAM_NAMES.get(winner, "?").to_upper()
+	var score := HBoxContainer.new()
+	score.alignment = BoxContainer.ALIGNMENT_CENTER
+	score.add_theme_constant_override("separation", 20)
+	v.add_child(score)
+	for part: Array in [["RED  %d" % r.get("red", 0), Game.team_color(Game.TEAM_RED)], ["—", Color.WHITE], ["%d  BLUE" % r.get("blue", 0), Game.team_color(Game.TEAM_BLUE)]]:
+		var l := _label(56, part[1])
+		l.text = part[0]
+		score.add_child(l)
+	var goals: Array = r.get("goals", [])
+	if not goals.is_empty():
+		v.add_child(HSeparator.new())
+		var cols := HBoxContainer.new()
+		cols.add_theme_constant_override("separation", 40)
+		cols.alignment = BoxContainer.ALIGNMENT_CENTER
+		v.add_child(cols)
+		for team in [Game.TEAM_RED, Game.TEAM_BLUE]:
+			var col := VBoxContainer.new()
+			col.custom_minimum_size.x = 260
+			cols.add_child(col)
+			var tally := {} # name -> [goals, own goals]
+			for e: Array in goals:
+				if e[1] == team:
+					var t: Array = tally.get(e[0], [0, 0])
+					t[1 if e[2] else 0] += 1
+					tally[e[0]] = t
+			for who: String in tally:
+				var l := _label(22, Game.team_color(team).lightened(0.35))
+				var t: Array = tally[who]
+				var parts := PackedStringArray()
+				if t[0] > 0:
+					parts.append("x%d" % t[0] if t[0] > 1 else "")
+				if t[1] > 0:
+					parts.append("own goal" + (" x%d" % t[1] if t[1] > 1 else ""))
+				l.text = ("%s  %s" % [who, " ".join(parts)]).strip_edges()
+				l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				col.add_child(l)
+	var star: Array = r.get("star", [])
+	var longest: Array = r.get("longest", [])
+	if not star.is_empty() or not longest.is_empty():
+		v.add_child(HSeparator.new())
+	if not star.is_empty():
+		centred.call(_label(26, Color(1.0, 0.82, 0.3))).text = "Player of the match: %s (%d goal%s)" % [star[0], star[1], "" if star[1] == 1 else "s"]
+	if not longest.is_empty() and longest[1] >= 10.0:
+		centred.call(_label(20, Color(0.92, 0.92, 1.0))).text = "Longest goal: %s from %d m" % [longest[0], int(longest[1])]
+	v.add_child(HSeparator.new())
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
+	v.add_child(row)
+	var first: Button = null
+	if multiplayer.is_server():
+		var next := Button.new()
+		next.text = "Next match"
+		next.theme_type_variation = "YellowButton"
+		next.custom_minimum_size = Vector2(240, 56)
+		next.pressed.connect(func():
+			var m := world.mode_logic as ModeYeetball
+			if m:
+				m.next_match())
+		row.add_child(next)
+		first = next
+	else:
+		centred.call(_label(18, Color(0.75, 0.78, 0.9))).text = "Waiting for the host to start the next match..."
+		v.move_child(v.get_child(v.get_child_count() - 1), row.get_index())
+	var leave := Button.new()
+	leave.text = "Back to menu" if multiplayer.is_server() else "Leave match"
+	leave.theme_type_variation = "RedButton"
+	leave.custom_minimum_size = Vector2(240, 56)
+	leave.pressed.connect(func(): leave_pressed.emit())
+	row.add_child(leave)
+	if first == null:
+		first = leave
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	first.grab_focus.call_deferred()
+
+
 ## The Puzzle mode's end screen: time, medal, stats and awards (on every peer). It stays
 ## for 20 s; the scoreboard key shows it again.
 func show_puzzle_results(r: Dictionary) -> void:
@@ -460,7 +560,9 @@ func set_paused(p: bool) -> void:
 	_pause.visible = p
 	if p and _resume_button:
 		_resume_button.grab_focus.call_deferred()
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if p else Input.MOUSE_MODE_CAPTURED
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if p or _match_end else Input.MOUSE_MODE_CAPTURED
+	if _match_end:
+		_match_end.visible = not p
 	if not p:
 		Game.save_settings()
 
@@ -476,7 +578,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause") or (_paused and event.is_action_pressed("ui_cancel") and event is InputEventJoypadButton):
 		set_paused(not _paused)
 		get_viewport().set_input_as_handled()
-	elif event is InputEventMouseButton and event.pressed and not _paused and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+	elif event is InputEventMouseButton and event.pressed and not _paused and _match_end == null and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
@@ -617,6 +719,14 @@ func on_players_changed() -> void:
 			var clock := ModeYeetball.clock_text(world.mode_state, world.net_time())
 			if clock != "":
 				_score_label.text += "     " + clock
+			var r: Dictionary = world.mode_state.get("results", {})
+			if not r.is_empty() and _match_end == null:
+				show_match_results(r)
+			elif r.is_empty() and _match_end:
+				_match_end.queue_free()
+				_match_end = null
+				if not _paused:
+					Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	else:
 		var pl: Player = world.local_player
 		_score_label.text = "%s     Frags: %d" % [world.mode_name(), pl.frags if pl else 0]

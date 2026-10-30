@@ -45,7 +45,7 @@ func tick(_delta: float) -> void:
 		_spawn_ball(world.rng.randi() % BALL_COUNT)
 
 
-func on_prop_hit_player(prop: Prop, pl: Player, attacker: Player) -> bool:
+func on_prop_hit_player(prop: Prop, pl: Player, attacker: Player, _rel := Vector3.ZERO) -> bool:
 	if prop.kind != "ball" or not prop.live or attacker == null:
 		return false
 	prop.live = false

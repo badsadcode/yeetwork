@@ -736,7 +736,7 @@ func _prop_hits_player(p: Prop, pl: Player, rel: Vector3, speed: float) -> void:
 	var attacker := get_player(p.last_thrower) if t - p.last_thrown_time < 6.0 else null
 	if attacker == pl:
 		attacker = null
-	if mode_logic.on_prop_hit_player(p, pl, attacker):
+	if mode_logic.on_prop_hit_player(p, pl, attacker, rel):
 		return
 	var key := "%d:%d" % [p.prop_id, pl.player_id]
 	if t - _pair_cd.get(key, -10.0) < 0.3:

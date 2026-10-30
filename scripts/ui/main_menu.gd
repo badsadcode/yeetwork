@@ -21,6 +21,7 @@ var _sky: OptionButton
 var _bots: SpinBox
 var _rules: OptionButton
 var _minutes: OptionButton
+var _knock: OptionButton
 var _pages := {}
 var _page_title: Label
 var _preview: CharacterPreview
@@ -180,9 +181,16 @@ TOTAL YEET: longer holds, a faster ball, multi-ball and barrels from the sky."
 		_minutes.add_item("First to 5 goals" if m == 0 else "%d minutes" % m)
 	_minutes.selected = maxi(Game.MATCH_LENGTHS.find(Game.match_minutes), 0)
 	_field(grid, "Match length", _minutes)
+	_knock = OptionButton.new()
+	for item in ["A harmless bonk", "Knocks them over"]:
+		_knock.add_item(item)
+	_knock.selected = 1 if Game.ball_knockdown else 0
+	_knock.tooltip_text = "Never hurts. Knocked over, you tumble for a moment.
+TOTAL YEET always knocks players over."
+	_field(grid, "Ball hits players", _knock)
 	var sport_only := func(i: int) -> void:
 		var on := i == Game.Mode.YEETBALL
-		for c: Control in [_rules, _minutes]:
+		for c: Control in [_rules, _minutes, _knock]:
 			c.visible = on
 			grid.get_child(c.get_index() - 1).visible = on # its label
 	_mode.item_selected.connect(sport_only)
@@ -489,6 +497,7 @@ func _store() -> void:
 	Game.bot_count = int(_bots.value)
 	Game.yeetball_rules = _rules.selected
 	Game.match_minutes = Game.MATCH_LENGTHS[maxi(_minutes.selected, 0)]
+	Game.ball_knockdown = _knock.selected == 1
 	Game.port = int(_port.value)
 	Game.join_address = _address.text.strip_edges()
 	Game.save_settings()

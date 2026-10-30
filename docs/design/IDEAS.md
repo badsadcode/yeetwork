@@ -44,6 +44,12 @@ now.
 - **Storm**: a stormy sky with heavy cloud, rain and realistic lightning (branching bolts,
   the flash lighting up the map, thunder arriving after it).
 
+## Sound pass (later)
+
+Tomek's notes after playing Yeetball: metal clangs (barrels and the like) get really
+annoying when they repeat; the crowd cheer is too quiet to notice. Go over impact
+variety, volume and repetition, and the sports sounds.
+
 ## Trailer tool
 
 Scripted, recorded scenes outside the game (camera moves, directed bots, explosions),
