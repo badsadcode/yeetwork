@@ -39,6 +39,9 @@ The four areas you'll use:
    around (like in a game); the mouse wheel changes the speed. **F** frames the selected node.
 4. **Inspector**: the settings of the node you selected.
 
+Click a piece in the 3D view to select it (that's the **Yeetwork Map Kit** plugin at work:
+it's switched on in the project, under *Project → Project Settings → Plugins*).
+
 Want to look around first? Double-click `custom/example_garden/example_garden.tscn` in the
 FileSystem: it's a small finished map.
 
@@ -242,6 +245,7 @@ a friend who doesn't have it is told which map pack to get.
 | The export fails | Godot's export templates must be installed (step 0), and `GODOT` must point to your Godot. |
 | Textures or models are missing in the pack | Only what's in your map's folder goes into the pack: keep every texture and model in `custom/<your_map>/`. |
 | Players fall through something | Blocks: change **Size**, not Scale. Imported models need collision (step 12). |
+| Clicking a block in the 3D view doesn't select it | The **Yeetwork Map Kit** plugin must be on: *Project → Project Settings → Plugins*, tick *Enable*. (Selecting it in the Scene list always works.) |
 | F6 starts the wrong map | F6 runs the scene in the tab you're looking at: click your map's tab first. |
 | Errors about missing pieces after copying a map | Maps must be made in the Yeetwork project (step 0). |
 

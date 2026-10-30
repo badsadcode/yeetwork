@@ -285,6 +285,12 @@ electricity.
 
 ---
 
+### Selecting pieces in the 3D view
+The Map Kit's pieces draw themselves with internal meshes (not saved in the map), which
+Godot doesn't pick when you click. The **Yeetwork Map Kit** editor plugin
+(`addons/yeetwork_mapkit/`, on by default under *Project Settings → Plugins*) gives every
+piece a click shape, so clicking a block, a slab, a prop or a puzzle piece selects it.
+
 ### Custom maps (map packs)
 Maps don't have to live in the game: make them in `custom/<your_map>/` (with their own
 textures, materials, models, sounds and even scripts), export them with
