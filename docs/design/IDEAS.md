@@ -44,6 +44,25 @@ now.
 - **Storm**: a stormy sky with heavy cloud, rain and realistic lightning (branching bolts,
   the flash lighting up the map, thunder arriving after it).
 
+## Pickups and power-ups (next)
+
+Placed with a new Map Kit piece, respawning; the host can turn power-ups off. First batch
+(Tomek picked all of them):
+- **First aid kit**: +50 HP (a big one +100).
+- **Speed boost**: 40% faster for 12 s; blue speed lines at the screen edge, a slight FOV
+  kick.
+- **Super Yeet**: throws, punts and launches 1.8x stronger for 15 s; a pulsing orange edge
+  glow, the gun glows hotter.
+- **Feather**: low gravity and high jumps for 12 s; a soft cyan haze.
+- **Iron Yeet**: can't be grabbed or knocked around, half damage, 12 s; a metallic rim.
+Every timed buff shows on the HUD: what it is and a countdown, plus its screen effect.
+
+## Docs: characters (requested)
+
+A step-by-step tutorial on adding and changing character models and attachments (hats,
+head extras, outfits): where they're built, the Blender file, and replacing a part with a
+model of your own.
+
 ## Sound pass (later)
 
 Tomek's notes after playing Yeetball: metal clangs (barrels and the like) get really

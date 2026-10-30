@@ -48,7 +48,9 @@ func _build(model: CharacterModel, velocity: Vector3) -> void:
 			cs.shape = sh
 		cs.position = spec[3]
 		rb.add_child(cs)
-		var visual := src.duplicate() as Node3D
+		# (copy the nodes as they are, not re-instantiated from their scenes: the gun's pieces
+		# may have been merged into one mesh)
+		var visual := src.duplicate(Node.DUPLICATE_SIGNALS | Node.DUPLICATE_GROUPS | Node.DUPLICATE_SCRIPTS) as Node3D
 		visual.transform = Transform3D.IDENTITY
 		_restore_shadows(visual)
 		rb.add_child(visual)

@@ -256,7 +256,8 @@ damage.
 **Graphics options.** Low (Steam Deck), Medium and High presets, plus every detail on its
 own: resolution, upscaler (FSR 1 / FSR 2), anti-aliasing, shadows, lighting (SSIL, SDFGI),
 ambient occlusion, volumetric fog, bloom, water quality, glass quality, explosions, clouds,
-VSync and a frame rate cap. Available in the menu and in the pause menu.
+character models (*Optimised* or the *Original* build), VSync and a frame rate cap.
+Available in the menu and in the pause menu.
 
 **Effects.** Dust, smoke, mist and whitewater are dense cauliflower puffs: clusters of
 round lobes, each lit like a little sphere (warm tops, cool undersides), coloured by a
@@ -398,6 +399,15 @@ godot --path . -- --host --paused --screenshot /tmp/pause.png
 Characters are built in code in a toy-like style in the spirit of Kenney's characters: big
 heads, googly eyes, stubby limbs, procedural animation and a joint-based ragdoll
 (`scripts/player/character_model.gd`).
+
+**Kept light.** Each round shape gets just enough segments to stay round at its size (Godot's
+defaults put 3,500 triangles into an eyebrow), and the still pieces of each body part are
+merged into one mesh with distance LODs (`scripts/core/mesh_merge.gd`); the eyes, brows,
+mouth and cheeks stay separate so the expressions work as before. A classic Yeet is about
+4,500 triangles in ~15 draw calls (was 32,000-36,000 in 26-38), Noor 8,200 (was 62,000 in
+57). Other players' guns are one mesh instead of 64 pieces. *Graphics details → Character
+models → Original* switches back to the first build (from the next match), and
+`--models original` does it from the command line.
 
 **Customize yours** in the menu's *Character* page (saved with your settings, sent to the
 server when you join):

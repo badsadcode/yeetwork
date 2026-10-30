@@ -80,6 +80,11 @@ var _time := 0.0
 var _first_person := false
 ## Expressive faces (blinks, moods, eyes that look at things). Set before setup().
 var expressive := true
+## Model detail, set before setup(): 0 optimised (round shapes with just enough segments,
+## the still pieces of each body part merged into one mesh), 1 the original build (Godot's
+## default primitive detail, every piece its own mesh); -1 follows Game.character_detail.
+var detail := -1
+var _lite := true
 ## Mood the owner holds while something lasts (charging a throw, holding, underwater).
 var base_mood := ""
 ## World point the eyes look at (INF: just ahead).
@@ -117,6 +122,7 @@ func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1,
 	if skin_index >= 0:
 		skin = SKINS[skin_index % SKINS.size()]
 	character = p_character
+	_lite = (Game.character_detail if detail < 0 else detail) == 0
 	var scarf := shirt
 	var noor := character == NOOR
 	if noor:
@@ -200,6 +206,25 @@ func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1,
 			_cyl(leg, 0.14, 0.12, LEATHER, Vector3(0, -0.4, 0))
 		else:
 			_box(leg, Vector3(0.22, 0.14, 0.34), shoe, Vector3(0, -0.5, -0.06))
+	if _lite:
+		_merge_parts()
+
+
+## One mesh per body part for everything that doesn't move on its own (the face's moving
+## bits, the propeller and the gun socket stay separate).
+func _merge_parts() -> void:
+	var keep := {}
+	for a in [_eyes, _pupils, _cheeks, _brows, _x_eyes]:
+		for n in a:
+			keep[n] = true
+	for n in [_mouth, _propeller, gun_socket]:
+		if n:
+			keep[n] = true
+	for part: Node3D in parts.values():
+		MeshMerge.merge(part, keep, true)
+	for list in [hat_nodes, face_nodes, outfit_nodes]:
+		var alive: Array = list.filter(func(n): return is_instance_valid(n))
+		list.assign(alive)
 
 
 func _part(part_name: String, pos: Vector3) -> Node3D:
@@ -221,12 +246,21 @@ func _mesh(parent: Node3D, mesh: Mesh, color: Color, pos: Vector3, scl := Vector
 	return mi
 
 
+## Segments around a round shape of this size: enough to stay round at its size on screen.
+## (The original build used Godot's defaults: 64 around a capsule or cylinder.)
+func _segments(size: float) -> int:
+	return clampi(roundi(size * 70.0), 8, 24)
+
+
 func _sphere(parent: Node3D, r: float, color: Color, pos: Vector3, scl: Vector3) -> MeshInstance3D:
 	var m := SphereMesh.new()
 	m.radius = r
 	m.height = r * 2.0
 	m.radial_segments = 24
 	m.rings = 12
+	if _lite:
+		m.radial_segments = _segments(r * maxf(scl.x, maxf(scl.y, scl.z)))
+		m.rings = maxi(m.radial_segments / 2, 4)
 	return _mesh(parent, m, color, pos, scl)
 
 
@@ -234,6 +268,9 @@ func _capsule(parent: Node3D, r: float, h: float, color: Color, pos: Vector3) ->
 	var m := CapsuleMesh.new()
 	m.radius = r
 	m.height = h
+	if _lite:
+		m.radial_segments = maxi(_segments(r), 10) if r > 0.05 else 8
+		m.rings = 4 if r > 0.05 else 2
 	return _mesh(parent, m, color, pos)
 
 
@@ -242,6 +279,9 @@ func _cyl(parent: Node3D, r: float, h: float, color: Color, pos: Vector3, top :=
 	m.top_radius = r if top < 0.0 else top
 	m.bottom_radius = r
 	m.height = h
+	if _lite:
+		m.radial_segments = maxi(_segments(r), 10)
+		m.rings = 0
 	return _mesh(parent, m, color, pos)
 
 
@@ -337,18 +377,27 @@ func _build_hat(head: Node3D, hat: int, shirt: Color, rng: RandomNumberGenerator
 			cap.radius = 0.385
 			cap.height = 0.385
 			cap.is_hemisphere = true
+			if _lite:
+				cap.radial_segments = 28
+				cap.rings = 10
 			var dome := _mesh(head, cap, LEATHER, Vector3(0, 0.04, 0.0), Vector3(1.0, 0.95, 1.0))
 			dome.rotation.x = 0.4
 			dome.material_override = Mats.plastic(LEATHER, 0.65)
 			var rim := TorusMesh.new()
 			rim.inner_radius = 0.36
 			rim.outer_radius = 0.4
+			if _lite:
+				rim.rings = 28
+				rim.ring_segments = 6
 			var r := _mesh(head, rim, LEATHER_DARK, Vector3(0, 0.04, 0.0))
 			r.rotation.x = 0.4
 			# The goggles' strap hugs the cap (same tilt, where the dome is 0.34 across).
 			var strap := TorusMesh.new()
 			strap.inner_radius = 0.338
 			strap.outer_radius = 0.37
+			if _lite:
+				strap.rings = 28
+				strap.ring_segments = 6
 			var s := _mesh(head, strap, LEATHER_DARK, Vector3(0, 0.206, 0.07))
 			s.rotation.x = 0.4
 			for sx in [-1, 1]:
@@ -418,6 +467,9 @@ func _ring(parent: Node3D, r: float, thickness: float, color: Color, pos: Vector
 	m.outer_radius = r
 	m.rings = 24
 	m.ring_segments = 8
+	if _lite:
+		m.rings = maxi(_segments(r), 12)
+		m.ring_segments = 6
 	var mi := _mesh(parent, m, color, pos)
 	mi.rotation.x = PI * 0.5
 	return mi
@@ -429,6 +481,9 @@ func _noor_gear(torso: Node3D, scarf: Color) -> void:
 	var neck := TorusMesh.new()
 	neck.inner_radius = 0.15
 	neck.outer_radius = 0.25
+	if _lite:
+		neck.rings = 24
+		neck.ring_segments = 10
 	_mesh(torso, neck, scarf, Vector3(0, 0.43, 0), Vector3(1, 1.3, 1))
 	_sphere(torso, 0.07, scarf.darkened(0.15), Vector3(0.1, 0.38, -0.25), Vector3(1, 0.8, 0.8))
 	for side in [-1.0, 1.0]: # front and back

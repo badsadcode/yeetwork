@@ -115,6 +115,7 @@ func _ready() -> void:
 
 ## The gun model (tools/make_gravity_gun.py, made in Blender). It points along -Z.
 const GUN_SCENE := preload("res://assets/models/gravity_gun.glb")
+static var _merged_guns := {} # team colour -> the world model's pieces merged into one mesh
 ## Where the grip is in the model, so a hand can hold it.
 const GRIP := Vector3(0.0, -0.25, 0.36)
 
@@ -148,6 +149,10 @@ func _build_world_model() -> void:
 	player.model.gun_socket.add_child(_world_model)
 	var gun := _gun_mesh(_world_model, 0.5)
 	_wm_muzzle = gun.find_child("Muzzle", true, false) as Node3D
+	if Game.character_detail == 0:
+		# Everyone else's gun: one mesh instead of 64 pieces (nothing on it moves).
+		var accent := Color(1.0, 0.45, 0.08) if player.team == 0 else Game.team_color(player.team)
+		MeshMerge.merge(gun, {}, false, _merged_guns, accent.to_html())
 
 
 func build_viewmodel(camera: Camera3D) -> void:

@@ -9,6 +9,7 @@ var out_dir := ""
 
 
 func _ready() -> void:
+	Game.character_detail = 1 # the original build: every piece its own node, for Blender
 	var root := Node3D.new()
 	root.name = "YeetworkCharacters"
 	var shirt: Color = Game.FFA_COLORS[0]
