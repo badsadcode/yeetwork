@@ -131,6 +131,9 @@ var _shake := 0.0
 var _cam_roll := 0.0
 var _tilt := 0.0
 var _prev_grounded := true
+## Set by an upward launch: the next movement step is airborne even though the last move
+## ended on the floor (otherwise the ground's friction and slope slide eat the launch).
+var _launch_lift := false
 var _view_third_person := false
 var _corpse: Node3D
 var _punch := 0.0
@@ -483,7 +486,8 @@ func _move_normal(delta: float) -> void:
 	var wish := _wish_dir()
 	var wish_speed := wish.length()
 	var wish_dir := wish.normalized() if wish_speed > 0.0 else Vector3.ZERO
-	var grounded := is_on_floor()
+	var grounded := is_on_floor() and not _launch_lift
+	_launch_lift = false
 
 	# Crouch / stand.
 	if cmd.crouch and not crouched:
@@ -786,6 +790,7 @@ func external_launch(vel: Vector3, replace: bool, ragdoll_time: float) -> void:
 		velocity += vel
 	if vel.y > 0.0:
 		_prev_grounded = false
+		_launch_lift = true
 		position.y += 0.05
 	_launched_until = Time.get_ticks_msec() / 1000.0 + 1.5
 	if ragdoll_time > 0.0:

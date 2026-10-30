@@ -3,7 +3,7 @@ class_name PressurePlate
 extends PuzzleNode
 ## A plate in the floor, on while enough weight stands on it: crates, anvils, barrels, a
 ## friend (a player counts as 70). The rim glows amber, then green when pressed.
-## Masses: crate 25, barrel 40, couch 60, big crate 70, anvil 120, player 70.
+## Masses: crate 25, barrel 40, couch 60, big crate 70, anvil 300, player 70.
 
 @export var size := Vector2(2.4, 2.4):
 	set(v):

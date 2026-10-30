@@ -26,6 +26,26 @@ func link() -> void:
 	pass
 
 
+## Machines (seesaws, turntables) move every frame: the server simulates them and streams
+## their state (machine_state) to everyone about 20 times a second.
+func is_machine() -> bool:
+	return false
+
+
+func machine_state() -> PackedFloat32Array:
+	return PackedFloat32Array()
+
+
+## Clients: the latest state from the server (smooth toward it yourself).
+func apply_machine_state(_s: PackedFloat32Array) -> void:
+	pass
+
+
+## Server, once the match starts: spawn the props this piece brings (a fan).
+func server_spawn_props() -> void:
+	pass
+
+
 ## Pieces players press with the Use key (E): the Reset button, use-key buttons.
 func usable() -> bool:
 	return false

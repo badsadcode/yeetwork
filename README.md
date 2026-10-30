@@ -160,8 +160,9 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   finishes the level when everyone's in it. Friends can't hurt each other. The top of the
   screen shows the clock and the current objective. Targets, buttons, timed and ordered
   logic, smashed walls as switches; props a puzzle needs come back when lost, and a big
-  red Reset button tidies a room. Levels: **Moving Day** and **Test Chambers** (Heavy
-  Decisions, The Impossible Shot, Three Idiots One Door).
+  red Reset button (press E) tidies a room. Seesaws that yeet you, turntables, and a big fan
+  you can grab and aim. Levels: **Moving Day** and **Test Chambers** (Heavy Decisions, The
+  Impossible Shot, Three Idiots One Door, Yeetapult, Windy Business).
 
 **Spooky mode.** During Halloween season (Oct 15 - Nov 3), when set to *Always* in the
 menu, or in Pumpkin Smash, every map gets:

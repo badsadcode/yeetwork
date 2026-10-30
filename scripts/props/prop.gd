@@ -25,6 +25,8 @@ const DEFS := {
 	"candy": {"shape": "candy", "size": Vector3(0.12, 0.12, 0.3), "mass": 0.4, "color": Color(1, 0.4, 0.7), "bounce": 0.5, "label": "Candy"},
 	"shard": {"shape": "shard", "size": Vector3(1, 1, 0.5), "mass": 20.0, "color": Color(0.9, 0.85, 0.7), "bounce": 0.05, "label": "Fragment"},
 	"flag": {"shape": "flag", "size": Vector3(0.12, 2.4, 0.12), "mass": 12.0, "color": Color(1, 1, 1), "bounce": 0.1, "label": "Flag"},
+	# Puzzles: a big fan (placed by a PuzzleFan, which makes it blow) you can grab and aim.
+	"fan": {"shape": "fan", "size": Vector3(1.5, 1.7, 0.8), "mass": 40.0, "color": Color(0.3, 0.75, 0.95), "bounce": 0.1, "label": "Fan", "metal": true},
 }
 
 ## Props a player can spawn in sandbox mode, bound to number keys 1-9.
@@ -206,6 +208,11 @@ func _build(def: Dictionary) -> void:
 			s.radius = 0.12
 			shape_node.shape = s
 			_build_candy(mesh)
+		"fan":
+			var s := BoxShape3D.new()
+			s.size = size
+			shape_node.shape = s
+			_build_fan(mesh)
 	if mesh.mesh and mat:
 		mesh.material_override = mat
 	add_child(shape_node)
@@ -437,7 +444,105 @@ func _build_flag(parent: MeshInstance3D) -> void:
 	parent.add_child(light)
 
 
-func _process(_delta: float) -> void:
+var _rotor: Node3D
+var _wind_fx: CPUParticles3D
+var _wind_sound: AudioStreamPlayer3D
+var _rotor_speed := 0.0
+
+
+## The fan: a stand, a round housing facing its forward (-Z), a rotor and the wind it blows.
+func _build_fan(parent: MeshInstance3D) -> void:
+	var metal := Mats.plastic(color, 0.3)
+	var dark := Mats.plastic(Color(0.18, 0.2, 0.26), 0.4)
+	parent.add_child(PuzzleNode.box_mesh(Vector3(1.2, 0.14, 0.8), dark, Vector3(0, -size.y * 0.5 + 0.07, 0)))
+	parent.add_child(PuzzleNode.box_mesh(Vector3(0.16, 0.6, 0.16), dark, Vector3(0, -size.y * 0.5 + 0.4, 0)))
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.55
+	tm.outer_radius = 0.7
+	ring.mesh = tm
+	ring.rotation_degrees = Vector3(90, 0, 0)
+	ring.position.y = 0.2
+	ring.material_override = metal
+	parent.add_child(ring)
+	_rotor = Node3D.new()
+	_rotor.position = Vector3(0, 0.2, 0)
+	parent.add_child(_rotor)
+	var hub := MeshInstance3D.new()
+	var hm := CylinderMesh.new()
+	hm.top_radius = 0.12
+	hm.bottom_radius = 0.14
+	hm.height = 0.25
+	hub.mesh = hm
+	hub.rotation_degrees = Vector3(90, 0, 0)
+	hub.material_override = dark
+	_rotor.add_child(hub)
+	for k in 3:
+		var blade := PuzzleNode.box_mesh(Vector3(0.18, 0.5, 0.04), Mats.plastic(Color(0.92, 0.94, 1.0), 0.3), Vector3(0, 0.3, 0))
+		var pivot := Node3D.new()
+		pivot.rotation.z = k * TAU / 3.0
+		blade.rotation.y = 0.5
+		pivot.add_child(blade)
+		_rotor.add_child(pivot)
+	# Wind: streaks blowing out of the front while it runs.
+	_wind_fx = CPUParticles3D.new()
+	_wind_fx.emitting = false
+	_wind_fx.amount = 24
+	_wind_fx.lifetime = 0.7
+	_wind_fx.local_coords = false
+	_wind_fx.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	_wind_fx.emission_sphere_radius = 0.45
+	_wind_fx.position = Vector3(0, 0.2, -0.3)
+	_wind_fx.direction = Vector3(0, 0, -1)
+	_wind_fx.spread = 8.0
+	_wind_fx.initial_velocity_min = 10.0
+	_wind_fx.initial_velocity_max = 15.0
+	_wind_fx.gravity = Vector3.ZERO
+	_wind_fx.particle_flag_align_y = true
+	var sm := BoxMesh.new()
+	sm.size = Vector3(0.02, 0.5, 0.02)
+	_wind_fx.mesh = sm
+	var wm := StandardMaterial3D.new()
+	wm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	wm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	wm.vertex_color_use_as_albedo = true
+	_wind_fx.material_override = wm
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 0.0))
+	g.set_color(1, Color(1, 1, 1, 0.0))
+	g.add_point(0.25, Color(0.9, 0.97, 1.0, 0.5))
+	_wind_fx.color_ramp = g
+	parent.add_child(_wind_fx)
+	_wind_sound = AudioStreamPlayer3D.new()
+	_wind_sound.stream = Sfx.stream("wind")
+	_wind_sound.bus = "SFX"
+	_wind_sound.volume_db = -10.0
+	_wind_sound.unit_size = 4.0
+	parent.add_child(_wind_sound)
+
+
+## The PuzzleFan this fan belongs to (or null).
+func fan_piece() -> PuzzleFan:
+	var idx: int = extra.get("fan_piece", -1)
+	var arena = world.get("arena") if world else null
+	if arena == null or idx < 0 or idx >= arena.puzzle.size():
+		return null
+	return arena.puzzle[idx] as PuzzleFan
+
+
+func _process(delta: float) -> void:
+	if _rotor:
+		var piece := fan_piece()
+		var on := piece != null and piece.active
+		_rotor_speed = move_toward(_rotor_speed, 30.0 if on else 0.0, delta * 25.0)
+		_rotor.rotate_object_local(Vector3.FORWARD, _rotor_speed * delta)
+		_wind_fx.emitting = on
+		_wind_fx.direction = Vector3(0, 0, -1)
+		if on and not _wind_sound.playing:
+			_wind_sound.play()
+		elif not on and _wind_sound.playing:
+			_wind_sound.stop()
+		return
 	if _flicker:
 		var t := Time.get_ticks_msec() * 0.001 + prop_id
 		_flicker.light_energy = (1.4 if kind == "pumpkin" else 2.5) * (0.8 + 0.2 * sin(t * 13.0) * sin(t * 7.3))
@@ -513,7 +618,7 @@ func impact_material() -> String:
 	match kind:
 		"crate", "crate_big", "plank":
 			return "wood"
-		"barrel", "boom_barrel", "anvil", "flag":
+		"barrel", "boom_barrel", "anvil", "flag", "fan":
 			return "metal"
 		"ball", "beachball", "tire", "cone":
 			return "rubber"

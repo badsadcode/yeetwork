@@ -279,6 +279,15 @@ func _run() -> void:
 			boards += 1
 	check("crate shatters into boards", world.get_prop(box_id) == null and boards > 0, "crate gone: %s, new board props %d" % [world.get_prop(box_id) == null, boards])
 
+	# A jump pad launches you along its full arc (a launch from standing must not be eaten
+	# by the ground: Prime's side-lane pad, 17 m/s up, peaks about 6 m above it).
+	await reset(Vector3(30, 0.2, 4.5), 0.0)
+	var pad_peak := -INF
+	for i in 70:
+		await ticks(1)
+		pad_peak = maxf(pad_peak, pl.global_position.y)
+	check("jump pad launches along its whole arc", pad_peak > 5.0, "peak %.1f m (full arc ~6)" % pad_peak)
+
 	await _water_tests()
 	await _fire_tests()
 	_logic_test()

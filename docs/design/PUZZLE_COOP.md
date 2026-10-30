@@ -1,10 +1,11 @@
 # Co-op puzzle mode: design
 
-**Status:** steps 1 and 2 are built: plates, doors, logic (gate, window, sequence),
+**Status:** steps 1, 2 and 3 are built: plates, doors, logic (gate, window, sequence),
 checkpoints, exit, buttons, targets, break sensors, key props that come back and the Reset
 button; the mode with its clock and objective line; *Moving Day* rooms 1-3
 (`maps/moving_day.tscn`) and the *Test Chambers* (`maps/test_chambers.tscn`: Heavy Decisions,
-The Impossible Shot, Three Idiots One Door). The plan
+The Impossible Shot, Three Idiots One Door, Yeetapult, Windy Business); seesaws, turntables
+and fans; the Use key (E) for buttons and Reset. The plan
 below includes Tomek's answers and Noor's puzzle-mode notes (October 2026).
 
 ## The idea
@@ -44,9 +45,10 @@ new code.
 | **Logic: time window / sequence** | "all three targets within 3 s", "in this order" | built |
 | **Breakable as input** | a BreakableSlab that counts as "on" once broken (BreakSensor) | built |
 | **Key props and reset** | important props respawn at home when they fall out of the level or get destroyed; a big red **Reset** button restores a room's props | built |
-| **Seesaw** ("Yeetapult") | a physics plank on a hinge: drop something heavy on one end, launch the Yeet on the other | after |
-| **Fan** | a wind cone players can grab and turn; blows props and Yeets (someone will fly into a wall) | after |
-| **Rotating platform**, **launcher** | turntables, springs, cannons (jump pads exist) | after |
+| **Seesaw** ("Yeetapult") | a physics plank on a hinge: drop something heavy on one end, launch the Yeet on the other | built |
+| **Fan** | a wind cone players can grab and turn; blows props and Yeets (someone will fly into a wall) | built |
+| **Rotating platform** | turntables (always or while switched on) | built |
+| **Launchers** | springs, cannons (jump pads exist) | later |
 | **Receptacle**, **collectible**, **fragile package** | deliver and collect objectives | after |
 | **Magnets**, **ropes and pulleys**, **electricity / ice** | Noor's later mechanics | later |
 
@@ -169,7 +171,8 @@ the Steam Deck (a 64x64 grid), and it covers almost everything:
 2. ~~Never stuck, and more switches: key props, Reset, Target, Button, window and sequence
    logic, breakables as inputs; Test Chambers with Heavy Decisions, The Impossible Shot and
    Three Idiots One Door.~~ Done.
-3. **Mechanisms**: Seesaw, Fan, rotating platform. Chambers 3 and 4.
+3. ~~Mechanisms: Seesaw, Fan, Turntable; Yeetapult and Windy Business in the Test Chambers.~~
+   Done.
 4. **Scoring**: end screen, medals, the awards.
 5. **Lost Yeet** and an **open level**: the NPC to rescue, receptacles, collectibles, several
    objectives on the HUD, the warehouse.

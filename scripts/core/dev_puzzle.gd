@@ -174,12 +174,78 @@ func _chambers() -> void:
 	await _wait(1.6)
 	var ball := _nearest("ball", Vector3(6.0, 4.3, 46.2))
 	_check("the button drops the ball ledge", _piece("BallLedge").active and ball.global_position.y < 2.0, "ball at y %.1f" % ball.global_position.y)
+	# D: the Yeetapult. Stand on the yellow end, the anvil drops on the red end: up you go.
+	var saw: Seesaw = _piece("SeesawD")
+	_place_player(saw.global_transform * Vector3(-3.0, 0.5, 0))
+	await _wait(1.2)
+	_check("standing on the yellow end tips it down", saw.angle < -0.2, "angle %.0f deg" % rad_to_deg(saw.angle))
+	_look(Vector3(5, 4.5, 55), Vector3(-2, 2, 63))
+	await _wait(0.2)
+	_shot("c05_seesaw")
+	_place_player(saw.global_transform * Vector3(-3.0, 0.5, 0))
+	await _wait(0.3)
+	var anvil := _nearest("anvil", saw.global_position)
+	anvil.global_position = saw.global_transform * Vector3(3.0, 3.2, 0)
+	anvil.linear_velocity = Vector3.ZERO
+	var peak := -INF
+	for k in 30:
+		await _wait(0.05)
+		peak = maxf(peak, pl.global_position.y)
+	await _wait(1.0)
+	var on_ledge := pl.global_position.y > 4.5 and pl.global_position.x < -5.3
+	_check("the anvil yeets the player up to the ledge", peak > 5.5 and on_ledge, "peak %.1f m, now at %s" % [peak, pl.global_position.snapped(Vector3.ONE * 0.1)])
+	if not on_ledge:
+		_place_player(_piece("ButtonD").global_position + Vector3(1.3, 0.2, 0))
+		await _wait(0.3)
+	_aim_at(_piece("ButtonD").use_point())
+	await _wait(0.2)
+	world.use_pressed(pl)
+	await _wait(0.6)
+	_check("the ledge button opens the gate", _piece("GateD").active, "")
+	# E: the fan on the turntable.
+	_place_player(_piece("CheckpointE").global_position + Vector3(0, 0.2, 0))
+	var fan_piece: PuzzleFan = _piece("FanE")
+	var fan := fan_piece.fan_prop()
+	var start_dir := -fan.global_transform.basis.z
+	_check("the fan runs and blows the wrong way at first", fan_piece.active and start_dir.dot(Vector3(0, 0, 1)) < 0.3, "blowing %s" % start_dir.snapped(Vector3.ONE * 0.01))
+	_place_player(_piece("ButtonE").global_position + Vector3(1.3, 0.2, 0))
+	await _wait(0.3)
+	_aim_at(_piece("ButtonE").use_point())
+	await _wait(0.1)
+	world.use_pressed(pl)
+	await _wait(1.5)
+	var turned := -fan.global_transform.basis.z
+	_check("the button spins the turntable, turning the fan", _piece("TableE").active and turned.angle_to(start_dir) > 0.5, "turned %.0f deg" % rad_to_deg(turned.angle_to(start_dir)))
+	world.use_pressed(pl) # stop it
+	await _wait(0.4)
+	# Aim it across the pit, as a player would with the gravity gun, and ride the wind.
+	fan.global_transform = Transform3D(Basis(Vector3.UP, PI), fan.global_position)
+	fan.linear_velocity = Vector3.ZERO
+	await _wait(0.5)
+	_look(Vector3(-3, 3.5, 76), Vector3(0, 0.5, 96))
+	await _wait(0.3)
+	_shot("c06_windy")
+	# A running jump from the pit's edge, into the wind (driven like a player: run, jump).
+	_place_player(Vector3(0, 0.1, 81.0))
+	_aim_at(Vector3(0, 1.6, 100))
+	pl.is_bot = true # (the test drives its inputs)
+	pl.bot_brain = null
+	pl.cmd.run = true
+	pl.cmd.move = Vector2(0, 1)
+	var furthest := 0.0
+	for k in 60:
+		await _wait(0.05)
+		pl.cmd.jump = pl.global_position.z > 84.6 and pl.global_position.z < 86.0
+		furthest = maxf(furthest, pl.global_position.z)
+	pl.cmd.move = Vector2.ZERO
+	pl.cmd.jump = false
+	_check("the wind carries a Yeet across the pit", furthest > 95.0 and pl.global_position.y > -1.0, "got to z %.1f, now at y %.1f" % [furthest, pl.global_position.y])
 	_place_player(_piece("Exit").global_position + Vector3(0, 0.3, 0))
 	await _wait(0.8)
 	_check("the exit finishes the level", world.puzzle_finish >= 0.0, "")
-	_look(Vector3(0, 3, 50), Vector3(0, 1.5, 57))
+	_look(Vector3(0, 3, 94), Vector3(0, 1.5, 101))
 	await _wait(0.5)
-	_shot("c05_exit")
+	_shot("c07_exit")
 
 
 ## A ball thrown straight at a target from 2 m away.

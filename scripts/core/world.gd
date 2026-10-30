@@ -63,6 +63,7 @@ var _burning_props := {} # prop id -> [end time, attacker]
 var _burning_players := {} # player id -> [end time, attacker]
 var _fire_accum := 0.0
 var _puzzle_accum := 0.0
+var _machine_accum := 0.0
 ## Puzzle mode clock (net time; -1 = not started / not finished), the same on every peer.
 var puzzle_start := -1.0
 var puzzle_finish := -1.0
@@ -112,6 +113,8 @@ func start(server: bool) -> void:
 			if entry.size() > 2 and entry[2]:
 				p.set_meta("key_prop", true)
 		mode_logic.spawn_mode_props()
+		for n in arena.puzzle:
+			n.server_spawn_props()
 		_start_ambience()
 		multiplayer.peer_connected.connect(_on_peer_connected)
 		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
@@ -313,6 +316,7 @@ func _build_init_state() -> Dictionary:
 		"guns": guns,
 		"puzzle": arena.puzzle.map(func(n: PuzzleNode) -> bool: return n.active),
 		"puzzle_time": [puzzle_start, puzzle_finish],
+		"machines": _machine_buffer(),
 	}
 
 
@@ -351,6 +355,8 @@ func _s_init(state: Dictionary) -> void:
 	var pz: Array = state.get("puzzle", [])
 	for i in mini(pz.size(), arena.puzzle.size()):
 		arena.puzzle[i].set_active(pz[i], false)
+	if state.has("machines"):
+		_s_machines(state.machines)
 	var pt: Array = state.get("puzzle_time", [-1.0, -1.0])
 	puzzle_start = pt[0]
 	puzzle_finish = pt[1]
@@ -492,6 +498,10 @@ func _physics_process(delta: float) -> void:
 	if _puzzle_accum >= 0.1 and not arena.puzzle.is_empty():
 		_puzzle_accum = 0.0
 		_server_puzzle_tick()
+	_machine_accum += delta
+	if _machine_accum >= 0.05 and not arena.puzzle.is_empty():
+		_machine_accum = 0.0
+		_send_machines()
 
 
 # --- Player state sync ------------------------------------------------------------
@@ -669,6 +679,8 @@ func server_prop_impact(p: Prop, body: Node, rel: Vector3, speed: float) -> void
 	if p.explosive and speed > 13.0:
 		_schedule_explosion(p, 0.0)
 		return
+	if body.has_meta("seesaw"):
+		(body.get_meta("seesaw") as Seesaw).server_landed(p)
 	if body.has_meta("puzzle_target"):
 		(body.get_meta("puzzle_target") as PuzzleTarget).server_hit(p, speed)
 	if body.has_meta("destructible") and speed > 7.0:
@@ -1677,13 +1689,13 @@ func _queue_restock(p: Prop, delay: float) -> void:
 	if not p.has_meta("map_prop"):
 		return
 	var key := p.has_meta("key_prop")
-	_restock.append([now() + (2.5 if key else delay), p.kind, p.home_transform, key])
+	_restock.append([now() + (2.5 if key else delay), p.kind, p.home_transform, key, p.extra])
 
 
 func _restock_now(i: int) -> void:
 	var e: Array = _restock[i]
 	_restock.remove_at(i)
-	var p := server_spawn_prop(e[1], arena.xf_world(e[2]))
+	var p := server_spawn_prop(e[1], arena.xf_world(e[2]), Vector3.ZERO, Color(0, 0, 0, 0), 0, Vector3.ZERO, e[4] if e.size() > 4 else {})
 	p.set_meta("map_prop", true)
 	if e.size() > 3 and e[3]:
 		p.set_meta("key_prop", true)
@@ -1784,6 +1796,37 @@ func _server_puzzle_tick() -> void:
 func _s_puzzle(index: int, on: bool) -> void:
 	if index >= 0 and index < arena.puzzle.size():
 		arena.puzzle[index].set_active(on)
+
+
+## Every machine's state: [index, value count, values...] per machine.
+func _machine_buffer() -> PackedFloat32Array:
+	var buf := PackedFloat32Array()
+	for n in arena.puzzle:
+		if n.is_machine():
+			var s := n.machine_state()
+			buf.append(n.puzzle_index)
+			buf.append(s.size())
+			buf.append_array(s)
+	return buf
+
+
+func _send_machines() -> void:
+	if ready_peers.is_empty():
+		return
+	var buf := _machine_buffer()
+	if not buf.is_empty():
+		_bc("_s_machines", [buf])
+
+
+@rpc("authority", "call_remote", "unreliable_ordered", 4)
+func _s_machines(buf: PackedFloat32Array) -> void:
+	var i := 0
+	while i + 1 < buf.size():
+		var idx := int(buf[i])
+		var n := int(buf[i + 1])
+		if idx >= 0 and idx < arena.puzzle.size() and i + 2 + n <= buf.size():
+			arena.puzzle[idx].apply_machine_state(buf.slice(i + 2, i + 2 + n))
+		i += 2 + n
 
 
 func server_puzzle_time(start: float, finish: float) -> void:
