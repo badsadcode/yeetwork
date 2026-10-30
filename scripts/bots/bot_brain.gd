@@ -123,7 +123,7 @@ func think(delta: float) -> void:
 ## the goal; the nearest teammate goes for it, the others hang back between it and home.
 func _think_yeetball(delta: float) -> void:
 	var mode := world.mode_logic as ModeYeetball
-	var b: Prop = mode.ball() if mode else null
+	var b: Prop = mode.nearest_ball(pl.global_position) if mode else null
 	var target: GoalZone = mode.goal_of(Game.TEAM_BLUE if pl.team == Game.TEAM_RED else Game.TEAM_RED) if mode else null
 	var home: GoalZone = mode.goal_of(pl.team) if mode else null
 	if b == null or target == null or home == null:

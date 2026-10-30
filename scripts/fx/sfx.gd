@@ -11,7 +11,8 @@ const VARIANTS := 4
 
 var _streams := {} # name -> Array[AudioStreamWAV]
 var _pool: Array[AudioStreamPlayer3D] = []
-var _ui: AudioStreamPlayer
+var _ui: Array[AudioStreamPlayer] = [] # a few, so a cheer doesn't cut the whistle off
+var _ui_next := 0
 var _next := 0
 var _rng := RandomNumberGenerator.new()
 
@@ -46,6 +47,10 @@ func _ready() -> void:
 	_add("splash", 0.9, _splash)
 	_add("death", 0.9, _death)
 	_add("score", 0.6, _score)
+	_add("whistle", 0.5, _whistle)
+	_add("whistle_long", 1.3, _whistle)
+	_add("cheer", 2.6, _cheer)
+	_add("horn", 1.4, _horn)
 	_add("squelch", 0.6, _squelch)
 	_add("charge", 1.1, _charge)
 	_add("arc", 2.0, _arc)
@@ -76,9 +81,11 @@ func _ready() -> void:
 		p.bus = "SFX"
 		add_child(p)
 		_pool.append(p)
-	_ui = AudioStreamPlayer.new()
-	_ui.bus = "SFX"
-	add_child(_ui)
+	for i in 3:
+		var u := AudioStreamPlayer.new()
+		u.bus = "SFX"
+		add_child(u)
+		_ui.append(u)
 
 
 func _setup_buses() -> void:
@@ -478,6 +485,62 @@ func _death(buf: PackedFloat32Array, v: int) -> void:
 		buf[i] += sin(phase) * clampf(1.0 - t / 0.9, 0.0, 1.0) * 0.35
 
 
+## A referee's pea whistle: a shrill tone, trilled by the pea, with a little breath.
+func _whistle(buf: PackedFloat32Array, v: int) -> void:
+	var n := buf.size()
+	var length := float(n) / RATE
+	var breath := _bp_noise(n, 3000.0)
+	var base := 2750.0 * _vr(v, 0.03)
+	var phase := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var trill := sin(TAU * 27.0 * t)
+		phase += TAU * (base + 160.0 * trill) / RATE
+		var env := clampf(t / 0.02, 0.0, 1.0) * clampf((length - t) / 0.08, 0.0, 1.0)
+		buf[i] += (sin(phase) * (0.75 + 0.25 * trill) * 0.42 + breath[i] * 0.05) * env
+
+
+## A stadium crowd going wild: a wash of voices that swells and fades, with a few "woo"s.
+func _cheer(buf: PackedFloat32Array, v: int) -> void:
+	var n := buf.size()
+	var length := float(n) / RATE
+	var low := _bp_noise(n, 700.0 * _vr(v, 0.05))
+	var high := _bp_noise(n, 1600.0 * _vr(v, 0.05))
+	var r1 := _rng.randf() * TAU
+	var r2 := _rng.randf() * TAU
+	for i in n:
+		var t := float(i) / RATE
+		var env := clampf(t / 0.25, 0.0, 1.0) * clampf((length - t) / 1.4, 0.0, 1.0)
+		var flutter := 0.75 + 0.15 * sin(TAU * 4.3 * t + r1) + 0.1 * sin(TAU * 6.7 * t + r2)
+		buf[i] += (low[i] * 0.32 + high[i] * 0.2) * env * flutter
+	for k in 5:
+		var f0 := _rng.randf_range(260.0, 520.0)
+		var start := _rng.randf_range(0.0, 0.35)
+		var dur := _rng.randf_range(0.6, 1.2)
+		var phase := 0.0
+		for i in range(int(start * RATE), mini(n, int((start + dur) * RATE))):
+			var lt := float(i) / RATE - start
+			var f := f0 * (1.0 + 0.25 * sin(PI * lt / dur)) + 6.0 * sin(TAU * 5.5 * lt)
+			phase += TAU * f / RATE
+			buf[i] += (sin(phase) + 0.3 * sin(phase * 2.0)) * sin(PI * lt / dur) * 0.06
+
+
+## A stadium air horn: a brassy, slightly detuned chord.
+func _horn(buf: PackedFloat32Array, v: int) -> void:
+	var n := buf.size()
+	var length := float(n) / RATE
+	var freqs := [233.0, 293.0, 349.0]
+	for f: float in freqs:
+		var ff := f * _vr(v, 0.01)
+		var phase := 0.0
+		for i in n:
+			var t := float(i) / RATE
+			phase += TAU * ff / RATE
+			var env := clampf(t / 0.04, 0.0, 1.0) * clampf((length - t) / 0.25, 0.0, 1.0)
+			# A few odd harmonics make it brassy.
+			buf[i] += (sin(phase) + 0.45 * sin(phase * 3.0) + 0.2 * sin(phase * 5.0)) * env * 0.16
+
+
 func _score(buf: PackedFloat32Array, _v: int) -> void:
 	var notes := [523.0, 659.0, 784.0, 1047.0]
 	for i in buf.size():
@@ -530,10 +593,12 @@ func play_ui(sound: String, volume_db := 0.0, pitch := 1.0) -> void:
 	if not _streams.has(sound):
 		return
 	var list: Array = _streams[sound]
-	_ui.stream = list[_rng.randi() % list.size()]
-	_ui.volume_db = volume_db
-	_ui.pitch_scale = pitch
-	_ui.play()
+	var u := _ui[_ui_next]
+	_ui_next = (_ui_next + 1) % _ui.size()
+	u.stream = list[_rng.randi() % list.size()]
+	u.volume_db = volume_db
+	u.pitch_scale = pitch
+	u.play()
 
 
 ## Layered physical impact. `strength` ~ 0.05 (tap) .. 3 (huge). Heavier hits are louder,

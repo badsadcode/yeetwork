@@ -40,6 +40,7 @@ var _results: PanelContainer
 var _results_until := 0.0
 const MEDAL_COLORS := {"gold": Color(1.0, 0.82, 0.25), "silver": Color(0.82, 0.86, 0.95), "bronze": Color(0.85, 0.55, 0.3)}
 var _clock_t := 0.0
+var _ball_marks: Control # Yeetball: arrows at the screen edge pointing at balls out of view
 var _killfeed: VBoxContainer
 var _messages: VBoxContainer
 var _big_label: Label
@@ -77,6 +78,12 @@ func _ready() -> void:
 	_crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_crosshair.draw.connect(_draw_crosshair)
 	_root.add_child(_crosshair)
+
+	_ball_marks = Control.new()
+	_ball_marks.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_ball_marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ball_marks.draw.connect(_draw_ball_marks)
+	_root.add_child(_ball_marks)
 
 	# Health (bottom left): a plate with a plus badge, the number and a segmented bar.
 	var hp_plate := HudPlate.new()
@@ -496,7 +503,9 @@ func _process(delta: float) -> void:
 	_use_prompt.visible = usable != null and not _paused
 	if usable:
 		_use_prompt.text = "[%s]  %s" % [Controls.pad_of("use") if _pad_used else Controls.key_of("use"), usable.use_label()]
-	if world and world.mode == Game.Mode.PUZZLE:
+	if world and world.mode == Game.Mode.YEETBALL:
+		_ball_marks.queue_redraw()
+	if world and (world.mode == Game.Mode.PUZZLE or world.mode == Game.Mode.YEETBALL):
 		_clock_t -= delta
 		if _clock_t <= 0.0:
 			_clock_t = 0.25
@@ -604,10 +613,55 @@ func on_players_changed() -> void:
 		_score_label.text = "%s     Candy: %d / %d%s" % [world.mode_name(), pl.score if pl else 0, ModePumpkin.WIN_CANDY, lead]
 	elif world.is_team_mode():
 		_score_label.text = "%s     RED %d  —  %d BLUE" % [world.mode_name(), world.team_scores.get(1, 0), world.team_scores.get(2, 0)]
+		if world.mode == Game.Mode.YEETBALL:
+			var clock := ModeYeetball.clock_text(world.mode_state, world.net_time())
+			if clock != "":
+				_score_label.text += "     " + clock
 	else:
 		var pl: Player = world.local_player
 		_score_label.text = "%s     Frags: %d" % [world.mode_name(), pl.frags if pl else 0]
 	_fit_score_plate.call_deferred()
+
+
+## Yeetball: where the balls are. Out of view, an arrow at the screen edge points the way;
+## in view but far off, a small marker above the ball picks it out of the crowd.
+func _draw_ball_marks() -> void:
+	if world == null or world.mode != Game.Mode.YEETBALL or _paused:
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var vs := _ball_marks.size
+	var centre := vs * 0.5
+	var margin := 56.0
+	if vs.x < margin * 4.0 or vs.y < margin * 4.0:
+		return
+	var col := Color(1.0, 0.62, 0.15)
+	var dark := Color(0, 0, 0, 0.55)
+	for p in world.props.values():
+		if not is_instance_valid(p) or (p as Prop).kind != "yeetball":
+			continue
+		var pos: Vector3 = (p as Prop).global_position
+		var behind := cam.is_position_behind(pos)
+		var sp := cam.unproject_position(pos)
+		if not behind and Rect2(Vector2(margin, margin), vs - Vector2(margin, margin) * 2.0).has_point(sp):
+			if cam.global_position.distance_to(pos) > 18.0:
+				var tip := sp - Vector2(0, 22)
+				var tri := PackedVector2Array([tip, tip + Vector2(-9, -12), tip + Vector2(9, -12)])
+				_ball_marks.draw_colored_polygon(tri, dark)
+				_ball_marks.draw_polyline(PackedVector2Array([tri[0], tri[1], tri[2], tri[0]]), col, 2.5)
+			continue
+		var dir := (sp - centre) * (-1.0 if behind else 1.0)
+		dir = dir.normalized() if dir.length() > 1.0 else Vector2.DOWN
+		var half := centre - Vector2(margin, margin)
+		var reach := minf(half.x / maxf(absf(dir.x), 0.001), half.y / maxf(absf(dir.y), 0.001))
+		var at := centre + dir * reach
+		var side := Vector2(-dir.y, dir.x)
+		var arrow := PackedVector2Array([at + dir * 16.0, at - dir * 6.0 + side * 12.0, at - dir * 6.0 - side * 12.0])
+		_ball_marks.draw_circle(at - dir * 20.0, 10.0, dark)
+		_ball_marks.draw_circle(at - dir * 20.0, 7.0, Color(0.97, 0.97, 1.0))
+		_ball_marks.draw_colored_polygon(arrow, col)
+		_ball_marks.draw_polyline(PackedVector2Array([arrow[0], arrow[1], arrow[2], arrow[0]]), dark, 2.0)
 
 
 func _fit_score_plate() -> void:

@@ -36,6 +36,14 @@ tether that attaches to surfaces, props and players; swinging, reeling in and ou
 things pull you to them, emergency recovery after falling off. The gun stays as it is for
 now.
 
+## Themed environments (after the sports modes)
+
+- **Haunted**: a dark map in the spirit of ghost-hunting games: a night sky with no
+  sunlight, darkness that matters, and lights mappers place themselves (lamps, flickering
+  bulbs, torches), flashlights perhaps.
+- **Storm**: a stormy sky with heavy cloud, rain and realistic lightning (branching bolts,
+  the flash lighting up the map, thunder arriving after it).
+
 ## Trailer tool
 
 Scripted, recorded scenes outside the game (camera moves, directed bots, explosions),

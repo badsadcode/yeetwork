@@ -93,6 +93,10 @@ func blood(pos: Vector3, normal: Vector3, dir: Vector3, amount: float) -> void:
 			_chunk(pos + normal * 0.3, Vector3(0.12, 0.12, 0.12), Color(0.7, 0.05, 0.08), (normal + travel) * 6.0 + _rand_vec() * 4.0, 3.0)
 
 
+func confetti(pos: Vector3, normal: Vector3, amount: float) -> void:
+	_confetti(pos, normal, amount)
+
+
 func _confetti(pos: Vector3, normal: Vector3, amount: float) -> void:
 	var cols := [Color(1, 0.3, 0.4), Color(1, 0.85, 0.2), Color(0.3, 0.8, 1), Color(0.5, 1, 0.4), Color(0.9, 0.4, 1)]
 	for c in cols:

@@ -64,6 +64,7 @@ var frozen_by_player := false
 var exploded := false
 var home_transform := Transform3D.IDENTITY
 var _prev_velocity := Vector3.ZERO
+var _ball_mark: MeshInstance3D # the Yeetball's ring on the ground
 var _last_fx_time := 0.0
 
 # Client-side interpolation.
@@ -604,6 +605,38 @@ func _build_yeetball(parent: MeshInstance3D) -> void:
 	light.omni_range = 3.5
 	light.light_energy = 0.8
 	parent.add_child(light)
+	# A ring on the ground under it while it flies, so you can tell where it'll come down.
+	_ball_mark = MeshInstance3D.new()
+	var ring := TorusMesh.new()
+	ring.inner_radius = size.x * 0.75
+	ring.outer_radius = size.x * 0.95
+	ring.rings = 32
+	ring.ring_segments = 6
+	_ball_mark.mesh = ring
+	_ball_mark.scale = Vector3(1, 0.05, 1)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(1.0, 0.6, 0.15, 0.8)
+	m.no_depth_test = false
+	_ball_mark.material_override = m
+	_ball_mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_ball_mark.top_level = true
+	_ball_mark.visible = false
+	add_child(_ball_mark)
+
+
+func _place_ball_mark() -> void:
+	var from := global_position
+	var q := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 40.0, Game.L_WORLD)
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	var height: float = from.y - hit.position.y if not hit.is_empty() else 0.0
+	_ball_mark.visible = height > size.x * 1.6
+	if _ball_mark.visible:
+		var n: Vector3 = hit.normal
+		_ball_mark.global_transform = Transform3D(Basis(Quaternion(Vector3.UP, n)), hit.position + n * 0.04)
+		_ball_mark.scale = Vector3(1, 0.05, 1) * (1.0 + minf(height * 0.04, 0.8))
+		(_ball_mark.material_override as StandardMaterial3D).albedo_color.a = clampf(1.0 - height / 30.0, 0.25, 0.8)
 
 
 ## A big fuse: a glowing cylinder with metal caps.
@@ -643,6 +676,8 @@ func fan_piece() -> PuzzleFan:
 
 
 func _process(delta: float) -> void:
+	if _ball_mark:
+		_place_ball_mark()
 	if _yeet_model:
 		var v := motion_velocity()
 		var rescued := has_meta("delivered")

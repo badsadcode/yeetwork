@@ -54,6 +54,12 @@ func _handle_cmdline(execute := true) -> bool:
 			"--mode":
 				Game.mode = {"sandbox": Game.Mode.SANDBOX, "ctf": Game.Mode.CTF, "dodgeball": Game.Mode.DODGEBALL, "pumpkin": Game.Mode.PUMPKIN, "puzzle": Game.Mode.PUZZLE, "yeetball": Game.Mode.YEETBALL}.get(next, Game.Mode.SANDBOX)
 				i += 1
+			"--rules":
+				Game.yeetball_rules = 1 if next == "total" else 0
+				i += 1
+			"--minutes":
+				Game.match_minutes = int(next)
+				i += 1
 			"--spooky":
 				Game.halloween = 2 if next != "off" else 0
 				i += 1

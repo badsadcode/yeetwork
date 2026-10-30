@@ -190,13 +190,25 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   lift, work a magnet crane (a battery powers it), close a circuit (metal, water, or a
   brave Yeet who gets zapped), burn through the rope an anvil hangs on.
 
-**Yeetball** (sports, prototype). Football with gravity guns: two teams, one big glowing
-ball, two goals. Punt it, throw it, pass it, catch it, bank it off the walls; the whole ball
-over the line is a goal ("GOOOOOOOYEET!"). Kickoff after a countdown with everyone in their
-own half; the gun holds the ball 2.5 s at most (no carrying it into the net); the ball never
-hurts anyone; lost or stuck balls come back to the middle. First to 5 goals. Bots play too
-(the nearest chases the ball and punts it at the goal, the others hang back).
-Map: **Yeetball Stadium**.
+**Yeetball** (sports). Football with gravity guns: two teams, one big glowing ball, two
+goals. Punt it, throw it, pass it, catch it, bank it off the walls; the whole ball over the
+line is a goal ("GOOOOOOOYEET!"). Kickoff after a countdown (the whistle) with everyone in
+their own half; the gun holds the ball a moment at most (no carrying it into the net); the
+ball never hurts anyone. Lost balls, and balls lying still too long or with nobody near,
+come back to the middle; standing in your own net for more than 5 s gets you bounced out.
+- **Match length** (menu): 3, 5, 8 or 10 minutes, or *first to 5 goals*. The clock runs
+  only while the ball is in play; the team ahead at full time wins, five goals win early,
+  and level at full time it's **golden goal** (the next goal wins). Then a new match.
+- **Rules** (menu): *Classic Chaos* (recognisable football, 2.5 s holds) or **TOTAL YEET**:
+  4 s holds, a faster ball that bowls people over, **multi-ball** now and then, and
+  exploding barrels falling near the ball.
+- A commentator who gets far too excited (long-range screamers, goals straight from the
+  kickoff, last-second winners, hat-tricks, own goals), a crowd that goes wild, and a
+  player of the match.
+- The ball is easy to follow: arrows at the screen edge point to it when it's out of view,
+  a marker picks it out when it's far off, and a ring on the ground shows where it'll land.
+- Bots play too (the nearest chases the nearest ball and punts it at the goal, the others
+  hang back). Map: **Yeetball Stadium**.
 
 **Spooky mode.** During Halloween season (Oct 15 - Nov 3), when set to *Always* in the
 menu, or in Pumpkin Smash, every map gets:
@@ -326,6 +338,8 @@ Command-line options (after `--`):
 ```bash
 # Host directly: mode, map and bot count
 godot --path . -- --host --mode ctf --map facing --bots 6 --bot-skill 1
+# Yeetball with TOTAL YEET rules and a 3-minute clock (--rules classic|total, --minutes 0 = first to 5)
+godot --path . -- --host --mode yeetball --map yeetball_stadium --bots 5 --rules total --minutes 3
 
 # Join a server
 godot --path . -- --join 192.168.1.20
@@ -340,7 +354,8 @@ godot --headless --path . -- --host --map warehouse --mode puzzle --tour x --tou
 godot --headless --path . -- --host --map pump_house --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map scrapyard --mode puzzle --tour x --tour-mode puzzle
 
-# Yeetball: kickoff, goals, the hold limit, a lost ball, bots playing, the win
+# Yeetball: kickoff, goals, the hold limit, a lost ball, bots playing, full time, the
+# clock and golden goal, no camping, TOTAL YEET's multi-ball and barrels
 godot --headless --path . -- --host --map yeetball_stadium --mode yeetball --bots 3 --tour x --tour-mode yeetball
 
 # Headless soak test: quit after N seconds and print a summary

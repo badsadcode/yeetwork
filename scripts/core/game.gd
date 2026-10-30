@@ -101,6 +101,9 @@ var autostart := false
 var spooky := false # Halloween theme active for the current match (decided by the server) # set by a map scene run with F6 (playtest)
 var _map_cache: Array = []
 var bot_count := 3
+var yeetball_rules := 0 # 0 = Classic Chaos, 1 = TOTAL YEET
+var match_minutes := 5 # Yeetball match length; 0 = no clock (first to 5 goals)
+const MATCH_LENGTHS := [0, 3, 5, 8, 10]
 ## Water look the host picks: "classic" or "sculpted" (see Liquid.style).
 var water_style := "classic"
 ## Session override of every ocean's sea state (--sea calm|lake|ocean|stormy), not saved.
@@ -251,6 +254,8 @@ func save_settings() -> void:
 	cfg.set_value("net", "port", port)
 	cfg.set_value("match", "mode", mode)
 	cfg.set_value("match", "bots", bot_count)
+	cfg.set_value("match", "yeetball_rules", yeetball_rules)
+	cfg.set_value("match", "match_minutes", match_minutes)
 	cfg.set_value("match", "water_style", water_style)
 	cfg.set_value("match", "sky", sky_override)
 	cfg.set_value("match", "map", map)
@@ -299,6 +304,8 @@ func load_settings() -> void:
 	port = cfg.get_value("net", "port", port)
 	mode = cfg.get_value("match", "mode", mode)
 	bot_count = cfg.get_value("match", "bots", bot_count)
+	yeetball_rules = cfg.get_value("match", "yeetball_rules", yeetball_rules)
+	match_minutes = cfg.get_value("match", "match_minutes", match_minutes)
 	water_style = cfg.get_value("match", "water_style", water_style)
 	sky_override = cfg.get_value("match", "sky", sky_override)
 	var m = cfg.get_value("match", "map", map)

@@ -72,6 +72,8 @@ var _machine_accum := 0.0
 var puzzle_start := -1.0
 var puzzle_finish := -1.0
 var puzzle_results := {} # the end screen (Puzzle mode), the same on every peer
+## What the HUD shows of a mode's state (Yeetball: rules, clock, overtime), set by the server.
+var mode_state := {}
 
 
 func _ready() -> void:
@@ -207,7 +209,10 @@ func _make_mode(m: int) -> ModeBase:
 
 
 func mode_name() -> String:
-	return "%s · %s" % [Game.MODE_NAMES[mode], Game.map_display_name(map_key)]
+	var name: String = Game.MODE_NAMES[mode]
+	if mode == Game.Mode.YEETBALL and mode_state.get("rules", 0) == 1:
+		name = "TOTAL YEETBALL"
+	return "%s · %s" % [name, Game.map_display_name(map_key)]
 
 
 func is_team_mode() -> bool:
@@ -324,6 +329,7 @@ func _build_init_state() -> Dictionary:
 		"puzzle": arena.puzzle.map(func(n: PuzzleNode) -> bool: return n.active),
 		"puzzle_time": [puzzle_start, puzzle_finish],
 		"puzzle_results": puzzle_results,
+		"mode_state": mode_state,
 		"machines": _machine_buffer(),
 		"floods": arena.puzzle.filter(func(n: PuzzleNode) -> bool: return n is FloodZone).map(func(n: FloodZone) -> Array: return [n.puzzle_index] + n.full_state()),
 	}
@@ -375,6 +381,7 @@ func _s_init(state: Dictionary) -> void:
 	for f: Array in state.get("floods", []):
 		_s_flood(f[0], f[1], f[2])
 	puzzle_results = state.get("puzzle_results", {})
+	mode_state = state.get("mode_state", {})
 	var pt: Array = state.get("puzzle_time", [-1.0, -1.0])
 	puzzle_start = pt[0]
 	puzzle_finish = pt[1]
@@ -1216,6 +1223,16 @@ func _s_stats(id: int, frags: int, deaths: int, score: int) -> void:
 		pl.deaths = deaths
 		pl.score = score
 		hud.on_players_changed()
+
+
+func server_mode_state(state: Dictionary) -> void:
+	_bc_all("_s_mode_state", [state])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_mode_state(state: Dictionary) -> void:
+	mode_state = state
+	hud.on_players_changed()
 
 
 func server_team_scores_changed() -> void:
@@ -2219,6 +2236,16 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 		"score":
 			fx.explosion(pos + Vector3.UP * 2.0, 3.0)
 			Sfx.play_ui("score", 0.0)
+		"confetti":
+			fx.confetti(pos, dir, amount)
+		"whistle":
+			Sfx.play_ui("whistle_long" if amount > 1.0 else "whistle", -3.0)
+		"cheer":
+			Sfx.play_ui("cheer", lerpf(-12.0, -2.0, clampf(amount, 0.0, 1.0)))
+		"horn":
+			Sfx.play_ui("horn", -4.0)
+		"beep":
+			Sfx.play_ui("pickup", -6.0, amount)
 		"steam":
 			_steam(pos, amount)
 			Sfx.play3d("sizzle", pos, -2.0, rng.randf_range(0.9, 1.1))

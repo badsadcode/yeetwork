@@ -1,8 +1,9 @@
 extends Node
 ## Developer check for Yeetball: kickoff (the ball waits on its spot, can't be grabbed, then
 ## goes), a goal (score, celebration, everyone back to their half), the hold limit, a lost
-## ball coming back, the win at 5, and bots that actually play the ball. Exits 1 if a step
-## fails. Usage: godot -- --host --map yeetball_stadium --mode yeetball --bots 3 --tour x --tour-mode yeetball
+## ball coming back, bots that actually play the ball, the win at 5 and full time, the match
+## clock and golden goal, no camping in your own net, and TOTAL YEET's multi-ball and
+## barrels. Exits 1 if a step fails. Usage: godot -- --host --map yeetball_stadium --mode yeetball --bots 3 --tour x --tour-mode yeetball
 
 var world: Node
 var out_dir := ""
@@ -103,7 +104,62 @@ func _ready() -> void:
 	b.global_position = red_goal.mouth() + (red_goal.global_transform.basis.z * -1.6)
 	b.linear_velocity = Vector3.ZERO
 	await _wait(0.3)
-	_check("the fifth goal wins, the scores reset", world.team_scores.get(Game.TEAM_BLUE, 0) == 0 and world.team_scores.get(Game.TEAM_RED, 0) == 0, "%s" % world.team_scores)
+	_check("the fifth goal wins: full time", mode.phase == ModeYeetball.Phase.FULL_TIME and world.team_scores.get(Game.TEAM_BLUE, 0) == ModeYeetball.GOALS_TO_WIN, "phase %d, %s" % [mode.phase, world.team_scores])
+	await _wait(ModeYeetball.FULL_TIME + 0.3)
+	_check("after full time a new match: scores reset, kickoff", world.team_scores.get(Game.TEAM_BLUE, 0) == 0 and world.team_scores.get(Game.TEAM_RED, 0) == 0 and mode.phase == ModeYeetball.Phase.KICKOFF, "%s, phase %d" % [world.team_scores, mode.phase])
+	# The clock: runs in play only, shared with the HUD.
+	mode.minutes = 1
+	mode._new_match()
+	await _wait(ModeYeetball.COUNTDOWN + 0.3)
+	var c0 := mode.clock_left
+	await _wait(1.0)
+	var ran := c0 - mode.clock_left
+	var shown := ModeYeetball.clock_text(world.mode_state, world.net_time())
+	_check("the match clock runs in play, the HUD shows it", ran > 0.7 and ran < 1.3 and world.mode_state.get("clock_end", -1.0) > 0.0 and shown.begins_with("0:5"), "ran %.2f s, shows %s" % [ran, shown])
+	# Time up with the scores level: golden goal, and the next goal wins.
+	world.team_scores = {1: 1, 2: 1}
+	mode.clock_left = 0.2
+	await _wait(0.5)
+	_check("level at full time: golden goal", mode.overtime and mode.phase == ModeYeetball.Phase.PLAY and ModeYeetball.clock_text(world.mode_state, world.net_time()) == "GOLDEN GOAL", "overtime %s, phase %d" % [mode.overtime, mode.phase])
+	b.global_position = blue_goal.mouth() + (blue_goal.global_transform.basis.z * -1.6)
+	b.linear_velocity = Vector3.ZERO
+	await _wait(0.3)
+	_check("the golden goal ends it", mode.phase == ModeYeetball.Phase.FULL_TIME and world.team_scores.get(Game.TEAM_RED, 0) == 2, "phase %d, %s" % [mode.phase, world.team_scores])
+	# (the rules run on physics time, which can fall behind the wall clock in a hitch)
+	await _until(func() -> bool: return mode.phase == ModeYeetball.Phase.PLAY, 20.0)
+	# No camping in your own net.
+	var home := mode.goal_of(pl.team)
+	mode._idle = -100.0
+	var camp_at := home.global_transform * Vector3(0, 0.1, -1.3)
+	_place_player(camp_at)
+	await _wait(0.3)
+	var camping := home.contains_ball(pl.global_position + Vector3.UP * 0.5, 0.0)
+	await _wait(ModeYeetball.CAMP_TIME + 1.5)
+	var out := not home.contains_ball(pl.global_position + Vector3.UP * 0.5, 0.0)
+	_check("no camping in your own net", camping and out and mode.phase == ModeYeetball.Phase.PLAY, "in the net at first %s, now at %s, phase %d" % [camping, pl.global_position.snapped(Vector3.ONE * 0.1), mode.phase])
+	# TOTAL YEET: multi-ball and barrels; a goal with an extra ball counts.
+	mode.rules = ModeYeetball.Rules.TOTAL
+	mode._multiball_t = 0.0
+	await _wait(0.3)
+	_check("TOTAL YEET: multi-ball", mode.balls().size() == 3, "%d balls" % mode.balls().size())
+	mode._barrel_t = 0.0
+	await _wait(0.2)
+	var barrels: int = world.props.values().filter(func(p): return is_instance_valid(p) and p.kind == "boom_barrel").size()
+	_check("TOTAL YEET: a barrel from the sky", barrels > 0, "%d boom barrels" % barrels)
+	_look(Vector3(0, 12, -16), world.arena.ball_spot)
+	await _wait(0.6)
+	_shot("y04_multiball")
+	_look(Vector3(0, 2, 4), Vector3(0, 25, 40)) # the balls out of view: arrows at the edge
+	await _wait(0.3)
+	_shot("y05_arrows")
+	var red1: int = world.team_scores.get(Game.TEAM_RED, 0)
+	var x: Prop = mode.balls()[1]
+	x.global_position = blue_goal.mouth() + (blue_goal.global_transform.basis.z * -1.6)
+	x.linear_velocity = Vector3.ZERO
+	await _wait(0.3)
+	_check("a goal with an extra ball counts", world.team_scores.get(Game.TEAM_RED, 0) == red1 + 1, "%s" % world.team_scores)
+	await _wait(ModeYeetball.CELEBRATE + 0.3)
+	_check("the kickoff clears the extra balls", mode.balls().size() == 1 and mode.phase == ModeYeetball.Phase.KICKOFF, "%d balls, phase %d" % [mode.balls().size(), mode.phase])
 	print("YEETBALL CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -112,6 +168,13 @@ func _check(what: String, ok: bool, detail: String) -> void:
 	print("%s  %s  (%s)" % ["PASS" if ok else "FAIL", what, detail])
 	if not ok:
 		_failed += 1
+
+
+func _until(ok: Callable, limit: float) -> void:
+	var t := 0.0
+	while not ok.call() and t < limit:
+		await _wait(0.1)
+		t += 0.1
 
 
 func _place_player(pos: Vector3) -> void:

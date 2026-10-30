@@ -19,6 +19,8 @@ var _spooky: OptionButton
 var _water: OptionButton
 var _sky: OptionButton
 var _bots: SpinBox
+var _rules: OptionButton
+var _minutes: OptionButton
 var _pages := {}
 var _page_title: Label
 var _preview: CharacterPreview
@@ -145,7 +147,14 @@ func _first_focusable(n: Node) -> Control:
 
 func _page_play(stack: Control) -> Control:
 	var v := _page(stack)
-	var grid := _grid(v)
+	# The options scroll if they don't fit (Yeetball adds two); START MATCH stays in view.
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	v.add_child(scroll)
+	var grid := _grid(scroll)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_mode = OptionButton.new()
 	for m in Game.MODE_NAMES:
 		_mode.add_item(m)
@@ -159,6 +168,25 @@ func _page_play(stack: Control) -> Control:
 	_bots.max_value = 11
 	_bots.value = Game.bot_count
 	_field(grid, "Bots", _bots)
+	_rules = OptionButton.new()
+	for item in ["Classic Chaos", "TOTAL YEET"]:
+		_rules.add_item(item)
+	_rules.selected = clampi(Game.yeetball_rules, 0, 1)
+	_rules.tooltip_text = "Classic Chaos: recognisable football with gravity guns.
+TOTAL YEET: longer holds, a faster ball, multi-ball and barrels from the sky."
+	_field(grid, "Yeetball rules", _rules)
+	_minutes = OptionButton.new()
+	for m: int in Game.MATCH_LENGTHS:
+		_minutes.add_item("First to 5 goals" if m == 0 else "%d minutes" % m)
+	_minutes.selected = maxi(Game.MATCH_LENGTHS.find(Game.match_minutes), 0)
+	_field(grid, "Match length", _minutes)
+	var sport_only := func(i: int) -> void:
+		var on := i == Game.Mode.YEETBALL
+		for c: Control in [_rules, _minutes]:
+			c.visible = on
+			grid.get_child(c.get_index() - 1).visible = on # its label
+	_mode.item_selected.connect(sport_only)
+	sport_only.call(_mode.selected)
 	_spooky = OptionButton.new()
 	for item in ["Off", "Auto (Halloween season)", "Always"]:
 		_spooky.add_item(item)
@@ -178,8 +206,10 @@ func _page_play(stack: Control) -> Control:
 	if Game.sky_override == "":
 		_sky.selected = 0
 	_field(grid, "Environment", _sky)
-	_spacer(v)
-	var host := _action_button(v, "START MATCH", "YellowButton")
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 18)
+	v.add_child(row)
+	var host := _action_button(row, "START MATCH", "YellowButton")
 	host.pressed.connect(func():
 		_store()
 		host_pressed.emit())
@@ -187,7 +217,10 @@ func _page_play(stack: Control) -> Control:
 	hint.text = "Friends on your network join you with the address shown in the pause menu."
 	hint.add_theme_font_size_override("font_size", 16)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(hint)
+	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint.custom_minimum_size.x = 160
+	row.add_child(hint)
 	_pack_notices(v)
 	return v
 
@@ -454,6 +487,8 @@ func _store() -> void:
 	Game.sky_override = "" if _sky.selected <= 0 else MapEnvironment.PRESETS[_sky.selected - 1]
 	Game.map = _map.get_item_metadata(_map.selected) if _map.selected >= 0 else "facing"
 	Game.bot_count = int(_bots.value)
+	Game.yeetball_rules = _rules.selected
+	Game.match_minutes = Game.MATCH_LENGTHS[maxi(_minutes.selected, 0)]
 	Game.port = int(_port.value)
 	Game.join_address = _address.text.strip_edges()
 	Game.save_settings()
