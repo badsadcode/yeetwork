@@ -31,6 +31,16 @@ uniform int wave_count = 12;
 uniform float swell_height = 0.0;
 uniform float swell_length = 170.0;
 uniform float swell_angle = 1.2;
+// Confused sea (storms, after Thornwake's SpectrumWaves): 0 = every wave fans out around
+// one wind direction (above). 1 = each wavelength runs in three fixed compass directions
+// (120 deg apart, turned by the golden angle from one wavelength to the next), weighted at
+// every point by how close they run to the local heading (cos^dir_power, energy kept), so
+// wave trains cross at wide angles instead of marching in parallel lines.
+uniform float cross_sea = 0.0;
+// Directional spread of the confused sea: low = wide (storm), high = narrow.
+uniform float dir_power = 1.6;
+// The local heading: the wind turned by a slow regional field (radians, over ~1 km).
+uniform float heading_vary = 0.0;
 
 // x = direction offset from the wind (times spread), y = wavelength (m),
 // z = height / wavelength, w = phase. Waves 7+ are the secondary ripples.
@@ -60,6 +70,12 @@ float wave_group(vec2 p, float i) {
 	return 0.625 + 0.375 * sin(a) * sin(b);
 }
 
+// Local wave heading at p: the wind turned by a smooth regional field (Liquid._heading()).
+float wave_heading(vec2 p) {
+	float f = 0.6 * sin(p.x * 0.0061 + 1.7 * sin(p.y * 0.0043 + 0.8)) + 0.4 * sin(p.y * 0.0089 - p.x * 0.0027 + 2.1);
+	return wind_angle + heading_vary * f;
+}
+
 // Height of the swell at p (two crossing components; Liquid.swell_at() mirrors it).
 float swell(vec2 p) {
 	if (swell_height <= 0.0) {
@@ -83,16 +99,20 @@ float swell(vec2 p) {
 // round; the total stays just below folding.
 vec3 sculpted_offset(vec2 p, out float crest) {
 	float amp_scale = wave_height * wave_fade(p);
-	float amps[12];
-	float ks[12];
-	float us[12];
-	vec2 dirs[12];
+	float amps[36];
+	float ks[36];
+	float us[36];
+	vec2 dirs[36];
 	float off_y = 0.0;
 	float total = 0.0;
 	float share_sum = 0.0;
-	float steep_sum = 0.0;
+	bool cross = cross_sea > 0.5;
+	int per = cross ? 3 : 1;
+	float head = cross ? wave_heading(p) : 0.0;
+	for (int n = 0; n < 36; n++) {
+		amps[n] = 0.0;
+	}
 	for (int i = 0; i < 12; i++) {
-		amps[i] = 0.0;
 		if (i >= wave_count) {
 			continue;
 		}
@@ -102,28 +122,45 @@ vec3 sculpted_offset(vec2 p, out float crest) {
 		if (res <= 0.0) {
 			continue;
 		}
-		float ang = wind_angle + w.x * spread;
-		vec2 d = vec2(cos(ang), sin(ang));
 		float k = 6.2831853 / wl;
 		float c = sqrt(9.8 / k) * wave_speed;
-		float a = w.z * wl * amp_scale * res * wave_group(p, float(i)) * (i >= 7 ? ripple_intensity : 1.0);
-		a = min(a, 0.34 / k); // no wave steeper than it can stand
-		float f = k * (dot(d, p) - c * wave_time) + w.w;
-		float u = f + asymmetry * 0.5 * sin(f); // skew: steep front, gentle back
-		float s = max(0.5 + 0.5 * sin(u), 1e-5); // pow(0, x) can be NaN on some GPUs
-		off_y += a * (2.0 * pow(s, crest_sharpness) - 1.0);
-		amps[i] = a;
-		ks[i] = k;
-		us[i] = u;
-		dirs[i] = d;
-		total += a;
-		share_sum += k * k * a * a * a;
-		steep_sum += k * a;
+		float a0 = w.z * wl * amp_scale * res * wave_group(p, float(i)) * (i >= 7 ? ripple_intensity : 1.0);
+		// Confused sea: this wavelength's three compass directions and their weights.
+		float wts[3] = {1.0, 0.0, 0.0};
+		float wsum = 1.0;
+		if (cross) {
+			wsum = 0.0;
+			for (int j = 0; j < 3; j++) {
+				float cj = cos(float(i) * 2.3999632 + float(j) * 2.0943951 - head);
+				wts[j] = cj > 0.0 ? pow(cj, dir_power) : 0.0;
+				wsum += wts[j];
+			}
+		}
+		for (int j = 0; j < per; j++) {
+			if (wts[j] <= 0.0) {
+				continue;
+			}
+			float ang = cross ? float(i) * 2.3999632 + float(j) * 2.0943951 : wind_angle + w.x * spread;
+			vec2 d = vec2(cos(ang), sin(ang));
+			float a = a0 * sqrt(wts[j] / max(wsum, 1e-6)); // energy kept whatever the weights
+			a = min(a, 0.34 / k); // no wave steeper than it can stand
+			float f = k * (dot(d, p) - c * wave_time) + w.w + float(j) * 1.7;
+			float u = f + asymmetry * 0.5 * sin(f); // skew: steep front, gentle back
+			float s = max(0.5 + 0.5 * sin(u), 1e-5); // pow(0, x) can be NaN on some GPUs
+			off_y += a * (2.0 * pow(s, crest_sharpness) - 1.0);
+			int n = i * 3 + j;
+			amps[n] = a;
+			ks[n] = k;
+			us[n] = u;
+			dirs[n] = d;
+			total += a;
+			share_sum += k * k * a * a * a;
+		}
 	}
 	// Each wave's share of the chop, and a cap so the sum of k*a*q stays below 1 (no folding).
 	vec2 hor = vec2(0.0);
 	float pinch = 0.0;
-	for (int i = 0; i < 12; i++) {
+	for (int i = 0; i < 36; i++) {
 		if (amps[i] <= 0.0) {
 			continue;
 		}

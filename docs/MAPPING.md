@@ -98,7 +98,9 @@ All kit nodes preview themselves in the editor. In game they become the real thi
 | Map Name, Author, Description | shown in the menu and HUD |
 | Sky | the environment: `sunset`, `day`, `tropical`, `desert`, `snow`, `volcano`, `storm`, `night`, `space` (sky, light, haze, horizon scenery, clouds). The host can override it per match |
 | Sun Rotation Degrees, Sun Energy Scale, Ambient Scale | tweak the preset |
-| Ocean Preset | sea state with the *Sculpted* water style: `calm`, `lake`, `ocean`, `stormy` |
+| Ocean Preset | sea state with the *Sculpted* water style: `calm`, `lake`, `ocean`, `stormy` (a confused storm sea: wave trains cross from wide angles and the heading drifts across the map) |
+| Weather | `none`, `rain` or `storm` (rain plus wind wisps and lightning; the `storm` sky brings it by itself). Rain falls around each player's camera with splashes where it lands and its own sound |
+| Rain Intensity, Rain Wind | how hard it rains (0.1 drizzle .. 1 downpour) and the wind slanting it (m/s) |
 | Ocean, Ocean Level | surround the map with an animated sea whose surface sits at *Ocean Level*. Players who fall in sink and drown; wooden and rubber props float. Put your floors above it, and an island's sides look best reaching a few metres below it |
 | Kill Height | anything below dies or respawns. Keep it ≥ 3 m below your lowest floor |
 | Avoid Areas | XZ rectangles bots walk around (pits). `Rect2(x, z, width, depth)` |
@@ -163,6 +165,9 @@ A destructible wall, floor or bridge. In game it fractures into irregular pieces
   - `kill`: instant death, for under-map voids.
   - `wind`: constant push, for updrafts. **Wind** is the acceleration in m/s². Gravity
     is 24, so use more than 24 upward to lift people.
+  - `fire`: a burning place (campfire, burning wreck, fire pit). Flames rise from the
+    bottom of the box; players who step in catch fire, and wooden props in it burn.
+    **Fire Color**: `orange`, or `blue` / `green` magic fire.
 - **Size** is the box size. For liquids, the surface sits 80% of the way up the box and
   the liquid fills the box below it. Give the pool a floor and walls: a liquid without a
   floor under it looks bottomless.

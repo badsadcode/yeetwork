@@ -2,7 +2,7 @@ class_name Weather
 extends Node3D
 ## Storm weather around the local camera (visual and audio only, every peer on its own):
 ## wisps of wind streaking past, spray bursting off the ship's hull, and lightning that
-## lights up everything for a moment, followed by thunder.
+## lights up everything for a moment, followed by thunder, and heavy rain (Rain).
 
 const WIND := Vector3(0.96, 0.0, 0.3) # matches the storm's wind (Liquid wind_angle 0.3)
 
@@ -54,6 +54,7 @@ func _ready() -> void:
 	_flash.light_energy = 0.0
 	_flash.shadow_enabled = false
 	add_child(_flash)
+	add_child(Rain.create(0.9, WIND * 7.0))
 
 
 func _process(delta: float) -> void:

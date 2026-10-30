@@ -9,8 +9,8 @@ extends Node
 @export_multiline var description := ""
 ## Environment: sky, light, haze, distant scenery and clouds. sunset, day, tropical
 ## (islands), desert (mesas, dunes), snow (peaks, pines), volcano (red sky, ash, a glowing
-## volcano), night or space.
-@export_enum("sunset", "day", "tropical", "desert", "snow", "volcano", "night", "space") var sky := "sunset":
+## volcano), storm (dark slate sky, low clouds), night or space.
+@export_enum("sunset", "day", "tropical", "desert", "snow", "volcano", "storm", "night", "space") var sky := "sunset":
 	set(v):
 		sky = v
 		_refresh_preview()
@@ -33,6 +33,12 @@ extends Node
 @export var ocean_level := -4.0
 ## Sea state with the "sculpted" water style: calm, lake, ocean or stormy.
 @export_enum("calm", "lake", "ocean", "stormy") var ocean_preset := "ocean"
+## Weather around the players: rain, or a full storm (rain, wind wisps and lightning).
+## The "storm" sky brings the storm by itself.
+@export_enum("none", "rain", "storm") var weather := "none"
+## How hard it rains (0.1 drizzle .. 1 downpour) and the wind that slants it (m/s).
+@export_range(0.1, 1.0, 0.05) var rain_intensity := 0.7
+@export var rain_wind := Vector3(3.0, 0.0, 1.0)
 ## Players and props below this height die / respawn.
 @export var kill_height := -40.0
 ## Areas (XZ rectangles in world space) bots should walk around, e.g. pits.

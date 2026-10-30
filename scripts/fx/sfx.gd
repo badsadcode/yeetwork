@@ -57,6 +57,14 @@ func _ready() -> void:
 	for w: AudioStreamWAV in _streams.wind:
 		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		w.loop_end = w.data.size() / 2 - int(RATE * 0.5) # see _wind crossfade
+	_add("rain", 4.0, _rain)
+	_add("fire", 3.0, _fire)
+	for w: AudioStreamWAV in _streams.fire:
+		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		w.loop_end = w.data.size() / 2 - int(RATE * 0.5) # same crossfade as wind
+	for w: AudioStreamWAV in _streams.rain:
+		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		w.loop_end = w.data.size() / 2 - int(RATE * 0.5) # same crossfade as wind
 	_streams.hit = _streams.smack
 	_streams.clang = _streams.metal
 	for i in POOL:
@@ -247,6 +255,51 @@ func _squelch(buf: PackedFloat32Array, v: int) -> void:
 
 
 ## Seamless howling wind for spooky ambience (fades to match its own start).
+## Fire: a low roar with wood crackling and popping on top (a seamless loop).
+func _fire(buf: PackedFloat32Array, v: int) -> void:
+	var n := buf.size()
+	var roar := _lp_noise(n, 260.0 * _vr(v, 0.1))
+	var hiss := _bp_noise(n, 1800.0)
+	for i in n:
+		var t := float(i) / RATE
+		var breathe := 0.75 + 0.25 * sin(t * 5.1 + v) * sin(t * 2.3)
+		buf[i] += roar[i] * 0.42 * breathe + hiss[i] * 0.05
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 311 + v
+	for d in 160: # crackles: sharp clicks, now and then a louder pop
+		var at := rng.randi() % (n - 900)
+		var pop := rng.randf() < 0.12
+		var amp := rng.randf_range(0.25, 0.5) if pop else rng.randf_range(0.06, 0.2)
+		var dur := 700 if pop else 160
+		for j in dur:
+			buf[at + j] += rng.randf_range(-1.0, 1.0) * exp(-j / (90.0 if pop else 18.0)) * amp
+	var fade := int(RATE * 0.5)
+	for i in fade:
+		var k := float(i) / fade
+		buf[i] = buf[i] * k + buf[n - fade + i] * (1.0 - k)
+
+
+## Rain: a soft hiss with a thousand little patters on top (a seamless loop).
+func _rain(buf: PackedFloat32Array, v: int) -> void:
+	var n := buf.size()
+	var hiss := _bp_noise(n, 2600.0 * _vr(v, 0.08))
+	var body := _lp_noise(n, 900.0)
+	for i in n:
+		buf[i] += hiss[i] * 0.16 + body[i] * 0.1
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77 + v
+	for d in 900: # individual drops: tiny clicks with a quick ring
+		var at := rng.randi() % (n - 400)
+		var amp := rng.randf_range(0.03, 0.12)
+		var f := rng.randf_range(1800.0, 5200.0)
+		for j in 220:
+			buf[at + j] += sin(TAU * f * j / RATE) * exp(-j / 30.0) * amp
+	var fade := int(RATE * 0.5)
+	for i in fade:
+		var k := float(i) / fade
+		buf[i] = buf[i] * k + buf[n - fade + i] * (1.0 - k)
+
+
 func _wind(buf: PackedFloat32Array, v: int) -> void:
 	var n := buf.size()
 	var a := _bp_noise(n, 500.0 * _vr(v, 0.1))

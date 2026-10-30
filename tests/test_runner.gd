@@ -280,7 +280,29 @@ func _run() -> void:
 	check("crate shatters into boards", world.get_prop(box_id) == null and boards > 0, "crate gone: %s, new board props %d" % [world.get_prop(box_id) == null, boards])
 
 	await _water_tests()
+	await _fire_tests()
 	_controls_test()
+
+
+## Fire: a burning place sets a player alight and hurts them; jumping in water puts the fire
+## out; a burning crate burns down into boards.
+func _fire_tests() -> void:
+	world.arena.hazard("fire", Transform3D(Basis.IDENTITY, Vector3(-58, 0.5, -30)), Vector3(2, 1, 2))
+	await reset(Vector3(-58, 0.2, -30), 0.0)
+	pl.hp = 100.0
+	await ticks(40)
+	var lit: bool = world.is_burning(pl)
+	var hurt := pl.hp < 100.0
+	await reset(Vector3(300, -1.0, 0), 0.0) # into the test pool
+	await ticks(30)
+	check("fire place burns, water puts it out", lit and hurt and not world.is_burning(pl), "burning %s, hp %.0f, still burning in water %s" % [lit, pl.hp, world.is_burning(pl)])
+	var crate: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, Vector3(-50, 0.6, -30)))
+	var crate_id := crate.prop_id
+	await ticks(2)
+	world.server_ignite_prop(crate, 0.5)
+	var lit_crate: bool = world.is_burning(crate)
+	await ticks(80)
+	check("burning crate burns down", lit_crate and world.get_prop(crate_id) == null, "lit %s, gone %s" % [lit_crate, world.get_prop(crate_id) == null])
 
 
 ## Rebinding: swap the mouse buttons, save, reset, load back (a scratch ConfigFile, so the

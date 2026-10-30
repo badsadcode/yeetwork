@@ -62,12 +62,14 @@ const SCULPTED := {
 	"stormy": {
 		"wave_height": 1.9, "wave_length": 1.15, "wave_speed": 1.25, "choppiness": 1.5, "crest_sharpness": 2.4,
 		"asymmetry": 0.5, "ripple_intensity": 1.4, "spread": 1.5, "wind_angle": 0.3, "foam_amount": 1.8, "roughness_value": 0.06,
-		"foam_streaks": 0.9, "spray": 3.0,
+		"foam_streaks": 0.9, "spray": 3.0, "cross_sea": 1.0, "dir_power": 1.6, "heading_vary": 0.9,
 		"shallow_color": Color(0.12, 0.4, 0.44), "deep_color": Color(0.02, 0.12, 0.18), "scatter_color": Color(0.22, 0.62, 0.52),
 		"fog": Color(0.04, 0.22, 0.26), "visibility": 11.0,
 	},
 }
-const SCULPTED_KEYS := ["wind_angle", "spread", "choppiness", "crest_sharpness", "asymmetry", "ripple_intensity", "swell_height", "swell_length", "swell_angle"]
+const SCULPTED_KEYS := ["wind_angle", "spread", "choppiness", "crest_sharpness", "asymmetry", "ripple_intensity", "swell_height", "swell_length", "swell_angle", "cross_sea", "dir_power", "heading_vary"]
+## Sea states without a confused sea: one wind direction everywhere.
+const SCULPTED_DEFAULTS := {"cross_sea": 0.0, "dir_power": 1.6, "heading_vary": 0.0}
 ## Long swell per sea state (oceans only): [height m, wavelength m].
 const SWELL := {"calm": [0.45, 200.0], "lake": [0.0, 170.0], "ocean": [1.2, 170.0], "stormy": [2.8, 150.0]}
 ## Water style of the match: "classic" (liquid.gdshader) or "sculpted" (liquid_sculpted.gdshader).
@@ -134,6 +136,7 @@ func _ready() -> void:
 		if not SCULPTED.has(sea):
 			sea = "ocean" if ocean else "calm"
 		params.merge(SCULPTED[sea], true)
+		params.merge(SCULPTED_DEFAULTS, false)
 		var sw: Array = SWELL[sea] if ocean else [0.0, 170.0]
 		params.swell_height = sw[0]
 		params.swell_length = sw[1]
@@ -308,6 +311,12 @@ static func _sculpted_group(p: Vector2, i: float, t: float) -> float:
 	return 0.625 + 0.375 * sin(a) * sin(b)
 
 
+## Local wave heading at p (mirror of wave_heading() in the shader).
+func _heading(p: Vector2) -> float:
+	var f := 0.6 * sin(p.x * 0.0061 + 1.7 * sin(p.y * 0.0043 + 0.8)) + 0.4 * sin(p.y * 0.0089 - p.x * 0.0027 + 2.1)
+	return float(params.wind_angle) + float(params.heading_vary) * f
+
+
 func _sculpted(p: Vector2, t: float) -> Vector4:
 	var amp_scale: float = params.wave_height * _fade(p)
 	var min_wl := _spacing * 2.8
@@ -316,25 +325,41 @@ func _sculpted(p: Vector2, t: float) -> Vector4:
 	var off_y := 0.0
 	var total := 0.0
 	var share_sum := 0.0
+	var cross: bool = float(params.cross_sea) > 0.5
+	var head := _heading(p) if cross else 0.0
+	var power: float = params.dir_power
 	for i in count:
 		var w: Vector4 = SWAVES[i]
 		var wl: float = w.y * params.wave_length
 		var res := smoothstep(min_wl, min_wl * 1.5, wl)
 		if res <= 0.0:
 			continue
-		var ang: float = params.wind_angle + w.x * params.spread
-		var d := Vector2(cos(ang), sin(ang))
 		var k := TAU / wl
 		var c := sqrt(9.8 / k) * float(params.wave_speed)
-		var a: float = w.z * wl * amp_scale * res * _sculpted_group(p, i, t) * (float(params.ripple_intensity) if i >= 7 else 1.0)
-		a = minf(a, 0.34 / k)
-		var f := k * (d.dot(p) - c * t) + w.w
-		var u: float = f + params.asymmetry * 0.5 * sin(f)
-		var s := maxf(0.5 + 0.5 * sin(u), 1e-5)
-		off_y += a * (2.0 * pow(s, params.crest_sharpness) - 1.0)
-		waves.append([a, k, u, d])
-		total += a
-		share_sum += k * k * a * a * a
+		var a0: float = w.z * wl * amp_scale * res * _sculpted_group(p, i, t) * (float(params.ripple_intensity) if i >= 7 else 1.0)
+		# Confused sea: this wavelength's three compass directions and their weights.
+		var wts := [1.0, 0.0, 0.0]
+		var wsum := 1.0
+		if cross:
+			wsum = 0.0
+			for j in 3:
+				var cj := cos(i * 2.3999632 + j * 2.0943951 - head)
+				wts[j] = pow(cj, power) if cj > 0.0 else 0.0
+				wsum += wts[j]
+		for j in (3 if cross else 1):
+			if wts[j] <= 0.0:
+				continue
+			var ang: float = i * 2.3999632 + j * 2.0943951 if cross else params.wind_angle + w.x * params.spread
+			var d := Vector2(cos(ang), sin(ang))
+			var a: float = a0 * sqrt(wts[j] / maxf(wsum, 1e-6))
+			a = minf(a, 0.34 / k)
+			var f := k * (d.dot(p) - c * t) + w.w + j * 1.7
+			var u: float = f + params.asymmetry * 0.5 * sin(f)
+			var s := maxf(0.5 + 0.5 * sin(u), 1e-5)
+			off_y += a * (2.0 * pow(s, params.crest_sharpness) - 1.0)
+			waves.append([a, k, u, d])
+			total += a
+			share_sum += k * k * a * a * a
 	var hor := Vector2.ZERO
 	var pinch := 0.0
 	for wv in waves:

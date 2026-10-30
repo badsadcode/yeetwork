@@ -28,6 +28,7 @@ var flag_stands := {} # team -> Vector3 (base of the flag)
 var initial_props: Array = [] # [kind, Transform3D]
 var kill_y := -45.0
 var avoid_rects: Array[Rect2] = [] # XZ areas bots should route around
+var fire_areas: Array = [] # [Transform3D, size]: burning places (World sets things alight in them)
 ## A moving body the whole map rides on (High Seas' ship), or null. When set, spawn points,
 ## flag stands, initial props and props' home transforms are in its local space; use
 ## to_world() / xf_world() / flag_pos() to read them.
@@ -179,8 +180,8 @@ func flag_stand(team: int, stand: Vector3) -> void:
 	light(stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
 
 
-## Liquid pool (acid, lava or water), kill volume or wind volume.
-func hazard(kind: String, xf: Transform3D, size: Vector3, damage := 22.0, wind := Vector3.ZERO) -> void:
+## Liquid pool (acid, lava or water), kill volume, wind volume or a burning place (fire).
+func hazard(kind: String, xf: Transform3D, size: Vector3, damage := 22.0, wind := Vector3.ZERO, fire_color := "orange") -> void:
 	var t := TriggerVolume.new()
 	t.transform = xf
 	add_child(t)
@@ -189,6 +190,11 @@ func hazard(kind: String, xf: Transform3D, size: Vector3, damage := 22.0, wind :
 			t.setup(TriggerVolume.Kind.KILL, size)
 		"wind":
 			t.setup(TriggerVolume.Kind.WIND, size, wind)
+		"fire":
+			# A burning place: World sets alight whoever and whatever stands in it.
+			t.queue_free()
+			Burning.area(self, xf, size, fire_color)
+			fire_areas.append([xf, size])
 		_:
 			# Liquids: the surface sits 30% of the way up the box; the Liquid makes its own volume.
 			t.queue_free()
@@ -215,6 +221,10 @@ func _build_scene_map(path: String) -> void:
 			add_child(Liquid.create_ocean(settings.ocean_level, Game.sea_override if Game.sea_override != "" else settings.ocean_preset))
 	if not _has_class(root, "WorldEnvironment") and not _has_class(root, "DirectionalLight3D"):
 		environment_preset(settings.sky if settings else "sunset", settings)
+	if settings and settings.weather == "rain":
+		add_child(Rain.create(settings.rain_intensity, settings.rain_wind))
+	elif settings and settings.weather == "storm" and not get_children().any(func(c: Node) -> bool: return c is Weather):
+		add_child(Weather.new())
 	_collect(root)
 
 
@@ -261,7 +271,7 @@ func _collect(n: Node) -> void:
 		lift(lp.global_position, lp.global_position + lp.global_transform.basis * lp.travel, lp.period, lp.phase, lp.size)
 	elif n is HazardVolume:
 		var hv := n as HazardVolume
-		hazard(hv.kind, Transform3D(hv.global_transform.basis.orthonormalized(), hv.global_position), hv.size, hv.damage, hv.wind)
+		hazard(hv.kind, Transform3D(hv.global_transform.basis.orthonormalized(), hv.global_position), hv.size, hv.damage, hv.wind, hv.fire_color)
 	elif n is CSGShape3D:
 		var csg := n as CSGShape3D
 		if csg.is_root_shape() and csg.use_collision:
@@ -331,11 +341,15 @@ func _environment(space := false) -> void:
 
 
 func environment_preset(preset: String, settings: Node = null) -> void:
+	# A stormy map keeps its storm (wind, lightning, rain) whatever sky the host picked.
+	var storm := preset == "storm"
 	if Game.sky_override != "" and preset != "space":
 		preset = Game.sky_override # the host's environment pick wins over the spooky look
 	elif Game.spooky and preset != "space":
 		preset = "halloween"
 	_scenery(preset, settings)
+	if storm or preset == "storm":
+		add_child(Weather.new())
 	for n in MapEnvironment.build(preset, settings):
 		add_child(n)
 		if n is WorldEnvironment:
@@ -366,8 +380,6 @@ func _scenery(preset: String, settings: Node) -> void:
 		var count := int(c[0]) if q >= 2 else int(c[0]) / 2
 		var size: float = c[4] if c.size() > 4 else 1.0
 		add_child(Clouds.create(count, c[1], 60.0 if preset == "storm" else 120.0, 650.0, c[2], c[3], size))
-	if preset == "storm":
-		add_child(Weather.new())
 
 
 ## Bats circling high above the action.

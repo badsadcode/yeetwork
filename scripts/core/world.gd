@@ -59,6 +59,9 @@ var _spawned_by := {} # player id -> Array[int]
 var _spawn_cd := {}
 var _pair_cd := {}
 var _corpses: Array[Node] = []
+var _burning_props := {} # prop id -> [end time, attacker]
+var _burning_players := {} # player id -> [end time, attacker]
+var _fire_accum := 0.0
 
 
 func _ready() -> void:
@@ -467,6 +470,10 @@ func _physics_process(delta: float) -> void:
 	if _prop_accum >= PROP_RATE:
 		_prop_accum = 0.0
 		_send_prop_snapshot()
+	_fire_accum += delta
+	if _fire_accum >= FIRE_TICK:
+		_fire_accum = 0.0
+		_server_fire_tick()
 
 
 # --- Player state sync ------------------------------------------------------------
@@ -850,6 +857,10 @@ func server_explode(p: Prop) -> void:
 		o.last_thrown_time = p.last_thrown_time
 	for o in to_break:
 		server_break_prop(o, (o.global_position - pos).normalized() * 15.0)
+	# The blast sets what's left nearby alight, and singes anyone close.
+	for o: Prop in props.values():
+		if is_instance_valid(o) and o != p and not o.exploded and is_flammable(o) and o.global_position.distance_to(pos) < radius * 0.9 and rng.randf() < 0.75:
+			server_ignite_prop(o, rng.randf_range(6.0, 10.0), attacker)
 	for pl: Player in players.values():
 		if not pl.is_alive():
 			continue
@@ -860,6 +871,8 @@ func server_explode(p: Prop) -> void:
 		var f := 1.0 - d / radius
 		server_launch_player(pl, (to.normalized() + Vector3.UP * 0.6) * 24.0 * f, false, 1.5, attacker)
 		server_damage_player(pl, 90.0 * f + 10.0, attacker, "explosion", pl.body_center(), to)
+		if d < radius * 0.5 and pl.is_alive():
+			server_ignite_player(pl, 2.5, attacker)
 	for d in arena.destructibles:
 		if d.global_position.distance_to(pos) < radius + 30.0 and not d.cells_near(pos, radius * 0.6).is_empty():
 			server_damage_destructible(d, pos, radius * 0.6, 260.0, (d.global_position - pos).normalized() * 14.0 + Vector3.UP * 4.0, attacker, 2.0)
@@ -1488,6 +1501,155 @@ func _c_suicide() -> void:
 	var pl := get_player(multiplayer.get_remote_sender_id())
 	if pl:
 		server_damage_player(pl, 1000.0, pl.player_id, "suicide", pl.body_center(), Vector3.UP * 12.0)
+
+
+# --- Fire -------------------------------------------------------------------------
+# The server decides what burns; every peer shows it (Burning). Burning things hurt players
+# next to them and can set neighbours alight; wood burns down and falls apart; boom barrels
+# cook off; water puts fires out.
+
+const FIRE_TICK := 0.25
+const FLAMMABLE := ["crate", "crate_big", "barrel", "boom_barrel", "plank", "couch"]
+const MAX_FIRES := 16
+const FIRE_DPS := 12.0
+
+
+func is_flammable(p: Prop) -> bool:
+	return p.kind in FLAMMABLE or (p.kind == "shard" and str(p.extra.get("mat", "")) == "wood")
+
+
+func is_burning(n: Node) -> bool:
+	if n is Prop:
+		return _burning_props.has((n as Prop).prop_id)
+	if n is Player:
+		return _burning_players.has((n as Player).player_id)
+	return false
+
+
+func server_ignite_prop(p: Prop, seconds: float, attacker := 0) -> void:
+	if not is_instance_valid(p) or p.exploded or not is_flammable(p) or _in_water(p.global_position):
+		return
+	if not _burning_props.has(p.prop_id):
+		if _burning_props.size() >= MAX_FIRES:
+			return
+		if p.explosive:
+			# A burning boom barrel cooks off after a moment.
+			p.last_thrower = attacker
+			p.last_thrown_time = now()
+			_schedule_explosion(p, rng.randf_range(1.6, 2.8))
+	var end := now() + seconds
+	var old: Array = _burning_props.get(p.prop_id, [0.0, 0])
+	_burning_props[p.prop_id] = [maxf(end, old[0]), attacker if attacker else old[1]]
+	_bc_all("_s_burn", [0, p.prop_id, seconds])
+
+
+func server_ignite_player(pl: Player, seconds: float, attacker := 0) -> void:
+	if not pl.is_alive() or _in_water(pl.body_center()):
+		return
+	var old: Array = _burning_players.get(pl.player_id, [0.0, 0])
+	_burning_players[pl.player_id] = [maxf(now() + seconds, old[0]), attacker if attacker else old[1]]
+	_bc_all("_s_burn", [1, pl.player_id, seconds])
+
+
+func _server_put_out(kind: int, id: int, steam: Vector3 = Vector3.INF) -> void:
+	if kind == 0:
+		_burning_props.erase(id)
+	else:
+		_burning_players.erase(id)
+	_bc_all("_s_burn", [kind, id, -1.0 if steam != Vector3.INF else 0.0])
+
+
+func _in_water(pos: Vector3) -> bool:
+	var l := Liquid.at(pos, 0.1)
+	return l != null and l.kind == "water" and pos.y < l.height_at(pos.x, pos.z)
+
+
+func _server_fire_tick() -> void:
+	var t := now()
+	# Burning places set alight whatever stands in them.
+	for area: Array in arena.fire_areas:
+		var inv: Transform3D = (area[0] as Transform3D).affine_inverse()
+		var half: Vector3 = area[1] * 0.5 + Vector3(0.3, 0.6, 0.3)
+		for pl: Player in players.values():
+			var lp := inv * pl.body_center()
+			if pl.is_alive() and absf(lp.x) < half.x and absf(lp.y) < half.y + 0.6 and absf(lp.z) < half.z:
+				server_ignite_player(pl, 2.0)
+		for p: Prop in props.values():
+			if is_instance_valid(p) and not _burning_props.has(p.prop_id) and is_flammable(p):
+				var lq := inv * p.global_position
+				if absf(lq.x) < half.x and absf(lq.y) < half.y and absf(lq.z) < half.z:
+					server_ignite_prop(p, rng.randf_range(8.0, 12.0))
+	for id in _burning_props.keys():
+		var p := get_prop(id)
+		if p == null or p.exploded:
+			_burning_props.erase(id)
+			continue
+		var pos := p.global_position
+		if _in_water(pos):
+			_server_put_out(0, id, pos)
+			continue
+		var attacker: int = _burning_props[id][1]
+		if t >= _burning_props[id][0]:
+			_server_put_out(0, id)
+			# Wood burns down and falls apart into smouldering boards (which then just go out).
+			if p.is_fragile() and not p.explosive and p.kind != "shard":
+				server_break_prop(p, Vector3.DOWN * 3.0)
+				for o: Prop in props.values():
+					if is_instance_valid(o) and o.kind == "shard" and o.global_position.distance_to(pos) < 2.0 and rng.randf() < 0.6:
+						server_ignite_prop(o, rng.randf_range(2.5, 4.5), attacker)
+			continue
+		var reach := maxf(p.size.x, p.size.z) * 0.5 + 0.9
+		for pl: Player in players.values():
+			if pl.is_alive() and pl.body_center().distance_to(pos) < reach + 0.3:
+				server_ignite_player(pl, 2.0, attacker)
+		# Spreading to neighbours, slowly.
+		for o: Prop in props.values():
+			if is_instance_valid(o) and o != p and not _burning_props.has(o.prop_id) and is_flammable(o) \
+					and o.global_position.distance_to(pos) < reach + maxf(o.size.x, o.size.z) * 0.5 and rng.randf() < 0.06:
+				server_ignite_prop(o, rng.randf_range(7.0, 11.0), attacker)
+	for id in _burning_players.keys():
+		var pl := get_player(id)
+		if pl == null or not pl.is_alive():
+			_burning_players.erase(id)
+			if pl:
+				_bc_all("_s_burn", [1, id, 0.0])
+			continue
+		if _in_water(pl.body_center()) or _in_water(pl.global_position + Vector3.UP * 0.3):
+			_server_put_out(1, id, pl.body_center())
+			continue
+		if t >= _burning_players[id][0]:
+			_server_put_out(1, id)
+			continue
+		server_damage_player(pl, FIRE_DPS * FIRE_TICK, _burning_players[id][1], "fire", pl.body_center(), Vector3.UP)
+		# A burning player sets wooden things they brush against alight.
+		for o: Prop in props.values():
+			if is_instance_valid(o) and not _burning_props.has(o.prop_id) and is_flammable(o) \
+					and o.global_position.distance_to(pl.body_center()) < maxf(o.size.x, o.size.z) * 0.5 + 0.6 and rng.randf() < 0.08:
+				server_ignite_prop(o, rng.randf_range(7.0, 11.0), id)
+
+
+## kind 0 = prop, 1 = player; seconds > 0 sets it alight, 0 puts it out, -1 douses it
+## (a hiss and a puff of steam).
+@rpc("authority", "call_remote", "reliable")
+func _s_burn(kind: int, id: int, seconds: float) -> void:
+	var target: Node3D = get_prop(id) if kind == 0 else get_player(id)
+	if target == null:
+		return
+	if seconds > 0.0:
+		var fresh := target.get_node_or_null("Burning") == null
+		var box := AABB()
+		if kind == 1:
+			var c := (target as Player).body_center() - target.global_position
+			box = AABB(c - Vector3(0.38, c.y - 0.05, 0.38), Vector3(0.76, c.y * 2.0, 0.76))
+		Burning.on(target, 0.0, box)
+		if fresh:
+			Sfx.play3d("whoosh", target.global_position, 0.0, 0.6)
+	else:
+		Burning.off(target)
+		if seconds < 0.0:
+			Sfx.play3d("sizzle", target.global_position, 2.0, 0.8)
+			fx.puffs(target.global_position + Vector3.UP * 0.3, Vector3.UP, 8, [Color(1, 1, 1, 0.6), Color(0.9, 0.92, 0.95, 0.35), Color(0.9, 0.92, 0.95, 0.0)],
+				1.2, 2.2, 1.0, 2.5, 1.6, 30.0, Vector3(0, 1.2, 0))
 
 
 # --- Effects & messages -----------------------------------------------------------

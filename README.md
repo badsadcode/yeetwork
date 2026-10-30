@@ -95,6 +95,17 @@ hit everyone's screen. The open ocean around a map is too rough to swim in: fall
 you sink and drown ("sleeps with the fishes"). Acid and lava bounce and burn you, and lava
 has drifting plates of cooled crust.
 
+**Fire.** Explosions set wooden things alight (crates, barrels, planks, couches, boards),
+and so do burning places (Lagoon has a bonfire). Fire is drawn as soft, glowing cartoon
+flames: one metaball mass hugging the burning thing, see-through in the middle with a
+bright edge, rounded tongues that stretch, curl and pinch off droplets, plus a glowing shell,
+smoke, light and crackle. Burning things hurt players next to them and spread to their
+neighbours; wood burns down into smouldering boards; a burning boom barrel cooks off.
+Players on fire take damage for a few seconds unless they jump into water.
+
+**Weather.** Rain is reusable on any map (`MapSettings → Weather`); the storm adds wind
+wisps, lightning and thunder.
+
 **Player physics.** Players are physics objects: they get launched, held, thrown and
 knocked down (tumbling ragdoll state). Thrown players smash through breakable walls,
 bowl over other players (the thrower gets the credit) and splat against scenery. Death
@@ -164,8 +175,9 @@ menu, or in Pumpkin Smash, every map gets:
   spawns on the bow, Blue at the bridge. Falling overboard means the ocean. Container stacks
   with aisles, ramps and pads; more of the ship (interiors, cranes, weather) is coming.
   Three variants: **High Seas** (open ocean, tropical sky), **Golden Hour** (calm sea at
-  sunset) and **Storm** (a knife-edged stormy sea with streaks of blown foam, spray off the
-  crests and the hull, wind wisps, low storm clouds, lightning and thunder).
+  sunset) and **Storm** (a knife-edged, confused stormy sea whose wave trains cross from wide
+  angles, streaks of blown foam, spray off the crests and the hull, rain, wind wisps, low
+  storm clouds, lightning and thunder).
 - **Lagoon**: a ring island around a swimmable lagoon out at sea. Dive off the tower,
   float the junk, fight over the breakable piers to the glass-fronted team bases. The
   place to see both water styles.

@@ -368,6 +368,12 @@ script = ExtResource("9_hazard")
 kind = "water"
 size = Vector3(30, 5, 22)
 
+[node name="Bonfire" type="Node3D" parent="Gameplay"]
+position = Vector3(19, 0.5, -12)
+script = ExtResource("9_hazard")
+kind = "fire"
+size = Vector3(1.8, 1, 1.8)
+
 [node name="Props" type="Node3D" parent="."]
 
 [node name="Crate0" type="Node3D" parent="Props"]
