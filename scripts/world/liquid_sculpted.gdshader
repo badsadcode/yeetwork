@@ -23,13 +23,6 @@ uniform float clarity = 6.0;
 uniform vec3 absorption = vec3(2.4, 1.0, 0.65);
 // Metres of depth until the colour is fully "deep".
 uniform float depth_fade = 5.0;
-// Depth-based colour (Thornwake's model; 0 = off): light from the floor is absorbed per metre
-// of water it crosses (red first, so shallows over a pale floor turn turquoise), and what's
-// absorbed is replaced by the water's own dark blue-teal (depth_scatter). Clear shallows,
-// deep water reads dark and saturated.
-uniform float depth_tint = 0.0;
-uniform vec3 depth_absorption = vec3(1.1, 0.34, 0.24); // per metre of water the light crosses
-uniform vec3 depth_scatter : source_color = vec3(0.02, 0.17, 0.3);
 uniform float refraction = 0.045;
 uniform float dispersion = 0.3;
 uniform float roughness_value = 0.035;
@@ -256,9 +249,6 @@ void fragment() {
 		cst *= caustics * exp(-floor_depth * 0.15) * smoothstep(0.0, 0.5, floor_depth);
 	}
 	vec3 transmit = under ? vec3(1.0) : exp(-thick_r / max(clarity, 0.01) * absorption);
-	if (depth_tint > 0.0 && !under) {
-		transmit = mix(transmit, exp(-thick_r * depth_absorption), depth_tint);
-	}
 	float transmit_avg = (transmit.r + transmit.g + transmit.b) / 3.0;
 	refr *= transmit * (1.0 + cst * 1.4);
 
@@ -269,10 +259,6 @@ void fragment() {
 	// Water colour: shallow to deep, and lit from inside where crests are thin.
 	float deep = 1.0 - exp(-floor_depth / max(depth_fade, 0.01));
 	vec3 body = mix(shallow_color.rgb, deep_color.rgb, deep);
-	if (depth_tint > 0.0) {
-		// Troughs darker and denser, crests lighter (big waves read as moving water).
-		body = mix(body, depth_scatter * mix(0.7, 1.35, clamp(crest, 0.0, 1.0)), depth_tint);
-	}
 	// Far out, where the waves fade flat, use the average so the sea keeps one colour.
 	float thin = mix(0.3, pow(max(crest, 0.0), 2.5), wave_fade(world_pos.xz)) * clamp(wave_height * 1.5, 0.0, 1.0);
 	body = mix(body, scatter_color.rgb, clamp(thin * scatter_strength * 0.45, 0.0, 1.0));
