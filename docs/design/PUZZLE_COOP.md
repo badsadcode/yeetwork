@@ -140,6 +140,17 @@ the Steam Deck (a 64x64 grid), and it covers almost everything:
 - The host runs it and sends the water heights a few times a second; everyone sees the same.
 - Limits: no water on two floors of the same area, and no arcs of water through the air
   (waterfalls and pipe outflows between areas are drawn as effects).
+- **Prior art: Tomek's GangTheGame** (`F:\Codex\GangTheGAME\Source\Water`, read only) has
+  exactly this model working in C#: `WaterField` (virtual-pipes shallow water, mass
+  conserved, only the wet area stepped, walls found by raycasting the level's collision),
+  `WaterNode` (host steps at 60 Hz; changed 16x16 chunks sent as millimetre depths, zstd,
+  5 Hz; full state to joiners; one surface mesh per chunk), `WaterWaves` (per-peer visual
+  ripples and wakes fed to the shader as a texture), hydrants/taps/drains, current pushing
+  floating props, bodies shoving bow waves, and hoses with jets. Port the ideas to GDScript;
+  Yeetwork's own water look (liquid shaders) draws the surface.
+- **Cost measured** (GDScript port of the flow step, the whole grid flowing, Tomek's PC):
+  16x16 m at 0.5 m cells 0.66 ms per step, 24x24 m 1.5 ms, 32x32 m 2.6 ms; at 30 steps a
+  second that's 2-8% of one core, host only. A Steam Deck host handles a 24 m flood room.
 
 **Fire** (the fire system exists: burning, spreading, burning down, water puts it out):
 - **Beacons and torches**: on when lit (carry fire to them).
