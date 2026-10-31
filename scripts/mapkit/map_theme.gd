@@ -38,6 +38,15 @@ extends Resource
 @export var beacon: PackedScene
 @export var contacts: PackedScene
 
+@export_group("Lights")
+@export var light_bulb: PackedScene
+@export var light_lamp_post: PackedScene
+@export var light_wall_lamp: PackedScene
+@export var light_candle: PackedScene
+@export var light_torch: PackedScene
+@export var light_spotlight: PackedScene
+@export var light_neon: PackedScene
+
 @export_group("Modes")
 @export var flag_stand: PackedScene
 @export var goal: PackedScene

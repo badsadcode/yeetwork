@@ -35,6 +35,12 @@ var fire_areas: Array = [] # [Transform3D, size]: burning places (World sets thi
 var pickups: Array[PickupSpawn] = [] # first aid kits and power-ups, in scene order
 var puzzle: Array[PuzzleNode] = [] # puzzle pieces of a Map Kit map, in scene order (same on every peer)
 var map_settings: MapSettings # a Map Kit map's settings (null for code-built maps)
+var dark := false # a dark sky (haunted): flashlights on by default
+## Every Yeet carries a flashlight (MapSettings Flashlights: on, or auto under a dark sky).
+var flashlights: bool:
+	get:
+		var f: String = map_settings.flashlights if map_settings else "auto"
+		return f == "on" or (f == "auto" and dark)
 ## A moving body the whole map rides on (High Seas' ship), or null. When set, spawn points,
 ## flag stands, initial props and props' home transforms are in its local space; use
 ## to_world() / xf_world() / flag_pos() to read them.
@@ -413,7 +419,7 @@ func environment_preset(preset: String, settings: Node = null) -> void:
 	var storm := preset == "storm"
 	if Game.sky_override != "" and preset != "space":
 		preset = Game.sky_override # the host's environment pick wins over the spooky look
-	elif Game.spooky and preset != "space":
+	elif Game.spooky and preset not in ["space", "haunted"]: # (a haunted map is spooky enough)
 		preset = "halloween"
 	_scenery(preset, settings)
 	if storm or preset == "storm":
@@ -430,8 +436,9 @@ func environment_preset(preset: String, settings: Node = null) -> void:
 			Game.settings_changed.connect(func():
 				if is_instance_valid(sun):
 					MapEnvironment.apply_sun(sun))
-	if Game.spooky:
+	if Game.spooky or preset == "haunted":
 		_spooky_extras()
+	dark = preset in MapEnvironment.DARK
 
 
 ## Distant scenery and clouds for the environment (Backdrop, Clouds).

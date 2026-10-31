@@ -11,6 +11,7 @@ extends Node3D
 ##   Burning.off(prop)          puts it out (fades)
 
 const SHELL := preload("res://scripts/fx/fire_shell.gdshader")
+const OUTLINE := preload("res://scripts/fx/fire_outline.gdshader") # (Options: Flame outline)
 const BODY := preload("res://scripts/fx/flame_body.gdshader")
 ## Palettes: [edge, mid, hot] colours.
 const PALETTES := {
@@ -120,14 +121,23 @@ func _ready() -> void:
 		_shell.set_shader_parameter("deep_color", pal[0])
 		_shell.set_shader_parameter("core_color", pal[1])
 		_shell.set_shader_parameter("tip_color", pal[2])
+		if Game.fire_outline:
+			var o := ShaderMaterial.new()
+			o.shader = OUTLINE
+			o.set_shader_parameter("intensity", 0.0)
+			o.set_shader_parameter("deep_color", pal[0])
+			o.set_shader_parameter("core_color", pal[1])
+			o.set_shader_parameter("tip_color", pal[2])
+			_shell.next_pass = o # a flaming outline licking around the glow
 		_apply_shell()
 		# One flame mass hugging the thing and rising to about twice its height. Wide things
 		# (a couch) get two columns of tongues instead of one big bulb.
 		var half := lerpf(maxf(s.x, s.z) * 0.5, foot, 0.5)
 		var w := half * 2.0 + 1.0 # room for the side tongues to curl out
 		var h := s.y * 1.4 + 1.0 + half * 0.4
-		_add_body(Vector3(mid.x, box.position.y - 0.05 + h * 0.5, mid.z), w, h, s.y / h, half * 0.8, pal,
-			2 if w > h * 1.1 else 1, Vector2(half / (w * 0.5), s.y / (w * 0.5)))
+		if not Game.fire_outline: # (with the flame outline, the outline is the fire)
+			_add_body(Vector3(mid.x, box.position.y - 0.05 + h * 0.5, mid.z), w, h, s.y / h, half * 0.8, pal,
+				2 if w > h * 1.1 else 1, Vector2(half / (w * 0.5), s.y / (w * 0.5)))
 	else:
 		# A burning place: one mass of flame over the footprint (up to three columns melted
 		# together), no see-through middle.
@@ -136,8 +146,9 @@ func _ready() -> void:
 		var cols := clampi(int(round(w / 1.2)), 1, 3)
 		_add_body(Vector3(mid.x, box.position.y - 0.05 + h * 0.5, mid.z), w, h, 0.0, 0.0, pal, cols, Vector2(0.78, 0.4))
 	var top := box.position.y + (s.y + foot * 1.8 if not is_area else s.y + 1.4)
-	# Smoke: dark cauliflower puffs drifting up above the flames.
-	if not low:
+	# Smoke: dark cauliflower puffs drifting up above the flames (not with the flame outline:
+	# no particles there).
+	if not low and not (Game.fire_outline and not is_area):
 		_smoke = CPUParticles3D.new()
 		_smoke.amount = int(clampf(foot * 4.0, 3.0, 10.0))
 		_smoke.lifetime = 2.6
@@ -248,6 +259,8 @@ func _process(delta: float) -> void:
 	_fade = move_toward(_fade, 0.0 if _out else 1.0, delta * (1.5 if _out else 3.0))
 	if _shell:
 		_shell.set_shader_parameter("intensity", _fade)
+		if _shell.next_pass:
+			(_shell.next_pass as ShaderMaterial).set_shader_parameter("intensity", _fade)
 	for m in _bodies:
 		m.set_shader_parameter("intensity", _fade)
 	_light.light_energy = _fade * (1.8 + 0.5 * sin(_t * 17.0) * sin(_t * 7.3) + 0.3 * sin(_t * 31.0))

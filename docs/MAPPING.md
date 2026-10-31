@@ -103,10 +103,11 @@ All kit nodes preview themselves in the editor. In game they become the real thi
 | Property | |
 |---|---|
 | Map Name, Author, Description | shown in the menu and HUD |
-| Sky | the environment: `sunset`, `day`, `tropical`, `desert`, `snow`, `volcano`, `storm`, `night`, `space` (sky, light, haze, horizon scenery, clouds). The host can override it per match |
+| Sky | the environment: `sunset`, `day`, `tropical`, `desert`, `snow`, `volcano`, `storm`, `night`, `haunted`, `space` (sky, light, haze, horizon scenery, clouds). The host can override it per match. **haunted** is truly dark and misty (a faint moon, low haze the lamps glow in, bats): light it with MapLights; it stays haunted in spooky season |
+| Flashlights | `auto` (every Yeet carries one under a dark sky: haunted), `on` or `off`. Yours casts shadows; you see everyone else's beam too |
 | Sun Rotation Degrees, Sun Energy Scale, Ambient Scale | tweak the preset |
 | Ocean Preset | sea state with the *Sculpted* water style: `calm`, `lake`, `ocean`, `stormy` (a confused storm sea: wave trains cross from wide angles and the heading drifts across the map) |
-| Weather | `none`, `rain` or `storm` (rain plus wind wisps and lightning; the `storm` sky brings it by itself). Rain falls around each player's camera with splashes where it lands and its own sound |
+| Weather | `none`, `rain` or `storm` (rain plus wind wisps and lightning; the `storm` sky brings it by itself). Lightning strikes in view: branching bolts from the clouds to the ground that light up the land around them, or sheet lightning in the clouds; the thunder comes as late as sound would (distance / 343 m/s), a crack first when it's close. Rain falls around each player's camera with splashes where it lands and its own sound |
 | Rain Intensity, Rain Wind | how hard it rains (0.1 drizzle .. 1 downpour) and the wind slanting it (m/s) |
 | Ocean, Ocean Level | surround the map with an animated sea whose surface sits at *Ocean Level*. Players who fall in sink and drown; wooden and rubber props float. Put your floors above it, and an island's sides look best reaching a few metres below it |
 | Kill Height | anything below dies or respawns. Keep it ≥ 3 m below your lowest floor |
@@ -308,6 +309,22 @@ electricity.
 
 ---
 
+### MapLight (lights for dark maps, and any map)
+A light with its own little model: **Kind** `bulb`, `lamp_post` (put it on the ground),
+`wall_lamp` (on a wall, facing out along local +Z), `candle`, `torch`, `spotlight` (shines
+along local -Z) or `neon` (a 1.2 m tube along X).
+- **Color**, **Energy** (1 = the usual for its kind), **Reach** (metres; 0 = the usual).
+- **Flicker**: `none`, `candle` (a gentle wobble), `faulty` (on, with sudden drop-outs),
+  `strobe`, `pulse`.
+- **Shadows**: lovely and dearer; only on High graphics in the game. Use them for a few
+  key lights.
+- **Inputs** (it's a puzzle piece): on while its inputs are on ("restore the power and the
+  lights come on": wire it to a PuzzleButton); without inputs it's always on.
+- **Model** (or the theme's `light_<kind>` slot) replaces the look; a child named `Light`
+  in the model is where the light shines from.
+- `maps/haunted_yard.tscn` is an example: lamp posts (one failing), candles on the graves,
+  torches at the crypt and a power switch for the crypt's lights.
+
 ### Themes (a look for a whole map)
 A **MapTheme** gives every piece and prop on a map the look of its theme (haunted, foundry,
 beach...) in one place. Make one: right-click a folder in the FileSystem > **Create New >
@@ -342,7 +359,8 @@ models (`.glb`, `.gltf`, `.blend`, `.fbx` or a `.tscn`) onto its slots. Pick it 
 | door | (the whole model) | slides open like the built-in door |
 | turntable, lift | (the whole model) | turns / rides along |
 
-**Slots**: *Movement* jump_pad, lift, grapple_point, rope_anchor. *Puzzle pieces* button,
+**Slots**: *Lights* light_bulb, light_lamp_post, light_wall_lamp, light_candle,
+light_torch, light_spotlight, light_neon. *Movement* jump_pad, lift, grapple_point, rope_anchor. *Puzzle pieces* button,
 pressure_plate, door, target, receptacle, exit, checkpoint, reset_post, seesaw, turntable,
 pulley, magnet. *Water, fire, power* valve, drain, float_switch, beacon, contacts. *Modes*
 flag_stand, goal (the frame; the net stays solid), hoop (the arc stays), volley_net.

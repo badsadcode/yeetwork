@@ -4,7 +4,7 @@ extends Node3D
 ## A physics prop placed in the map. Map props respawn at this spot after they are
 ## destroyed or fall out of the world.
 
-@export_enum("crate", "crate_big", "barrel", "boom_barrel", "ball", "beachball", "anvil", "plank", "couch", "tire", "cone", "fuse", "lost_yeet", "boulder", "platform", "battery") var kind := "crate":
+@export_enum("crate", "crate_big", "barrel", "boom_barrel", "ball", "beachball", "anvil", "plank", "couch", "tire", "cone", "fuse", "lost_yeet", "boulder", "platform", "battery", "gravestone", "coffin", "pumpkin") var kind := "crate":
 	set(v):
 		kind = v
 		_rebuild()

@@ -78,6 +78,7 @@ var character := 0
 
 # Gameplay (server authoritative, replicated).
 var hp := 100.0
+var _torch: SpotLight3D # the flashlight on dark maps
 ## Boosts from power-ups: kind -> net time it ends (set by the server, the same everywhere).
 var buffs := {}
 var frags := 0
@@ -360,6 +361,39 @@ func _process(delta: float) -> void:
 		_update_camera(delta)
 	if gun:
 		gun.update_visuals(delta)
+	_update_flashlight()
+
+
+## Dark maps (Arena.flashlights): a flashlight along the aim. Yours rides the camera and casts
+## shadows (on Low/Medium+ graphics); everyone else's beam shows too (no shadows), so you see
+## where the others are looking. Off while knocked out or dead.
+func _update_flashlight() -> void:
+	if _torch == null:
+		var arena = world.get("arena") if world else null
+		if arena == null or not arena.flashlights:
+			return
+		_torch = SpotLight3D.new()
+		_torch.light_color = Color(1.0, 0.94, 0.82)
+		_torch.spot_angle = 26.0
+		_torch.spot_angle_attenuation = 1.2
+		_torch.light_volumetric_fog_energy = 0.6
+		if camera:
+			_torch.spot_range = 32.0
+			_torch.light_energy = 3.2
+			_torch.shadow_enabled = Game.gfx.get("shadows", 2) >= 1
+			_torch.position = Vector3(-0.35, 0.15, 0.2) # left shoulder: the gun stays out of the beam
+			camera.add_child(_torch)
+		else:
+			_torch.spot_range = 20.0
+			_torch.light_energy = 2.2
+			_torch.shadow_enabled = false
+			_torch.top_level = true
+			add_child(_torch)
+	_torch.visible = is_alive() and state != State.RAGDOLL
+	if not camera and _torch.visible:
+		var dir := aim_direction()
+		var at := eye_position() + dir * 0.4 + Vector3.DOWN * 0.25
+		_torch.global_transform = Transform3D(Basis.looking_at(dir, Vector3.UP if absf(dir.y) < 0.98 else Vector3.FORWARD), at)
 
 
 func _read_local_input(_delta: float) -> void:

@@ -54,6 +54,8 @@ func _ready() -> void:
 	_add("heal", 0.6, _heal)
 	_add("powerup", 0.7, _powerup)
 	_add("tick", 0.08, _tick)
+	_add("thunder", 4.0, _thunder)
+	_add("thunder_crack", 1.4, _thunder_crack)
 	_add("squelch", 0.6, _squelch)
 	_add("charge", 1.1, _charge)
 	_add("arc", 2.0, _arc)
@@ -566,6 +568,33 @@ func _powerup(buf: PackedFloat32Array, v: int) -> void:
 		var sq := 1.0 if sin(phase) > 0.0 else -1.0 # a little square: arcade bright
 		buf[i] += (sin(phase) * 0.6 + sq * 0.12) * exp(-lt * 6.0) * (0.35 if k < notes.size() - 1 else 0.45)
 	_whoosh(buf, v, 0.5)
+
+
+## Thunder rolling in: deep noise that swells and rumbles in waves for a few seconds.
+func _thunder(buf: PackedFloat32Array, v: int) -> void:
+	var n := buf.size()
+	var length := float(n) / RATE
+	var deep := _lp_noise(n, 90.0 * _vr(v, 0.1))
+	var mid := _lp_noise(n, 320.0)
+	var p1 := _rng.randf() * TAU
+	var p2 := _rng.randf() * TAU
+	for i in n:
+		var t := float(i) / RATE
+		var env := clampf(t / 0.35, 0.0, 1.0) * exp(-t * 0.75) * clampf((length - t) / 0.6, 0.0, 1.0)
+		var roll := 0.55 + 0.3 * sin(TAU * 1.3 * t + p1) + 0.15 * sin(TAU * 3.1 * t + p2)
+		buf[i] += (deep[i] * 0.9 + mid[i] * 0.25 * exp(-t * 1.5)) * env * roll
+
+
+## A close strike: a tearing crack, then a heavy boom.
+func _thunder_crack(buf: PackedFloat32Array, v: int) -> void:
+	var n := buf.size()
+	var crack := _bp_noise(n, 2600.0 * _vr(v, 0.1))
+	for i in n:
+		var t := float(i) / RATE
+		var tear := 1.0 if fposmod(t * 37.0 + v, 1.0) < 0.6 else 0.35 # it comes in a few quick tears
+		buf[i] += crack[i] * exp(-t * 9.0) * 0.6 * tear
+	_drop(buf, 70.0 * _vr(v, 0.08), 28.0, 4.0, 2.4, 0.9)
+	_add_noise(buf, _lp_noise(n, 200.0), 2.2, 0.7, 0.02)
 
 
 ## A soft, short tick: a boost's last seconds.

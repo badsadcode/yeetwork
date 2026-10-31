@@ -65,7 +65,9 @@ static func build(preset: String, base_y: float, seed_value := 7) -> Node3D:
 			return null # open ocean in a storm: nothing but the waves on the horizon
 		_: # day, sunset, night, halloween: rolling hills and blue mountains far away
 			var grass := Color(0.36, 0.62, 0.32) if preset != "halloween" else Color(0.22, 0.18, 0.28)
-			var night := preset in ["night", "halloween"]
+			if preset == "haunted":
+				grass = Color(0.1, 0.12, 0.1)
+			var night := preset in ["night", "halloween", "haunted"]
 			for i in 26:
 				var a := rng.randf() * TAU
 				var r := rng.randf_range(300.0, 650.0)

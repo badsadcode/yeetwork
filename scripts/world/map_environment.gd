@@ -13,7 +13,9 @@ extends RefCounted
 ##   storm     - dark slate sky, low heavy clouds, grey haze, dim cool light (High Seas: Storm)
 
 ## Every environment a map can pick (MapSettings.sky), in menu order.
-const PRESETS := ["sunset", "day", "tropical", "desert", "snow", "volcano", "storm", "night", "space"]
+const PRESETS := ["sunset", "day", "tropical", "desert", "snow", "volcano", "storm", "night", "haunted", "space"]
+## Dark skies: the players carry flashlights there (MapSettings Flashlights "auto").
+const DARK := ["haunted"]
 
 ## Clouds per environment: [count at full quality, altitude, lit colour, shaded colour,
 ## optional size].
@@ -26,6 +28,7 @@ const CLOUDS := {
 	"volcano": [26, 90.0, Color(0.42, 0.3, 0.28), Color(0.12, 0.08, 0.09)],
 	"storm": [46, 62.0, Color(0.5, 0.53, 0.6), Color(0.13, 0.15, 0.2), 1.9],
 	"night": [16, 110.0, Color(0.36, 0.4, 0.6), Color(0.12, 0.14, 0.26)],
+	"haunted": [14, 95.0, Color(0.16, 0.18, 0.24), Color(0.04, 0.05, 0.07)],
 	"halloween": [18, 100.0, Color(0.48, 0.36, 0.62), Color(0.15, 0.1, 0.22)],
 }
 
@@ -58,7 +61,7 @@ static func apply_quality(env: Environment, preset: String) -> void:
 	var depth_fog: float = env.get_meta("depth_fog", env.fog_density)
 	env.set_meta("depth_fog", depth_fog)
 	env.fog_density = depth_fog
-	if not g.fog and preset in ["halloween", "night"]:
+	if not g.fog and preset in ["halloween", "night", "haunted"]:
 		env.fog_density = maxf(depth_fog, 0.012) # keep the spooky haze without volumetrics
 
 
@@ -158,6 +161,19 @@ static func build(preset: String, settings: Node = null) -> Array[Node]:
 			sun_energy = 0.8
 			fill_color = Color(0.5, 0.6, 0.8)
 			fill_energy = 0.45
+		"haunted":
+			# Truly dark: a near-black sky, a faint cold moon, the lamps do the rest.
+			sky_mat.sky_top_color = Color(0.008, 0.01, 0.022)
+			sky_mat.sky_horizon_color = Color(0.05, 0.07, 0.08)
+			sky_mat.ground_horizon_color = Color(0.04, 0.05, 0.06)
+			sky_mat.ground_bottom_color = Color(0.01, 0.012, 0.015)
+			sky_mat.sky_curve = 0.18
+			sky_mat.sun_angle_max = 3.0
+			sky_mat.sun_curve = 0.03
+			sun_color = Color(0.55, 0.66, 0.9)
+			sun_energy = 0.22
+			fill_color = Color(0.3, 0.4, 0.5)
+			fill_energy = 0.05
 		"night":
 			sky_mat.sky_top_color = Color(0.03, 0.04, 0.12)
 			sky_mat.sky_horizon_color = Color(0.2, 0.18, 0.38)
@@ -237,6 +253,21 @@ static func build(preset: String, settings: Node = null) -> Array[Node]:
 			env.volumetric_fog_density = 0.01
 			env.volumetric_fog_albedo = Color(0.7, 0.75, 1.0)
 			env.glow_intensity = 0.8
+		"haunted":
+			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+			env.ambient_light_color = Color(0.2, 0.24, 0.3)
+			env.ambient_light_energy = 0.16 * amb_scale
+			env.background_energy_multiplier = 0.6
+			env.fog_light_color = Color(0.06, 0.08, 0.09)
+			env.fog_density = 0.01
+			env.fog_sky_affect = 0.6
+			env.volumetric_fog_density = 0.028 # thick low haze: the lamps glow in it
+			env.volumetric_fog_albedo = Color(0.62, 0.72, 0.74)
+			env.volumetric_fog_anisotropy = 0.6
+			env.glow_intensity = 1.0
+			env.glow_bloom = 0.12
+			env.adjustment_saturation = 0.85
+			env.adjustment_contrast = 1.15
 		"halloween":
 			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 			env.ambient_light_color = Color(0.42, 0.3, 0.6)

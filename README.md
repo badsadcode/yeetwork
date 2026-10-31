@@ -245,6 +245,20 @@ a countdown, and has its own screen effect (speed lines, an orange glow, a cyan 
 steel rim); its last 5 seconds tick quietly. Dying ends them. *Pickups* in the menu: first
 aid and power-ups, first aid only, or none. Maps place them with **PickupSpawn**.
 
+**Dark maps and storms.** The **haunted** sky is truly dark and misty: a faint moon, low
+haze that lamps glow in, bats overhead. Light it with **MapLight** pieces (bulbs, lamp
+posts, wall lamps, candles, torches, spotlights, neon), which can flicker (candle, faulty,
+strobe, pulse), cast shadows and be wired to switches. Under a dark sky every Yeet carries a
+flashlight (yours casts shadows; you see everyone else's beam). Example map: **Haunted
+Yard** (a graveyard with a crypt; find the power switch). **Storms** (the `storm` sky or
+weather) now strike real lightning: branching bolts from the clouds to the ground that light
+up the land, sheet lightning in the clouds, and thunder as late as sound would arrive, a
+crack first when it's close.
+
+**Fire look (test).** *Graphics details → Flame outline (test)*: burning things wear crisp,
+cartoon flames licking up their outline (a flame-outline shader in the stylized-fire style:
+noise eroded toward the tongue tips), no flame mass or smoke. Off: the soft flame mass.
+
 **Map themes.** A **MapTheme** gives a map's pieces and props their look in one file: a
 model for each kind of piece (jump pads, buttons, valves, doors, goals, hoops, pickups...)
 and each prop (crates, barrels, couches...), picked in MapSettings. Only the look changes,
@@ -397,6 +411,11 @@ godot --headless --path . -- --host --map test_chambers --mode puzzle --tour x -
 godot --headless --path . -- --host --map warehouse --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map pump_house --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map scrapyard --mode puzzle --tour x --tour-mode puzzle
+
+# Dark maps: lights wired to a switch, flashlights, a failing lamp (haunted_yard); and a storm's
+# lightning (a bolt, its light, the thunder)
+godot --headless --path . -- --host --map haunted_yard --mode sandbox --bots 2 --tour x --tour-mode dark
+godot --headless --path . -- --host --map lagoon --sky storm --mode sandbox --bots 0 --tour x --tour-mode dark
 
 # Map themes: the example garden's theme on its pieces and props, own models first,
 # built-in looks hidden, named moving parts, themed pickups

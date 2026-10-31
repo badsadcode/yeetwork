@@ -15,8 +15,9 @@ extends Node
 		retheme()
 ## Environment: sky, light, haze, distant scenery and clouds. sunset, day, tropical
 ## (islands), desert (mesas, dunes), snow (peaks, pines), volcano (red sky, ash, a glowing
-## volcano), storm (dark slate sky, low clouds), night or space.
-@export_enum("sunset", "day", "tropical", "desert", "snow", "volcano", "storm", "night", "space") var sky := "sunset":
+## volcano), storm (dark slate sky, low clouds), night, haunted (truly dark and misty: light
+## it with MapLights; everyone carries a flashlight) or space.
+@export_enum("sunset", "day", "tropical", "desert", "snow", "volcano", "storm", "night", "haunted", "space") var sky := "sunset":
 	set(v):
 		sky = v
 		_refresh_preview()
@@ -33,6 +34,8 @@ extends Node
 	set(v):
 		ambient_scale = v
 		_refresh_preview()
+## Flashlights on every Yeet: auto (on under a dark sky: haunted), on, off.
+@export_enum("auto", "on", "off") var flashlights := "auto"
 ## Surround the map with an animated ocean (players who fall in sink and drown, wooden
 ## props float on the waves).
 @export var ocean := false

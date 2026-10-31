@@ -1,0 +1,664 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/mapkit/map_settings.gd" id="settings"]
+[ext_resource type="Script" path="res://scripts/mapkit/arena_block.gd" id="block"]
+[ext_resource type="Script" path="res://scripts/mapkit/spawn_point.gd" id="spawn"]
+[ext_resource type="Script" path="res://scripts/mapkit/prop_spawn.gd" id="prop"]
+[ext_resource type="Script" path="res://scripts/mapkit/map_light.gd" id="light"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_button.gd" id="button"]
+[ext_resource type="Script" path="res://scripts/mapkit/pickup_spawn.gd" id="pickup_spawn"]
+[ext_resource type="Script" path="res://scripts/mapkit/flag_stand.gd" id="flag"]
+
+[node name="HauntedYard" type="Node3D"]
+
+[node name="MapSettings" type="Node" parent="."]
+script = ExtResource("settings")
+map_name = "Haunted Yard"
+author = "Yeetwork"
+description = "A dark graveyard: lamp posts (one is failing), candles on the graves, torches at the crypt. Flip the power switch to light the crypt. Bring your flashlight."
+sky = "haunted"
+kill_height = -20.0
+playtest_mode = 0
+playtest_bots = 3
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="Lights" type="Node3D" parent="."]
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Spawns" type="Node3D" parent="."]
+
+[node name="Block1" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, -0.5, 0)
+script = ExtResource("block")
+size = Vector3(48, 1, 42)
+color = Color(0.13, 0.17, 0.12, 1)
+roughness = 0.9
+
+[node name="Block2" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0.01, 0)
+script = ExtResource("block")
+size = Vector3(3, 0.02, 40)
+color = Color(0.3, 0.29, 0.28, 1)
+roughness = 0.9
+
+[node name="Block3" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0.01, 0)
+script = ExtResource("block")
+size = Vector3(46, 0.02, 3)
+color = Color(0.3, 0.29, 0.28, 1)
+roughness = 0.9
+
+[node name="Block4" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -23.6, 2, 0)
+script = ExtResource("block")
+size = Vector3(0.8, 4, 42)
+color = Color(0.24, 0.24, 0.27, 1)
+roughness = 0.9
+
+[node name="Block5" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 23.6, 2, 0)
+script = ExtResource("block")
+size = Vector3(0.8, 4, 42)
+color = Color(0.24, 0.24, 0.27, 1)
+roughness = 0.9
+
+[node name="Block6" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2, -20.6)
+script = ExtResource("block")
+size = Vector3(48, 4, 0.8)
+color = Color(0.24, 0.24, 0.27, 1)
+roughness = 0.9
+
+[node name="Block7" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2, 20.6)
+script = ExtResource("block")
+size = Vector3(48, 4, 0.8)
+color = Color(0.24, 0.24, 0.27, 1)
+roughness = 0.9
+
+[node name="Block8" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.1, -13.5)
+script = ExtResource("block")
+size = Vector3(9, 4.2, 0.5)
+color = Color(0.33, 0.32, 0.35, 1)
+roughness = 0.9
+
+[node name="Block9" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4.5, 2.1, -10)
+script = ExtResource("block")
+size = Vector3(0.5, 4.2, 7)
+color = Color(0.33, 0.32, 0.35, 1)
+roughness = 0.9
+
+[node name="Block10" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4.5, 2.1, -10)
+script = ExtResource("block")
+size = Vector3(0.5, 4.2, 7)
+color = Color(0.33, 0.32, 0.35, 1)
+roughness = 0.9
+
+[node name="Block11" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2.8, 2.1, -6.5)
+script = ExtResource("block")
+size = Vector3(3.4, 4.2, 0.5)
+color = Color(0.33, 0.32, 0.35, 1)
+roughness = 0.9
+
+[node name="Block12" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.8, 2.1, -6.5)
+script = ExtResource("block")
+size = Vector3(3.4, 4.2, 0.5)
+color = Color(0.33, 0.32, 0.35, 1)
+roughness = 0.9
+
+[node name="Block13" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 3.6, -6.5)
+script = ExtResource("block")
+size = Vector3(2.2, 1.2, 0.5)
+color = Color(0.33, 0.32, 0.35, 1)
+roughness = 0.9
+
+[node name="Block14" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 4.45, -10)
+script = ExtResource("block")
+size = Vector3(9.6, 0.5, 7.6)
+color = Color(0.22, 0.21, 0.24, 1)
+roughness = 0.9
+
+[node name="Block15" type="StaticBody3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0.5, -11)
+script = ExtResource("block")
+size = Vector3(2.2, 1, 1.1)
+color = Color(0.4, 0.38, 0.42, 1)
+roughness = 0.9
+
+[node name="LampPost0" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.4, 0, -3)
+script = ExtResource("light")
+kind = "lamp_post"
+color = Color(1, 0.78, 0.48, 1)
+
+[node name="LampPost1" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2.4, 0, 4)
+script = ExtResource("light")
+kind = "lamp_post"
+color = Color(1, 0.78, 0.48, 1)
+shadows = true
+
+[node name="LampPost2" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.4, 0, 11)
+script = ExtResource("light")
+kind = "lamp_post"
+color = Color(1, 0.78, 0.48, 1)
+flicker = "faulty"
+
+[node name="LampPost3" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2.4, 0, 17)
+script = ExtResource("light")
+kind = "lamp_post"
+color = Color(1, 0.78, 0.48, 1)
+
+[node name="LampPost4" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0, 2.4)
+script = ExtResource("light")
+kind = "lamp_post"
+color = Color(1, 0.78, 0.48, 1)
+shadows = true
+
+[node name="LampPost5" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10, 0, -2.4)
+script = ExtResource("light")
+kind = "lamp_post"
+color = Color(1, 0.78, 0.48, 1)
+
+[node name="LampPost6" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 18, 0, -2.4)
+script = ExtResource("light")
+kind = "lamp_post"
+color = Color(1, 0.78, 0.48, 1)
+flicker = "faulty"
+
+[node name="LampPost7" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -18, 0, 2.4)
+script = ExtResource("light")
+kind = "lamp_post"
+color = Color(1, 0.78, 0.48, 1)
+
+[node name="Torch0" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -1.6, 1.2, -6.1)
+script = ExtResource("light")
+kind = "torch"
+color = Color(1, 0.55, 0.22, 1)
+flicker = "candle"
+
+[node name="Torch2" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.6, 1.2, -6.1)
+script = ExtResource("light")
+kind = "torch"
+color = Color(1, 0.55, 0.22, 1)
+flicker = "candle"
+
+[node name="CryptLamp0" type="Node3D" parent="Lights"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -3.8, 2.6, -10)
+script = ExtResource("light")
+kind = "wall_lamp"
+color = Color(0.6, 1, 0.75, 1)
+inputs = Array[NodePath]([NodePath("../../PowerSwitch")])
+
+[node name="CryptLamp1" type="Node3D" parent="Lights"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 3.8, 2.6, -10)
+script = ExtResource("light")
+kind = "wall_lamp"
+color = Color(0.6, 1, 0.75, 1)
+inputs = Array[NodePath]([NodePath("../../PowerSwitch")])
+
+[node name="CryptGlow" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 1.4, -11)
+script = ExtResource("light")
+kind = "bulb"
+color = Color(0.55, 1, 0.7, 1)
+energy = 0.8
+flicker = "pulse"
+inputs = Array[NodePath]([NodePath("../../PowerSwitch")])
+
+[node name="PowerSwitch" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 0, -5.5)
+script = ExtResource("button")
+size = Vector2(0.8, 0.8)
+press = "use key"
+label = "Power"
+color = Color(0.5, 0.42, 0.3, 1)
+
+[node name="Grave0" type="Node3D" parent="Props"]
+transform = Transform3D(0.9982, 0, 0.05996, 0, 1, 0, -0.05996, 0, 0.9982, -6.14, 0.6, 4.79)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle0" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -6.11, 0, 5.39)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave1" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0.003, 0, 1, 0, -0.003, 0, 1, -10.11, 0.6, 4.73)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle1" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10.16, 0, 5.33)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave2" type="Node3D" parent="Props"]
+transform = Transform3D(0.99955, 0, -0.03, 0, 1, 0, 0.03, 0, 0.99955, -14.34, 0.6, 4.75)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave3" type="Node3D" parent="Props"]
+transform = Transform3D(0.9987, 0, 0.05098, 0, 1, 0, -0.05098, 0, 0.9987, -18.3, 0.6, 4.83)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave4" type="Node3D" parent="Props"]
+transform = Transform3D(0.98181, 0, 0.18984, 0, 1, 0, -0.18984, 0, 0.98181, 6.06, 0.6, 4.94)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle4" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6.35, 0, 5.54)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave5" type="Node3D" parent="Props"]
+transform = Transform3D(0.98832, 0, -0.1524, 0, 1, 0, 0.1524, 0, 0.98832, 9.83, 0.6, 4.79)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle5" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10.08, 0, 5.39)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave6" type="Node3D" parent="Props"]
+transform = Transform3D(0.99843, 0, 0.05597, 0, 1, 0, -0.05597, 0, 0.99843, 13.74, 0.6, 5.05)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle6" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 13.78, 0, 5.65)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave7" type="Node3D" parent="Props"]
+transform = Transform3D(0.99305, 0, -0.11773, 0, 1, 0, 0.11773, 0, 0.99305, 17.65, 0.6, 4.74)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave8" type="Node3D" parent="Props"]
+transform = Transform3D(0.99942, 0, 0.03399, 0, 1, 0, -0.03399, 0, 0.99942, -6.06, 0.6, 8.89)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave9" type="Node3D" parent="Props"]
+transform = Transform3D(0.9968, 0, 0.07991, 0, 1, 0, -0.07991, 0, 0.9968, -10.16, 0.6, 9.18)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle9" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10.1, 0, 9.78)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave10" type="Node3D" parent="Props"]
+transform = Transform3D(0.99577, 0, 0.09187, 0, 1, 0, -0.09187, 0, 0.99577, -13.98, 0.6, 9.23)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle10" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -13.6, 0, 9.83)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave11" type="Node3D" parent="Props"]
+transform = Transform3D(0.9947, 0, 0.10282, 0, 1, 0, -0.10282, 0, 0.9947, -18.31, 0.6, 8.95)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle11" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -18.31, 0, 9.55)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave12" type="Node3D" parent="Props"]
+transform = Transform3D(0.99439, 0, 0.1058, 0, 1, 0, -0.1058, 0, 0.99439, 5.63, 0.6, 9.1)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave13" type="Node3D" parent="Props"]
+transform = Transform3D(0.99696, 0, 0.07792, 0, 1, 0, -0.07792, 0, 0.99696, 10.3, 0.6, 8.89)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave14" type="Node3D" parent="Props"]
+transform = Transform3D(0.99077, 0, 0.13558, 0, 1, 0, -0.13558, 0, 0.99077, 14.06, 0.6, 8.97)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave15" type="Node3D" parent="Props"]
+transform = Transform3D(0.98455, 0, -0.17509, 0, 1, 0, 0.17509, 0, 0.98455, 17.98, 0.6, 9.1)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave16" type="Node3D" parent="Props"]
+transform = Transform3D(0.99169, 0, 0.12864, 0, 1, 0, -0.12864, 0, 0.99169, -5.88, 0.6, 13.3)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle16" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -5.97, 0, 13.9)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave17" type="Node3D" parent="Props"]
+transform = Transform3D(0.99989, 0, -0.015, 0, 1, 0, 0.015, 0, 0.99989, -9.87, 0.6, 12.71)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle17" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10.17, 0, 13.31)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave18" type="Node3D" parent="Props"]
+transform = Transform3D(0.98907, 0, -0.14746, 0, 1, 0, 0.14746, 0, 0.98907, -14.35, 0.6, 13.16)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle18" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -14.44, 0, 13.76)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave19" type="Node3D" parent="Props"]
+transform = Transform3D(0.9998, 0, -0.02, 0, 1, 0, 0.02, 0, 0.9998, -17.7, 0.6, 12.75)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave20" type="Node3D" parent="Props"]
+transform = Transform3D(0.98936, 0, 0.14548, 0, 1, 0, -0.14548, 0, 0.98936, 6.31, 0.6, 13.19)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle20" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6.24, 0, 13.79)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave21" type="Node3D" parent="Props"]
+transform = Transform3D(0.9833, 0, 0.18198, 0, 1, 0, -0.18198, 0, 0.9833, 9.89, 0.6, 13.23)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle21" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 9.63, 0, 13.83)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave22" type="Node3D" parent="Props"]
+transform = Transform3D(0.99998, 0, -0.006, 0, 1, 0, 0.006, 0, 0.99998, 13.79, 0.6, 12.84)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave23" type="Node3D" parent="Props"]
+transform = Transform3D(0.99949, 0, -0.03199, 0, 1, 0, 0.03199, 0, 0.99949, 17.81, 0.6, 12.7)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle23" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 17.86, 0, 13.3)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave24" type="Node3D" parent="Props"]
+transform = Transform3D(0.99998, 0, 0.006, 0, 1, 0, -0.006, 0, 0.99998, -5.64, 0.6, 17.11)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave25" type="Node3D" parent="Props"]
+transform = Transform3D(0.98723, 0, 0.15932, 0, 1, 0, -0.15932, 0, 0.98723, -9.86, 0.6, 16.73)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave26" type="Node3D" parent="Props"]
+transform = Transform3D(0.99908, 0, -0.04299, 0, 1, 0, 0.04299, 0, 0.99908, -13.7, 0.6, 17.18)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle26" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -14.02, 0, 17.78)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave27" type="Node3D" parent="Props"]
+transform = Transform3D(0.98507, 0, -0.17214, 0, 1, 0, 0.17214, 0, 0.98507, -17.89, 0.6, 16.74)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle27" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -18.16, 0, 17.34)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave28" type="Node3D" parent="Props"]
+transform = Transform3D(0.98007, 0, -0.19867, 0, 1, 0, 0.19867, 0, 0.98007, 5.87, 0.6, 16.73)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle28" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 5.55, 0, 17.33)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave29" type="Node3D" parent="Props"]
+transform = Transform3D(0.98877, 0, 0.14944, 0, 1, 0, -0.14944, 0, 0.98877, 9.89, 0.6, 16.72)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Grave30" type="Node3D" parent="Props"]
+transform = Transform3D(0.99814, 0, -0.06096, 0, 1, 0, 0.06096, 0, 0.99814, 13.72, 0.6, 16.85)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Candle30" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 13.42, 0, 17.45)
+script = ExtResource("light")
+kind = "candle"
+flicker = "candle"
+
+[node name="Grave31" type="Node3D" parent="Props"]
+transform = Transform3D(0.9999, 0, -0.014, 0, 1, 0, 0.014, 0, 0.9999, 18.28, 0.6, 17.3)
+script = ExtResource("prop")
+kind = "gravestone"
+
+[node name="Coffin0" type="Node3D" parent="Props"]
+transform = Transform3D(0.96699, 0, 0.25481, 0, 1, 0, -0.25481, 0, 0.96699, -14, 0.5, -8)
+script = ExtResource("prop")
+kind = "coffin"
+
+[node name="Coffin1" type="Node3D" parent="Props"]
+transform = Transform3D(0.95338, 0, 0.30178, 0, 1, 0, -0.30178, 0, 0.95338, 13, 0.5, -12)
+script = ExtResource("prop")
+kind = "coffin"
+
+[node name="Coffin2" type="Node3D" parent="Props"]
+transform = Transform3D(0.51661, 0, 0.85622, 0, 1, 0, -0.85622, 0, 0.51661, -9, 0.5, -15)
+script = ExtResource("prop")
+kind = "coffin"
+
+[node name="Pumpkin0" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -5, 0.5, 2.5)
+script = ExtResource("prop")
+kind = "pumpkin"
+
+[node name="PumpkinGlow0" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -5, 0.35, 2.5)
+script = ExtResource("light")
+kind = "candle"
+color = Color(1, 0.55, 0.15, 1)
+flicker = "candle"
+
+[node name="Pumpkin1" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 0.5, -16)
+script = ExtResource("prop")
+kind = "pumpkin"
+
+[node name="PumpkinGlow1" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 0.35, -16)
+script = ExtResource("light")
+kind = "candle"
+color = Color(1, 0.55, 0.15, 1)
+flicker = "candle"
+
+[node name="Pumpkin2" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 16, 0.5, 8)
+script = ExtResource("prop")
+kind = "pumpkin"
+
+[node name="PumpkinGlow2" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 16, 0.35, 8)
+script = ExtResource("light")
+kind = "candle"
+color = Color(1, 0.55, 0.15, 1)
+flicker = "candle"
+
+[node name="Pumpkin3" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -17, 0.5, -14)
+script = ExtResource("prop")
+kind = "pumpkin"
+
+[node name="PumpkinGlow3" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -17, 0.35, -14)
+script = ExtResource("light")
+kind = "candle"
+color = Color(1, 0.55, 0.15, 1)
+flicker = "candle"
+
+[node name="Pumpkin4" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 9, 0.5, 15)
+script = ExtResource("prop")
+kind = "pumpkin"
+
+[node name="PumpkinGlow4" type="Node3D" parent="Lights"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 9, 0.35, 15)
+script = ExtResource("light")
+kind = "candle"
+color = Color(1, 0.55, 0.15, 1)
+flicker = "candle"
+
+[node name="SpawnAny0" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -17)
+script = ExtResource("spawn")
+
+[node name="SpawnAny1" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -17)
+script = ExtResource("spawn")
+
+[node name="SpawnAny2" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, 17)
+script = ExtResource("spawn")
+
+[node name="SpawnAny3" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 17)
+script = ExtResource("spawn")
+
+[node name="SpawnAny4" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, 0)
+script = ExtResource("spawn")
+
+[node name="SpawnAny5" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, 0)
+script = ExtResource("spawn")
+
+[node name="SpawnAny6" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
+script = ExtResource("spawn")
+
+[node name="SpawnAny7" type="Node3D" parent="Spawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
+script = ExtResource("spawn")
+
+[node name="SpawnRed0" type="Node3D" parent="Spawns"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -20, 0, -10)
+script = ExtResource("spawn")
+team = 1
+
+[node name="SpawnBlue0" type="Node3D" parent="Spawns"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 20, 0, -10)
+script = ExtResource("spawn")
+team = 2
+
+[node name="SpawnRed1" type="Node3D" parent="Spawns"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -20, 0, 0)
+script = ExtResource("spawn")
+team = 1
+
+[node name="SpawnBlue1" type="Node3D" parent="Spawns"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 20, 0, 0)
+script = ExtResource("spawn")
+team = 2
+
+[node name="SpawnRed2" type="Node3D" parent="Spawns"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -20, 0, 10)
+script = ExtResource("spawn")
+team = 1
+
+[node name="SpawnBlue2" type="Node3D" parent="Spawns"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 20, 0, 10)
+script = ExtResource("spawn")
+team = 2
+
+[node name="FlagRed" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -4)
+script = ExtResource("flag")
+
+[node name="FlagBlue" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -4)
+script = ExtResource("flag")
+team = 1
+
+[node name="Pickup0" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, 0)
+script = ExtResource("pickup_spawn")
+
+[node name="Pickup1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, 0)
+script = ExtResource("pickup_spawn")
+
+[node name="Pickup2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -13)
+script = ExtResource("pickup_spawn")
+kind = "random"
+
+[node name="Pickup3" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 19)
+script = ExtResource("pickup_spawn")
+kind = "random"

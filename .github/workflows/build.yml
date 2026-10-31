@@ -48,6 +48,11 @@ jobs:
       - name: YeetVolley check (serve, points, out, touches, sides, the net rising, bots rallying, full time)
         timeout-minutes: 5
         run: timeout 220 godot --headless -- --host --map volley_beach --mode volley --bots 3 --spooky off --tour x --tour-mode volley
+      - name: Dark map and storm checks (lights, switch, flashlights; lightning)
+        timeout-minutes: 4
+        run: |
+          timeout 100 godot --headless -- --host --map haunted_yard --mode sandbox --bots 2 --spooky off --tour x --tour-mode dark
+          timeout 100 godot --headless -- --host --map lagoon --sky storm --mode sandbox --bots 0 --spooky off --tour x --tour-mode dark
       - name: Theme check (a map theme on pieces and props, own models first, moving parts)
         timeout-minutes: 3
         run: timeout 120 godot --headless -- --host --map res://custom/example_garden/example_garden.tscn --mode sandbox --bots 0 --spooky off --tour x --tour-mode themes
