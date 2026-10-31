@@ -56,6 +56,9 @@ func think(delta: float) -> void:
 		return
 	_think -= delta
 	_punt_cd -= delta
+	if world.mode == Game.Mode.HOOPS:
+		_think_hoops(delta)
+		return
 	if world.mode == Game.Mode.YEETBALL:
 		_think_yeetball(delta)
 		return
@@ -162,6 +165,186 @@ func _think_yeetball(delta: float) -> void:
 	_hopping = _rng.randf() < HOP[_skill()] * 0.3
 	_aim(look_at, delta)
 	_steer(delta, pl.global_position.distance_to(_goal) > 1.0)
+
+
+## YeetHoops: the nearest of a team goes for the ball (the gun pulls it in from afar); with
+## it, close in on the hoop we attack and lob it in, on a high arc worked out for the throw
+## speed (charged when the hoop is far). Better bots shoot from farther out and sometimes
+## try a three. A teammate with the ball: get under the hoop for the rebound. An enemy with
+## it: go and punt them.
+const SHOOT_RANGE := [5.0, 6.0, 7.0]
+const SHOT_SLOP := [0.06, 0.03, 0.012] # radians of aim error on a shot
+
+
+func _think_hoops(delta: float) -> void:
+	var mode := world.mode_logic as ModeHoops
+	var b: Prop = mode.nearest_ball(pl.global_position) if mode else null
+	var target: GoalZone = mode.goal_of(Game.TEAM_BLUE if pl.team == Game.TEAM_RED else Game.TEAM_RED) if mode else null
+	var home: GoalZone = mode.goal_of(pl.team) if mode else null
+	if b == null or target == null or home == null:
+		_aim(pl.eye_position() + Vector3.FORWARD, delta)
+		_steer(delta, false)
+		return
+	var held := world.get_prop(pl.gun.held_id) as Prop if pl.gun.held_kind == GravityGun.Kind.PROP else null
+	var look_at := b.global_position
+	var move := true
+	_shot_cool -= delta
+	if _release_in > 0.0:
+		_release_in -= delta
+		if _release_in <= 0.0 or held == null:
+			_finish_throw()
+			_shot_cool = 1.6 # let the shot fly (the gun would pull it straight back)
+	if held and held.kind == mode.ball_kind():
+		_hold_timer += delta
+		var rim := target.mouth()
+		var flat := Vector2(rim.x - pl.global_position.x, rim.z - pl.global_position.z).length()
+		if _think <= 0.0:
+			_think = 1.0
+			# Sometimes (better bots more often) step back for a three.
+			_shot_range = SHOOT_RANGE[_skill()] + (5.0 if _rng.randf() < 0.15 * _skill() else 0.0)
+		# (aim a touch past the middle: off the back of the rim drops in, short never does)
+		var dir := _lob(held.global_position, rim + Vector3.UP * 0.15 - target.global_transform.basis.z * 0.2)
+		# Shoot from in front of the hoop (never from behind the board or right under it).
+		var front := target.global_transform.basis.z
+		var rel := pl.global_position - rim
+		rel.y = 0.0
+		var ahead := rel.dot(front)
+		var side := rel.normalized() if ahead > 0.0 else front
+		var spot := rim + (front * 0.6 + side * 0.4).normalized() * _shot_range * 0.85
+		spot.y = pl.global_position.y
+		# (closer than ~4 m the arc would have to be steeper than the aim allows; holding it a
+		# while, take the long shot rather than lose it to the hold limit)
+		var placed := ahead > 1.5 and flat > 4.0 and (flat < _shot_range + 0.5 or _hold_timer > 0.9)
+		if _release_in > 0.0:
+			move = false # winding up: keep the shot as it was aimed
+			_set_aim(_shot_dir)
+			look_at = pl.eye_position() + _shot_dir * 10.0
+		elif not placed or dir == Vector3.ZERO:
+			_goal = spot
+			look_at = rim
+		else:
+			move = false
+			look_at = pl.eye_position() + dir * 10.0
+			# (not just before the hold limit takes the ball: the throw would become a punt)
+			# Nearly on target, feet planted (a throw carries the thrower's own speed): steady
+			# the aim (the skill's slop is the error) and shoot.
+			var planted := pl.is_on_floor() and Vector2(pl.velocity.x, pl.velocity.z).length() < 1.5
+			if planted and _aim_error(look_at) < 0.03 and _hold_timer < ModeYeetball.HOLD_LIMIT[mode.rules] - 0.3:
+				var slop: float = SHOT_SLOP[_skill()]
+				_shot_dir = dir.rotated(Vector3.UP, _rng.randf_range(-1, 1) * slop).rotated(dir.cross(Vector3.UP).normalized(), _rng.randf_range(-1, 1) * slop)
+				_set_aim(_shot_dir)
+				world.gun_action(pl, GravityGun.Action.THROW)
+				_release_in = (_lob_charge + LOB_MARGIN) * GravityGun.CHARGE_TIME
+	else:
+		_hold_timer = 0.0
+		var holder := world.get_player(b.held_by) as Player if b.held_by != 0 else null
+		var mine := pl.global_position.distance_to(b.global_position)
+		var chaser := true
+		for q: Player in world.players.values():
+			if q != pl and q.team == pl.team and q.is_alive() and q.global_position.distance_to(b.global_position) < mine - 0.5:
+				chaser = false
+		if holder and holder.team == pl.team:
+			_goal = target.global_position.lerp(world.arena.ball_spot, 0.25) # rebound
+			look_at = b.global_position
+		elif holder:
+			_goal = holder.global_position
+			look_at = holder.body_center()
+			if mine < 5.0 and _punt_cd <= 0.0 and _aim_error(look_at) < 0.25:
+				world.gun_action(pl, GravityGun.Action.THROW)
+				_punt_cd = PUNT_REST[_skill()] + _rng.randf()
+		elif _shot_cool > 0.0:
+			_goal = target.global_position + target.global_transform.basis.z * 2.5 # follow it in
+			look_at = b.global_position
+		elif chaser:
+			_goal = b.global_position
+			look_at = b.global_position
+			move = mine > 3.0
+			# (a shot in flight is left alone: wait for it to come down)
+			var flying := b.held_by == 0 and b.linear_velocity.length() > 5.0 and b.global_position.y > 2.2
+			var see := not flying and mine < GravityGun.PULL_RANGE * 0.7 and _can_see(b.global_position)
+			# (the gun's own state, not ours: a hold limit or a kickoff may have ended the grab)
+			if see and not pl.gun.grab_active and _aim_error(look_at) < 0.08:
+				world.gun_action(pl, GravityGun.Action.GRAB_START)
+				_grabbing = true
+			elif not see and pl.gun.grab_active:
+				world.gun_action(pl, GravityGun.Action.GRAB_END)
+				_grabbing = false
+		else:
+			_goal = b.global_position.lerp(home.global_position, 0.5)
+		if pl.gun.grab_active and not chaser:
+			world.gun_action(pl, GravityGun.Action.GRAB_END)
+			_grabbing = false
+	_hopping = held == null and _rng.randf() < HOP[_skill()] * 0.2
+	_aim(look_at, delta)
+	_steer(delta, move and pl.global_position.distance_to(_goal) > 1.0)
+
+
+
+var _shot_range := 6.0
+var _shot_dir := Vector3.FORWARD
+var _shot_cool := 0.0
+const LOB_MARGIN := 0.03 # the wind-up always charges a little: plan the throw speed with it
+var _lob_charge := 0.0
+
+
+func _set_aim(d: Vector3) -> void:
+	pl.yaw = atan2(-d.x, -d.z)
+	pl.pitch = atan2(d.y, Vector2(d.x, d.z).length())
+
+
+## The direction to throw the ball held at `from` so it drops into `to` on a high arc,
+## worked out the way the physics moves it (gravity and damping, step by step), with the
+## charge the distance needs (_lob_charge). ZERO: too close (or too far) for a lob.
+func _lob(from: Vector3, to: Vector3) -> Vector3:
+	var held := world.get_prop(pl.gun.held_id) as Prop
+	var g: float = ProjectSettings.get_setting("physics/3d/default_gravity", 24.0)
+	var damp: float = held.linear_damp if held else 0.0
+	if held == null or held.linear_damp_mode == RigidBody3D.DAMP_MODE_COMBINE:
+		damp += ProjectSettings.get_setting("physics/3d/default_linear_damp", 0.1)
+	var flat := Vector3(to.x - from.x, 0.0, to.z - from.z)
+	var d := flat.length()
+	var h := to.y - from.y
+	var base: float = Prop.DEFS.basketball.throw_speed * (Pickups.SUPER_MULT if pl.has_buff("super") else 1.0)
+	var lo := deg_to_rad(42.0)
+	var hi := deg_to_rad(78.0)
+	_lob_charge = 0.0
+	var v := base * (1.0 + GravityGun.CHARGE_BONUS * LOB_MARGIN)
+	while _lob_reach(v, lo, h, g, damp) < d:
+		_lob_charge += 0.1
+		if _lob_charge > 1.0 - LOB_MARGIN:
+			return Vector3.ZERO # out of reach
+		v = base * (1.0 + GravityGun.CHARGE_BONUS * (_lob_charge + LOB_MARGIN))
+	if _lob_reach(v, hi, h, g, damp) > d:
+		return Vector3.ZERO # too close: the arc would have to be steeper
+	for k in 16: # the high arc: steeper lands nearer
+		var mid := (lo + hi) * 0.5
+		if _lob_reach(v, mid, h, g, damp) > d:
+			lo = mid
+		else:
+			hi = mid
+	var ang := (lo + hi) * 0.5
+	return flat.normalized() * cos(ang) + Vector3.UP * sin(ang)
+
+
+## How far out a ball thrown at speed v and angle a comes down through height h (-1: never).
+func _lob_reach(v: float, a: float, h: float, g: float, damp: float) -> float:
+	var dt := 1.0 / Engine.physics_ticks_per_second
+	var keep := maxf(1.0 - damp * dt, 0.0)
+	var vx := v * cos(a)
+	var vy := v * sin(a)
+	var x := 0.0
+	var y := 0.0
+	for i in 400:
+		vy -= g * dt
+		vx *= keep
+		vy *= keep
+		var nx := x + vx * dt
+		var ny := y + vy * dt
+		if vy < 0.0 and ny <= h:
+			return x + (nx - x) * (y - h) / maxf(y - ny, 0.0001)
+		x = nx
+		y = ny
+	return -1.0
 
 
 ## Starts winding up a throw; farther targets get a longer charge.

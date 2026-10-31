@@ -207,18 +207,20 @@ func _make_mode(m: int) -> ModeBase:
 			return ModePuzzle.new()
 		Game.Mode.YEETBALL:
 			return ModeYeetball.new()
+		Game.Mode.HOOPS:
+			return ModeHoops.new()
 	return ModeBase.new()
 
 
 func mode_name() -> String:
 	var name: String = Game.MODE_NAMES[mode]
-	if mode == Game.Mode.YEETBALL and mode_state.get("rules", 0) == 1:
-		name = "TOTAL YEETBALL"
+	if Game.is_sport(mode) and mode_state.get("rules", 0) == 1:
+		name = "TOTAL " + name.to_upper()
 	return "%s · %s" % [name, Game.map_display_name(map_key)]
 
 
 func is_team_mode() -> bool:
-	return mode == Game.Mode.CTF or mode == Game.Mode.DODGEBALL or mode == Game.Mode.YEETBALL
+	return mode == Game.Mode.CTF or mode == Game.Mode.DODGEBALL or Game.is_sport(mode)
 
 
 func get_player(id: int) -> Player:

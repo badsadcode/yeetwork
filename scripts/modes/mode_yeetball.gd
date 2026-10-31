@@ -17,6 +17,8 @@ extends ModeBase
 ## - Full time: a results screen on every peer (score, scorers, player of the match); the
 ##   host starts the next match or goes back to the menu.
 ## - A commentator who gets far too excited.
+## YeetHoops (ModeHoops) is built on this: it swaps the ball, how a score is made and worth,
+## and what the commentator says (ball_kind, _scored, _score_text, _commentate...).
 
 const GOALS_TO_WIN := 5
 const HOLD_LIMIT := [2.5, 4.0] # per ruleset
@@ -72,11 +74,12 @@ var _warned := 0 # 60 s and 10 s warnings given (bit flags)
 var _camp := {} # player id -> seconds in their own net
 var _knocked := {} # player id -> time of the last bowl-over
 var _goals_by := {} # player id -> goals this match
-var _goal_log: Array = [] # [scorer name, team scored for, own goal, metres out]
+var _goal_log: Array = [] # [scorer name, team scored for, own goal, metres out, points]
 var _results := {} # the full-time screen, while it's up
 var _multiball_t := MULTIBALL_EVERY
 var _barrel_t := BARREL_EVERY
 var _rng := RandomNumberGenerator.new()
+var countdown := COUNTDOWN # the kickoff countdown, seconds
 
 
 func mode_name() -> String:
@@ -107,8 +110,18 @@ func hold_time_limit(a: Player, b: Player) -> float:
 	return super.hold_time_limit(a, b)
 
 
+## The ball this sport is played with (a Prop kind).
+func ball_kind() -> String:
+	return "yeetball"
+
+
+## What a score is called (results screen: "3 goals", "21 points").
+func unit() -> String:
+	return "goal"
+
+
 func spawn_mode_props() -> void:
-	var p: Prop = world.server_spawn_prop("yeetball", Transform3D(Basis.IDENTITY, world.arena.ball_spot))
+	var p: Prop = world.server_spawn_prop(ball_kind(), Transform3D(Basis.IDENTITY, world.arena.ball_spot))
 	_ball_id = p.prop_id
 	_kickoff(false)
 
@@ -164,6 +177,7 @@ func _publish() -> void:
 		"clock_left": left,
 		"clock_end": world.net_time() + left if timed and phase == Phase.PLAY and not overtime else -1.0,
 		"overtime": overtime,
+		"golden": _golden_label(),
 		"phase": phase,
 		"results": _results,
 	})
@@ -172,7 +186,7 @@ func _publish() -> void:
 ## Seconds of play left as the HUD shows it ("" without a clock).
 static func clock_text(state: Dictionary, now: float) -> String:
 	if state.get("overtime", false):
-		return "GOLDEN GOAL"
+		return state.get("golden", "GOLDEN GOAL")
 	if not state.get("timed", false):
 		return ""
 	var end: float = state.get("clock_end", -1.0)
@@ -206,7 +220,7 @@ func _kickoff(line_up: bool) -> void:
 		for pl: Player in world.players.values():
 			world.server_place_player(pl)
 	phase = Phase.KICKOFF
-	_t = COUNTDOWN
+	_t = countdown
 	_count = -1
 	_idle = 0.0
 	_held_for.clear()
@@ -279,10 +293,10 @@ func _play(b: Prop, delta: float) -> void:
 	_since_go += delta
 	for p in balls():
 		_ball_rules(p, delta)
-		for g in world.arena.goals:
-			if (g as GoalZone).contains_ball(p.global_position, p.size.x):
-				_goal(g as GoalZone, p)
-				return
+		var scored := _scored(p)
+		if not scored.is_empty():
+			_goal(scored[0], p, scored[1])
+			return
 	_anti_stall(b, delta)
 	_no_camping(delta)
 	if rules == Rules.TOTAL:
@@ -299,6 +313,14 @@ func _play(b: Prop, delta: float) -> void:
 			world.server_fx("beep", b.global_position, Vector3.UP, 1.4)
 		if clock_left <= 0.0:
 			_time_up()
+
+
+## Did this ball just score? [the goal, points], or [] (Yeetball: the whole ball over a line).
+func _scored(p: Prop) -> Array:
+	for g in world.arena.goals:
+		if (g as GoalZone).contains_ball(p.global_position, p.size.x):
+			return [g, 1]
+	return []
 
 
 ## The hold limit (no carrying it into the net), the speed cap, and where it was kicked from.
@@ -359,7 +381,7 @@ func _chaos(b: Prop, delta: float) -> void:
 		if _extra.is_empty():
 			for i in 2:
 				var at: Vector3 = world.arena.ball_spot + Vector3(_rng.randf_range(-6, 6), 12.0 + i * 2.0, _rng.randf_range(-6, 6))
-				var x: Prop = world.server_spawn_prop("yeetball", Transform3D(Basis.IDENTITY, at), Vector3.ZERO, Color(0, 0, 0, 0), 0, Vector3(0, -2, 0))
+				var x: Prop = world.server_spawn_prop(ball_kind(), Transform3D(Basis.IDENTITY, at), Vector3.ZERO, Color(0, 0, 0, 0), 0, Vector3(0, -2, 0))
 				_extra.append(x.prop_id)
 				world.server_fx("spawn", at, Vector3.UP, 1.0)
 			world.server_message(MULTIBALL_LINES[_rng.randi() % MULTIBALL_LINES.size()], VOICE, true)
@@ -392,10 +414,14 @@ func _time_up() -> void:
 	if red == blue:
 		overtime = true
 		world.server_fx("whistle", world.arena.ball_spot, Vector3.UP, 2.0)
-		world.server_message("GOLDEN GOAL! Next goal wins!", Color(1, 0.85, 0.3), true)
+		world.server_message("%s! Next %s wins!" % [_golden_label(), "goal" if unit() == "goal" else "basket"], Color(1, 0.85, 0.3), true)
 		_publish()
 		return
 	_full_time(Game.TEAM_RED if red > blue else Game.TEAM_BLUE)
+
+
+func _golden_label() -> String:
+	return "GOLDEN GOAL"
 
 
 func _full_time(team: int) -> void:
@@ -427,30 +453,26 @@ func _full_time(team: int) -> void:
 		"star": [star.display_name, best] if star else [],
 		"longest": longest,
 		"rules": rules,
+		"unit": unit(),
 	}
 	_publish()
 
 
-func _goal(g: GoalZone, b: Prop) -> void:
+func _goal(g: GoalZone, b: Prop, points := 1) -> void:
 	var team := Game.TEAM_BLUE if g.team == Game.TEAM_RED else Game.TEAM_RED
 	var scorer := world.get_player(b.held_by if b.held_by != 0 else b.last_thrower) as Player
-	var who: String = Game.TEAM_NAMES[team].to_upper()
 	var own := scorer != null and scorer.team != team
-	var text := "GOOOOOOAL! for %s" % who
 	if scorer and not own:
-		text = "GOOOOOOOYEET! %s scores for %s" % [scorer.display_name, who]
-		scorer.score += 1
+		scorer.score += points
 		world.server_player_stats(scorer)
-		_goals_by[scorer.player_id] = _goals_by.get(scorer.player_id, 0) + 1
-	elif scorer:
-		text = "%s scored an OWN GOAL! (%s's point)" % [scorer.display_name, who]
+		_goals_by[scorer.player_id] = _goals_by.get(scorer.player_id, 0) + points
 	world.server_fx("score", g.mouth(), Vector3.UP, 1.0)
 	world.server_fx("confetti", g.mouth(), g.global_transform.basis.z, 2.0)
 	world.server_fx("cheer", g.mouth(), Vector3.UP, 1.0)
-	world.server_message(text, Game.team_color(team), true)
-	world.team_scores[team] = world.team_scores.get(team, 0) + 1
+	world.server_message(_score_text(scorer, team, own, points, b), Game.team_color(team), true)
+	world.team_scores[team] = world.team_scores.get(team, 0) + points
 	world.server_team_scores_changed()
-	_goal_log.append([scorer.display_name if scorer else "Lucky bounce", team, own, roundf(_kick_distance(g, b))])
+	_goal_log.append([scorer.display_name if scorer else "Lucky bounce", team, own, roundf(_kick_distance(g, b)), points])
 	_commentate(g, b, scorer, own)
 	if overtime or world.team_scores[team] >= score_limit:
 		_full_time(team)
@@ -458,6 +480,16 @@ func _goal(g: GoalZone, b: Prop) -> void:
 	phase = Phase.GOAL
 	_t = CELEBRATE
 	_publish()
+
+
+## The big line when someone scores.
+func _score_text(scorer: Player, team: int, own: bool, _points: int, _b: Prop) -> String:
+	var who: String = Game.TEAM_NAMES[team].to_upper()
+	if scorer and not own:
+		return "GOOOOOOOYEET! %s scores for %s" % [scorer.display_name, who]
+	if scorer:
+		return "%s scored an OWN GOAL! (%s's point)" % [scorer.display_name, who]
+	return "GOOOOOOAL! for %s" % who
 
 
 ## How far out it was kicked or thrown from (0 if nobody did).
@@ -506,7 +538,7 @@ func on_prop_fell_out(prop: Prop) -> bool:
 ## The ball bonks; it never hurts. With knockdown on (always in TOTAL YEET) a fast one
 ## bowls you over: a tumble, no damage.
 func on_prop_hit_player(prop: Prop, pl: Player, attacker: Player, rel := Vector3.ZERO) -> bool:
-	if prop.kind != "yeetball":
+	if prop.kind != ball_kind():
 		return false
 	var v := rel
 	if (knockdown or rules == Rules.TOTAL) and v.length() > KNOCK_SPEED and pl.player_id != prop.held_by:

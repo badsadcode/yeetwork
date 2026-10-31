@@ -810,6 +810,8 @@ func _throw(dir: Vector3, charge := 0.0) -> void:
 			release(false)
 			if p:
 				var speed := clampf(48.0 / pow(p.mass / 8.0, 0.33), 9.0, 48.0) * power
+				if Prop.DEFS.get(p.kind, {}).has("throw_speed"):
+					speed = Prop.DEFS[p.kind].throw_speed * power # (a basketball: gentle enough to lob)
 				p.linear_velocity = dir * speed + player.velocity
 				p.angular_velocity = Vector3(randf_range(-8, 8), randf_range(-8, 8), randf_range(-8, 8))
 				p.last_thrower = player.player_id

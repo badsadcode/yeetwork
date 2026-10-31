@@ -182,7 +182,7 @@ func _page_play(stack: Control) -> Control:
 	_rules.selected = clampi(Game.yeetball_rules, 0, 1)
 	_rules.tooltip_text = "Classic Chaos: recognisable football with gravity guns.
 TOTAL YEET: longer holds, a faster ball, multi-ball and barrels from the sky."
-	_field(grid, "Yeetball rules", _rules)
+	_field(grid, "Sport rules", _rules)
 	_minutes = OptionButton.new()
 	for m: int in Game.MATCH_LENGTHS:
 		_minutes.add_item("First to 5 goals" if m == 0 else "%d minutes" % m)
@@ -196,7 +196,7 @@ TOTAL YEET: longer holds, a faster ball, multi-ball and barrels from the sky."
 TOTAL YEET always knocks players over."
 	_field(grid, "Ball hits players", _knock)
 	var sport_only := func(i: int) -> void:
-		var on := i == Game.Mode.YEETBALL
+		var on := Game.is_sport(i)
 		for c: Control in [_rules, _minutes, _knock]:
 			c.visible = on
 			grid.get_child(c.get_index() - 1).visible = on # its label

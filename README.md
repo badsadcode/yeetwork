@@ -214,6 +214,16 @@ come back to the middle; standing in your own net for more than 5 s gets you bou
 - Bots play too (the nearest chases the nearest ball and punts it at the goal, the others
   hang back). Map: **Yeetball Stadium**.
 
+**YeetHoops** (sports). Basketball with gravity guns, on Yeetball's rules (tip-off, clock,
+next basket wins, rulesets, ball knockdown, full-time screen): two hoops, a small bouncy
+basketball that's thrown gently enough to lob (charge for distance). A basket is the ball
+dropping down through the rim: **2 points**, **3** from beyond the glowing arc, and a
+**dunk** (carried in on the gun) is 2 and a show. First to 21 wins early. Backboards are
+solid for bank shots; jump pads on the wings send you up to the rim. The commentator calls
+swishes, threes, dunks, buzzer beaters and players on fire. Bots pull the ball in with the
+gun, set their feet and lob it in on an arc they work out the way the physics flies it;
+the others crash the boards or go and punt whoever has the ball. Map: **Hoops Court**.
+
 **Pickups and power-ups.** Maps have first aid kits (+50, or +100 for the big one) and
 power-ups floating over glowing pads; walk through one to take it, and it comes back after
 a while. **Speed** (40% faster, 12 s), **Super Yeet** (throws, punts and launches 1.8x
@@ -372,6 +382,10 @@ godot --headless --path . -- --host --map scrapyard --mode puzzle --tour x --tou
 # Pickups: first aid heals and comes back, every power-up measured on a bot, the HUD,
 # a hurt bot fetching first aid, the host's "no pickups" setting
 godot --headless --path . -- --host --map prime --bots 2 --tour x --tour-mode pickups
+
+# YeetHoops: 2 and 3 points, no basket from below, a solid backboard, a dunk, bots shooting
+# (and a lone bot scoring), full time at 21
+godot --headless --path . -- --host --map hoops_court --mode hoops --bots 3 --tour x --tour-mode hoops
 
 # Yeetball: kickoff, goals, the hold limit, a lost ball, bots playing, full time, the
 # clock and golden goal, no camping, TOTAL YEET's multi-ball and barrels

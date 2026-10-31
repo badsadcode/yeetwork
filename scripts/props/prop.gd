@@ -37,6 +37,8 @@ const DEFS := {
 	"battery": {"shape": "box", "size": Vector3(0.5, 0.7, 0.5), "mass": 15.0, "color": Color(0.2, 0.85, 0.45), "bounce": 0.1, "label": "Battery", "metal": true},
 	# Yeetball: big, light, bouncy and easy to spot.
 	"yeetball": {"shape": "sphere", "size": Vector3(0.7, 0.7, 0.7), "mass": 6.0, "color": Color(0.97, 0.97, 1.0), "bounce": 0.7, "label": "Yeetball", "damp": 0.15},
+	# YeetHoops: smaller, bouncier, and thrown gently enough to lob (throw_speed, m/s).
+	"basketball": {"shape": "sphere", "size": Vector3(0.32, 0.32, 0.32), "mass": 2.5, "color": Color(0.95, 0.45, 0.12), "bounce": 0.82, "label": "Basketball", "damp": 0.0, "throw_speed": 14.0},
 	"fan": {"shape": "fan", "size": Vector3(1.5, 1.7, 0.8), "mass": 40.0, "color": Color(0.3, 0.75, 0.95), "bounce": 0.1, "label": "Fan", "metal": true},
 }
 
@@ -171,6 +173,8 @@ func _build(def: Dictionary) -> void:
 				_add_beachball_stripes(mesh)
 			elif kind == "yeetball":
 				_build_yeetball(mesh)
+			elif kind == "basketball":
+				_build_basketball(mesh)
 		"cyl":
 			var s := CylinderShape3D.new()
 			s.radius = size.x
@@ -606,24 +610,7 @@ func _build_yeetball(parent: MeshInstance3D) -> void:
 	light.light_energy = 0.8
 	parent.add_child(light)
 	# A ring on the ground under it while it flies, so you can tell where it'll come down.
-	_ball_mark = MeshInstance3D.new()
-	var ring := TorusMesh.new()
-	ring.inner_radius = size.x * 0.75
-	ring.outer_radius = size.x * 0.95
-	ring.rings = 32
-	ring.ring_segments = 6
-	_ball_mark.mesh = ring
-	_ball_mark.scale = Vector3(1, 0.05, 1)
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.albedo_color = Color(1.0, 0.6, 0.15, 0.8)
-	m.no_depth_test = false
-	_ball_mark.material_override = m
-	_ball_mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_ball_mark.top_level = true
-	_ball_mark.visible = false
-	add_child(_ball_mark)
+	_add_ball_mark()
 
 
 func _place_ball_mark() -> void:
@@ -637,6 +624,48 @@ func _place_ball_mark() -> void:
 		_ball_mark.global_transform = Transform3D(Basis(Quaternion(Vector3.UP, n)), hit.position + n * 0.04)
 		_ball_mark.scale = Vector3(1, 0.05, 1) * (1.0 + minf(height * 0.04, 0.8))
 		(_ball_mark.material_override as StandardMaterial3D).albedo_color.a = clampf(1.0 - height / 30.0, 0.25, 0.8)
+
+
+## The basketball: orange with dark seams, a ring under it in the air like the Yeetball's.
+func _build_basketball(parent: MeshInstance3D) -> void:
+	var seam := Mats.plastic(Color(0.12, 0.08, 0.06), 0.5)
+	for k in 3:
+		var band := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = size.x * 0.985
+		tm.outer_radius = size.x * 1.03
+		tm.rings = 28
+		tm.ring_segments = 4
+		band.mesh = tm
+		band.material_override = seam
+		band.rotation = [Vector3(PI * 0.5, 0, 0), Vector3(0, 0, PI * 0.5), Vector3.ZERO][k]
+		parent.add_child(band)
+	_add_ball_mark()
+
+
+func _add_ball_mark() -> void:
+	_ball_mark = MeshInstance3D.new()
+	var ring := TorusMesh.new()
+	ring.inner_radius = maxf(size.x * 0.75, 0.3)
+	ring.outer_radius = maxf(size.x * 0.95, 0.4)
+	ring.rings = 32
+	ring.ring_segments = 6
+	_ball_mark.mesh = ring
+	_ball_mark.scale = Vector3(1, 0.05, 1)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(1.0, 0.6, 0.15, 0.8)
+	_ball_mark.material_override = m
+	_ball_mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_ball_mark.top_level = true
+	_ball_mark.visible = false
+	add_child(_ball_mark)
+
+
+## The sports' balls (Yeetball, YeetHoops).
+static func is_sport_ball(k: String) -> bool:
+	return k == "yeetball" or k == "basketball"
 
 
 ## A big fuse: a glowing cylinder with metal caps.

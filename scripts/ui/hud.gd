@@ -351,7 +351,7 @@ func show_match_results(r: Dictionary) -> void:
 		v.add_child(l)
 		return l
 	var winner: int = r.get("winner", 0)
-	centred.call(_label(30, Color(1.0, 0.85, 0.35))).text = "FULL TIME" + (" · GOLDEN GOAL" if r.get("golden", false) else "")
+	centred.call(_label(30, Color(1.0, 0.85, 0.35))).text = "FULL TIME" + ((" · GOLDEN GOAL" if r.get("unit", "goal") == "goal" else " · NEXT BASKET WON IT") if r.get("golden", false) else "")
 	centred.call(_label(44, Game.team_color(winner))).text = "%s TEAM WINS!" % Game.TEAM_NAMES.get(winner, "?").to_upper()
 	var score := HBoxContainer.new()
 	score.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -362,6 +362,7 @@ func show_match_results(r: Dictionary) -> void:
 		l.text = part[0]
 		score.add_child(l)
 	var goals: Array = r.get("goals", [])
+	var points: bool = r.get("unit", "goal") == "point"
 	if not goals.is_empty():
 		v.add_child(HSeparator.new())
 		var cols := HBoxContainer.new()
@@ -372,17 +373,19 @@ func show_match_results(r: Dictionary) -> void:
 			var col := VBoxContainer.new()
 			col.custom_minimum_size.x = 260
 			cols.add_child(col)
-			var tally := {} # name -> [goals, own goals]
+			var tally := {} # name -> [goals (or points), own goals]
 			for e: Array in goals:
 				if e[1] == team:
 					var t: Array = tally.get(e[0], [0, 0])
-					t[1 if e[2] else 0] += 1
+					t[1 if e[2] else 0] += e[4] if points and e.size() > 4 else 1
 					tally[e[0]] = t
 			for who: String in tally:
 				var l := _label(22, Game.team_color(team).lightened(0.35))
 				var t: Array = tally[who]
 				var parts := PackedStringArray()
-				if t[0] > 0:
+				if t[0] > 0 and points:
+					parts.append("%d pts" % t[0])
+				elif t[0] > 0:
 					parts.append("x%d" % t[0] if t[0] > 1 else "")
 				if t[1] > 0:
 					parts.append("own goal" + (" x%d" % t[1] if t[1] > 1 else ""))
@@ -394,9 +397,10 @@ func show_match_results(r: Dictionary) -> void:
 	if not star.is_empty() or not longest.is_empty():
 		v.add_child(HSeparator.new())
 	if not star.is_empty():
-		centred.call(_label(26, Color(1.0, 0.82, 0.3))).text = "Player of the match: %s (%d goal%s)" % [star[0], star[1], "" if star[1] == 1 else "s"]
-	if not longest.is_empty() and longest[1] >= 10.0:
-		centred.call(_label(20, Color(0.92, 0.92, 1.0))).text = "Longest goal: %s from %d m" % [longest[0], int(longest[1])]
+		var u: String = r.get("unit", "goal")
+		centred.call(_label(26, Color(1.0, 0.82, 0.3))).text = "Player of the match: %s (%d %s%s)" % [star[0], star[1], u, "" if star[1] == 1 else "s"]
+	if not longest.is_empty() and longest[1] >= (6.0 if points else 10.0):
+		centred.call(_label(20, Color(0.92, 0.92, 1.0))).text = "Longest %s: %s from %d m" % ["shot" if points else "goal", longest[0], int(longest[1])]
 	v.add_child(HSeparator.new())
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -625,9 +629,9 @@ func _process(delta: float) -> void:
 	_use_prompt.visible = usable != null and not _paused
 	if usable:
 		_use_prompt.text = "[%s]  %s" % [Controls.pad_of("use") if _pad_used else Controls.key_of("use"), usable.use_label()]
-	if world and world.mode == Game.Mode.YEETBALL:
+	if world and Game.is_sport(world.mode):
 		_ball_marks.queue_redraw()
-	if world and (world.mode == Game.Mode.PUZZLE or world.mode == Game.Mode.YEETBALL):
+	if world and (world.mode == Game.Mode.PUZZLE or Game.is_sport(world.mode)):
 		_clock_t -= delta
 		if _clock_t <= 0.0:
 			_clock_t = 0.25
@@ -735,7 +739,7 @@ func on_players_changed() -> void:
 		_score_label.text = "%s     Candy: %d / %d%s" % [world.mode_name(), pl.score if pl else 0, ModePumpkin.WIN_CANDY, lead]
 	elif world.is_team_mode():
 		_score_label.text = "%s     RED %d  —  %d BLUE" % [world.mode_name(), world.team_scores.get(1, 0), world.team_scores.get(2, 0)]
-		if world.mode == Game.Mode.YEETBALL:
+		if Game.is_sport(world.mode):
 			var clock := ModeYeetball.clock_text(world.mode_state, world.net_time())
 			if clock != "":
 				_score_label.text += "     " + clock
@@ -769,7 +773,7 @@ func _draw_ball_marks() -> void:
 	var col := Color(1.0, 0.62, 0.15)
 	var dark := Color(0, 0, 0, 0.55)
 	for p in world.props.values():
-		if not is_instance_valid(p) or (p as Prop).kind != "yeetball":
+		if not is_instance_valid(p) or not Prop.is_sport_ball((p as Prop).kind):
 			continue
 		var pos: Vector3 = (p as Prop).global_position
 		var behind := cam.is_position_behind(pos)

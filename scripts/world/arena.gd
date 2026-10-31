@@ -340,7 +340,7 @@ func validate() -> Array[String]:
 	if (not flag_stands.has(1) or not flag_stands.has(2)) and not co_op and not sport:
 		out.append("CTF needs one Red and one Blue FlagStand.")
 	if sport and (goals.filter(func(g: GoalZone) -> bool: return g.team == 1).size() != 1 or goals.filter(func(g: GoalZone) -> bool: return g.team == 2).size() != 1):
-		out.append("Yeetball needs one Red and one Blue GoalZone.")
+		out.append("Yeetball needs one Red and one Blue GoalZone (YeetHoops: one Red and one Blue Hoop).")
 	if co_op and not puzzle.any(func(n: PuzzleNode) -> bool: return n is PuzzleExit):
 		out.append("A puzzle level needs a PuzzleExit.")
 	var cells := 0
