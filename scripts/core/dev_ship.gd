@@ -26,6 +26,9 @@ func _ready() -> void:
 	for p: Prop in world.props.values():
 		if is_instance_valid(p) and p.explosive:
 			world.server_despawn_prop(p)
+	# Nor green water or rogue waves (the weather check has those): just the swell here.
+	world._wash_cd = 1.0e9
+	world._next_rogue = world.now() + 1.0e9
 	await get_tree().physics_frame
 	var aboard_start := _aboard(ship)
 	var start_local := {}
