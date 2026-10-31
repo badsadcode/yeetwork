@@ -131,8 +131,10 @@ func _ready() -> void:
 	for q: Player in brains:
 		q.bot_brain = brains[q]
 		q.respawn(mode.spawn_point(q), 0.0)
+	horde.server_clear() # (a fresh lot round the keep for them, nothing left elsewhere)
+	await _wait(0.3)
 	var bot_kills := 0
-	for k in 25:
+	for k in 35:
 		if horde.count() < 15:
 			for j in 5:
 				var a := randf() * TAU
@@ -167,7 +169,7 @@ func _ready() -> void:
 	await _wait(0.4)
 	await _shot("m06_two_hundred")
 	# The fall, and a fresh start.
-	mode.meter = 1.0
+	mode.meter = -200.0 # (run out, beyond what the bots' kills put back in a second)
 	await _wait(1.6)
 	_check("the fortress falls when the meter runs out", mode.phase == ModeMegaYeet.Phase.OVER, "phase %d" % mode.phase)
 	await _shot("m07_fallen")
@@ -242,8 +244,9 @@ func _kinds() -> void:
 	# A ghost: through the outer wall, a push goes through it, a flashlight burns it.
 	pl.torch_on = false # (off for now: the push test next)
 	var ghost := horde.server_spawn(Vector3(8, 0, -43), "ghost")
-	await _wait(5.5)
-	_check("a ghost drifts through the walls", ghost.hp > 0.0 and ghost.pos.z > -36.0, "at z %.1f" % ghost.pos.z)
+	await _wait(6.5)
+	# (past the outer wall's inner face, z -36.5; ghosts drift at 1.3 to 1.7 m/s)
+	_check("a ghost drifts through the walls", ghost.hp > 0.0 and ghost.pos.z > -36.5, "at z %.1f" % ghost.pos.z)
 	pl.respawn(ghost.pos + Vector3(0, -ghost.pos.y, 5.0), 0.0)
 	await _wait(0.2)
 	_face(pl, ghost.pos + Vector3.UP * 1.2)
