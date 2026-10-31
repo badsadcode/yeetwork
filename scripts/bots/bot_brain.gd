@@ -25,10 +25,7 @@ var _release_in := 0.0
 var _hopping := false
 var _miss := Vector3.ZERO # per-target aim error, re-rolled each think
 var _monster # MegaYeet: the monster we're after (Horde.Monster)
-var _path := PackedVector3Array() # MegaYeet: the way there (BotRoute)
-var _path_i := 0
-var _on_route := false # (following a route: dropping off an edge is meant)
-var _unreachable := {} # monster id -> until when it's left alone
+var _on_route := false # (following the bots' map: dropping off an edge is meant)
 
 # Per Game.bot_skill (easy, normal, hard). Hard is the original, merciless bot.
 const TURN_RATE := [2.5, 4.0, 7.0]
@@ -136,49 +133,54 @@ func think(delta: float) -> void:
 	_steer(delta, want_move)
 
 
-## MegaYeet: go for the monster nearest the Heart (the worst danger) that it can get to, by a
-## route over the fortress (BotRoute: hopping walls, dropping off them, riding jump pads, not
-## through a standing gate), push it away when it's close, and grab a prop on the way to
-## throw into them. Nothing it can reach: back to the Heart.
+## MegaYeet: follow the bots' shared map (Horde.bot_field: downhill to the monster most worth
+## going for, hopping walls, riding jump pads, round big props) until one is close and in
+## sight; then push it away, or throw a prop grabbed on the way. Nothing to get to: back to
+## the Heart.
 func _think_megayeet(delta: float) -> void:
 	var mode := world.mode_logic as ModeMegaYeet
-	if mode == null or mode.heart == null:
+	if mode == null or mode.heart == null or world.horde == null:
 		return
-	var field: FlowField = world.horde.field if world.horde else null
+	var horde: Horde = world.horde
+	var field: FlowField = horde.field
 	var heart: Vector3 = mode.heart.global_position
 	var holding := pl.gun.held_kind != GravityGun.Kind.NONE
-	var now: float = world.now()
 	if _release_in > 0.0:
 		_release_in -= delta
 		if _release_in <= 0.0 or not holding:
 			_finish_throw()
 	if _think <= 0.0:
-		_think = 0.45 + _rng.randf() * 0.2
+		_think = 0.35 + _rng.randf() * 0.2
 		_miss = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-0.3, 0.6), _rng.randf_range(-1, 1)) * AIM_SLOP[_skill()] * 0.5
-		_pick_monster(mode, heart, field, now)
-		if not holding and _target_prop == null and _rng.randf() < 0.35:
+		_monster = null
+		var best := 14.0
+		for m in mode.threats(): # (the nearest one in sight, to fight)
+			var d: float = m.pos.distance_to(pl.global_position)
+			if d < best and _can_see(m.pos + Vector3.UP * 0.9):
+				best = d
+				_monster = m
+		if not holding and _target_prop == null and _monster != null and _rng.randf() < 0.35:
 			_target_prop = _find_prop()
 	var eye := pl.eye_position()
 	var look_at := heart + Vector3.UP * 1.5
 	var want_move := true
-	_goal = _route_goal(heart)
+	var next := horde.bot_field.next_point(field, pl.global_position) if field else Vector3.INF
+	_on_route = next != Vector3.INF
+	_goal = next if _on_route else heart
 	if _monster != null and _monster.hp > 0.0:
 		var mp: Vector3 = _monster.pos + Vector3.UP * 0.9
 		var d := eye.distance_to(mp)
-		var close := d < 9.0 and _can_see(mp)
-		if close or _path.is_empty():
-			var back: Vector3 = pl.global_position - _monster.pos
-			back.y = 0.0
-			_goal = _monster.pos + (back.normalized() if back.length() > 0.1 else Vector3.FORWARD) * 4.0
-		want_move = d > 5.0 or not close
-		look_at = (mp + _miss * clampf(d / 15.0, 0.3, 1.2)) if close or d < 20.0 else _goal + Vector3.UP * 1.5
+		var back: Vector3 = pl.global_position - _monster.pos
+		back.y = 0.0
+		_goal = _monster.pos + (back.normalized() if back.length() > 0.1 else Vector3.FORWARD) * 4.0
+		_on_route = false
+		want_move = d > 5.0
+		look_at = mp + _miss * clampf(d / 15.0, 0.3, 1.2)
 		if holding:
 			_hold_timer += delta
-			if _hold_timer > 0.4 and d < 28.0 and close and _aim_error(look_at) < 0.12:
+			if _hold_timer > 0.4 and _aim_error(look_at) < 0.12:
 				_throw(d)
-			elif _hold_timer > 3.0 and not close:
-				_finish_throw() # (nothing to throw it at here: don't lug it round the fortress)
-		elif _target_prop and is_instance_valid(_target_prop) and _target_prop.held_by == 0 and d > 6.0 and d < 20.0 and _can_see(mp) and eye.distance_to(_target_prop.global_position) < 10.0:
+		elif _target_prop and is_instance_valid(_target_prop) and _target_prop.held_by == 0 and d > 6.0 and eye.distance_to(_target_prop.global_position) < 10.0:
 			var tp := _target_prop.global_position
 			look_at = tp
 			if not _grabbing and _aim_error(tp) < 0.15:
@@ -188,110 +190,24 @@ func _think_megayeet(delta: float) -> void:
 			world.gun_action(pl, GravityGun.Action.THROW)
 			_punt_cd = PUNT_REST[_skill()] * 0.6 + _rng.randf() * 0.5
 	else:
-		want_move = pl.global_position.distance_to(heart) > 6.0
-		if holding and _hold_timer > 3.0:
-			_finish_throw()
+		if not _on_route:
+			want_move = pl.global_position.distance_to(heart) > 6.0
+		else:
+			look_at = _goal + Vector3.UP * 1.5
+		if holding:
+			_hold_timer += delta
+			if _hold_timer > 3.0:
+				_finish_throw() # (nothing to throw it at here: don't lug it round the fortress)
 	if not holding and _grabbing and (_target_prop == null or not is_instance_valid(_target_prop)):
 		world.gun_action(pl, GravityGun.Action.GRAB_END)
 		_grabbing = false
 	if holding:
 		_target_prop = null
 	_aim(look_at, delta)
-	_on_route = not _path.is_empty()
 	_steer(delta, want_move)
-	# Up a step on the route: hop.
-	if _on_route and _path_i < _path.size() and pl.is_on_floor() and not _is_pad_step(_path_i):
-		var nxt := _path[_path_i]
-		if nxt.y > pl.global_position.y + 0.45 and Vector2(nxt.x - pl.global_position.x, nxt.z - pl.global_position.z).length() < 1.8:
-			pl.cmd.jump_pressed = true # (up a step: hop; a pad does the lifting itself)
-
-
-## The monster to go after: nearest the Heart (and near us) among those we can get to; the
-## route there. Ones out of reach are left alone for a few seconds.
-func _pick_monster(mode: ModeMegaYeet, heart: Vector3, field: FlowField, now: float) -> void:
-	for id in _unreachable.keys():
-		if now > float(_unreachable[id]):
-			_unreachable.erase(id)
-	var ranked := []
-	for m in mode.threats():
-		if _unreachable.has(m.id):
-			continue
-		ranked.append([m.pos.distance_to(pl.global_position) + m.pos.distance_to(heart) * 0.7, m])
-	ranked.sort_custom(func(a, b): return a[0] < b[0])
-	_monster = null
-	_path = PackedVector3Array()
-	for k in mini(ranked.size(), 3): # (a few tries a think, the best first)
-		var m = ranked[k][1]
-		if m.pos.distance_to(pl.global_position) < 8.0 and _can_see(m.pos + Vector3.UP * 0.9):
-			_monster = m # (right here, in sight: straight at it)
-			return
-		var route := BotRoute.find(field, world.arena.jump_links, pl.global_position, m.pos, 9000, _prop_cells(field))
-		if not route.is_empty():
-			_monster = m
-			_path = route
-			_path_i = 0
-			return
-		_unreachable[m.id] = now + 4.0
-	# Nothing to go for (or nothing we can reach): back toward the Heart.
-	if field and pl.global_position.distance_to(heart) > 8.0:
-		_path = BotRoute.find(field, world.arena.jump_links, pl.global_position, heart, 9000, _prop_cells(field))
-		_path_i = 0
-
-
-## The route's step to waypoint k is a jump pad's launch (higher than a hop).
-func _is_pad_step(k: int) -> bool:
-	return k > 0 and _path[k].y - _path[k - 1].y > BotRoute.JUMP + 0.05
-
-
-## The cells big props stand on (crates, an iron ball): routes go round them, not over (a
-## bot that walks into one ends up on top of it, or rolling it about).
-func _prop_cells(field: FlowField) -> Dictionary:
-	var out := {}
-	if field == null:
-		return out
-	for p: Prop in world.props.values():
-		if not is_instance_valid(p) or p.held_by != 0 or p.lift_count > 0:
-			continue
-		var r := maxf(p.size.x, maxf(p.size.y, p.size.z)) * (1.0 if p.kind == "iron_ball" else 0.5)
-		if r < 0.45 or p.linear_velocity.length() > 2.0:
-			continue
-		var c := p.global_position
-		for dz in range(-2, 3):
-			for dx in range(-2, 3):
-				var q := field.cell_of(c + Vector3(dx, 0, dz) * 0.7)
-				if q >= 0 and Vector2(dx, dz).length() * 0.7 <= r + 0.4:
-					out[q] = true
-	return out
-
-
-## Where to steer now along the route: a little way ahead on it (the waypoint after the
-## one we're at), else straight for `fallback`.
-func _route_goal(fallback: Vector3) -> Vector3:
-	if _path.is_empty():
-		return fallback
-	var pos := pl.global_position
-	while _path_i < _path.size() - 1 and Vector2(_path[_path_i].x - pos.x, _path[_path_i].z - pos.z).length() < 1.1:
-		_path_i += 1
-	var ahead := mini(_path_i + 2, _path.size() - 1)
-	# (not past a step up: the hop happens at its foot; a jump pad's launch: onto the pad)
-	for k in range(_path_i, ahead + 1):
-		if _path[k].y > pos.y + 0.45:
-			ahead = k
-			if k > 0 and _is_pad_step(k):
-				# Straight across the pad's middle (stopping short of it, it wouldn't fire).
-				var pad := _path[k - 1]
-				var across := Vector3(pad.x - pos.x, 0, pad.z - pos.z)
-				return pad + (across.normalized() if across.length() > 0.05 else Vector3.ZERO) * 1.8
-			break
-	var g := _path[ahead]
-	# (the last bit of the way, and the steering's stop distance: aim past it a little)
-	var to := g - pos
-	to.y = 0.0
-	if to.length() < 1.6 and ahead < _path.size() - 1:
-		g = _path[mini(ahead + 1, _path.size() - 1)]
-	elif to.length() < 1.6:
-		g = pos + to.normalized() * 1.7 if to.length() > 0.05 else g
-	return g
+	# Up a step on the way: hop (a pad does its own lifting).
+	if _on_route and pl.is_on_floor() and horde.bot_field.step_up(field, pl.global_position):
+		pl.cmd.jump_pressed = true
 
 
 ## Yeetball: get behind the ball (on the far side from the goal we attack) and punt it at

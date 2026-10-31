@@ -340,7 +340,7 @@ func _kinds() -> void:
 
 
 ## A bot finds its way out of the keep to a monster beyond the inner wall, the gates shut: over
-## the low keep wall, up a jump pad onto the inner wall, off its far side (BotRoute).
+## the low keep wall, up a jump pad onto the inner wall, off its far side (BotField).
 func _way_out(brains: Dictionary) -> void:
 	mode.phase = ModeMegaYeet.Phase.BREAK # (no wave coming meanwhile: just the one monster)
 	mode.phase_end = world.now() + 999.0
@@ -351,13 +351,15 @@ func _way_out(brains: Dictionary) -> void:
 	if horde.field.refresh_gates():
 		horde.field.solve()
 	var at := Vector3(6, 0, -30)
-	var route := BotRoute.find(horde.field, world.arena.jump_links, mode.heart.global_position + Vector3(4, 0, 4), at)
+	var target := horde.server_spawn(at, "shambler")
+	target.speed = 0.0 # (it stays put: the bot has to get there)
+	await _wait(2.3) # (the bots' map, made again with it on it)
+	var route := horde.bot_field.trace(horde.field, mode.heart.global_position + Vector3(4, 0, 4))
 	var over := false
 	for p: Vector3 in route:
 		over = over or p.y > 6.0
-	_check("a bot's route from the Heart to beyond the inner wall (gates shut) goes up a pad and over", not route.is_empty() and over, "%d steps, over the wall %s" % [route.size(), over])
-	var target := horde.server_spawn(at, "shambler")
-	target.speed = 0.0 # (it stays put: the bot has to get there)
+	var ends: bool = not route.is_empty() and Vector2(route[route.size() - 1].x - at.x, route[route.size() - 1].z - at.z).length() < 2.0
+	_check("the bots' map from the Heart to beyond the inner wall (gates shut) goes up a pad and over", ends and over, "%d steps, over the wall %s, to the monster %s" % [route.size(), over, ends])
 	var bot: Player = brains.keys()[0] if not brains.is_empty() else null
 	if bot == null:
 		return
@@ -410,6 +412,9 @@ func _shop() -> void:
 	world.server_damage_destructible(gate, gate.global_position, 2.5, 3000.0, Vector3(0, 0, 5), 0, 1.0)
 	await _wait(0.3)
 	var broken := gate.broken_cells.size()
+	horde.request_gate_refresh()
+	await _wait(0.8)
+	var open_before: bool = horde.field.walk[horde.field.cell_of(gate.global_position)] == 1
 	pl.respawn(Vector3(0, 0, -35.4), 0.0)
 	await _wait(0.3)
 	_face(pl, gate.global_position)
@@ -417,6 +422,11 @@ func _shop() -> void:
 	world.use_pressed(pl)
 	await _wait(0.2)
 	_check("between waves: Use on a broken gate repairs it, out of the meter", broken > 0 and gate.broken_cells.is_empty() and mode.meter < m0, "%d cells broken, meter %.0f -> %.0f" % [broken, m0, mode.meter])
+	# ... and shuts the monsters' way through again (they go by the grid, not by bumping into it).
+	var gate_cell := horde.field.cell_of(gate.global_position)
+	await _wait(0.8)
+	var shut := horde.field.walk[gate_cell] == 2
+	_check("a repaired gate stops the monsters again (their ways see it shut)", open_before and shut, "open when broken %s, shut when repaired %s" % [open_before, shut])
 	var traps := {}
 	for n in world.arena.puzzle:
 		if n is TrapSpot:

@@ -20,7 +20,8 @@ var height := PackedFloat32Array() # ground (INF: none)
 var walk := PackedByteArray() # 1 a monster fits, 2 a standing gate, 0 no
 var dist := PackedInt32Array()
 var toward := PackedVector2Array() # unit XZ step to the next cell (ZERO at the Heart)
-var gate_wall := {} # cell -> Destructible
+var gate_wall := {} # cell -> Destructible (while it stands there)
+var gate_cells := {} # every cell a gate has stood in (looked at again after a repair)
 var targets := PackedInt32Array()
 var _space: PhysicsDirectSpaceState3D
 var _task := -1
@@ -106,6 +107,7 @@ func _fits(i: int) -> int:
 		var col: Object = h.collider
 		if col and col.has_meta("destructible"):
 			gate_wall[i] = col.get_meta("destructible")
+			gate_cells[i] = true
 			return 2
 	return 0
 
@@ -243,16 +245,11 @@ class Solver:
 		return true
 
 
-## Gate cells whose wall has gone there walk freely again; true when any changed (solve()).
+## Gate cells looked at again: open where their wall is gone, shut again where it's been
+## rebuilt (a repair); true when any changed (solve them).
 func refresh_gates() -> bool:
 	var changed := false
-	for i in gate_wall.keys():
-		var w = gate_wall[i]
-		if not is_instance_valid(w):
-			gate_wall.erase(i)
-			walk[i] = 1
-			changed = true
-			continue
+	for i in gate_cells.keys():
 		var now := _fits(i)
 		if now != walk[i]:
 			walk[i] = now

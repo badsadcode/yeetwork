@@ -40,7 +40,7 @@ var lashed: Array = []
 var fire_areas: Array = [] # [Transform3D, size]: burning places (World sets things alight in them)
 var pickups: Array[PickupSpawn] = [] # first aid kits and power-ups, in scene order
 var heart: FortressHeart # MegaYeet: what's defended
-var jump_links: Array = [] # [pad, landing] (world): Map Kit jump pads, for bots finding their way (BotRoute)
+var jump_links: Array = [] # [pad, landing] (world): Map Kit jump pads, for bots finding their way (BotField)
 var defense_zones: Array[DefenseZone] = []
 var monster_spawns: Array[MonsterSpawn] = []
 var puzzle: Array[PuzzleNode] = [] # puzzle pieces of a Map Kit map, in scene order (same on every peer)

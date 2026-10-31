@@ -71,6 +71,7 @@ jobs:
         timeout-minutes: 12
         run: |
           timeout 450 godot --headless -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --spooky off --tour x --tour-mode megayeet
+          timeout 120 godot --headless -- --host --map res://maps/fortress.tscn --mode megayeet --bots 11 --spooky off --tour x --tour-mode megayeetbots
           (timeout 70 godot --headless -- --host --map res://maps/fortress.tscn --mode megayeet --bots 2 --port 24781 --spooky off > /dev/null 2>&1 &)
           sleep 5
           timeout 90 godot --headless -- --join 127.0.0.1 --port 24781 --tour x --tour-mode megayeetclient

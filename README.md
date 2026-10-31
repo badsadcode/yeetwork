@@ -465,7 +465,7 @@ scripts/horde/    horde.gd (MegaYeet's monsters: server walkers, snapshots, one 
 scripts/fx/       effects.gd (blood, decals, explosions, debris), sfx.gd (synthesized sounds),
                   ambience.gd (the fixtures' looping hums), yeetish.gd (the Yeets' voices),
                   music.gd (assets/music/ tracks by name, the Music bus)
-scripts/bots/     bot_brain.gd
+scripts/bots/     bot_brain.gd, bot_field.gd (MegaYeet: one shared map for every bot to the monsters)
 scripts/ui/       hud.gd, main_menu.gd, settings_form.gd, ui_theme.gd, character_preview.gd
 tests/            test_runner.gd (gameplay smoke tests)
 tools/            make_ui_art.py (menu button/frame art), glb_to_blend.py (characters .blend),
@@ -554,6 +554,8 @@ godot --headless --path . -- --host --map highseas_dusk --bots 1 --tour x --tour
 # MegaYeet: waves, the ways to the Heart, a gate battered down, the meter, kills, bots, the
 # time 200 monsters take a tick, the fall and a fresh start (screenshots with a folder)
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --tour /tmp/shots --tour-mode megayeet
+# ... with a full house of bots (11) and a big wave: how long the server's frames take
+godot --headless --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 11 --tour x --tour-mode megayeetbots
 # ... and over the network: a client joining a MegaYeet host sees the monsters and the meter
 godot --headless --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 2 --port 24781
 godot --headless --path . -- --join 127.0.0.1 --port 24781 --tour x --tour-mode megayeetclient

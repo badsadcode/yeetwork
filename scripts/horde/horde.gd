@@ -93,6 +93,8 @@ class Monster:
 
 var world: Node
 var field: FlowField
+var bot_field := BotField.new() # (the bots' map to the monsters: BotField)
+var _bot_field_t := 0.0
 var monsters: Array[Monster] = [] # (server)
 var _by_id := {}
 var _next_id := 1
@@ -148,6 +150,7 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if field:
 		field.finish()
+	bot_field.finish()
 
 
 func is_server() -> bool:
@@ -182,6 +185,40 @@ func server_spawn(pos: Vector3, kind := "shambler") -> Monster:
 
 func get_monster(id: int) -> Monster:
 	return _by_id.get(id)
+
+
+## The bots' map (BotField), from every monster: those nearer the Heart pull harder (their
+## head start is half their own way left to the Heart); round the big props lying about.
+func _update_bot_field() -> void:
+	var sources := {}
+	for m in monsters:
+		var c := BotField.standable(field, m.pos)
+		if c < 0:
+			continue
+		var here := field.cell_of(m.pos)
+		var start: int = (field.dist[here] / 2) if here >= 0 and field.dist[here] < FlowField.INF_COST else 2000
+		if not sources.has(c) or start < int(sources[c]):
+			sources[c] = start
+	bot_field.update(field, world.arena.jump_links, sources, _prop_cells())
+
+
+## The cells big props stand on (crates, an iron ball): bots go round them, not over (one
+## that walks into one ends up on top of it, or rolling it about).
+func _prop_cells() -> Dictionary:
+	var out := {}
+	for p: Prop in world.props.values():
+		if not is_instance_valid(p) or p.held_by != 0 or p.lift_count > 0:
+			continue
+		var r := maxf(p.size.x, maxf(p.size.y, p.size.z)) * (1.0 if p.kind == "iron_ball" else 0.5)
+		if r < 0.45 or p.linear_velocity.length() > 2.0:
+			continue
+		var c := p.global_position
+		for dz in range(-2, 3):
+			for dx in range(-2, 3):
+				var q := field.cell_of(c + Vector3(dx, 0, dz) * 0.7)
+				if q >= 0 and Vector2(dx, dz).length() * 0.7 <= r + 0.4:
+					out[q] = true
+	return out
 
 
 ## A gate was repaired: look at the ways to the Heart again in a moment (once its wall's
@@ -393,6 +430,11 @@ func _physics_process(delta: float) -> void:
 			field.solve_async()
 	if field.poll() and OS.get_cmdline_user_args().has("--trace"):
 		print("FLOW re-solved (a gate changed)")
+	bot_field.poll()
+	_bot_field_t -= delta
+	if _bot_field_t <= 0.0:
+		_bot_field_t = 1.0
+		_update_bot_field()
 	if not _deaths.is_empty():
 		world.server_horde_deaths(_deaths)
 		_deaths = PackedFloat32Array()
