@@ -174,7 +174,7 @@ Original: the first build, for comparison."
 	models.item_selected.connect(func(i): Game.character_detail = i)
 	_row(g, "Character models", models)
 	var fire := OptionButton.new()
-	for item in ["Classic (soft flame mass)", "New (tongues of flame, embers)"]:
+	for item in ["Classic (soft flame mass)", "New (volumetric flames, embers)"]:
 		fire.add_item(item)
 	fire.selected = clampi(Game.fire_look, 0, 1)
 	fire.item_selected.connect(func(i): Game.fire_look = i)

@@ -37,18 +37,8 @@ func _ready() -> void:
 	_ball.height = 2.0
 	_ball.radial_segments = 24
 	_ball.rings = 12
-	if _noise3d == null and Game.gfx.get("explosions", 2) > 0:
-		var n3 := FastNoiseLite.new()
-		n3.seed = 11
-		n3.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-		n3.frequency = 0.06
-		n3.fractal_octaves = 2
-		_noise3d = NoiseTexture3D.new()
-		_noise3d.width = 64
-		_noise3d.height = 64
-		_noise3d.depth = 64
-		_noise3d.seamless = true
-		_noise3d.noise = n3
+	if Game.gfx.get("explosions", 2) > 0:
+		noise3d()
 	if _noise_tex == null:
 		var n := FastNoiseLite.new()
 		n.seed = 77
@@ -485,6 +475,23 @@ func explosion(pos: Vector3, radius: float) -> void:
 		# Medium/High: a short ray-marched fire core inside the cap.
 		_volume_explosion(pos + Vector3.UP * radius * 0.25, radius * 0.6, 20 if q == 1 else 32)
 	scorch(pos, radius * 0.5)
+
+
+## Cloudy 3D noise, made once and shared: explosions' fireballs and the new look's flames.
+static func noise3d() -> NoiseTexture3D:
+	if _noise3d == null:
+		var n3 := FastNoiseLite.new()
+		n3.seed = 11
+		n3.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		n3.frequency = 0.06
+		n3.fractal_octaves = 2
+		_noise3d = NoiseTexture3D.new()
+		_noise3d.width = 64
+		_noise3d.height = 64
+		_noise3d.depth = 64
+		_noise3d.seamless = true
+		_noise3d.noise = n3
+	return _noise3d
 
 
 ## Ray-marched fireball (explosion_volume.gdshader) that cools into rising smoke.

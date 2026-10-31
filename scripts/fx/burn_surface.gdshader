@@ -52,7 +52,7 @@ void fragment() {
 	float n = noise(q) * 0.65 + noise(q * 2.2 + 4.1) * 0.35;
 	float up = clamp(wnorm.y * 0.5 + 0.55, 0.0, 1.0);
 	float licks = smoothstep(0.56, 0.82, n * (0.85 + 0.3 * up) + fres * 0.2);
-	float glow = clamp(cracks * 1.3 + licks * 0.7 + fres * 0.3, 0.0, 1.6);
+	float glow = clamp(cracks * 1.3 + licks * 0.35 + fres * 0.12, 0.0, 1.6);
 	vec3 col = mix(deep_color.rgb, core_color.rgb, smoothstep(0.2, 0.75, glow));
 	col = mix(col, tip_color.rgb, smoothstep(0.95, 1.4, glow));
 	// Charring: the body darkens where nothing glows (premultiplied: the alpha darkens it).

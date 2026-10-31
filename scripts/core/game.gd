@@ -88,7 +88,7 @@ var look_character := 0
 ## Faces that blink and react (false: the classic, unchanging faces). Only changes what you see.
 var expressive_faces := true
 var character_detail := 0 # 0 optimised character models, 1 the original (heavier) build
-var fire_look := 1 # burning things: 1 new (charred glowing surface, tongues of flame, embers), 0 classic (soft flame mass)
+var fire_look := 1 # burning things: 1 new (charred glowing surface, volumetric flames, embers), 0 classic (soft flame mass)
 # Display (persisted). Window mode: 0 windowed, 1 borderless fullscreen, 2 exclusive fullscreen
 # (-1 = pick automatically: fullscreen on the Steam Deck, a window elsewhere).
 var window_mode := -1

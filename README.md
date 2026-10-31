@@ -256,11 +256,12 @@ up the land, sheet lightning in the clouds, and thunder as late as sound would a
 crack first when it's close.
 
 **Fire look.** Burning things char dark with glowing ember cracks and flames crawling up
-their faces (3D noise in world space: no seams across faces), tongues of flame lick up
-round their sides and over the top (camera-facing flame cards in one batch, shaped by noise
-eroding toward the tips in the stylized-fire manner: yellow cores, orange bodies, tips going
-smoky red-violet), and embers drift up. *Graphics details → Fire look → Classic* brings back
-the soft flame mass and smoke.
+their faces (3D noise in world space: no seams across faces), flames with real depth wrap
+round their sides and rise over the top, tearing into licking tongues (ray-marched through
+rising 3D noise in a box over the burning thing: hot yellow inside, orange, red at the edges,
+dark smoky tips; the thing hides the flames behind it, and a burning player doesn't see their
+own; 28 / 20 / 12 steps on High / Medium / Low), and embers drift up. *Graphics details →
+Fire look → Classic* brings back the soft flame mass and smoke.
 
 **Map themes.** A **MapTheme** gives a map's pieces and props their look in one file: a
 model for each kind of piece (jump pads, buttons, valves, doors, goals, hoops, pickups...)

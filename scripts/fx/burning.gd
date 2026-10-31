@@ -2,9 +2,9 @@ class_name Burning
 extends Node3D
 ## Fire on something (visual and audio only, on every peer; World decides what burns).
 ## The new look (Game.fire_look 1): the thing chars, with glowing ember cracks and licks of
-## flame on its surface (burn_surface.gdshader as its meshes' material_overlay), tongues of
-## flame round its sides and over its top (flame_tongue.gdshader on one MultiMesh) and
-## embers drifting up. The classic look: one big soft flame wrapping the thing and rising into
+## flame on its surface (burn_surface.gdshader as its meshes' material_overlay), flames with
+## real depth wrapping its sides and rising over its top (fire_volume.gdshader, ray-marched
+## through 3D noise) and embers drifting up. The classic look: one big soft flame wrapping the thing and rising into
 ## a curling tip (flame_body.gdshader), a glowing shell over its meshes (fire_shell.gdshader),
 ## smoke. Both: a flickering light and the crackle of fire. Colours come from a palette: orange
 ## fire, blue or green magic fire. Burning.area() makes a burning place instead (one mass of
@@ -14,7 +14,7 @@ extends Node3D
 
 const SHELL := preload("res://scripts/fx/fire_shell.gdshader")
 const BURN := preload("res://scripts/fx/burn_surface.gdshader") # the new look (Options: Fire look)
-const TONGUE := preload("res://scripts/fx/flame_tongue.gdshader")
+const VOLUME := preload("res://scripts/fx/fire_volume.gdshader")
 const BODY := preload("res://scripts/fx/flame_body.gdshader")
 ## Palettes: [edge, mid, hot] colours.
 const PALETTES := {
@@ -39,6 +39,8 @@ var _overlaid: Array[MeshInstance3D] = []
 var _bodies: Array[ShaderMaterial] = []
 var _smoke: CPUParticles3D
 var _embers: CPUParticles3D
+var _volume: MeshInstance3D
+var _flame_h := 1.2
 var _light: OmniLight3D
 var _sound: AudioStreamPlayer3D
 var _t := 0.0
@@ -132,7 +134,7 @@ func _ready() -> void:
 		var w := half * 2.0 + 1.0 # room for the side tongues to curl out
 		var h := s.y * 1.4 + 1.0 + half * 0.4
 		if Game.fire_look == 1:
-			_add_tongues(pal, low)
+			_add_volume(pal, low)
 		else:
 			_add_body(Vector3(mid.x, box.position.y - 0.05 + h * 0.5, mid.z), w, h, s.y / h, half * 0.8, pal,
 				2 if w > h * 1.1 else 1, Vector2(half / (w * 0.5), s.y / (w * 0.5)))
@@ -143,14 +145,14 @@ func _ready() -> void:
 		var h := w * 0.8 + 1.3
 		var cols := clampi(int(round(w / 1.2)), 1, 3)
 		if Game.fire_look == 1:
-			_add_tongues(pal, low)
+			_add_volume(pal, low)
 		else:
 			_add_body(Vector3(mid.x, box.position.y - 0.05 + h * 0.5, mid.z), w, h, 0.0, 0.0, pal, cols, Vector2(0.78, 0.4))
 	var top := box.position.y + (s.y + foot * 1.8 if not is_area else s.y + 1.4)
 	if Game.fire_look == 1:
 		_add_embers(pal, low)
 	# Smoke: dark cauliflower puffs drifting up above the flames (the classic look; the new
-	# look's tongues go dark at their tips instead).
+	# look's flames go dark at their tips instead).
 	if not low and Game.fire_look != 1:
 		_smoke = CPUParticles3D.new()
 		_smoke.amount = int(clampf(foot * 4.0, 3.0, 10.0))
@@ -204,66 +206,53 @@ func _ready() -> void:
 	_set_emitting(true)
 
 
-## The new look: tongues of flame (one MultiMesh, flame_tongue.gdshader) in a ring round the
-## thing's sides (its outline rounder the rounder it is), a cluster of taller ones on top;
-## over a burning place, a bed of them, tallest in the middle.
-func _add_tongues(pal: Array, low: bool) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
+## The new look: the flames, one ray-marched volume (fire_volume.gdshader) in a world-aligned
+## box over the thing, kept on it as it moves (_update_volume).
+func _add_volume(pal: Array, low: bool) -> void:
 	var s := box.size
-	var mid := box.get_center()
-	var bottom := box.position.y
-	var top := bottom + s.y
-	var hx := s.x * 0.5
-	var hz := s.z * 0.5
-	var k := 0.6 if low else 1.0
-	var list: Array = [] # [position, width, height, heat]
-	if not is_area:
-		var n_side := clampi(int(2.0 * (s.x + s.z) / 0.42 * k), 8, 30)
-		for i in n_side:
-			var a := (float(i) + rng.randf_range(-0.3, 0.3)) / n_side * TAU
-			var d := Vector2(cos(a), sin(a))
-			# On the outline: a box's edge, rounded off toward an ellipse for round things.
-			var on_box := d / maxf(absf(d.x) / maxf(hx, 0.05), absf(d.y) / maxf(hz, 0.05))
-			var on_oval := Vector2(d.x * hx, d.y * hz)
-			var p2 := on_box.lerp(on_oval, roundness) + d * 0.06
-			var base := bottom + s.y * rng.randf_range(0.0, 0.45)
-			list.append([Vector3(mid.x + p2.x, base, mid.z + p2.y), rng.randf_range(0.45, 0.8), (s.y * 0.85 + 0.45) * rng.randf_range(0.6, 1.15), 0.5])
-		var n_top := clampi(int(s.x * s.z / 0.22 * k), 3, 12)
-		for i in n_top:
-			var p := Vector3(mid.x + rng.randf_range(-0.75, 0.75) * hx, top - 0.06, mid.z + rng.randf_range(-0.75, 0.75) * hz)
-			var centre := 1.0 - Vector2((p.x - mid.x) / maxf(hx, 0.05), (p.z - mid.z) / maxf(hz, 0.05)).length() * 0.5
-			list.append([p, rng.randf_range(0.65, 1.05), (0.9 + maxf(s.x, s.z) * 0.7) * rng.randf_range(0.7, 1.25) * centre, 1.0])
-	else:
-		var n := clampi(int(s.x * s.z / 0.18 * k), 6, 40)
-		for i in n:
-			var p := Vector3(mid.x + rng.randf_range(-1, 1) * hx, bottom - 0.02, mid.z + rng.randf_range(-1, 1) * hz)
-			var centre := 1.0 - Vector2((p.x - mid.x) / maxf(hx, 0.05), (p.z - mid.z) / maxf(hz, 0.05)).length() * 0.55
-			list.append([p, rng.randf_range(0.5, 0.9), (0.8 + maxf(s.x, s.z) * 0.45) * rng.randf_range(0.6, 1.2) * centre, centre])
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_custom_data = true
-	var q := QuadMesh.new()
-	q.size = Vector2.ONE
-	mm.mesh = q
-	mm.instance_count = list.size()
-	for i in list.size():
-		var e: Array = list[i]
-		mm.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3(e[1], e[2], 1.0)), e[0]))
-		mm.set_instance_custom_data(i, Color(rng.randf(), rng.randf(), rng.randf(), e[3]))
-	var mmi := MultiMeshInstance3D.new()
-	mmi.multimesh = mm
-	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mmi.custom_aabb = box.grow(maxf(s.x, s.z) + 2.5) # (the quads turn to the camera)
+	var foot := Vector2(s.x, s.z).length() * 0.5
+	_flame_h = clampf(0.75 + foot * 0.8, 0.9, 2.4) if not is_area else maxf(s.x, s.z) * 0.9 + 1.0
+	_volume = MeshInstance3D.new()
+	_volume.top_level = true
+	_volume.mesh = BoxMesh.new() # (a unit cube, scaled over the flames)
+	_volume.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var m := ShaderMaterial.new()
-	m.shader = TONGUE
+	m.shader = VOLUME
+	m.render_priority = 1 # (over the burning thing's charred overlay)
+	m.set_shader_parameter("noise3d", Effects.noise3d())
+	m.set_shader_parameter("steps", 12 if low else (20 if Game.graphics == 1 else 28))
+	m.set_shader_parameter("seed", randf() * 10.0)
 	m.set_shader_parameter("deep_color", pal[0])
 	m.set_shader_parameter("core_color", pal[1])
 	m.set_shader_parameter("tip_color", pal[2])
 	m.set_shader_parameter("intensity", 0.0)
-	mmi.material_override = m
-	add_child(mmi)
+	var half := s * 0.5
+	m.set_shader_parameter("fuel_half", half)
+	m.set_shader_parameter("corner", (roundness if not is_area else 0.8) * minf(minf(half.x, half.z), half.y if not is_area else 9.0))
+	m.set_shader_parameter("flame_height", _flame_h)
+	_volume.material_override = m
+	add_child(_volume)
 	_bodies.append(m)
+	_update_volume()
+
+
+## Keeps the flame volume on the burning thing: upright over wherever it is now.
+func _update_volume() -> void:
+	var m := _volume.material_override as ShaderMaterial
+	var xf := global_transform
+	var wb: AABB = xf * box
+	m.set_shader_parameter("fuel_inv", (xf * Transform3D(Basis.IDENTITY, box.get_center())).affine_inverse())
+	m.set_shader_parameter("foot", Vector4(wb.position.x, wb.position.z, wb.end.x, wb.end.z))
+	m.set_shader_parameter("fuel_bottom", wb.position.y)
+	m.set_shader_parameter("fuel_top", wb.end.y)
+	var grow := 0.6
+	var lo := wb.position - Vector3(grow, 0.05, grow)
+	var hi := wb.end + Vector3(grow, _flame_h + 0.35, grow)
+	_volume.global_transform = Transform3D(Basis.from_scale(hi - lo), (lo + hi) * 0.5)
+	# Not from inside it (a burning player's own first-person view: flames all over the
+	# screen); their gun's charred glow shows they're burning.
+	var cam := get_viewport().get_camera_3d()
+	_volume.visible = cam == null or not wb.grow(0.25).has_point(cam.global_position)
 
 
 ## The new look: glowing embers drifting up out of the flames.
@@ -367,6 +356,8 @@ func _process(delta: float) -> void:
 		_shell.set_shader_parameter("intensity", _fade)
 	for m in _bodies:
 		m.set_shader_parameter("intensity", _fade)
+	if _volume:
+		_update_volume()
 	_light.light_energy = _fade * (1.8 + 0.5 * sin(_t * 17.0) * sin(_t * 7.3) + 0.3 * sin(_t * 31.0))
 	_sound.volume_db = linear_to_db(maxf(_fade, 0.001)) - 6.0
 	if _out and _fade <= 0.0:
