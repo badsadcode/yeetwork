@@ -15,6 +15,11 @@ static func build_settings_controls() -> GridContainer:
 	_row(g, "Volume", _slider(0.0, 1.0, 0.01, Game.master_volume, func(v):
 		Game.master_volume = v
 		Game.apply_audio()))
+	var voices := CheckBox.new()
+	voices.text = "Yeets shout (in Yeetish) when things happen to them"
+	voices.button_pressed = Game.yeet_voices
+	voices.toggled.connect(func(on): Game.yeet_voices = on)
+	_row(g, "Yeet voices", voices)
 	_row(g, "Stick sensitivity", _slider(0.3, 3.0, 0.05, Game.stick_sensitivity, func(v): Game.stick_sensitivity = v))
 	var inv := CheckBox.new()
 	inv.text = "Invert stick Y"

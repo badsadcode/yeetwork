@@ -535,6 +535,13 @@ blender --background --python tools/glb_to_blend.py -- /tmp/chars/characters.glb
 the character menu, take the team colour on a material named `Shirt`, and work online. Step
 by step, with an example hat: [docs/CHARACTERS.md](docs/CHARACTERS.md).
 
+**Your own sounds:** every sound is made by the game's code, and a recording saved into
+`assets/sounds/` under a sound's name replaces it (`boom.ogg`, or `boom_1.ogg`, `boom_2.ogg`...
+as variants). The Yeets shout in Yeetish when things happen to them (hit, launched, a kill,
+a goal, on fire, "YEET!" on a full throw): placeholder voices until recordings replace them;
+*Options → Yeet voices* turns them off. Every sound's name and the voice list:
+[docs/SOUNDS.md](docs/SOUNDS.md).
+
 ## Blender
 
 `art/` holds the Blender sources (`characters/characters.blend`, `gravity_gun/gravity_gun.blend`),

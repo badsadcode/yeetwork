@@ -300,6 +300,9 @@ func _run() -> void:
 	await _water_tests()
 	await _fire_tests()
 	_custom_parts_tests()
+	# The Yeets' voices (made on a thread at startup): every kind, with its takes.
+	var missing := Yeetish.KINDS.filter(func(k): return not Sfx._streams.has("voice_" + k))
+	check("Yeetish voices are made", missing.is_empty() and Sfx._streams.voice_yeet.size() >= 1, "missing %s" % [missing])
 	_logic_test()
 	_controls_test()
 	await _grapple_test()

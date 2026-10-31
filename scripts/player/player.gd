@@ -357,6 +357,7 @@ func _physics_process(delta: float) -> void:
 func _process(delta: float) -> void:
 	var hv := Vector3(velocity.x, 0, velocity.z)
 	_update_face()
+	_update_voice(delta)
 	_ground_fx(delta)
 	model.animate(delta, velocity, flags, yaw, _held_by != 0)
 	_trail.emitting = hv.length() > 15.0 or state == State.RAGDOLL and velocity.length() > 10.0
@@ -1046,6 +1047,7 @@ func die(death_velocity: Vector3) -> void:
 	if gun:
 		gun.on_owner_died()
 	model.snap_mood("dead") # the corpse keeps the knocked-out face
+	shout("die", 1.0, true)
 	var corpse := Ragdoll.spawn(world.fx_root, model, global_transform, death_velocity, color)
 	world.track_corpse(corpse)
 	if is_local_human():
@@ -1136,6 +1138,89 @@ func _update_face() -> void:
 		mood = "gasp"
 	model.base_mood = mood
 	model.look_target = held.global_position if held else head + aim_direction() * 10.0
+
+
+# --- Voice (Yeetish shouts) -------------------------------------------------------
+# Every peer, from what every peer knows (hp, state, frags, team score, fire, water, boosts).
+
+var _voice_pitch := 0.0
+var _voice_cd := 0.0
+var _v_state := -1
+var _v_hp := 0.0
+var _v_frags := 0
+var _v_score := 0
+var _v_burn := 0.0
+var _v_under := 0.0
+var _v_buffs := 0
+var _v_effort := false
+
+
+func _update_voice(delta: float) -> void:
+	if _voice_pitch == 0.0:
+		# Each Yeet's own voice, the same on every peer; Noor's a little higher.
+		var r := RandomNumberGenerator.new()
+		r.seed = player_id * 7717 + 3
+		_voice_pitch = r.randf_range(0.85, 1.25) * (1.12 if character == CharacterModel.NOOR else 1.0)
+		_v_state = state
+		_v_hp = hp
+		_v_frags = frags
+		_v_score = world.team_scores.get(team, 0)
+		_v_buffs = buffs.size()
+		return
+	_voice_cd -= delta
+	if state != _v_state:
+		if state == State.RAGDOLL:
+			shout("scream", 0.75)
+		elif state == State.HELD:
+			shout("grabbed", 0.8)
+		_v_state = state
+	if state == State.DEAD:
+		return
+	if hp < _v_hp - 4.0:
+		shout("hurt", 0.7)
+	_v_hp = hp
+	if frags > _v_frags:
+		shout("taunt", 0.75, true)
+	_v_frags = frags
+	var score: int = world.team_scores.get(team, 0)
+	if team != Game.TEAM_NONE and score > _v_score:
+		# (not all at once: a ragged cheer)
+		get_tree().create_timer(randf_range(0.0, 0.5)).timeout.connect(func():
+			if is_instance_valid(self):
+				shout("cheer", 0.6, true))
+	_v_score = score
+	var burning := get_node_or_null("Burning")
+	if burning and not (burning as Burning)._out:
+		_v_burn -= delta
+		if _v_burn <= 0.0:
+			shout("burn", 0.9)
+			_v_burn = randf_range(1.6, 2.6)
+	else:
+		_v_burn = 0.0
+	var head := eye_position()
+	var liq := Liquid.at(head, 0.5)
+	if liq and liq.kind == "water" and head.y < liq.height_at(head.x, head.z):
+		_v_under += delta
+	else:
+		if _v_under > 1.5:
+			shout("gasp", 1.0, true)
+		_v_under = 0.0
+	if buffs.size() > _v_buffs:
+		shout("yay", 0.8)
+	_v_buffs = buffs.size()
+	var straining := gun != null and gun.visual_charge() > 0.85
+	if straining and not _v_effort:
+		shout("effort", 0.45)
+	_v_effort = straining
+
+
+## Says something (Yeetish.KINDS), now and then: `chance` of it, and not right after the last
+## thing it said (unless it matters more than chatter).
+func shout(kind: String, chance := 1.0, important := false) -> void:
+	if (_voice_cd > 0.0 and not important) or randf() > chance or _voice_pitch == 0.0:
+		return
+	_voice_cd = 1.1
+	Sfx.voice(kind, body_center(), _voice_pitch)
 
 
 # --- Camera -------------------------------------------------------------------------

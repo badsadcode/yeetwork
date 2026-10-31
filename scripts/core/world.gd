@@ -2347,8 +2347,17 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 			if thrown:
 				EnergyTrail.follow(fx, thrown, Color(0.3, 0.62, 1.0).lerp(Color(0.85, 0.92, 1.0), clampf(amount - 1.0, 0.0, 1.0)), amount)
 			if amount > 1.4:
-				# Charged yeet: a deep whump and a shockwave off the muzzle.
+				# Charged yeet: a deep whump and a shockwave off the muzzle, and the thrower
+				# shouts it.
 				Sfx.play3d("punt", pos, 2.0, 0.75)
+				var thrower: Player = null
+				var near := 3.0
+				for pl: Player in players.values():
+					if pl.body_center().distance_to(pos) < near and pl.is_alive():
+						near = pl.body_center().distance_to(pos)
+						thrower = pl
+				if thrower:
+					thrower.shout("yeet", 0.85, true)
 				fx.shockwave(pos, dir, Color(1.0, 0.95, 0.85))
 		"zap":
 			fx.zap(pos)
@@ -2390,7 +2399,7 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 		"whistle":
 			Sfx.play_ui("whistle_long" if amount > 1.0 else "whistle", -3.0)
 		"cheer":
-			Sfx.play_ui("cheer", lerpf(-12.0, -2.0, clampf(amount, 0.0, 1.0)))
+			Sfx.play_ui("cheer", lerpf(-6.0, 4.0, clampf(amount, 0.0, 1.0)))
 		"horn":
 			Sfx.play_ui("horn", -4.0)
 		"beep":

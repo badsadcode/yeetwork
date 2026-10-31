@@ -4,10 +4,18 @@ extends Node
 ## energy: a transient (click/crunch), a material body (stone grit, wood knock, metal
 ## ring, flesh smack) and, for heavy hits, a sub-bass thud. Everything runs through an
 ## "SFX" bus with compression and a touch of reverb so hits feel weighty.
+## Recordings in assets/sounds/ replace any of them by name (metal.ogg, or metal_1.ogg,
+## metal_2.ogg... as variants): see docs/SOUNDS.md. The Yeets' voices (Yeetish shouts,
+## "voice_<kind>") are placeholders made the same way (yeetish.gd).
 
 const RATE := 22050
 const POOL := 40
 const VARIANTS := 4
+## Recordings that replace the made-up sounds (by file name).
+const CUSTOM_DIR := "res://assets/sounds/"
+const CUSTOM_EXT := ["ogg", "wav", "mp3"]
+## Sounds that loop (a recording replacing one loops too).
+const LOOPING := ["arc", "wind", "rain", "fire"]
 
 var _streams := {} # name -> Array[AudioStreamWAV]
 var _pool: Array[AudioStreamPlayer3D] = []
@@ -15,6 +23,8 @@ var _ui: Array[AudioStreamPlayer] = [] # a few, so a cheer doesn't cut the whist
 var _ui_next := 0
 var _next := 0
 var _rng := RandomNumberGenerator.new()
+var _voices: Array = [] # when the last shouts started
+var _last_impact := {} # sound -> [time, position]: the same hit repeating fast is skipped
 
 
 func _ready() -> void:
@@ -28,7 +38,7 @@ func _ready() -> void:
 	_add("crunch", 0.35, _crunch)
 	_add("stone", 0.45, _stone)
 	_add("wood", 0.4, _wood)
-	_add("metal", 1.0, _metal)
+	_add("metal", 1.0, _metal, 8) # (more of them: barrels clanging over and over)
 	_add("boing", 0.45, _boing)
 	_add("glass", 0.7, _glass)
 	_add("splat", 0.45, _splat)
@@ -75,6 +85,9 @@ func _ready() -> void:
 	for w: AudioStreamWAV in _streams.rain:
 		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		w.loop_end = w.data.size() / 2 - int(RATE * 0.5) # same crossfade as wind
+	_load_custom()
+	# The voices take a while to make: on a thread, ready a moment after startup.
+	WorkerThreadPool.add_task(_make_voices)
 	_streams.hit = _streams.smack
 	_streams.clang = _streams.metal
 	for i in POOL:
@@ -125,9 +138,9 @@ func _setup_buses() -> void:
 
 # --- Synthesis helpers --------------------------------------------------------------
 
-func _add(sound: String, length: float, gen: Callable) -> void:
+func _add(sound: String, length: float, gen: Callable, variants := VARIANTS) -> void:
 	var list: Array[AudioStreamWAV] = []
-	for v in VARIANTS:
+	for v in variants:
 		var n := int(length * RATE)
 		var buf := PackedFloat32Array()
 		buf.resize(n)
@@ -240,6 +253,65 @@ func _arc(buf: PackedFloat32Array, v: int) -> void:
 		var amp := _rng.randf_range(0.2, 0.7)
 		for i in range(start, mini(start + int(0.02 * RATE), n)):
 			buf[i] += hp[i] * exp(-float(i - start) / RATE * 220.0) * amp
+
+
+## Recordings in assets/sounds/ replace the made-up sounds: "boom.ogg" replaces "boom";
+## "boom_1.ogg", "boom_2.ogg"... are its variants (one picked at random each time). A name
+## the game doesn't make yet is added as it is (a voice of a new kind, say).
+func _load_custom() -> void:
+	if not DirAccess.dir_exists_absolute(CUSTOM_DIR):
+		return
+	var found := {} # sound -> [paths]
+	for f in DirAccess.get_files_at(CUSTOM_DIR):
+		# (in an exported game the files are listed as name.ogg.import)
+		var file := f.trim_suffix(".import").trim_suffix(".remap")
+		if file.get_extension().to_lower() not in CUSTOM_EXT:
+			continue
+		var stem := file.get_basename()
+		var cut := stem.rfind("_")
+		var sound := stem.substr(0, cut) if cut > 0 and stem.substr(cut + 1).is_valid_int() else stem
+		if not found.has(sound):
+			found[sound] = []
+		if not (CUSTOM_DIR + file) in found[sound]:
+			found[sound].append(CUSTOM_DIR + file)
+	for sound in found:
+		var list: Array = []
+		for path in found[sound]:
+			var s := load(path) as AudioStream
+			if s == null:
+				push_warning("Sound %s didn't load" % path)
+				continue
+			if sound in LOOPING:
+				if s is AudioStreamWAV:
+					(s as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
+					(s as AudioStreamWAV).loop_end = int(s.get_length() * (s as AudioStreamWAV).mix_rate)
+				elif "loop" in s:
+					s.set("loop", true)
+			list.append(s)
+		if not list.is_empty():
+			_streams[sound] = list
+
+
+## (on a worker thread: its own random numbers, and the streams handed over on the main one)
+func _make_voices() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	var made := {}
+	for k in Yeetish.KINDS:
+		var list: Array[AudioStreamWAV] = []
+		for v in 6:
+			var buf := PackedFloat32Array()
+			buf.resize(int(Yeetish.LENGTH[k] * RATE))
+			Yeetish.speak(buf, v, k, rng, RATE)
+			list.append(_to_wav(buf))
+		made["voice_" + k] = list
+	_voices_made.call_deferred(made)
+
+
+func _voices_made(made: Dictionary) -> void:
+	for sound in made:
+		if not _streams.has(sound): # (a recording replacing it wins)
+			_streams[sound] = made[sound]
 
 
 func stream(sound: String) -> AudioStream:
@@ -615,6 +687,20 @@ func _score(buf: PackedFloat32Array, _v: int) -> void:
 
 # --- Playback -----------------------------------------------------------------------
 
+## A Yeet shouting in Yeetish (Yeetish.KINDS: "hurt", "scream", "taunt"...), in its own
+## voice pitch. Off with Options: Yeet voices.
+func voice(kind: String, pos: Vector3, pitch := 1.0, volume_db := -2.0) -> void:
+	if not Game.yeet_voices:
+		return
+	# (a crowd of Yeets: at most a few voices at once, the last words always get through)
+	var now := Time.get_ticks_msec() / 1000.0
+	_voices = _voices.filter(func(t): return now - t < 0.7)
+	if _voices.size() >= 3 and kind != "die":
+		return
+	_voices.append(now)
+	play3d("voice_" + kind, pos, volume_db, pitch)
+
+
 func play3d(sound: String, pos: Vector3, volume_db := 0.0, pitch := 1.0) -> void:
 	if not _streams.has(sound) or not is_inside_tree():
 		return
@@ -670,6 +756,16 @@ func impact(material: String, pos: Vector3, strength: float) -> void:
 	var s := clampf(strength, 0.0, 3.0)
 	var vol := -14.0 + 10.0 * log(1.0 + s * 8.0) / log(25.0)
 	var pitch := clampf(1.15 - s * 0.12, 0.72, 1.2)
+	# The same material hitting again right there, right away (a barrel rolling and bouncing):
+	# skip it, or it machine-guns. Light metal taps ring quieter and vary more.
+	var now := Time.get_ticks_msec() / 1000.0
+	var last: Array = _last_impact.get(material, [-10.0, Vector3.INF])
+	if now - float(last[0]) < (0.16 if material == "metal" else 0.06) and pos.distance_to(last[1]) < 2.5 and s < 1.0:
+		return
+	_last_impact[material] = [now, pos]
+	if material == "metal":
+		vol -= 4.0 * (1.0 - clampf(s / 0.6, 0.0, 1.0))
+		pitch *= _rng.randf_range(0.9, 1.1)
 	var body := "stone"
 	match material:
 		"wood":

@@ -61,7 +61,7 @@ A step-by-step tutorial on adding and changing character models and attachments 
 head extras, outfits): where they're built, the Blender file, and replacing a part with a
 model of your own.
 
-## Sound pass (later)
+## Sound pass (done: docs/SOUNDS.md: recordings replace any sound by name, Yeetish voices, metal clangs rate-limited, a louder crowd)
 
 Tomek's notes after playing Yeetball: metal clangs (barrels and the like) get really
 annoying when they repeat; the crowd cheer is too quiet to notice. Go over impact
