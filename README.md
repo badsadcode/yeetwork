@@ -253,11 +253,16 @@ aid and power-ups, first aid only, or none. Maps place them with **PickupSpawn**
 haze that lamps glow in, bats overhead. Light it with **MapLight** pieces (bulbs, lamp
 posts, wall lamps, candles, torches, spotlights, neon), which can flicker (candle, faulty,
 strobe, pulse), cast shadows and be wired to switches. Under a dark sky every Yeet carries a
-flashlight (yours casts shadows; you see everyone else's beam). Example map: **Haunted
-Yard** (a graveyard with a crypt; find the power switch). **Storms** (the `storm` sky or
-weather) now strike real lightning: branching bolts from the clouds to the ground that light
-up the land, sheet lightning in the clouds, and thunder as late as sound would arrive, a
-crack first when it's close.
+flashlight (yours casts shadows; you see everyone else's beam), switched on and off with
+**L** (D-pad left), and everyone sees it go dark. Lights **break**: a crate flung into a lamp,
+a blast, a push from the gravity gun or lightning smashes it (a candle or a torch is blown
+out), and it flickers back on after a while. Example map: **Haunted Yard** (a graveyard with
+a crypt; find the power switch). **Storms** (the `storm` sky or weather) strike real
+lightning: branching bolts from the clouds to the ground that light up the land, sheet
+lightning in the clouds, and thunder as late as sound would arrive, a crack first when it's
+close. Every half a minute or so lightning **strikes the map itself**, mostly something tall
+(a lamp post, a crate up high): it catches fire, Yeets next to it are zapped and thrown, and
+the lights around it break.
 
 **Fire look.** Burning things char dark in crisp patches, split by sharp glowing ember cracks
 (3D Voronoi cell borders in world space: no seams across faces), with the odd cell glowing as
@@ -425,8 +430,9 @@ godot --headless --path . -- --host --map warehouse --mode puzzle --tour x --tou
 godot --headless --path . -- --host --map pump_house --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map scrapyard --mode puzzle --tour x --tour-mode puzzle
 
-# Dark maps: lights wired to a switch, flashlights, a failing lamp (haunted_yard); and a storm's
-# lightning (a bolt, its light, the thunder)
+# Dark maps: lights wired to a switch, flashlights (and their switch), a failing lamp, a lamp
+# smashed by a crate that comes back on (haunted_yard); and a storm's lightning (a bolt, its
+# light, the thunder; a strike on the map zapping a Yeet and setting a crate alight)
 godot --headless --path . -- --host --map haunted_yard --mode sandbox --bots 2 --tour x --tour-mode dark
 godot --headless --path . -- --host --map lagoon --sky storm --mode sandbox --bots 0 --tour x --tour-mode dark
 

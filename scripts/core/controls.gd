@@ -28,6 +28,7 @@ const ACTIONS := [
 	["prev_slot", "Previous prop", "Sandbox"],
 	["use", "Use / interact (empty hands)", "Other"],
 	["toggle_view", "Third-person camera", "Other"],
+	["flashlight", "Flashlight on / off (dark maps)", "Other"],
 	["scoreboard", "Scoreboard", "Other"],
 	["suicide", "Respawn", "Other"],
 	["pause", "Menu", "Other"],

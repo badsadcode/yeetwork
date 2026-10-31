@@ -41,6 +41,13 @@ extends PuzzleNode
 	set(v):
 		model = v
 		_rebuild()
+## Breaks when something hits it hard (a flying prop, a blast, a push, lightning): it goes
+## dark with a burst of glass (a candle or a torch is blown out), and comes back on after
+## Repair Time seconds (0: stays broken until a Puzzle Reset over it).
+@export var breakable := true
+@export_range(0.0, 600.0, 1.0) var repair_time := 40.0
+
+var broken := false
 
 ## [height of the light above the node, range, energy] per kind.
 const KINDS := {
@@ -150,7 +157,7 @@ func _rebuild() -> void:
 func _apply(k: float) -> void:
 	if _light == null:
 		return
-	var on := k * (1.0 if active else 0.0)
+	var on := k * (1.0 if active and not broken else 0.0)
 	_light.light_energy = _base_energy * on
 	if _glow_mat:
 		_glow_mat.emission_energy_multiplier = 2.5 * on
@@ -158,7 +165,7 @@ func _apply(k: float) -> void:
 
 
 func _process(_delta: float) -> void:
-	if flicker == "none" or not active or _light == null:
+	if flicker == "none" or not active or broken or _light == null:
 		return
 	var t := Time.get_ticks_msec() / 1000.0 + _seed
 	var k := 1.0
@@ -175,6 +182,40 @@ func _process(_delta: float) -> void:
 		"pulse":
 			k = 0.55 + 0.45 * sin(t * 2.2)
 	_apply(k)
+
+
+## Where the light shines from (what gets hit).
+func glow_position() -> Vector3:
+	return _light.global_position if _light else global_position
+
+
+## Broken (dark, with a burst of glass or a puff of smoke) or mended (it stutters back on).
+## World calls this on every peer; `fx` false: just the state (a late joiner).
+func set_broken(on: bool, fx := true) -> void:
+	if on == broken:
+		return
+	broken = on
+	_apply(1.0)
+	var w = world if world else null
+	if not fx or not is_inside_tree() or w == null:
+		return
+	var at := glow_position()
+	if on:
+		if kind in ["candle", "torch"]:
+			w.fx.puffs(at, Vector3.UP, 6, [Color(0.6, 0.6, 0.62, 0.7), Color(0.5, 0.5, 0.52, 0.0)], 0.06, 0.14, 0.8, 1.6, 0.6)
+			Sfx.play3d("sizzle", at, -6.0, 1.4)
+		else:
+			w.fx.impact(at, Vector3.UP, 1.2, "glass", 1.0)
+			w.fx.zap(at)
+			Sfx.play3d("glass", at, 0.0, 1.3)
+			Sfx.play3d("zap", at, -4.0, 1.2)
+	else:
+		# Flickering back on.
+		var tw := create_tween()
+		for k in [0.6, 0.0, 0.9, 0.1, 1.0]:
+			tw.tween_callback(_apply.bind(k))
+			tw.tween_interval(0.07)
+		Sfx.play3d("zap", at, -10.0, 1.5)
 
 
 func _sphere(r: float, mat: Material, pos: Vector3, scl := Vector3.ONE) -> MeshInstance3D:

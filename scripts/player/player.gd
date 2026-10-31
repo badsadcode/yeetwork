@@ -16,6 +16,7 @@ const F_WALLRUN := 8
 const F_RAGDOLL := 16
 const F_HELD := 32
 const F_DEAD := 64
+const F_TORCH_OFF := 128 # (dark maps: the flashlight switched off)
 
 const RADIUS := 0.4
 const STAND_HEIGHT := 1.8
@@ -79,6 +80,8 @@ var character := 0
 # Gameplay (server authoritative, replicated).
 var hp := 100.0
 var _torch: SpotLight3D # the flashlight on dark maps
+## The flashlight's switch (dark maps; everyone sees it, through F_TORCH_OFF).
+var torch_on := true
 ## Boosts from power-ups: kind -> net time it ends (set by the server, the same everywhere).
 var buffs := {}
 var frags := 0
@@ -393,7 +396,8 @@ func _update_flashlight() -> void:
 			_torch.shadow_enabled = false
 			_torch.top_level = true
 			add_child(_torch)
-	_torch.visible = is_alive() and state != State.RAGDOLL
+	var switched_on := torch_on if is_controlled_here() else (flags & F_TORCH_OFF) == 0
+	_torch.visible = is_alive() and state != State.RAGDOLL and switched_on
 	if not camera and _torch.visible:
 		var dir := aim_direction()
 		var at := eye_position() + dir * 0.4 + Vector3.DOWN * 0.25
@@ -445,6 +449,9 @@ func _read_local_input(_delta: float) -> void:
 		world.gun_action(self, GravityGun.Action.THROW_RELEASE)
 	if Input.is_action_just_pressed("freeze_prop"):
 		world.gun_action(self, GravityGun.Action.FREEZE)
+	if Input.is_action_just_pressed("flashlight") and _torch:
+		torch_on = not torch_on
+		Sfx.play_ui("tick", -4.0, 0.6 if torch_on else 0.45)
 	if Input.is_action_just_pressed("use") and not _holding():
 		world.use_pressed(self)
 	cmd.grapple = Input.is_action_pressed("grapple")
@@ -529,6 +536,8 @@ func _update_flags() -> void:
 			flags |= F_HELD
 		State.DEAD:
 			flags |= F_DEAD
+	if not torch_on:
+		flags |= F_TORCH_OFF
 
 
 # --- Normal movement --------------------------------------------------------------

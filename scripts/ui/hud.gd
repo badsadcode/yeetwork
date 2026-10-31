@@ -305,6 +305,9 @@ func _tile_style(highlighted: bool, alpha := 0.7) -> StyleBoxFlat:
 
 
 ## The controls cheat sheet, with the player's own bindings (keyboard/mouse or gamepad).
+var _help_dark := false
+
+
 func _help_text(pad: bool) -> String:
 	var k := func(action: String) -> String:
 		return "[color=#ffd23f]%s[/color]" % (Controls.pad_of(action) if pad else Controls.key_of(action))
@@ -317,6 +320,9 @@ func _help_text(pad: bool) -> String:
 		"%s hold: grab / pull / catch  ·  %s throw (hold to charge) or punt (punt a wall to gravity-jump)  ·  %s hold: grapple" % [k.call("gun_grab"), k.call("gun_throw"), k.call("grapple")],
 		"%s freeze held prop  ·  %s spawn prop  ·  %s camera  ·  %s scores  ·  %s respawn  ·  %s menu" % [k.call("freeze_prop"), k.call("spawn_prop"), k.call("toggle_view"), k.call("scoreboard"), k.call("suicide"), k.call("pause")],
 	]
+	var arena = world.get("arena") if world else null
+	if arena and arena.flashlights:
+		lines.append("%s flashlight on / off" % k.call("flashlight"))
 	return "\n".join(lines)
 
 
@@ -624,8 +630,10 @@ func _process(delta: float) -> void:
 		_refresh_scoreboard()
 	_help_time -= delta
 	_help.modulate.a = clampf(_help_time, 0.0, 1.0)
-	if _help_pad != _pad_used:
+	var dark: bool = world != null and world.get("arena") != null and world.arena.flashlights
+	if _help_pad != _pad_used or _help_dark != dark: # (and once the map is known: its flashlight key)
 		_help_pad = _pad_used
+		_help_dark = dark
 		_help.text = _help_text(_pad_used)
 	_vignette.color.a = maxf(_vignette.color.a - delta * 0.8, 0.0)
 	var usable: PuzzleNode = world.usable_for(pl) if world and pl and pl.is_alive() and pl.gun and pl.gun.vis_kind == GravityGun.Kind.NONE else null

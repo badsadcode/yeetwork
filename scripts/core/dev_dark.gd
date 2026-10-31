@@ -1,9 +1,10 @@
 extends Node
 ## Developer check for dark maps and storms.
 ## - On a haunted map (haunted_yard): lights wired to a switch stay off until it's used,
-##   everyone carries a flashlight, a failing lamp flickers; screenshots of the yard.
+##   everyone carries a flashlight (it switches off and on), a failing lamp flickers, a crate
+##   dropped on a lamp breaks it and it comes back on; screenshots of the yard.
 ## - Under a storm sky: lightning strikes (a bolt mesh and a light appear, then go), sheet
-##   lightning; a screenshot at the strike.
+##   lightning; lightning striking the map zaps a Yeet and sets a crate alight; screenshots.
 ## Exits 1 if a step fails.
 ## Usage: godot -- --host --map haunted_yard --mode sandbox --bots 2 --port 24700 --tour <dir> --tour-mode dark
 ##        godot -- --host --map lagoon --sky storm --mode sandbox --bots 0 --port 24700 --tour <dir> --tour-mode dark
@@ -75,6 +76,39 @@ func _haunted(arena) -> void:
 	_look(pl, Vector3(-6, 1.6, 6), Vector3(-14, 1.0, 13))
 	await _wait(0.5)
 	_shot("d04_graves")
+	# The flashlight's switch, seen by everyone (a flag in the player's state).
+	pl.torch_on = false
+	await _wait(0.2)
+	_check("the flashlight switches off (and says so to everyone)", not pl._torch.visible and (pl.flags & Player.F_TORCH_OFF) != 0, "")
+	pl.torch_on = true
+	await _wait(0.2)
+	_check("... and on again", pl._torch.visible and (pl.flags & Player.F_TORCH_OFF) == 0, "")
+	# A crate dropped on a lamp post smashes it; it comes back on after its repair time.
+	var lamp: MapLight = null
+	for l in lights:
+		if l.kind == "lamp_post" and l.inputs.is_empty() and lamp == null:
+			lamp = l
+	if lamp == null:
+		lamp = lights.filter(func(l): return l.inputs.is_empty() and l.kind not in ["candle", "torch"])[0]
+	lamp.repair_time = 1.5
+	var at := lamp.glow_position()
+	_look(pl, at + Vector3(4.5, -1.0, 4.5), at)
+	var crate: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, at + Vector3(0, 2.5, 0)))
+	for k in 3:
+		await get_tree().physics_frame
+	crate.linear_velocity = Vector3(0, -14, 0)
+	var broke := false
+	for k in 20:
+		await _wait(0.05)
+		if lamp.broken:
+			broke = true
+			break
+	_check("a crate dropped on a lamp smashes it: dark", broke and lamp._light.light_energy < 0.01, "broken %s" % broke)
+	_shot("d05_lamp_broken")
+	await _wait(2.2)
+	_check("... and it comes back on in time", not lamp.broken and lamp._light.light_energy > 0.1, "")
+	if is_instance_valid(crate):
+		world.server_despawn_prop(crate)
 
 
 func _storm(weather: Weather) -> void:
@@ -109,6 +143,27 @@ func _storm(weather: Weather) -> void:
 	weather._lightning() # sheet or bolt, with its thunder
 	await _wait(0.2)
 	_check("a lightning event with thunder runs", true, "")
+	# Lightning striking the map (the server picks the spot): it zaps a Yeet next to it and
+	# sets a crate alight.
+	var spot := Vector3(17, 0.2, -10)
+	pl.respawn(spot + Vector3(1.6, 0, 0), 0.0)
+	var crate: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, spot + Vector3(0, 0.5, 0)))
+	await _wait(0.4)
+	pl.hp = 100.0
+	# (a camera of its own: the Yeet stays by the crate)
+	var shot_cam := Camera3D.new()
+	world.add_child(shot_cam)
+	shot_cam.global_position = spot + Vector3(9, 3.5, 6)
+	shot_cam.look_at(spot + Vector3(0, 2.0, 0))
+	shot_cam.current = true
+	await _wait(0.1)
+	world.server_lightning(spot + Vector3(0, 1.0, 0))
+	await _wait(0.07)
+	_shot("s03_strike_map")
+	await _wait(0.4)
+	shot_cam.queue_free()
+	_check("lightning striking the map zaps a Yeet and sets a crate alight", pl.hp < 90.0 and world.is_burning(crate), "hp %.0f, crate burning %s" % [pl.hp, world.is_burning(crate)])
+	_check("the map can be struck (somewhere tall is found)", world._strike_target() != Vector3.INF, "")
 
 
 func _find_weather(n: Node) -> Node:

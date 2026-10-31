@@ -450,6 +450,7 @@ func _setup_input() -> void:
 	_mouse("gun_grab", MOUSE_BUTTON_LEFT)
 	_mouse("gun_throw", MOUSE_BUTTON_RIGHT)
 	_key("grapple", [KEY_G])
+	_key("flashlight", [KEY_L])
 	_mouse("grapple", MOUSE_BUTTON_MIDDLE)
 	_pad("grapple", JOY_BUTTON_RIGHT_STICK)
 	# The mouse wheel is read as raw events in Player (prop slots, or push/pull when
@@ -469,6 +470,7 @@ func _setup_input() -> void:
 	_pad("toggle_view", JOY_BUTTON_DPAD_UP)
 	_pad("suicide", JOY_BUTTON_DPAD_DOWN)
 	_pad("prev_slot", JOY_BUTTON_DPAD_LEFT)
+	_pad("flashlight", JOY_BUTTON_DPAD_LEFT) # (shares it: picking props is sandbox, lights are dark maps)
 	_pad("next_slot", JOY_BUTTON_DPAD_RIGHT)
 	_pad("run_toggle", JOY_BUTTON_LEFT_STICK)
 	_pad("freeze_prop", JOY_BUTTON_RIGHT_SHOULDER)

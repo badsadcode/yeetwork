@@ -30,6 +30,8 @@ var nets: Array[VolleyNet] = [] # YeetVolley
 var ball_spot := Vector3(0, 1.2, 0) # Yeetball kickoff spot (a BallSpot)
 var initial_props: Array = [] # [kind, Transform3D, key prop?]
 var kill_y := -45.0
+## A storm over the map (Weather): lightning can strike the map itself (World._server_storm).
+var storm := false
 var avoid_rects: Array[Rect2] = [] # XZ areas bots should route around
 var fire_areas: Array = [] # [Transform3D, size]: burning places (World sets things alight in them)
 var pickups: Array[PickupSpawn] = [] # first aid kits and power-ups, in scene order
@@ -274,6 +276,7 @@ func _build_scene_map(path: String) -> void:
 		add_child(Rain.create(settings.rain_intensity, settings.rain_wind))
 	elif settings and settings.weather == "storm" and not get_children().any(func(c: Node) -> bool: return c is Weather):
 		add_child(Weather.new())
+		storm = true
 	_collect(root)
 	for i in puzzle.size():
 		puzzle[i].puzzle_index = i
@@ -424,6 +427,7 @@ func environment_preset(preset: String, settings: Node = null) -> void:
 	_scenery(preset, settings)
 	if storm or preset == "storm":
 		add_child(Weather.new())
+		self.storm = true
 	for n in MapEnvironment.build(preset, settings):
 		add_child(n)
 		if n is WorldEnvironment:

@@ -38,8 +38,8 @@ now.
 
 ## Themed environments (built: the haunted sky, MapLight, flashlights, storm lightning)
 
-- Later: a flashlight on/off key (synced), lights that break when hit, lightning that can
-  strike the map itself (a tall thing set alight). The fire look (new: charred surface,
+- Done: a flashlight on/off key (synced), lights that break when hit (and come back on),
+  lightning that strikes the map itself (a tall thing set alight). The fire look (new: charred surface,
   ember cracks, ray-marched volumetric flames, embers; Options keeps the classic one).
 
 ## Pickups and power-ups (first batch built)

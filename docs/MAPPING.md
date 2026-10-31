@@ -107,7 +107,7 @@ All kit nodes preview themselves in the editor. In game they become the real thi
 | Flashlights | `auto` (every Yeet carries one under a dark sky: haunted), `on` or `off`. Yours casts shadows; you see everyone else's beam too |
 | Sun Rotation Degrees, Sun Energy Scale, Ambient Scale | tweak the preset |
 | Ocean Preset | sea state with the *Sculpted* water style: `calm`, `lake`, `ocean`, `stormy` (a confused storm sea: wave trains cross from wide angles and the heading drifts across the map) |
-| Weather | `none`, `rain` or `storm` (rain plus wind wisps and lightning; the `storm` sky brings it by itself). Lightning strikes in view: branching bolts from the clouds to the ground that light up the land around them, or sheet lightning in the clouds; the thunder comes as late as sound would (distance / 343 m/s), a crack first when it's close. Rain falls around each player's camera with splashes where it lands and its own sound |
+| Weather | `none`, `rain` or `storm` (rain plus wind wisps and lightning; the `storm` sky brings it by itself). Lightning strikes in view: branching bolts from the clouds to the ground that light up the land around them, or sheet lightning in the clouds; the thunder comes as late as sound would (distance / 343 m/s), a crack first when it's close. In a storm, every 25-55 s lightning strikes the map itself, mostly something tall (props up high, lamp posts, torches): what's flammable there catches fire, Yeets within 4 m are zapped and thrown, lights within 5 m break. Rain falls around each player's camera with splashes where it lands and its own sound |
 | Rain Intensity, Rain Wind | how hard it rains (0.1 drizzle .. 1 downpour) and the wind slanting it (m/s) |
 | Ocean, Ocean Level | surround the map with an animated sea whose surface sits at *Ocean Level*. Players who fall in sink and drown; wooden and rubber props float. Put your floors above it, and an island's sides look best reaching a few metres below it |
 | Kill Height | anything below dies or respawns. Keep it ≥ 3 m below your lowest floor |
@@ -322,6 +322,10 @@ along local -Z) or `neon` (a 1.2 m tube along X).
   lights come on": wire it to a PuzzleButton); without inputs it's always on.
 - **Model** (or the theme's `light_<kind>` slot) replaces the look; a child named `Light`
   in the model is where the light shines from.
+- **Breakable** (on by default): a prop flying into it, a blast, a gravity-gun push or
+  lightning smashes it (dark, a burst of glass; a candle or torch is blown out). **Repair
+  Time**: seconds until it flickers back on (0: it stays broken until a PuzzleReset over it).
+  Untick Breakable for lights a puzzle needs.
 - `maps/haunted_yard.tscn` is an example: lamp posts (one failing), candles on the graves,
   torches at the crypt and a power switch for the crypt's lights.
 

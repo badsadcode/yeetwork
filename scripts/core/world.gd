@@ -333,6 +333,7 @@ func _build_init_state() -> Dictionary:
 		"scores": team_scores,
 		"guns": guns,
 		"puzzle": arena.puzzle.map(func(n: PuzzleNode) -> bool: return n.active),
+		"lights_broken": _broken_lights.keys(),
 		"puzzle_time": [puzzle_start, puzzle_finish],
 		"puzzle_results": puzzle_results,
 		"mode_state": mode_state,
@@ -384,6 +385,9 @@ func _s_init(state: Dictionary) -> void:
 	var pz: Array = state.get("puzzle", [])
 	for i in mini(pz.size(), arena.puzzle.size()):
 		arena.puzzle[i].set_active(pz[i], false)
+	for i in state.get("lights_broken", []):
+		if i < arena.puzzle.size() and arena.puzzle[i] is MapLight:
+			(arena.puzzle[i] as MapLight).set_broken(true, false)
 	if state.has("machines"):
 		_s_machines(state.machines)
 	for f: Array in state.get("floods", []):
@@ -541,6 +545,9 @@ func _physics_process(delta: float) -> void:
 	if _puzzle_accum >= 0.1 and not arena.puzzle.is_empty():
 		_puzzle_accum = 0.0
 		_server_puzzle_tick()
+		_server_lights_tick()
+	if arena.storm:
+		_server_storm(delta)
 	_machine_accum += delta
 	if _machine_accum >= 0.05 and not arena.puzzle.is_empty():
 		_machine_accum = 0.0
@@ -904,6 +911,7 @@ func server_explode(p: Prop) -> void:
 	var attacker := p.last_thrower if t - p.last_thrown_time < 8.0 else 0
 	server_fx("explosion", pos, Vector3.UP, radius)
 	mode_logic.on_explosion(pos)
+	server_break_lights(pos, radius * 0.8)
 	var to_break: Array[Prop] = []
 	for o: Prop in props.values():
 		if not is_instance_valid(o) or o == p:
@@ -2010,6 +2018,122 @@ func _s_burn(kind: int, id: int, seconds: float) -> void:
 				1.2, 2.2, 1.0, 2.5, 1.6, 30.0, Vector3(0, 1.2, 0))
 
 
+# --- Breaking lights, lightning ---------------------------------------------------------
+
+var _broken_lights := {} # puzzle index of a MapLight -> when it comes back on (INF: never)
+var _next_strike := 25.0
+
+
+## Lights near `pos` break (a blast, a push, lightning).
+func server_break_lights(pos: Vector3, r: float) -> void:
+	for n in arena.puzzle:
+		if n is MapLight and (n as MapLight).glow_position().distance_to(pos) < r:
+			_server_break_light(n)
+
+
+func _server_break_light(n: MapLight) -> void:
+	if not n.breakable or n.broken:
+		return
+	_broken_lights[n.puzzle_index] = now() + n.repair_time if n.repair_time > 0.0 else INF
+	_bc_all("_s_light", [n.puzzle_index, true])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_light(i: int, is_broken: bool) -> void:
+	if i < arena.puzzle.size() and arena.puzzle[i] is MapLight:
+		(arena.puzzle[i] as MapLight).set_broken(is_broken)
+
+
+## Flying props smash the lights they hit; broken ones come back on in time.
+func _server_lights_tick() -> void:
+	var t := now()
+	for i in _broken_lights.keys():
+		if t >= _broken_lights[i]:
+			_broken_lights.erase(i)
+			_bc_all("_s_light", [i, false])
+	for n in arena.puzzle:
+		if not (n is MapLight) or n.broken or not n.breakable:
+			continue
+		var at: Vector3 = (n as MapLight).glow_position()
+		for p: Prop in props.values():
+			if is_instance_valid(p) and p.linear_velocity.length() > 7.0 \
+					and p.global_position.distance_to(at) < maxf(p.size.x, maxf(p.size.y, p.size.z)) * 0.6 + 0.3:
+				_server_break_light(n)
+				break
+
+
+## A storm (Arena.storm): now and then lightning strikes the map itself, mostly something
+## tall (a lamp post, a crate up high, a tree...): what's flammable there catches fire, Yeets
+## close by are zapped and thrown, lights nearby break. Every peer sees the bolt land there.
+func _server_storm(delta: float) -> void:
+	_next_strike -= delta
+	if _next_strike > 0.0:
+		return
+	_next_strike = rng.randf_range(25.0, 55.0)
+	var at := _strike_target()
+	if at != Vector3.INF:
+		server_lightning(at)
+
+
+## Lightning striking `at`: the bolt for everyone, fire, zapped Yeets, broken lights.
+func server_lightning(at: Vector3) -> void:
+	_bc_all("_s_strike", [at])
+	for p: Prop in props.values():
+		if is_instance_valid(p) and p.global_position.distance_to(at) < maxf(p.size.x, p.size.z) * 0.5 + 2.0:
+			server_ignite_prop(p, rng.randf_range(8.0, 12.0))
+	server_fire_spot(at, 1.5)
+	for pl: Player in players.values():
+		var d := pl.body_center().distance_to(at)
+		if pl.is_alive() and d < 4.0:
+			var away := (pl.body_center() - at)
+			away.y = 0.0
+			server_damage_player(pl, 15.0 + 30.0 * (1.0 - d / 4.0), 0, "zap", pl.body_center(), away)
+			if pl.is_alive():
+				server_launch_player(pl, away.normalized() * 9.0 + Vector3.UP * 8.0, false, 1.2, 0)
+				server_ignite_player(pl, 2.0)
+	server_break_lights(at, 5.0)
+
+
+## Where the lightning lands: the highest of a few candidates (props, lamps, spots of ground
+## round the map), favouring things that burn.
+func _strike_target() -> Vector3:
+	var picks: Array = [] # [point, score]
+	for p: Prop in props.values():
+		if is_instance_valid(p) and not p.freeze:
+			var top := p.global_position + Vector3.UP * p.size.y * 0.5
+			picks.append([top, top.y + (3.0 if is_flammable(p) else 0.0) + rng.randf_range(0.0, 6.0)])
+	for n in arena.puzzle:
+		if n is MapLight and n.kind in ["lamp_post", "torch"]:
+			var top: Vector3 = (n as MapLight).glow_position()
+			picks.append([top, top.y + 2.0 + rng.randf_range(0.0, 6.0)])
+	var space := get_world_3d().direct_space_state
+	for k in 8:
+		if arena.spawn_points.is_empty():
+			break
+		var sp: Vector3 = arena.spawn_points[rng.randi() % arena.spawn_points.size()][0]
+		var from := sp + Vector3(rng.randf_range(-20, 20), 60.0, rng.randf_range(-20, 20))
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 140.0, Game.L_WORLD))
+		if not hit.is_empty():
+			picks.append([hit.position, (hit.position as Vector3).y + rng.randf_range(0.0, 6.0)])
+	if picks.is_empty():
+		return Vector3.INF
+	picks.sort_custom(func(a, b): return a[1] > b[1])
+	return picks[rng.randi() % mini(3, picks.size())][0] # (one of the best few: not always the same)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_strike(at: Vector3) -> void:
+	for c in arena.get_children():
+		if c is Weather:
+			(c as Weather).strike_at(at)
+	fx.zap(at)
+	fx.scorch(at, 1.4)
+	fx.impact(at, Vector3.UP, 2.0, "stone", 1.0)
+	if local_player:
+		var d := local_player.global_position.distance_to(at)
+		local_player.shake(clampf(1.0 - d / 30.0, 0.0, 0.9))
+
+
 # --- Map props coming back ------------------------------------------------------------
 
 ## A map prop that's gone (destroyed, fallen out) comes back home after `delay` seconds;
@@ -2064,6 +2188,11 @@ func server_reset_area(xf: Transform3D, size: Vector3) -> int:
 		if inside.call(_restock[i][2]):
 			_restock_now(i)
 			n += 1
+	for i in _broken_lights.keys():
+		var l: Vector3 = inv * arena.puzzle[i].global_position
+		if absf(l.x) <= half.x and absf(l.y) <= half.y and absf(l.z) <= half.z:
+			_broken_lights.erase(i)
+			_bc_all("_s_light", [i, false])
 	return n
 
 

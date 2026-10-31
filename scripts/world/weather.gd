@@ -91,6 +91,25 @@ func _lightning() -> void:
 		dist = _rng.randf_range(70.0, 340.0)
 		power = clampf(1.7 - dist / 260.0, 0.45, 1.5)
 		_strike(cam, dist, power)
+	_flash_sky(power)
+	_thunder(dist)
+
+
+## Lightning striking the map at `at` (World: the server picked it, every peer sees it).
+func strike_at(at: Vector3) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var dist := cam.global_position.distance_to(at)
+	var power := clampf(1.8 - dist / 200.0, 0.7, 1.6)
+	var top := at + Vector3(_rng.randf_range(-15, 15), _rng.randf_range(75.0, 100.0), _rng.randf_range(-15, 15))
+	_bolt(cam.global_position, top, at, power)
+	_flash_sky(power)
+	_thunder(dist)
+
+
+## The sky lighting up with a bolt.
+func _flash_sky(power: float) -> void:
 	var tw := create_tween()
 	for k in [[2.4 * power, 0.05], [0.3, 0.08], [3.2 * power, 0.04], [0.8 * power, 0.07], [2.0 * power, 0.04], [0.0, 0.4]]:
 		tw.tween_property(_flash, "light_energy", k[0], k[1])
@@ -99,6 +118,10 @@ func _lightning() -> void:
 		var tw2 := create_tween()
 		tw2.tween_property(_env, "background_energy_multiplier", base * (1.0 + 2.0 * power), 0.05)
 		tw2.tween_property(_env, "background_energy_multiplier", base, 0.5)
+
+
+## Thunder as late as sound would be: a crack first when it's close, then the rumble.
+func _thunder(dist: float) -> void:
 	var delay := dist / 343.0
 	get_tree().create_timer(delay).timeout.connect(func():
 		if dist < 160.0:
@@ -117,11 +140,19 @@ func _strike(cam: Camera3D, dist: float, power: float, a := INF) -> void:
 	var q := PhysicsRayQueryParameters3D.create(Vector3(at.x, top.y, at.z), Vector3(at.x, c.y - 200.0, at.z), 1)
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
 	at.y = hit.position.y if not hit.is_empty() else c.y - 15.0
+	_bolt(c, top, at, power)
+
+
+## The bolt itself, from `top` down to `at` (seen from the camera at `c`): a branching
+## channel flickering through a few re-strikes, the land around it lit up.
+func _bolt(c: Vector3, top: Vector3, at: Vector3, power: float) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var main := _bolt_path(top, at, top.distance_to(at) * 0.11, 6)
-	_ribbon(st, main, 1.1, c, 1.0)
-	_ribbon(st, main, 7.0, c, 0.12) # the glow around it
+	# (close up, a narrower glow: wide ribbons right by the camera read as flat panes)
+	var near := clampf(c.distance_to(at) / 150.0, 0.15, 1.0)
+	_ribbon(st, main, lerpf(0.5, 1.1, near), c, 1.0)
+	_ribbon(st, main, 7.0 * near, c, 0.12) # the glow around it
 	for b in _rng.randi_range(3, 7):
 		var i := _rng.randi_range(4, int(main.size() * 0.7))
 		var from: Vector3 = main[i]
@@ -130,7 +161,7 @@ func _strike(cam: Camera3D, dist: float, power: float, a := INF) -> void:
 		var to := from + (down * 0.6 + out * 0.8).normalized() * top.distance_to(at) * _rng.randf_range(0.12, 0.32)
 		var branch := _bolt_path(from, to, from.distance_to(to) * 0.15, 4)
 		_ribbon(st, branch, 0.45, c, 0.75)
-		_ribbon(st, branch, 3.0, c, 0.07)
+		_ribbon(st, branch, 3.0 * near, c, 0.07)
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = _bolt_material()
