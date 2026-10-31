@@ -225,6 +225,8 @@ func apply_graphics() -> void:
 	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if aa in [1, 2, 3] else Viewport.SCREEN_SPACE_AA_DISABLED
 	vp.use_taa = aa == 4 and gfx.upscaler != 2 # FSR 2 brings its own temporal pass
 	RenderingServer.directional_shadow_atlas_set_size(4096 if gfx.shadows >= 2 else 2048, true)
+	# Soft shadow edges: more filter samples on High (fewer, grainier ones cost less on Low).
+	RenderingServer.directional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_ULTRA if gfx.shadows >= 2 else RenderingServer.SHADOW_QUALITY_SOFT_MEDIUM)
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if gfx.vsync else DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = int(gfx.max_fps)
 

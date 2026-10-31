@@ -317,7 +317,9 @@ damage.
 own: resolution, upscaler (FSR 1 / FSR 2), anti-aliasing, shadows, lighting (SSIL, SDFGI),
 ambient occlusion, volumetric fog, bloom, water quality, glass quality, explosions, clouds,
 character models (*Optimised* or the *Original* build), VSync and a frame rate cap.
-Available in the menu and in the pause menu.
+Available in the menu and in the pause menu. Sun shadows are soft and clean (a finely
+filtered blur); with TAA or FSR 2 they also harden where things touch the ground (PCSS,
+which is grainy without a temporal pass to smooth it).
 
 **Effects.** Dust, smoke, mist and whitewater are dense cauliflower puffs: clusters of
 round lobes, each lit like a little sphere (warm tops, cool undersides), coloured by a

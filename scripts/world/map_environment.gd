@@ -65,9 +65,15 @@ static func apply_quality(env: Environment, preset: String) -> void:
 		env.fog_density = maxf(depth_fog, 0.012) # keep the spooky haze without volumetrics
 
 
-## Sun shadow quality from Game.gfx (shadows: 0 off, 1 low, 2 high).
+## Sun shadow quality from Game.gfx (shadows: 0 off, 1 low, 2 high). Soft penumbras that
+## harden near contact (PCSS: the sun's angular size) only with a temporal pass (TAA, FSR 2)
+## to smooth them: without one they cover every shadow, the viewmodel's too, in grain.
+## Otherwise evenly blurred soft shadows (Game.apply_graphics sets their filter quality).
 static func apply_sun(sun: DirectionalLight3D) -> void:
 	var s: int = 2 if Engine.is_editor_hint() else Game.gfx.get("shadows", 2)
+	var temporal: bool = not Engine.is_editor_hint() and (Game.gfx.get("aa", 0) == 4 or Game.gfx.get("upscaler", 0) == 2)
+	sun.light_angular_distance = 2.0 if temporal else 0.0
+	sun.shadow_blur = 1.8
 	sun.shadow_enabled = s > 0
 	sun.directional_shadow_max_distance = 160.0 if s >= 2 else 90.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if s >= 2 else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
@@ -327,9 +333,7 @@ static func build(preset: String, settings: Node = null) -> Array[Node]:
 	sun.rotation_degrees = sun_rot
 	sun.light_color = sun_color
 	sun.light_energy = sun_energy * sun_scale
-	sun.light_angular_distance = 2.0 # soft penumbras
-	sun.shadow_blur = 1.8
-	apply_sun(sun)
+	apply_sun(sun) # (soft penumbras)
 	# Cool bounce/fill from the opposite side so shadows read blue rather than grey.
 	var fill := DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-25, sun_rot.y + 180.0, 0)
