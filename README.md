@@ -78,7 +78,9 @@ orange parts take your team colour). Grab, carry, pull, push and throw. Pulled o
 you even if your aim drifts. Holding the trigger catches incoming objects, including
 dodgeballs. Push or pull what you hold, and rotate props to line up a build or a shot. You can grab players: teammates for up to 6 s, enemies only briefly, and
 throw them across the map. Hold the throw button to **charge** a throw: the object shakes and the crackling
-electric arc goes white-hot, and a full charge yeets about 1.8× as hard. Punt everything in a cone. Punt a
+electric arc goes white-hot, and a full charge yeets about 1.8× as hard. Punt everything in a cone (a wave of pushed air rushes out:
+faintly tinted in your team's colour, or pale blue-white in free-for-all, bending what's behind it, with
+streaks of air shooting ahead). Punt a
 wall right in front of you to gravity-jump. Thrown objects inherit your velocity, so moving fast means throwing hard.
 
 **Grapple hook.** Hold G (or the middle mouse button, R3 on a gamepad): it takes hold of the

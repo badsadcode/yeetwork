@@ -896,7 +896,8 @@ func _punt(origin: Vector3, dir: Vector3) -> void:
 			# Gravity jump: push yourself off the surface.
 			_boost_cd = BOOST_COOLDOWN
 			w.server_launch_player(player, -dir * 15.0, false, 0.0, 0)
-	w.server_fx("punt", origin + dir * 1.5, dir, 1.0)
+	# (amount 1 + team: the wave takes the pusher's team colour in team modes)
+	w.server_fx("punt", origin + dir * 1.5, dir, 1.0 + player.team)
 	w.server_gun_kick(player, 0.7)
 
 

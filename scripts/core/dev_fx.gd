@@ -2,7 +2,7 @@ extends Node
 ## Developer tool: fires effects in front of a still camera and saves frames over time
 ## (explosion, dust, impacts, splash), to judge the particles and shaders.
 ## Usage: godot -- --host --map lagoon --bots 0 --tour <dir> --tour-mode fx [--graphics 0|1|2]
-##        [--fx-part fire]   only the fire shots
+##        [--fx-part fire]   only the fire shots ([--fx-part push]: the gun's push wave)
 
 var world: Node
 var out_dir := ""
@@ -18,6 +18,26 @@ func _ready() -> void:
 	world.hud.visible = false
 	if "fire" in OS.get_cmdline_user_args():
 		await _fire()
+		get_tree().quit()
+		return
+	if "push" in OS.get_cmdline_user_args():
+		# The gun's push wave: from the side, then from the pusher's own view; neutral, red, blue.
+		# (The game runs at a fifth of its speed here: saving a shot takes longer than the
+		# wave lives.)
+		var looks := [["side", Vector3(13.5, 1.6, -9.6), Vector3(17, 1.5, -10.2)], ["own", Vector3(17, 1.6, -6), Vector3(17, 1.5, -12)]]
+		for v in looks:
+			_look(v[1], v[2])
+			await _wait(0.4)
+			for c in [["neutral", Effects.PUSH_NEUTRAL], ["red", Game.team_color(1)], ["blue", Game.team_color(2)]]:
+				Engine.time_scale = 0.2
+				world.fx.shockwave(Vector3(17, 1.5, -7.5), Vector3(0, 0, -1), c[1])
+				var before := 0.0
+				for t in [0.06, 0.14, 0.24]:
+					await _wait(t - before) # (scaled: game time)
+					before = t
+					_shot("push_%s_%s_%.2f" % [v[0], c[0], t])
+				Engine.time_scale = 1.0
+				await _wait(0.3)
 		get_tree().quit()
 		return
 	if "break" in OS.get_cmdline_user_args():

@@ -2323,7 +2323,9 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 				var d := local_player.global_position.distance_to(pos)
 				local_player.shake(clampf(1.2 - d / 25.0, 0.0, 1.0))
 		"punt":
-			fx.shockwave(pos, dir)
+			# (amount over 1: the gun's push, 1 + the pusher's team)
+			var team := int(amount) - 1
+			fx.shockwave(pos, dir, Game.team_color(team) if team > 0 and is_team_mode() else Effects.PUSH_NEUTRAL)
 			Sfx.play3d("punt", pos, 0.0, rng.randf_range(0.9, 1.1))
 		"throw":
 			Sfx.play3d("throw", pos, -2.0 + amount * 3.0, rng.randf_range(0.9, 1.2) / maxf(amount * 0.8, 1.0))

@@ -14,6 +14,10 @@ var _chunk_mesh: BoxMesh
 var _rng := RandomNumberGenerator.new()
 var _quad: QuadMesh
 var _puff_mats := {}
+static var _streak_mesh: Mesh
+static var _streak_mat: ShaderMaterial
+## The push wave's colour when it isn't a team's (free-for-all, sandbox): a pale blue-white.
+const PUSH_NEUTRAL := Color(0.72, 0.88, 1.0)
 static var _noise_tex: NoiseTexture2D
 static var _noise3d: NoiseTexture3D
 var _ball: SphereMesh
@@ -517,23 +521,74 @@ func _volume_explosion(pos: Vector3, radius: float, steps: int) -> void:
 	tw.chain().tween_callback(mi.queue_free)
 
 
-func shockwave(pos: Vector3, dir: Vector3, color := Color(0.5, 0.95, 1.0)) -> void:
-	var ring := MeshInstance3D.new()
-	var tm := TorusMesh.new()
-	tm.inner_radius = 0.4
-	tm.outer_radius = 0.5
-	ring.mesh = tm
-	var mat := Mats.glow(color, 3.0, true).duplicate() as StandardMaterial3D
-	ring.material_override = mat
-	add_child(ring)
+## A wave of pushed air (push_wave.gdshader): a disc facing along `dir` that spreads and
+## moves on, coloured at its rim and clear in the middle, bending what's behind it.
+func shockwave(pos: Vector3, dir: Vector3, color := PUSH_NEUTRAL) -> void:
+	var wave := MeshInstance3D.new()
+	var pm := PlaneMesh.new()
+	pm.size = Vector2.ONE
+	wave.mesh = pm
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://scripts/fx/push_wave.gdshader")
+	mat.set_shader_parameter("color", color)
+	wave.material_override = mat
+	wave.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(wave)
 	var up := dir.normalized()
 	var side := up.cross(Vector3.UP if absf(up.y) < 0.95 else Vector3.RIGHT).normalized()
-	ring.global_transform = Transform3D(Basis(side, up, side.cross(up)), pos)
-	var tw := ring.create_tween().set_parallel(true)
-	tw.tween_property(ring, "scale", Vector3(5, 1, 5), 0.25)
-	tw.tween_property(ring, "position", ring.position + up * 2.0, 0.25)
-	tw.tween_property(mat, "albedo_color:a", 0.0, 0.25)
-	tw.chain().tween_callback(ring.queue_free)
+	wave.global_transform = Transform3D(Basis(side, up, side.cross(up)), pos)
+	wave.scale = Vector3(0.6, 1, 0.6)
+	var tw := wave.create_tween().set_parallel(true)
+	tw.tween_property(wave, "scale", Vector3(5.5, 1, 5.5), 0.32).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(wave, "position", wave.position + up * 2.2, 0.32).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_method(func(v: float): mat.set_shader_parameter("life", v), 0.0, 1.0, 0.32)
+	tw.chain().tween_callback(wave.queue_free)
+	_push_streaks(pos, Basis(side, up, side.cross(up)), color)
+
+
+## Streaks of pushed air shooting out along the push and slowing to nothing: thin ribbons
+## stretched along their flight, turned to the camera (push_streak.gdshader).
+func _push_streaks(pos: Vector3, basis: Basis, color: Color) -> void:
+	if _streak_mesh == null:
+		var q := QuadMesh.new() # (push_streak.gdshader turns it to the camera about its length)
+		q.size = Vector2.ONE
+		_streak_mesh = q
+		_streak_mat = ShaderMaterial.new()
+		_streak_mat.shader = preload("res://scripts/fx/push_streak.gdshader")
+	var p := CPUParticles3D.new()
+	p.mesh = _streak_mesh
+	p.material_override = _streak_mat
+	p.one_shot = true
+	p.explosiveness = 0.9
+	p.amount = 14 if Game.graphics == 0 else 22
+	p.lifetime = 0.42
+	p.local_coords = false
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.35
+	p.direction = Vector3.UP # (along the push: the emitter's up is the push direction)
+	p.spread = 22.0
+	p.gravity = Vector3.ZERO
+	p.initial_velocity_min = 9.0
+	p.initial_velocity_max = 17.0
+	p.damping_min = 18.0
+	p.damping_max = 26.0
+	p.particle_flag_align_y = true # stretched along their flight
+	p.scale_amount_min = 0.6
+	p.scale_amount_max = 1.3
+	var sc := Curve.new() # long while fast, shrinking as they slow
+	sc.add_point(Vector2(0, 1))
+	sc.add_point(Vector2(1, 0.25))
+	p.scale_amount_curve = sc
+	p.color = Color(color.lerp(Color.WHITE, 0.35), 0.8)
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(1, 1, 1, 1))
+	ramp.set_color(1, Color(1, 1, 1, 0))
+	p.color_ramp = ramp
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(p)
+	p.global_transform = Transform3D(basis, pos - basis.y * 0.6)
+	p.emitting = true
+	get_tree().create_timer(p.lifetime + 0.2).timeout.connect(p.queue_free)
 
 
 func zap(pos: Vector3) -> void:
