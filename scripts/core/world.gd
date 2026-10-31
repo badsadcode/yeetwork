@@ -928,10 +928,22 @@ func _server_scatter_pieces(pieces: Array, xf: Transform3D, vel: Vector3, rel: V
 
 func server_explode(p: Prop) -> void:
 	p.exploded = true
-	var pos := p.global_position
-	var radius := 7.5
 	var t := now()
 	var attacker := p.last_thrower if t - p.last_thrown_time < 8.0 else 0
+	server_explode_at(p.global_position, 7.5, attacker, p, p.last_thrown_time)
+	var shrapnel := _prop_pieces("barrel", {"breaks_into": "staves"}, p.size, p.prop_id)
+	var bxf := p.global_transform
+	var bcol := p.color
+	_queue_restock(p, 25.0)
+	server_despawn_prop(p)
+	_server_scatter_pieces(shrapnel, bxf, Vector3.UP * 6.0, Vector3.DOWN * 20.0, bcol, "metal")
+
+
+## An explosion at pos (a barrel's, or a MegaYeet bomber's): blast, fire, flung things and
+## Yeets, broken walls and props, chained barrels. source: the prop that blew (left alone).
+func server_explode_at(pos: Vector3, radius: float, attacker: int, source: Prop = null, thrown_t := -1.0) -> void:
+	if thrown_t < 0.0:
+		thrown_t = now()
 	server_fx("explosion", pos, Vector3.UP, radius)
 	mode_logic.on_explosion(pos)
 	if horde:
@@ -940,7 +952,7 @@ func server_explode(p: Prop) -> void:
 	server_strain_lashings(pos, radius * 1.4, 170.0)
 	var to_break: Array[Prop] = []
 	for o: Prop in props.values():
-		if not is_instance_valid(o) or o == p:
+		if not is_instance_valid(o) or o == source:
 			continue
 		var to := o.global_position - pos
 		var d := to.length()
@@ -951,7 +963,7 @@ func server_explode(p: Prop) -> void:
 			continue
 		if o.explosive and not o.exploded:
 			o.last_thrower = attacker
-			o.last_thrown_time = p.last_thrown_time
+			o.last_thrown_time = thrown_t
 			_schedule_explosion(o, 0.12 + d * 0.02)
 			continue
 		if o.freeze:
@@ -963,12 +975,12 @@ func server_explode(p: Prop) -> void:
 		o.angular_velocity += Vector3(rng.randf_range(-8, 8), rng.randf_range(-8, 8), rng.randf_range(-8, 8))
 		o.sleeping = false
 		o.last_thrower = attacker
-		o.last_thrown_time = p.last_thrown_time
+		o.last_thrown_time = thrown_t
 	for o in to_break:
 		server_break_prop(o, (o.global_position - pos).normalized() * 15.0)
 	# The blast sets what's left nearby alight, and singes anyone close.
 	for o: Prop in props.values():
-		if is_instance_valid(o) and o != p and not o.exploded and is_flammable(o) and o.global_position.distance_to(pos) < radius * 0.9 and rng.randf() < 0.75:
+		if is_instance_valid(o) and o != source and not o.exploded and is_flammable(o) and o.global_position.distance_to(pos) < radius * 0.9 and rng.randf() < 0.75:
 			server_ignite_prop(o, rng.randf_range(6.0, 10.0), attacker)
 	for pl: Player in players.values():
 		if not pl.is_alive():
@@ -985,12 +997,6 @@ func server_explode(p: Prop) -> void:
 	for d in arena.destructibles:
 		if d.global_position.distance_to(pos) < radius + 30.0 and not d.cells_near(pos, radius * 0.6).is_empty():
 			server_damage_destructible(d, pos, radius * 0.6, 260.0, (d.global_position - pos).normalized() * 14.0 + Vector3.UP * 4.0, attacker, 2.0)
-	var shrapnel := _prop_pieces("barrel", {"breaks_into": "staves"}, p.size, p.prop_id)
-	var bxf := p.global_transform
-	var bcol := p.color
-	_queue_restock(p, 25.0)
-	server_despawn_prop(p)
-	_server_scatter_pieces(shrapnel, bxf, Vector3.UP * 6.0, Vector3.DOWN * 20.0, bcol, "metal")
 
 
 # --- Destruction ------------------------------------------------------------------

@@ -8,12 +8,13 @@ extends ModeBase
 ## zero the fortress falls: how many waves you held, then it all starts again (walls rebuilt,
 ## props back, wave 1). On a map without a FortressHeart, DefenseZones or MonsterSpawns the
 ## game puts a Heart amid the spawn points, rings of zones round it and rifts far out
-## (prepare_arena, every peer).
+## (prepare_arena, every peer). Waves mix the kinds of monster as they go on (KIND_MIX, brutes
+## a few a wave from wave 3), each announced the first time it comes, with how to beat it.
 
 const METER := 1000.0
 const KILL_REFILL := 3.0
 const STYLE_REFILL := 2.0 # (on top: thrown off something, crushed, drowned, in lava, bowled over)
-const STYLE := ["fall", "crushed", "drowned", "lava", "acid", "bowled", "wall"]
+const STYLE := ["fall", "crushed", "drowned", "lava", "acid", "bowled", "wall", "fire", "light", "bomb"]
 const HEART_BITE := 40.0
 const WAVE_BONUS := 60.0
 const FIRST_BREAK := 12.0
@@ -22,6 +23,16 @@ const OVER_TIME := 12.0
 const MAX_ALIVE := 220
 const RINGS := [32.0, 18.0, 8.0] # (automatic zones' radii, outer to inner)
 const COMBOS := [[3, "TRIPLE SPLAT", 10.0], [5, "MONSTER MASH", 20.0], [10, "MEGAYEET", 50.0]]
+## [kind, from wave, share of the wave]; the rest are shamblers.
+const KIND_MIX := [["runner", 2, 0.18], ["bomber", 2, 0.07], ["climber", 4, 0.14], ["ghost", 5, 0.1]]
+const BRUTES_FROM := 3
+const ANNOUNCE := {
+	"runner": "RUNNERS!  Fast, but they fall apart",
+	"bomber": "BOMBERS!  Keep them off the gates, or throw them into the crowd",
+	"brute": "A BRUTE!  Too heavy to grab: blast it, burn it, drop it, drown it",
+	"climber": "CLIMBERS!  They scale the walls",
+	"ghost": "GHOSTS!  Only light and fire hurt them: shine your flashlight (%s)",
+}
 
 enum Phase { BREAK, WAVE, OVER }
 
@@ -34,6 +45,7 @@ var phase := Phase.BREAK
 var phase_end := 0.0
 var started := 0.0
 var kills := 0
+var heart_hits := 0
 var _to_spawn := 0
 var _spawn_gap := 1.0
 var _spawn_t := 0.0
@@ -46,6 +58,9 @@ var _heart_msg := 0.0
 var _combo := {} # attacker -> [count, last time]
 var _spots: Array = [] # monster spawn points (MonsterSpawns, or found far out)
 var _ready_to_play := false
+var _seen := {} # kinds announced this game
+var _spawned := 0 # this wave
+var _brutes := 0 # still to come this wave
 var _frames := 0
 
 
@@ -73,6 +88,7 @@ static func prepare_arena(a: Arena) -> void:
 		h.position = c - Vector3(0, 0.2, 0) # (spawn points stand 0.2 m over the ground)
 		a.add_child(h)
 		a.heart = h
+	a.all_flashlights = true # (light burns ghosts)
 	if a.defense_zones.is_empty():
 		for i in RINGS.size():
 			var z := DefenseZone.new()
@@ -194,6 +210,8 @@ func _start_wave() -> void:
 	phase = Phase.WAVE
 	_to_spawn = 14 + wave * 10
 	_spawn_gap = (18.0 + wave * 1.5) / _to_spawn
+	_spawned = 0
+	_brutes = 0 if wave < BRUTES_FROM else 1 + (wave - BRUTES_FROM) / 2
 	_spawn_t = 0.0
 	world.server_message("WAVE %d" % wave, Color(1.0, 0.4, 0.3), true)
 	world.server_fx("horn", heart.global_position, Vector3.UP, 1.0)
@@ -212,9 +230,32 @@ func _spawn(delta: float) -> void:
 				continue
 			at = (s as MonsterSpawn).spot(world.rng) if s is MonsterSpawn else s + Vector3(world.rng.randf_range(-2, 2), 0, world.rng.randf_range(-2, 2))
 			break
-		horde.server_spawn(at)
+		var kind := _pick_kind()
+		horde.server_spawn(at, kind)
+		_spawned += 1
+		if not _seen.has(kind) and ANNOUNCE.has(kind):
+			_seen[kind] = true
+			var text: String = ANNOUNCE[kind]
+			if kind == "ghost":
+				text = text % Controls.key_of("flashlight")
+			world.server_message(text, Color(1.0, 0.55, 0.3), true)
 	if _spots.is_empty():
 		_to_spawn = 0
+
+
+## What comes out next: a brute now and then (spread through the wave), otherwise the wave's
+## mix (KIND_MIX), mostly shamblers.
+func _pick_kind() -> String:
+	if _brutes > 0 and _spawned > 0 and _spawned % maxi(int((14 + wave * 10) / (_brutes + 1.0)), 1) == 0:
+		_brutes -= 1
+		return "brute"
+	var r: float = world.rng.randf()
+	for e in KIND_MIX:
+		if wave >= int(e[1]):
+			if r < float(e[2]):
+				return e[0]
+			r -= float(e[2])
+	return "shambler"
 
 
 func _wave_cleared() -> void:
@@ -274,6 +315,7 @@ func on_monster_killed(_m, cause: String, attacker: int) -> void:
 
 func on_monster_reached(_m) -> void:
 	meter -= HEART_BITE
+	heart_hits += 1
 	world.server_heart_hurt()
 	var now: float = world.now()
 	if now - _heart_msg > 4.0:
@@ -305,6 +347,7 @@ func _restart() -> void:
 	meter = METER
 	wave = 0
 	kills = 0
+	_seen.clear()
 	started = world.now()
 	phase = Phase.BREAK
 	phase_end = world.now() + FIRST_BREAK

@@ -48,8 +48,11 @@ var dark := false # a dark sky (haunted): flashlights on by default
 ## Every Yeet carries a flashlight (MapSettings Flashlights: on, or auto under a dark sky).
 var flashlights: bool:
 	get:
+		if all_flashlights:
+			return true
 		var f: String = map_settings.flashlights if map_settings else "auto"
 		return f == "on" or (f == "auto" and dark)
+var all_flashlights := false # (the mode says so: MegaYeet, where light burns ghosts)
 ## A moving body the whole map rides on (High Seas' ship), or null. When set, spawn points,
 ## flag stands, initial props and props' home transforms are in its local space; use
 ## to_world() / xf_world() / flag_pos() to read them.

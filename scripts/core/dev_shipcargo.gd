@@ -72,7 +72,10 @@ func _ready() -> void:
 		freed.global_position = ship.global_transform * Vector3(0, 0.5, 30)
 		freed.linear_velocity = Vector3.ZERO
 		await _wait(4.0)
-		_check("a container overboard floats", is_instance_valid(freed) and freed.global_position.y > -2.5, "y %.1f" % (freed.global_position.y if is_instance_valid(freed) else -99.0))
+		# (afloat: near the surface where it is, crest or trough, not some fixed height)
+		var fp: Vector3 = freed.global_position if is_instance_valid(freed) else Vector3(0, -99, 0)
+		var sea: float = ship.ocean.height_at(fp.x, fp.z)
+		_check("a container overboard floats", is_instance_valid(freed) and fp.y > sea - 2.0, "y %.1f, the sea there %.1f" % [fp.y, sea])
 	# Cargo drifting far off comes back (like a prop fallen out of the map).
 	var far: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, ship.global_position + Vector3(0, 1, 160)))
 	var far_id := far.prop_id

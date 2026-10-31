@@ -9,7 +9,7 @@ extends Node3D
 ## everything in a cone (and gravity-jump off a nearby surface when there is nothing).
 
 enum Action { GRAB_START, GRAB_END, THROW, FREEZE, THROW_RELEASE }
-enum Kind { NONE, PROP, PLAYER }
+enum Kind { NONE, PROP, PLAYER, MONSTER } # (MONSTER: MegaYeet's, held by id in the Horde)
 
 const PULL_RANGE := 34.0
 const GRAB_RANGE := 4.5
@@ -255,11 +255,13 @@ func kick(amount: float) -> void:
 func update_visuals(delta: float) -> void:
 	_update_charge_fx(delta)
 	var target := held_node()
-	if target and is_instance_valid(target) and player.is_alive():
+	var to := Vector3.INF
+	if vis_kind == Kind.MONSTER and player.world.horde:
+		to = player.world.horde.monster_point(vis_id)
+	elif target and is_instance_valid(target):
+		to = (target as Player).body_center() if target is Player else (target as Node3D).global_position
+	if to != Vector3.INF and player.is_alive():
 		var from := muzzle_position()
-		var to: Vector3 = target.global_position
-		if target is Player:
-			to = (target as Player).body_center()
 		if from.distance_to(to) > 0.05:
 			_draw_arc(from, to, delta)
 	else:
@@ -585,6 +587,8 @@ func server_tick(delta: float) -> void:
 			_hold_prop(delta, origin, dir)
 		Kind.PLAYER:
 			_hold_player(delta, origin, dir)
+		Kind.MONSTER:
+			_hold_monster(delta, origin, dir)
 
 
 func _try_grab(origin: Vector3, dir: Vector3) -> void:
@@ -595,6 +599,21 @@ func _try_grab(origin: Vector3, dir: Vector3) -> void:
 	var target: Node = hit.get("collider") if not hit.is_empty() else null
 	if not (target is Prop or target is Player):
 		target = _catch_assist(origin, dir)
+	if not (target is Prop or target is Player) and w.horde:
+		# MegaYeet: a monster in reach along the aim (not through a wall).
+		var reach := PLAYER_GRAB_RANGE + 1.0
+		if not hit.is_empty():
+			reach = minf(reach, origin.distance_to(hit.position) + 0.4)
+		var m = w.horde.server_grab(origin, dir, reach)
+		if m:
+			held_kind = Kind.MONSTER
+			held_id = m.id
+			hold_extra = 0.0
+			_held_time = 0.0
+			w.horde.server_hold(m, origin + dir * 2.6, 0.016, player.player_id)
+			w.server_gun_state_changed(self)
+			Sfx.play3d("zap", m.pos + Vector3.UP, -2.0, 0.7)
+			return
 	if target is Prop and (target.has_meta("delivered") or target.has_meta("no_grab")):
 		return # locked in a Receptacle, or waiting for a kickoff
 	if target is Prop and not w.mode_logic.allow_grab(player, target):
@@ -741,6 +760,19 @@ func _hold_player(delta: float, origin: Vector3, dir: Vector3) -> void:
 	w.server_send_held(pl, target, player.velocity, player.player_id)
 
 
+## MegaYeet: a monster in the grip, out in front; it wriggles free in a while (Horde).
+func _hold_monster(delta: float, origin: Vector3, dir: Vector3) -> void:
+	var h = player.world.horde
+	var m = h.get_monster(held_id) if h else null
+	if m == null or m.state != Horde.State.HELD or m.held_by != player.player_id:
+		held_kind = Kind.NONE
+		held_id = 0
+		player.world.server_gun_state_changed(self)
+		return
+	var c := charge_level()
+	h.server_hold(m, origin + dir * clampf(2.6 + hold_extra, 1.8, MAX_HOLD_DISTANCE) * (1.0 - 0.25 * c), delta, player.player_id)
+
+
 ## Server: push/pull (meters) and rotate (radians, in the player's facing frame) what we hold.
 func server_adjust(dist_delta: float, yaw_delta: float, pitch_delta: float) -> void:
 	if held_kind == Kind.NONE:
@@ -797,6 +829,10 @@ func release(throw_ragdoll: bool) -> void:
 			var pl := w.get_player(held_id) as Player
 			if pl:
 				w.server_release_held(pl, 0.6 if throw_ragdoll else 0.0)
+		Kind.MONSTER:
+			var m = w.horde.get_monster(held_id) if w.horde else null
+			if m:
+				w.horde.server_let_go(m, m.vel * 0.5)
 	if held_kind != Kind.NONE:
 		held_kind = Kind.NONE
 		held_id = 0
@@ -832,6 +868,14 @@ func _throw(dir: Vector3, charge := 0.0) -> void:
 				var vel := dir * 30.0 * power + player.velocity + Vector3.UP * 3.0
 				w.server_launch_player(pl, vel, true, 1.6, player.player_id)
 				w.server_fx("throw", pl.body_center(), dir, 1.5 * power)
+		Kind.MONSTER:
+			var m = w.horde.get_monster(held_id) if w.horde else null
+			held_kind = Kind.NONE
+			held_id = 0
+			w.server_gun_state_changed(self)
+			if m:
+				w.horde.server_let_go(m, dir * 26.0 * power + player.velocity + Vector3.UP * 3.0)
+				w.server_fx("throw", m.pos + Vector3.UP, dir, 1.5 * power)
 	w.server_gun_kick(player, power)
 
 

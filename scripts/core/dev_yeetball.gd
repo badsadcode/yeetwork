@@ -175,12 +175,15 @@ func _ready() -> void:
 	victim.respawn(world.arena.ball_spot + Vector3(0, -1.2, 6), 0.0)
 	await _wait(0.4)
 	b.freeze = false
+	await get_tree().physics_frame
 	var hp0 := victim.hp
 	var target := victim.body_center()
-	b.global_position = target + Vector3(0, 0, -5)
-	b.linear_velocity = Vector3(0, 0, 22)
+	# (straight into the physics body's state: setting a moving body's position from outside
+	# can be overwritten by its own step when the machine is busy)
+	PhysicsServer3D.body_set_state(b.get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, Transform3D(Basis.IDENTITY, target + Vector3(0, 0, -5)))
+	PhysicsServer3D.body_set_state(b.get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3(0, 0, 22))
 	var knocked := false
-	for k in 12:
+	for k in 16:
 		await _wait(0.05)
 		knocked = knocked or victim.state != 0 or victim.velocity.length() > 6.0
 	_check("knockdown: a fast ball bowls a Yeet over, no damage", knocked and victim.hp >= hp0, "state %d, speed %.1f, hp %d -> %d" % [victim.state, victim.velocity.length(), hp0, victim.hp])

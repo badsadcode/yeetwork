@@ -3,7 +3,11 @@ extends Node
 ## wave comes; monsters walk toward the Heart, batter a gate down and drain the Fortress
 ## meter in the zones; a push sends one flying, a blast and a thrown crate kill them (the
 ## meter refills), one reaching the Heart takes a bite; bots get kills; how long 200 of them
-## take a tick; the fortress falls and everything starts again (walls whole). Screenshots.
+## take a tick; the fortress falls and everything starts again (walls whole). The kinds:
+## runners outpace shamblers, a brute shrugs a push off and can't be grabbed, a ghost drifts
+## through a wall, ignores a push and burns in a flashlight's beam, a climber gets over a
+## wall, a bomber blows a gate in and a killed one takes its neighbours with it, fire spreads,
+## a monster is grabbed and thrown, waves mix the kinds. Screenshots.
 ## Exits 1 if a step fails.
 ## Usage: godot -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --port 24700 --tour <dir> --tour-mode megayeet
 
@@ -17,7 +21,7 @@ var pl: Player
 
 
 func _ready() -> void:
-	get_tree().create_timer(170.0).timeout.connect(func():
+	get_tree().create_timer(260.0).timeout.connect(func():
 		print("MEGAYEET CHECK FAILED (timed out)")
 		get_tree().quit(1))
 	await _wait(1.0)
@@ -26,6 +30,16 @@ func _ready() -> void:
 	pl = world.local_player
 	pl.is_bot = true # (held still: no player input)
 	pl.bot_brain = null
+	# The bots stand still but for their own step (their pushes and kills would muddle the
+	# rest), out of the way up on the outer wall (by the Heart they'd draw monsters to them).
+	var brains := {}
+	for q: Player in world.players.values():
+		if q.is_bot and q.bot_brain:
+			brains[q] = q.bot_brain
+			q.bot_brain = null
+			q.cmd.move = Vector2.ZERO
+			q.cmd.jump = false
+			q.respawn(Vector3(-24.0 + brains.size() * 4.0, 7.3, 38.0), 0.0)
 	for k in 50:
 		if horde.field:
 			break
@@ -108,10 +122,15 @@ func _ready() -> void:
 	_check("a crate thrown into one crushes it (the thrower's kill)", victim.hp <= 0.0 and pl.score > 0, "hp %.0f, score %d" % [victim.hp, pl.score])
 	# One reaching the Heart takes a bite.
 	var before := mode.meter
+	var bites := mode.heart_hits
 	horde.server_spawn(Vector3(0, 0, 3.2))
 	await _wait(1.5)
-	_check("a monster reaching the Heart takes a bite", mode.meter <= before - ModeMegaYeet.HEART_BITE + 15.0, "%.0f -> %.0f" % [before, mode.meter])
+	_check("a monster reaching the Heart takes a bite", mode.heart_hits >= bites + 1 and mode.meter < before, "%.0f -> %.0f, %d bites" % [before, mode.meter, mode.heart_hits - bites])
+	await _kinds()
 	# Bots fight.
+	for q: Player in brains:
+		q.bot_brain = brains[q]
+		q.respawn(mode.spawn_point(q), 0.0)
 	var bot_kills := 0
 	for k in 25:
 		if horde.count() < 15:
@@ -158,6 +177,157 @@ func _ready() -> void:
 	_check("... and it all starts again (walls whole, the meter full, wave 0)", mode.phase == ModeMegaYeet.Phase.BREAK and mode.wave == 0 and mode.meter == ModeMegaYeet.METER and whole and horde.count() == 0, "phase %d wave %d meter %.0f walls whole %s" % [mode.phase, mode.wave, mode.meter, whole])
 	print("MEGAYEET CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
 	get_tree().quit(0 if _failed == 0 else 1)
+
+
+func _kinds() -> void:
+	horde.server_clear()
+	await _wait(0.3)
+	# One of each, in a row (all drawn).
+	var row := []
+	for i in Horde.KIND_IDS.size():
+		row.append(horde.server_spawn(Vector3(-6.0 + i * 2.4, 0, 30.0), Horde.KIND_IDS[i]))
+	await _wait(0.2)
+	var drawn := Horde.KIND_IDS.all(func(k): return horde._draw[k][0].multimesh.visible_instance_count >= 1)
+	_check("every kind is drawn", drawn, "")
+	_cam(Vector3(0, 2.4, 36.5), Vector3(0, 1.0, 30.0))
+	await _wait(0.1)
+	await _shot("m08_kinds")
+	horde.server_clear()
+	await _wait(0.2)
+	# Runners outpace shamblers (far from anyone, the same way in).
+	var sh := horde.server_spawn(Vector3(-30, 0, 55), "shambler")
+	var ru := horde.server_spawn(Vector3(-28, 0, 55), "runner")
+	var d_sh := f_dist(sh)
+	var d_ru := f_dist(ru)
+	await _wait(2.0)
+	_check("runners outpace shamblers", (d_ru - f_dist(ru)) > (d_sh - f_dist(sh)) * 1.6, "%d vs %d" % [d_ru - f_dist(ru), d_sh - f_dist(sh)])
+	# A brute: a push barely moves it, the gun can't hold it.
+	# (an open spot: no prop near for the gun to catch instead)
+	pl.respawn(Vector3(-10, 0, 30), 0.0)
+	await _wait(0.3)
+	var brute := horde.server_spawn(Vector3(-10, 0, 27.5), "brute")
+	_face(pl, brute.pos + Vector3.UP)
+	await get_tree().physics_frame
+	await get_tree().physics_frame # (the horde has it in its buckets after a tick of its own)
+	var hit_n := horde.server_punt(pl.eye_position(), pl.aim_direction(), 6.0, 0.5, 1.0, pl.player_id)
+	var moved := brute.vel.length()
+	world.gun_action(pl, GravityGun.Action.GRAB_START)
+	await _wait(0.3)
+	var held_brute := pl.gun.held_kind == GravityGun.Kind.MONSTER
+	world.gun_action(pl, GravityGun.Action.GRAB_END)
+	_check("a brute: a push barely moves it, the gun can't hold it", hit_n == 1 and moved < 4.0 and brute.hp < brute.max_hp and brute.hp > 250.0 and not held_brute, "pushed %d, %.1f m/s, hp %.0f, held %s" % [hit_n, moved, brute.hp, held_brute])
+	# Grab a shambler and throw it.
+	await _wait(0.5)
+	var grab := horde.server_spawn(Vector3(-4, 0, 27.5), "shambler")
+	pl.respawn(Vector3(-4, 0, 30), 0.0)
+	await _wait(0.3)
+	_face(pl, grab.pos + Vector3.UP * 0.9)
+	world.gun_action(pl, GravityGun.Action.GRAB_START)
+	var held := false
+	for k in 15: # (it comes at you and may knock you aside: keep aiming, the gun keeps trying)
+		await _wait(0.1)
+		held = pl.gun.held_kind == GravityGun.Kind.MONSTER and grab.state == Horde.State.HELD
+		if held:
+			break
+		_face(pl, grab.pos + Vector3.UP * 0.9)
+	_cam(Vector3(-8, 3.5, 33), grab.pos + Vector3.UP)
+	await _shot("m09_held")
+	world.gun_action(pl, GravityGun.Action.THROW)
+	await _wait(0.3)
+	world.gun_action(pl, GravityGun.Action.THROW_RELEASE)
+	await get_tree().physics_frame
+	var flung := grab.vel.length()
+	world.gun_action(pl, GravityGun.Action.GRAB_END)
+	_check("the gun grabs a monster and throws it", held and grab.state == Horde.State.FLY and flung > 15.0, "held %s, thrown at %.1f m/s" % [held, flung])
+	# A ghost: through the outer wall, a push goes through it, a flashlight burns it.
+	pl.torch_on = false # (off for now: the push test next)
+	var ghost := horde.server_spawn(Vector3(8, 0, -43), "ghost")
+	await _wait(5.5)
+	_check("a ghost drifts through the walls", ghost.hp > 0.0 and ghost.pos.z > -36.0, "at z %.1f" % ghost.pos.z)
+	pl.respawn(ghost.pos + Vector3(0, -ghost.pos.y, 5.0), 0.0)
+	await _wait(0.2)
+	_face(pl, ghost.pos + Vector3.UP * 1.2)
+	var hp_before := ghost.hp
+	world.gun_action(pl, GravityGun.Action.THROW)
+	await _wait(0.2)
+	var hp_pushed := ghost.hp
+	_face(pl, ghost.pos + Vector3.UP * 1.2)
+	pl.torch_on = true
+	var lit := false
+	for k in 30:
+		await _wait(0.1)
+		_face(pl, ghost.pos + Vector3.UP * 1.2)
+		if ghost.hp < hp_pushed - 10.0 or ghost.hp <= 0.0:
+			lit = true
+			break
+	_check("... a push goes right through it; a flashlight's beam burns it", hp_pushed >= hp_before - 0.1 and lit, "%.0f -> %.0f after the push, lit %s" % [hp_before, hp_pushed, lit])
+	# A climber goes over a wall (away from the gates).
+	var climber := horde.server_spawn(Vector3(14, 0, -43), "climber")
+	var top := 0.0
+	for k in 60:
+		await _wait(0.2)
+		top = maxf(top, climber.pos.y)
+		if k == 25:
+			_cam(climber.pos + Vector3(5, 2, -4), climber.pos + Vector3.UP)
+			await _shot("m10_climbing")
+		if climber.hp > 0.0 and climber.pos.z > -36.0 and climber.pos.y < 1.0:
+			break
+	_check("a climber climbs the wall and over", top > 6.0 and climber.pos.z > -37.0, "highest %.1f m, at z %.1f" % [top, climber.pos.z])
+	# A bomber blows a gate in (the east outer one).
+	var east: Destructible = null
+	for d: Destructible in world.arena.destructibles:
+		if absf(d.global_position.x - 38.0) < 1.0 and absf(d.global_position.z) < 1.0:
+			east = d
+	var cells0 := east.broken_cells.size()
+	var bomber := horde.server_spawn(Vector3(44, 0, 0.5), "bomber")
+	for k in 40:
+		await _wait(0.2)
+		if bomber.hp <= 0.0:
+			break
+	await _wait(0.3)
+	_check("a bomber blows the gate in", bomber.hp <= 0.0 and east.broken_cells.size() > cells0 + 3, "%d -> %d cells broken" % [cells0, east.broken_cells.size()])
+	# A killed bomber goes off and takes the crowd round it.
+	var b2 := horde.server_spawn(Vector3(-28, 0, -28), "bomber")
+	var crowd := []
+	for k in 6:
+		crowd.append(horde.server_spawn(Vector3(-28 + randf_range(-2, 2), 0, -28 + randf_range(-2, 2)), "shambler"))
+	await get_tree().physics_frame
+	horde._hit(b2, 100.0, Vector3.ZERO, pl.player_id, "punt")
+	await _wait(0.4)
+	var dead := crowd.filter(func(m): return m.hp <= 0.0).size()
+	_check("a killed bomber goes off, and the crowd round it with it", dead >= 5, "%d of 6" % dead)
+	# Fire spreads through a crowd.
+	var pack := []
+	for k in 5: # (a tight knot round a crate about to burn)
+		var a := k * TAU / 5.0
+		pack.append(horde.server_spawn(Vector3(30 + cos(a) * 1.0, 0, -26 + sin(a) * 1.0), "shambler"))
+	var crate: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, Vector3(30, 0.6, -26)))
+	await get_tree().physics_frame
+	world.server_ignite_prop(crate, 12.0)
+	var burning := 0
+	for k in 20:
+		await _wait(0.2)
+		burning = pack.filter(func(m): return m.burn > 0.0 or m.hp <= 0.0).size()
+		if burning >= 4:
+			break
+	_cam(Vector3(31, 3, -21), Vector3(31, 1, -26))
+	await _shot("m11_fire")
+	_check("fire catches and spreads through a crowd", burning >= 4, "%d of 5 burning or burnt" % burning)
+	# Waves mix the kinds.
+	var was := mode.wave
+	mode.wave = 8
+	mode._spawned = 0
+	mode._brutes = 3
+	var kinds := {}
+	for k in 300:
+		kinds[mode._pick_kind()] = true
+		mode._spawned += 1
+	mode.wave = was
+	_check("later waves mix every kind", Horde.KIND_IDS.all(func(k): return kinds.has(k)), str(kinds.keys()))
+
+
+func f_dist(m) -> int:
+	return horde.field.distance(m.pos)
 
 
 func _face(q: Player, at: Vector3) -> void:

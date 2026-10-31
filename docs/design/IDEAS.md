@@ -91,11 +91,9 @@ Music files dropped into a folder like the sounds (assets/music/), no code.
 
 ## MegaYeet (mode; first step done: shamblers, the Fortress meter and zones, waves and breaks, combos and style kills, bots, the fall and a fresh start, the Fortress map, Map Kit pieces)
 
-Next steps, as proposed: (2) monster kinds (runner, brute that smashes gates and can't be
-grabbed, ghost only light and fire hurt, climber, bomber) and grabbing monsters with the
-gun; (3) the break between waves: spend the meter on repairs, traps and team upgrades; (4)
+Step 2 done: runners, brutes, ghosts (flashlights burn them), climbers, bombers; grabbing
+and throwing monsters; fire burns and spreads through them. Next: (3) the break between waves: spend the meter on repairs, traps and team upgrades; (4)
 more maps (a factory), the gate repair; (5) bosses, polish and tuning for the Steam Deck.
-Fire doesn't hurt them yet.
 
 Co-op survival: endless waves of NPC monsters (zombies, Frankenstein's monsters, ghosts and
 the like) come for the players, who work together and use everything the game has (the

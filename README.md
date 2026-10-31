@@ -249,9 +249,16 @@ and one that reaches the glowing **Heart** in the middle takes a big bite. Kills
 back, more for style (thrown off a wall, crushed by a crate, drowned, into lava, bowled over
 by a flying friend), and a burst of kills is a combo (TRIPLE SPLAT, MONSTER MASH,
 MEGAYEET). Holding a wave tops the meter up; there's a short break before the next, bigger
-one. Monsters (shamblers, for now) walk the ways to the Heart, batter wooden gates down,
-and hit any Yeet they reach; a gravity-gun push and blasts send them flying, flung props
-crush them, and they die from falls, lava, acid and deep water. At zero the fortress falls:
+one. Monsters walk the ways to the Heart, batter gates down and hit any Yeet they reach; a
+gravity-gun push and blasts send them flying, flung props crush them, they die from falls,
+lava, acid and deep water, and fire spreads through a crowd. Grab one with the gun and
+throw it, or swing it into the others. Waves mix the kinds as they go on, each announced
+the first time: **shamblers** (the many), **runners** (fast, fragile), **bombers** (they
+run at gates and Yeets with a powder keg; killed, they go off where they fall), **brutes**
+(Frankenstein's monster: too heavy to grab, a push barely moves one, smashes gates and
+Yeets; blast, burn, drop or drown it), **climbers** (skeletons: straight at the Heart, up
+and over the walls) and **ghosts** (through walls; only fire and light hurt them, and in
+MegaYeet everyone carries a flashlight). At zero the fortress falls:
 how many waves you held, then everything starts again (walls rebuilt). Hundreds at once
 stay cheap (they aren't physics bodies; drawn in one batch). Map: **The Fortress**; any
 other map works too (the game puts a Heart amid its spawns, zones round it and rifts far

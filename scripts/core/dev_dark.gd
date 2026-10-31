@@ -41,6 +41,12 @@ func _haunted(arena) -> void:
 			if q._torch and q._torch.visible:
 				torches += 1
 	_check("every Yeet on their feet carries a lit flashlight", torches == up and up > 0, "%d of %d" % [torches, up])
+	# (the bots stand still from here: a push of theirs breaks any lamp right in front of it)
+	for q: Player in world.players.values():
+		if q.is_bot and q.bot_brain and q != pl:
+			q.bot_brain = null
+			q.cmd.move = Vector2.ZERO
+			q.cmd.jump = false
 	var lights: Array = []
 	var wired: Array = []
 	var faulty: MapLight = null
