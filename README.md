@@ -260,7 +260,9 @@ their faces (3D noise in world space: no seams across faces), flames with real d
 round their sides and rise over the top, tearing into licking tongues (ray-marched through
 rising 3D noise in a box over the burning thing: hot yellow inside, orange, red at the edges,
 dark smoky tips; the thing hides the flames behind it, and a burning player doesn't see their
-own; 28 / 20 / 12 steps on High / Medium / Low), and embers drift up. *Graphics details →
+own; 28 / 20 / 12 steps on High / Medium / Low), and embers drift up. Burning props and
+doors wobble like a cartoon while they burn (squash and stretch from their foot, a jiggling
+lean; their meshes only, not their collision). *Graphics details →
 Fire look → Classic* brings back the soft flame mass and smoke.
 
 **Map themes.** A **MapTheme** gives a map's pieces and props their look in one file: a

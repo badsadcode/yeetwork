@@ -6,7 +6,8 @@ extends Node3D
 ## real depth wrapping its sides and rising over its top (fire_volume.gdshader, ray-marched
 ## through 3D noise) and embers drifting up. The classic look: one big soft flame wrapping the thing and rising into
 ## a curling tip (flame_body.gdshader), a glowing shell over its meshes (fire_shell.gdshader),
-## smoke. Both: a flickering light and the crackle of fire. Colours come from a palette: orange
+## smoke. Both: a flickering light, the crackle of fire, and the thing wobbles like a cartoon
+## (squash and stretch from its foot, a jiggling lean; its meshes only, not its collision). Colours come from a palette: orange
 ## fire, blue or green magic fire. Burning.area() makes a burning place instead (one mass of
 ## flame over a box footprint, no shell).
 ##   Burning.on(prop, 8.0)      sets something alight (or keeps it burning longer)
@@ -45,6 +46,10 @@ var _light: OmniLight3D
 var _sound: AudioStreamPlayer3D
 var _t := 0.0
 var _gone := 0.0 # time since the flames died (the last smoke drifts off)
+## The wobbling meshes: [mesh, its transform in the burning thing's space before the
+## wobble, the local transform the wobble last gave it].
+var _wobbly: Array = []
+var _seed := randf() * TAU
 
 
 ## Sets target on fire for `seconds` (0 = until put out). `p_box`: the burning volume in
@@ -204,6 +209,12 @@ func _ready() -> void:
 	add_child(_sound)
 	_sound.play(randf() * 2.0)
 	_set_emitting(true)
+	# Wobbling: not players (animation moves their parts) or burning places; not meshes that
+	# place themselves in the world (a ball's ground marker).
+	if not is_area and not get_parent() is Player:
+		for mi in _meshes(get_parent()):
+			if not mi.top_level:
+				_wobbly.append([mi, _in_thing(mi.get_parent()) * mi.transform, mi.transform])
 
 
 ## The new look: the flames, one ray-marched volume (fire_volume.gdshader) in a world-aligned
@@ -323,6 +334,34 @@ func _add_body(at: Vector3, w: float, h: float, hole: float, push: float, pal: A
 	_bodies.append(m)
 
 
+## A transform of `n` in the burning thing's space.
+func _in_thing(n: Node) -> Transform3D:
+	return global_transform.affine_inverse() * (n as Node3D).global_transform if n is Node3D else Transform3D()
+
+
+## The cartoon wobble: the thing squashes and stretches from its foot (keeping its volume)
+## and leans this way and that, out of step; it eases in and out with the flames.
+func _wobble() -> void:
+	if _wobbly.is_empty():
+		return
+	var k := _fade
+	var s := sin(_t * 9.0 + _seed) * 0.6 + sin(_t * 14.3 + _seed * 2.0) * 0.4
+	var sy := 1.0 + s * 0.08 * k
+	var sxz := 1.0 / sqrt(sy)
+	var lean := Vector2(sin(_t * 6.1 + _seed * 3.0), sin(_t * 5.3 + _seed * 5.0)) * 0.09 * k
+	var b := Basis(Vector3(sxz, 0, 0), Vector3(lean.x, 1.0, lean.y) * sy, Vector3(0, 0, sxz))
+	var foot := Vector3(box.get_center().x, box.position.y, box.get_center().z)
+	var w := Transform3D(b, foot - b * foot)
+	for e in _wobbly:
+		var mi: MeshInstance3D = e[0]
+		if not is_instance_valid(mi):
+			continue
+		if not mi.transform.is_equal_approx(e[2]): # (moved by something else: wobble from there)
+			e[1] = _in_thing(mi.get_parent()) * mi.transform
+		mi.transform = _in_thing(mi.get_parent()).affine_inverse() * w * (e[1] as Transform3D)
+		e[2] = mi.transform
+
+
 func _apply_shell() -> void:
 	if _shell == null or not _overlaid.is_empty():
 		return
@@ -358,6 +397,7 @@ func _process(delta: float) -> void:
 		m.set_shader_parameter("intensity", _fade)
 	if _volume:
 		_update_volume()
+	_wobble()
 	_light.light_energy = _fade * (1.8 + 0.5 * sin(_t * 17.0) * sin(_t * 7.3) + 0.3 * sin(_t * 31.0))
 	_sound.volume_db = linear_to_db(maxf(_fade, 0.001)) - 6.0
 	if _out and _fade <= 0.0:
