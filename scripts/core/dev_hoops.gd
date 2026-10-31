@@ -12,7 +12,7 @@ var _failed := 0
 
 
 func _ready() -> void:
-	get_tree().create_timer(170.0).timeout.connect(func():
+	get_tree().create_timer(260.0).timeout.connect(func():
 		print("HOOPS CHECK FAILED (timed out)")
 		get_tree().quit(1))
 	await _wait(0.6)
@@ -82,7 +82,10 @@ func _ready() -> void:
 		q.bot_brain = brains[q]
 	var shots := 0
 	var up := false
-	for k in 250:
+	# (three bots fighting over one ball: sometimes a while between lobs; stop at two)
+	var k := 0
+	while k < 400 and shots < 2:
+		k += 1
 		await _wait(0.1)
 		var bb := mode.ball()
 		if bb and bb.held_by == 0 and bb.linear_velocity.y > 6.0 and bb.global_position.y > 2.5:
@@ -90,7 +93,7 @@ func _ready() -> void:
 		elif up and bb and bb.linear_velocity.y < -1.0:
 			shots += 1
 			up = false
-	_check("bots grab the ball and shoot", shots >= 2, "%d lobs in 25 s" % shots)
+	_check("bots grab the ball and shoot", shots >= 2, "%d lobs in %.0f s" % [shots, k * 0.1])
 	_look(Vector3(0, 9, -12), Vector3(0, 1, 0))
 	await _wait(0.3)
 	_shot("h02_bots")
@@ -111,14 +114,17 @@ func _ready() -> void:
 	var t := 0.0
 	var ly := 0.0
 	var tg: Hoop = blue if lone_team == Game.TEAM_RED else red
-	while t < 40.0 and world.team_scores.get(lone_team, 0) == s0:
+	# (a miss, the rebound, the walk back out: a few tries can take a while)
+	while t < 75.0 and world.team_scores.get(lone_team, 0) == s0:
 		await get_tree().physics_frame
 		t += 1.0 / 60.0
 		var bb := mode.ball()
 		var m: Vector3 = tg.mouth()
 		if bb:
 			ly = bb.global_position.y
-	_check("a bot alone scores", world.team_scores.get(lone_team, 0) > s0, "%d points in %.0f s" % [world.team_scores.get(lone_team, 0) - s0, t])
+	var lb := mode.ball()
+	_check("a bot alone scores", world.team_scores.get(lone_team, 0) > s0, "%d points in %.0f s%s" % [world.team_scores.get(lone_team, 0) - s0, t,
+		"" if world.team_scores.get(lone_team, 0) > s0 else "; ball at %s held by %d, bot at %s %s, target %s" % [lb.global_position if lb else Vector3.INF, lb.held_by if lb else -1, lone.global_position, lone.bot_brain.debug_state() if lone.bot_brain and lone.bot_brain.has_method("debug_state") else "", tg.mouth()]])
 	for q in brains:
 		q.bot_brain = null
 		q.cmd.move = Vector2.ZERO

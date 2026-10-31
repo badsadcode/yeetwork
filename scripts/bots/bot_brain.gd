@@ -144,7 +144,7 @@ func _think_yeetball(delta: float) -> void:
 	var mine := pl.global_position.distance_to(bp)
 	var chaser := true
 	for q: Player in world.players.values():
-		if q != pl and q.team == pl.team and q.is_alive() and q.global_position.distance_to(bp) < mine - 0.5:
+		if q != pl and q.team == pl.team and q.is_alive() and q.bot_brain and q.global_position.distance_to(bp) < mine - 0.5:
 			chaser = false
 	var look_at := bp
 	if chaser:
@@ -244,7 +244,7 @@ func _think_hoops(delta: float) -> void:
 		var mine := pl.global_position.distance_to(b.global_position)
 		var chaser := true
 		for q: Player in world.players.values():
-			if q != pl and q.team == pl.team and q.is_alive() and q.global_position.distance_to(b.global_position) < mine - 0.5:
+			if q != pl and q.team == pl.team and q.is_alive() and q.bot_brain and q.global_position.distance_to(b.global_position) < mine - 0.5:
 				chaser = false
 		if holder and holder.team == pl.team:
 			_goal = target.global_position.lerp(world.arena.ball_spot, 0.25) # rebound
@@ -342,7 +342,7 @@ func _think_volley(delta: float) -> void:
 		var me := pl.global_position.distance_to(land)
 		var chaser := true
 		for q: Player in world.players.values():
-			if q != pl and q.team == pl.team and q.is_alive() and q.global_position.distance_to(land) < me - 0.5:
+			if q != pl and q.team == pl.team and q.is_alive() and q.bot_brain and q.global_position.distance_to(land) < me - 0.5:
 				chaser = false
 		var want_grab := false
 		if ours and chaser and _shot_cool <= 0.0:
