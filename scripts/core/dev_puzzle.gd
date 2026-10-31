@@ -576,10 +576,11 @@ func _pump_house() -> void:
 		f1._update_texture()
 	var tex_ms := (Time.get_ticks_usec() - us) / 30000.0
 	_check("the water is cheap enough", step_ms < 6.0 and tex_ms < 6.0, "step %.2f ms, texture %.2f ms (%d x %d cells)" % [step_ms, tex_ms, f1.nx, f1.nz])
-	# A Yeet let go in the middle of the water floats (swims), it doesn't sink to the bottom.
-	_place_player(Vector3(1, 1.0, 7))
-	await _wait(2.0)
-	_check("Yeets float in deep water", pl.global_position.y > 0.8 and pl.is_alive(), "player at y %.1f, water at %.1f" % [pl.global_position.y, f1.surface_at(Vector3(1, 0, 7))])
+	# A Yeet on the bottom of deep water floats up (swims), it doesn't stay stuck down there.
+	_place_player(Vector3(1, 0.05, 7))
+	await _wait(3.0)
+	var top := f1.surface_at(Vector3(1, 0, 7))
+	_check("Yeets float up off the bottom of deep water", pl.global_position.y > top - 1.7 and pl.is_alive(), "player at y %.1f, water at %.1f" % [pl.global_position.y, top])
 	_shot("p03_swimming")
 	# The network: every chunk encoded and decoded again is the same water (to the mm).
 	var before := f1.depth.duplicate()

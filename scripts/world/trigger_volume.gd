@@ -151,6 +151,10 @@ func _swim(pl: Player, delta: float) -> void:
 			pl.report_hazard_damage(1000.0, "drown")
 		return
 	pl.velocity.y += Player.GRAVITY * 1.12 * sub * delta
+	# Deep enough to float you: off the bottom (standing on it, the ground holds you down and
+	# eats the lift: you'd never come up). Hold crouch to stay down and walk along it.
+	if 1.12 * sub > 1.0 and pl.is_on_floor() and not pl.cmd.crouch:
+		pl.lift_off()
 	# Swim strokes: steer toward where you look (air control alone is far too weak here).
 	var wish := Basis(Vector3.UP, pl.yaw) * Vector3(pl.cmd.move.x, 0, -pl.cmd.move.y)
 	if wish.length() > 0.1:

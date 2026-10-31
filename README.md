@@ -102,7 +102,8 @@ where crests fold over and along shores, sun glints, light glowing through thin 
 refraction with depth absorption (red fades first), caustics, and screen-space
 reflections. With your eyes at the surface the view splits above and below the
 waterline. Underwater there is fog, light shafts and Snell's window, and sound is muffled.
-In pools you float with your head out, hold jump to swim up and crouch to dive. Wood,
+In pools and flood water you float with your head out (deep enough, the water lifts you off
+the bottom; hold crouch to stay down there), hold jump to swim up and crouch to dive. Wood,
 rubber and soft props float and bob on the waves; metal and stone sink. Big splashes
 hit everyone's screen. The open ocean around a map is too rough to swim in: fall in and
 you sink and drown ("sleeps with the fishes"). Acid and lava bounce and burn you, and lava
