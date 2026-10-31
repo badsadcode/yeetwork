@@ -71,3 +71,19 @@ variety, volume and repetition, and the sports sounds.
 
 Scripted, recorded scenes outside the game (camera moves, directed bots, explosions),
 rendered with Godot's movie writer for a YouTube trailer.
+
+## Music and volume controls (next after High Seas phase 2's turn comes up)
+
+Tomek is making music for the menu screen, and maybe ambient tracks. Needed: a music player
+(menu music, optional in-game ambience), and in Options separate volume sliders for
+**Music** and **Sound effects** (on top of the master volume), each with an on/off switch.
+Music files dropped into a folder like the sounds (assets/music/), no code.
+
+## MegaYeet (mode, after High Seas phase 2)
+
+Co-op survival: endless waves of NPC monsters (zombies, Frankenstein's monsters, ghosts and
+the like) come for the players, who work together and use everything the game has (the
+gravity gun, props, explosives, fire, water, traps, the map) to survive as long as possible.
+Waves grow bigger and nastier. To design: monster kinds and how they move and attack (they
+must be yeetable), wave pacing, downed/revive or respawns, scoring (waves survived), which
+maps, bots joining in.
