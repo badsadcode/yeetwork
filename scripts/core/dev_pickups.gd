@@ -112,7 +112,8 @@ func _ready() -> void:
 	await _wait(0.2)
 	pl.gun.server_action(GravityGun.Action.GRAB_START, pl.eye_position(), bot.body_center() - pl.eye_position())
 	await _wait(0.3)
-	var grabbed := pl.gun.held_kind == GravityGun.Kind.PLAYER
+	# (this Yeet itself: the beam can catch another bot wandering past)
+	var grabbed := pl.gun.held_kind == GravityGun.Kind.PLAYER and pl.gun.held_id == bot.player_id
 	pl.gun.server_action(GravityGun.Action.GRAB_END, pl.eye_position(), Vector3.FORWARD)
 	_check("IRON YEET: half damage, barely budges, can't be grabbed", absf(hit - 10.0) < 0.5 and shove < 6.0 and not grabbed, "took %.0f of 20, pushed %.1f m/s, grabbed %s" % [hit, shove, grabbed])
 	# Dying clears the boosts.
