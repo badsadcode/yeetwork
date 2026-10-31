@@ -16,6 +16,8 @@ const DEFS := {
 	"tire": {"shape": "cyl", "size": Vector3(0.6, 0.38, 0.6), "mass": 20.0, "color": Color(0.12, 0.12, 0.14), "bounce": 0.8, "label": "Tire"},
 	"cone": {"shape": "cone", "size": Vector3(0.3, 0.8, 0.3), "mass": 3.0, "color": Color(1.0, 0.5, 0.1), "bounce": 0.3, "label": "Cone"},
 	"debris": {"shape": "box", "size": Vector3(1, 1, 1), "mass": 30.0, "color": Color(0.7, 0.7, 0.7), "bounce": 0.05, "label": "Debris"},
+	# High Seas: a shipping container that broke loose (too heavy to grab; it floats).
+	"container": {"shape": "box", "size": Vector3(12.2, 2.6, 2.44), "mass": 900.0, "color": Color(0.12, 0.38, 0.75), "bounce": 0.02, "label": "Container", "metal": true, "floats": true, "damp": 0.1},
 	# Halloween. "fragile": impact energy (J) that breaks the prop; "outline" props shatter
 	# into fragments of their own shape.
 	"pumpkin": {"shape": "pumpkin", "size": Vector3(0.46, 0.4, 0.46), "mass": 8.0, "color": Color(1.0, 0.5, 0.08), "bounce": 0.25, "label": "Jack-o'-Lantern", "fragile": 1800.0},
@@ -168,6 +170,8 @@ func _build(def: Dictionary) -> void:
 				_add_crate_trim(mesh)
 			elif kind == "battery":
 				_add_battery_parts(mesh)
+			elif kind == "container":
+				mat = MapHighSeas.container_material(color)
 		"sphere":
 			var s := SphereShape3D.new()
 			s.radius = size.x

@@ -36,6 +36,9 @@ jobs:
       - name: Ship routes check (overboard and back up a ladder, a bot too; the bridge, its horn and windows; lashing bridges)
         timeout-minutes: 4
         run: timeout 170 godot --headless -- --host --map highseas --bots 1 --spooky off --tour x --tour-mode shiproutes
+      - name: Ship cargo check (lashed containers break loose to blasts and storms, open containers, floating cargo)
+        timeout-minutes: 3
+        run: timeout 100 godot --headless -- --host --map highseas --bots 0 --spooky off --tour x --tour-mode shipcargo
       - name: Puzzle check (Moving Day, Test Chambers, the Warehouse, the Pump House and the Scrapyard played through by a script)
         timeout-minutes: 11
         run: |

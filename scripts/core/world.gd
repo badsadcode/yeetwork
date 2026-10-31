@@ -334,6 +334,7 @@ func _build_init_state() -> Dictionary:
 		"guns": guns,
 		"puzzle": arena.puzzle.map(func(n: PuzzleNode) -> bool: return n.active),
 		"lights_broken": _broken_lights.keys(),
+		"cargo_loose": _cargo_loose.keys(),
 		"puzzle_time": [puzzle_start, puzzle_finish],
 		"puzzle_results": puzzle_results,
 		"mode_state": mode_state,
@@ -385,6 +386,8 @@ func _s_init(state: Dictionary) -> void:
 	var pz: Array = state.get("puzzle", [])
 	for i in mini(pz.size(), arena.puzzle.size()):
 		arena.puzzle[i].set_active(pz[i], false)
+	for i in state.get("cargo_loose", []):
+		_s_cargo_loose(i, false)
 	for i in state.get("lights_broken", []):
 		if i < arena.puzzle.size() and arena.puzzle[i] is MapLight:
 			(arena.puzzle[i] as MapLight).set_broken(true, false)
@@ -548,6 +551,8 @@ func _physics_process(delta: float) -> void:
 		_server_lights_tick()
 	if arena.storm:
 		_server_storm(delta)
+	if arena.carrier is Ship:
+		_server_cargo(delta)
 	_machine_accum += delta
 	if _machine_accum >= 0.05 and not arena.puzzle.is_empty():
 		_machine_accum = 0.0
@@ -912,6 +917,7 @@ func server_explode(p: Prop) -> void:
 	server_fx("explosion", pos, Vector3.UP, radius)
 	mode_logic.on_explosion(pos)
 	server_break_lights(pos, radius * 0.8)
+	server_strain_lashings(pos, radius * 1.4, 170.0)
 	var to_break: Array[Prop] = []
 	for o: Prop in props.values():
 		if not is_instance_valid(o) or o == p:
@@ -2097,6 +2103,7 @@ func server_lightning(at: Vector3) -> void:
 				server_launch_player(pl, away.normalized() * 9.0 + Vector3.UP * 8.0, false, 1.2, 0)
 				server_ignite_player(pl, 2.0)
 	server_break_lights(at, 5.0)
+	server_strain_lashings(at, 7.0, 200.0)
 
 
 ## Where the lightning lands: the highest of a few candidates (props, lamps, spots of ground
@@ -2137,6 +2144,95 @@ func _s_strike(at: Vector3) -> void:
 	if local_player:
 		var d := local_player.global_position.distance_to(at)
 		local_player.shake(clampf(1.0 - d / 30.0, 0.0, 0.9))
+
+
+# --- High Seas cargo -------------------------------------------------------------------
+
+## Lashings: strength left per lashed container (Arena.lashed); which have broken loose.
+const LASHING := 100.0
+## Rolling past this (radians) strains the lashings; storms get there, calmer seas don't
+## (in a storm the first one gives after about two and a half minutes, the last after six).
+const STRAIN_TILT := 0.17
+var _lashings := {}
+var _cargo_loose := {}
+var _creak_in := 2.0
+var _cargo_far_in := 1.0
+
+
+## Something hard hits near lashed containers (a blast, lightning, a push): their lashings
+## lose up to `amount`, less further off; at zero the container breaks loose.
+func server_strain_lashings(pos: Vector3, r: float, amount: float) -> void:
+	var ship := arena.carrier as Ship
+	if ship == null:
+		return
+	for i in arena.lashed.size():
+		if _cargo_loose.has(i):
+			continue
+		var at: Vector3 = ship.global_transform * (arena.lashed[i][3] as Transform3D).origin
+		var d := at.distance_to(pos)
+		if d < r:
+			_lashings[i] = _lashings.get(i, LASHING) - amount * (1.0 - d / r)
+			if _lashings[i] <= 0.0:
+				_server_cargo_loose(i)
+
+
+## The ship's cargo: a heavy roll strains the lashings (they creak, the weakest most), and
+## cargo floating far off comes back the way map props do.
+func _server_cargo(delta: float, tilt_override := -1.0) -> void:
+	var ship := arena.carrier as Ship
+	var tilt := ship.tilt() if tilt_override < 0.0 else tilt_override
+	if tilt > STRAIN_TILT and not arena.lashed.is_empty():
+		var weakest := -1
+		for i in arena.lashed.size():
+			if _cargo_loose.has(i):
+				continue
+			# (each one a little differently: they don't all go at once)
+			_lashings[i] = _lashings.get(i, LASHING) - (tilt - STRAIN_TILT) * (10.0 + (i % 4) * 5.0) * delta
+			if weakest < 0 or _lashings[i] < _lashings[weakest]:
+				weakest = i
+			if _lashings[i] <= 0.0:
+				_server_cargo_loose(i)
+		_creak_in -= delta
+		if weakest >= 0 and _creak_in <= 0.0:
+			_creak_in = rng.randf_range(1.2, 3.5) * clampf(_lashings[weakest] / LASHING, 0.35, 1.0)
+			server_fx("creak", ship.global_transform * (arena.lashed[weakest][3] as Transform3D).origin, Vector3.UP, 1.0)
+	_cargo_far_in -= delta
+	if _cargo_far_in <= 0.0:
+		_cargo_far_in = 1.0
+		for p: Prop in props.values():
+			if is_instance_valid(p) and p.global_position.distance_to(ship.global_position) > 110.0:
+				server_prop_fell_out(p)
+
+
+func _server_cargo_loose(i: int) -> void:
+	if _cargo_loose.has(i):
+		return
+	_cargo_loose[i] = true
+	_bc_all("_s_cargo_loose", [i, true])
+	var ship := arena.carrier as Ship
+	var e: Array = arena.lashed[i]
+	var xf: Transform3D = ship.global_transform * (e[3] as Transform3D)
+	var p := server_spawn_prop("container", xf, Vector3.ZERO, e[4])
+	if p:
+		p.linear_velocity = Vector3(rng.randf_range(-0.5, 0.5), 0.5, rng.randf_range(-0.5, 0.5))
+
+
+## A lashed container breaks loose: the fixed one goes (the server put a prop in its place),
+## with a snap of steel; `fx` false: just the state (a late joiner).
+@rpc("authority", "call_remote", "reliable")
+func _s_cargo_loose(i: int, fx_on := true) -> void:
+	if i >= arena.lashed.size():
+		return
+	var e: Array = arena.lashed[i]
+	(e[0] as Node3D).visible = false
+	(e[1] as CollisionShape3D).disabled = true
+	(e[2] as Node3D).visible = false
+	if fx_on:
+		var at: Vector3 = (e[0] as Node3D).global_position
+		Sfx.play3d("crack", at, 6.0, 0.6)
+		Sfx.play3d("metal", at, 4.0, 0.5)
+		for ex in [-1, 1]:
+			fx.zap((e[0] as Node3D).global_transform * Vector3(ex * 6.1, -1.0, 0))
 
 
 # --- Map props coming back ------------------------------------------------------------

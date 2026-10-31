@@ -30,7 +30,7 @@ var deck_box := AABB(Vector3(-80, -2, -17), Vector3(160, 40, 34))
 const GRIP := {
 	"ball": 0.0, "beachball": 0.0, "barrel": 0.03, "boom_barrel": 0.03, "tire": 0.05,
 	"cone": 0.08, "plank": 0.09, "crate": 0.11, "crate_big": 0.13, "couch": 0.13,
-	"anvil": 0.2, "flag": 0.35, "debris": 0.15, "shard": 0.15,
+	"anvil": 0.2, "flag": 0.35, "debris": 0.15, "shard": 0.15, "container": 0.06,
 }
 const DEFAULT_GRIP := 0.12
 const SLIP_GAIN := 2.2

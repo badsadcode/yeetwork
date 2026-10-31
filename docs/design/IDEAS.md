@@ -13,7 +13,9 @@ The MV *Bad Decisions*: a giant container ship on the open ocean.
    windows, the ship's horn, ladders through hatches in its wings), lashing bridges between
    the bays, bots routed round the forecastle's drop. Still to do: interiors (a cabin route
    inside the superstructure), more of the bow.
-3. **Cargo**: secured containers with breakable restraints, sliding containers, open and
+3. **Cargo** (phase 2, done: lashed containers that break loose to blasts, pushes, lightning
+   and a storm's rolling, creaking first; open containers with pickups; floating cargo; far
+   drifting cargo comes back). Original notes: secured containers with breakable restraints, sliding containers, open and
    special containers, floating debris overboard, ladders back aboard.
 4. **Weather**: calm, rough, storm and extreme presets; rain, lightning, waves washing over
    the deck, rogue waves, wet decks.
@@ -89,3 +91,23 @@ gravity gun, props, explosives, fire, water, traps, the map) to survive as long 
 Waves grow bigger and nastier. To design: monster kinds and how they move and attack (they
 must be yeetable), wave pacing, downed/revive or respawns, scoring (waves survived), which
 maps, bots joining in.
+
+## Set dressing with features (after the current work)
+
+Tomek's idea: decoration pieces that do more than sit there. A Blender model of machinery
+filling out an environment, with its own hum or buzz. A Map Kit piece (say **Ambience** or
+**Fixture**) with a model slot and a sound slot, both swappable, no code. Suggestions to
+build into it:
+- **Sound**: a looping 3D sound (hum, buzz, drip, crackle, radio chatter) with volume and
+  reach; random one-shots now and then (a clank, a hiss); pitch variation.
+- **Motion**: spin a named part (fans, gears, a radar dish), bob or sway (a hanging sign, a
+  buoy), shake/vibrate (a running engine).
+- **Effects**: particles from a named point (steam, smoke, sparks, drips), a light that
+  flickers or pulses with it, a glow material.
+- **Puzzle wiring**: on/off by inputs (power restored: the machine starts humming and
+  turning; off: it winds down).
+- **Breakable**: hit hard enough it breaks (sparks, the hum stops, smoke), like the map
+  lights; comes back after a while.
+- **Gameplay touches** (optional): a hot or electrified area around it (hurts), a gentle
+  push (a big fan), a camera shake nearby (heavy machinery).
+- Themes can supply them (a theme's `fixture_<name>` slot), like the other pieces.

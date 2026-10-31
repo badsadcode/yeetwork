@@ -305,8 +305,13 @@ menu, or in Pumpkin Smash, every map gets:
   hatch in a bridge wing into the **bridge**: big breakable windows over the cargo, and the
   **ship's horn** on the console (Use to sound it). Container stacks with aisles, ramps and
   pads, and **lashing bridges** between the bays (ladders up from the side walkways). Ladders:
-  forward climbs, back goes down, let go to hang on. More of the ship (cargo breaking loose,
-  weather over the deck, cranes, the engine room) is coming.
+  forward climbs, back goes down, let go to hang on. **Cargo**: some top containers are lashed
+  down with yellow rods that can give: a blast, a gravity-gun push, lightning or a storm's
+  rolling works them loose (they creak first), and the container breaks free, 900 kg sliding
+  across the tilting deck (too heavy to grab, deadly when it drops on you) and maybe over the
+  side, where it floats. A few containers stand open on deck as hideouts, some with a power-up
+  inside. Cargo that drifts far off comes back. More of the ship (weather over the deck,
+  cranes, the engine room) is coming.
   Three variants: **High Seas** (open ocean, tropical sky), **Golden Hour** (calm sea at
   sunset) and **Storm** (a knife-edged, confused stormy sea whose wave trains cross from wide
   angles, streaks of blown foam, spray off the crests and the hull, rain, wind wisps, low
@@ -483,6 +488,8 @@ godot --headless --path . -- --host --map highseas --bots 0 --tour x --tour-mode
 # High Seas routes: overboard and back up a ladder (a bot too), into the bridge, its horn
 # and windows, up onto a lashing bridge
 godot --headless --path . -- --host --map highseas --bots 1 --tour x --tour-mode shiproutes
+# High Seas cargo: lashed containers break loose (a blast, a storm), open containers, floating
+godot --headless --path . -- --host --map highseas --bots 0 --tour x --tour-mode shipcargo
 
 # Effects in front of a still camera (explosion, dust, gun arc, lens drops), and a cracked window
 godot --path . -- --host --map lagoon --bots 0 --tour /tmp/shots --tour-mode fx

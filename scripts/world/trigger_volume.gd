@@ -258,6 +258,8 @@ func _float(p: Prop, delta: float) -> void:
 	if sub <= 0.0:
 		return
 	var floaty := 0.55 if p.impact_material() in ["metal", "stone", "concrete", "brick", "glass"] else 1.75
+	if Prop.DEFS.get(p.kind, {}).get("floats", false):
+		floaty = 1.7 # (a container: rides low in the water)
 	p.linear_velocity.y += Player.GRAVITY * floaty * sub * delta
 	p.linear_velocity *= exp(-1.6 * sub * delta)
 	p.angular_velocity *= exp(-2.0 * sub * delta)

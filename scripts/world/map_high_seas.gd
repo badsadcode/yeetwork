@@ -239,7 +239,7 @@ static func _flag_stand(a: Arena, ship: Ship, team: int, stand: Vector3) -> void
 	_light(ship, stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
 
 
-static func _container_mat(color: Color) -> ShaderMaterial:
+static func container_material(color: Color) -> ShaderMaterial:
 	var key := color.to_html()
 	if not _cont_mats.has(key):
 		var m := ShaderMaterial.new()
@@ -359,7 +359,10 @@ static func _bridge(a: Arena, ship: Ship) -> void:
 ## Six bays of container stacks (1-3 high) between the superstructure and the bow, with
 ## side walkways, a centre aisle through alternate bays and 3 m gaps between bays.
 static func _containers(ship: Ship, rng: RandomNumberGenerator) -> void:
+	var a := ship.get_parent() as Arena
 	var bay_x := [-35.9, -20.7, -5.5, 9.7, 24.9, 40.1]
+	var opened := 0
+	var lashed_n := 0
 	var rows := []
 	for r in 10:
 		rows.append(-11.25 + r * 2.5)
@@ -374,6 +377,15 @@ static func _containers(ship: Ship, rng: RandomNumberGenerator) -> void:
 				h = 0 # an empty slot here and there: a hideout in the stack
 			if h == 0:
 				continue
+			# A few stand open on the deck (a hideout, some with a pickup inside); a few top
+			# containers up high are lashed down in a way that can give (they can break loose).
+			if h == 1 and absf(z) > 3.0 and opened < 4 and rng.randf() < 0.35:
+				_open_container(a, ship, Vector3(bx, DECK, z), CONTAINER_COLORS[rng.randi() % CONTAINER_COLORS.size()], b % 2 == 0, opened < 2)
+				opened += 1
+				continue
+			var lashed := h >= 2 and lashed_n < 8 and rng.randf() < 0.22
+			if lashed:
+				lashed_n += 1
 			for k in h:
 				var c: Color = CONTAINER_COLORS[rng.randi() % CONTAINER_COLORS.size()]
 				var mi := MeshInstance3D.new()
@@ -383,15 +395,19 @@ static func _containers(ship: Ship, rng: RandomNumberGenerator) -> void:
 				mi.position = Vector3(bx, DECK + CONT.y * (k + 0.5), z)
 				if rng.randf() < 0.5:
 					mi.rotation.y = PI # doors at the other end
-				mi.material_override = _container_mat(c)
+				mi.material_override = container_material(c)
 				ship.add_child(mi)
-			# One collision box per stack.
-			var cs := CollisionShape3D.new()
-			var sh := BoxShape3D.new()
-			sh.size = Vector3(CONT.x, CONT.y * h, CONT.z)
-			cs.shape = sh
-			cs.position = Vector3(bx, DECK + CONT.y * h * 0.5, z)
-			ship.add_child(cs)
+				if k == h - 1 and lashed:
+					_lash(a, ship, mi, c)
+			# One collision box per stack (a lashed top container has its own).
+			var solid := h - 1 if lashed else h
+			if solid > 0:
+				var cs := CollisionShape3D.new()
+				var sh := BoxShape3D.new()
+				sh.size = Vector3(CONT.x, CONT.y * solid, CONT.z)
+				cs.shape = sh
+				cs.position = Vector3(bx, DECK + CONT.y * solid * 0.5, z)
+				ship.add_child(cs)
 		# Steel ramps up onto the first tier from the bay gaps, and a pad to the top.
 		if b % 2 == 1:
 			_ramp(ship, Vector3(bx - 6.1 - 3.0 + 0.2, DECK, 13.0), Vector3(bx - 6.1 + 0.4, DECK + CONT.y, 13.0), 2.6, STEEL)
@@ -399,6 +415,63 @@ static func _containers(ship: Ship, rng: RandomNumberGenerator) -> void:
 	for p: Vector3 in pads_at:
 		_pad(ship, p, Vector3(0.0, 14.0, -signf(p.z) * 1.2))
 	_lashing_bridges(ship, bay_x, pads_at)
+
+
+## A top container held by lashings that can give (World: explosions, pushes, lightning and a
+## storm's rolling wear them down; it creaks, then breaks loose as a sliding prop). Its own
+## collision; the rods are yellow X braces on its ends.
+static func _lash(a: Arena, ship: Ship, mi: MeshInstance3D, color: Color) -> void:
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = CONT
+	cs.shape = sh
+	cs.transform = mi.transform
+	ship.add_child(cs)
+	var rods := Node3D.new()
+	rods.transform = mi.transform
+	ship.add_child(rods)
+	var yellow := Mats.plastic(Color(0.95, 0.75, 0.15), 0.4)
+	for ex in [-1, 1]:
+		for d in [-1, 1]:
+			var rod := MeshInstance3D.new()
+			var rm := BoxMesh.new()
+			rm.size = Vector3(0.05, 3.3, 0.05)
+			rod.mesh = rm
+			rod.material_override = yellow
+			rod.position = Vector3(ex * (CONT.x * 0.5 + 0.06), -0.4, 0)
+			rod.rotation.x = d * 0.6
+			rods.add_child(rod)
+	a.lashed.append([mi, cs, rods, mi.transform, color])
+
+
+## A container standing open on the deck: hollow, doors swung wide at one end (toward the
+## bay gap), a warm lamp inside; `pickup`: a pickup waits in it.
+static func _open_container(a: Arena, ship: Ship, at: Vector3, color: Color, door_aft: bool, pickup: bool) -> void:
+	var paint := Mats.world(color, 0.6)
+	var inner := Mats.world(color.darkened(0.2), 0.8)
+	var hx := CONT.x * 0.5
+	var hz := CONT.z * 0.5
+	var y := at.y + CONT.y * 0.5
+	var dir := -1.0 if door_aft else 1.0 # (which end is open)
+	# Roof, two long sides and the closed end (outer paint, the inside darker).
+	_box(ship, Vector3(at.x, at.y + CONT.y - 0.05, at.z), Vector3(CONT.x, 0.1, CONT.z), color, Basis.IDENTITY, true, paint)
+	for s in [-1, 1]:
+		_box(ship, Vector3(at.x, y, at.z + s * (hz - 0.05)), Vector3(CONT.x, CONT.y, 0.1), color, Basis.IDENTITY, true, paint)
+		_box(ship, Vector3(at.x, y, at.z + s * (hz - 0.12)), Vector3(CONT.x - 0.2, CONT.y - 0.2, 0.02), color, Basis.IDENTITY, false, inner)
+	_box(ship, Vector3(at.x - dir * (hx - 0.05), y, at.z), Vector3(0.1, CONT.y, CONT.z), color, Basis.IDENTITY, true, paint)
+	_box(ship, Vector3(at.x, at.y + 0.03, at.z), Vector3(CONT.x - 0.2, 0.06, CONT.z - 0.2), color, Basis.IDENTITY, false, Mats.world(Color(0.3, 0.26, 0.22), 0.9))
+	# The doors, swung out flat against the next stacks' ends.
+	for s in [-1, 1]:
+		var hinge := Vector3(at.x + dir * hx, y, at.z + s * hz)
+		_box(ship, hinge + Vector3(dir * 0.1, 0, s * 0.62), Vector3(0.08, CONT.y - 0.1, 1.2), color, Basis(Vector3.UP, s * dir * 1.75), false, paint)
+	_light(ship, Vector3(at.x - dir * 2.0, at.y + CONT.y - 0.4, at.z), Color(1.0, 0.82, 0.6), 10.0, 1.8)
+	if pickup:
+		var ps := PickupSpawn.new()
+		ps.kind = "random"
+		ps.position = Vector3(at.x - dir * 4.0, at.y, at.z)
+		ps.set_meta("doorway", Vector3(at.x + dir * hx, at.y, at.z)) # (ship-local: where it opens)
+		ship.add_child(ps)
+		a.pickups.append(ps)
 
 
 ## Lashing bridges: steel walkways across the gaps between bays, two containers up, with

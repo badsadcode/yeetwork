@@ -899,6 +899,7 @@ func _punt(origin: Vector3, dir: Vector3) -> void:
 	# (amount 1 + team: the wave takes the pusher's team colour in team modes)
 	w.server_fx("punt", origin + dir * 1.5, dir, 1.0 + player.team)
 	w.server_break_lights(origin + dir * 2.0, 1.6) # (a push knocks out a lamp right in front)
+	w.server_strain_lashings(origin + dir * 3.0, 4.5, 40.0) # (and works a lashing loose)
 	w.server_gun_kick(player, 0.7)
 
 
