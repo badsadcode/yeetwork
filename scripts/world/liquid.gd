@@ -66,12 +66,20 @@ const SCULPTED := {
 		"shallow_color": Color(0.12, 0.4, 0.44), "deep_color": Color(0.02, 0.12, 0.18), "scatter_color": Color(0.22, 0.62, 0.52),
 		"fog": Color(0.04, 0.22, 0.26), "visibility": 11.0,
 	},
+	# A hurricane: a storm sea gone wilder, taller, faster, white with foam.
+	"extreme": {
+		"wave_height": 2.6, "wave_length": 1.3, "wave_speed": 1.4, "choppiness": 1.7, "crest_sharpness": 2.7,
+		"asymmetry": 0.6, "ripple_intensity": 1.6, "spread": 1.6, "wind_angle": 0.3, "foam_amount": 2.4, "roughness_value": 0.08,
+		"foam_streaks": 1.2, "spray": 4.5, "cross_sea": 1.0, "dir_power": 1.4, "heading_vary": 1.0,
+		"shallow_color": Color(0.1, 0.34, 0.38), "deep_color": Color(0.015, 0.09, 0.14), "scatter_color": Color(0.2, 0.55, 0.48),
+		"fog": Color(0.035, 0.18, 0.22), "visibility": 9.0,
+	},
 }
 const SCULPTED_KEYS := ["wind_angle", "spread", "choppiness", "crest_sharpness", "asymmetry", "ripple_intensity", "swell_height", "swell_length", "swell_angle", "cross_sea", "dir_power", "heading_vary"]
 ## Sea states without a confused sea: one wind direction everywhere.
 const SCULPTED_DEFAULTS := {"cross_sea": 0.0, "dir_power": 1.6, "heading_vary": 0.0}
 ## Long swell per sea state (oceans only): [height m, wavelength m].
-const SWELL := {"calm": [0.45, 200.0], "lake": [0.0, 170.0], "ocean": [1.2, 170.0], "stormy": [2.8, 150.0]}
+const SWELL := {"calm": [0.45, 200.0], "lake": [0.0, 170.0], "ocean": [1.2, 170.0], "stormy": [2.8, 150.0], "extreme": [4.0, 135.0]}
 ## Water style of the match: "classic" (liquid.gdshader) or "sculpted" (liquid_sculpted.gdshader).
 ## The host decides (Game.water_style) and clients get it with the match state.
 static var style := "classic"

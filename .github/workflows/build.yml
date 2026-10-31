@@ -39,6 +39,11 @@ jobs:
       - name: Ship cargo check (lashed containers break loose to blasts and storms, open containers, floating cargo)
         timeout-minutes: 3
         run: timeout 100 godot --headless -- --host --map highseas --bots 0 --spooky off --tour x --tour-mode shipcargo
+      - name: Ship weather check (a hurricane's roll and washes; a wash, a rogue wave and a wet deck on a calm sea)
+        timeout-minutes: 6
+        run: |
+          timeout 150 godot --headless -- --host --map highseas_extreme --bots 1 --spooky off --tour x --tour-mode shipweather
+          timeout 150 godot --headless -- --host --map highseas_dusk --bots 1 --spooky off --tour x --tour-mode shipweather
       - name: Puzzle check (Moving Day, Test Chambers, the Warehouse, the Pump House and the Scrapyard played through by a script)
         timeout-minutes: 11
         run: |

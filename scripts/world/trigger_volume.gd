@@ -150,9 +150,13 @@ func _climb(pl: Player, delta: float) -> void:
 	var l := global_transform.affine_inverse() * pl.global_position
 	if absf(l.x) > _half_width + 0.4 or absf(l.z) > _half_width + 0.4 or absf(l.y) > _half_height + 1.0:
 		return
-	var up := pl.cmd.move.y > 0.2 or pl.cmd.jump
+	# (only facing it: running past a ladder doesn't climb it)
+	var facing := pl.aim_direction().slide(Vector3.UP).normalized().dot(-global_transform.basis.z.normalized()) > 0.3
+	var up := facing and (pl.cmd.move.y > 0.2 or pl.cmd.jump)
 	var down := pl.cmd.move.y < -0.2 or pl.cmd.crouch
 	if pl.is_on_floor() and not up:
+		return
+	if not facing and not down and pl.is_on_floor():
 		return
 	if absf(pl.cmd.move.x) > 0.6 and not up and not down:
 		return # stepping off sideways

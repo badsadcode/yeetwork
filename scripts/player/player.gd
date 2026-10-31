@@ -37,6 +37,9 @@ const FRICTION := 6.0
 ## On ice: little grip, so speed builds slowly and runs out slowly (skating).
 const ICE_FRICTION := 0.06
 const ICE_ACCEL := 0.15
+## A wet ship's deck (High Seas in a storm, or after green water): less grip, not ice.
+const WET_FRICTION := 0.4
+const WET_ACCEL := 0.65
 const STOP_SPEED := 3.0
 const JUMP_VELOCITY := 8.6
 const SLIDE_MIN_SPEED := 7.0
@@ -581,9 +584,10 @@ func _move_normal(delta: float) -> void:
 		if sliding:
 			_slide(delta, wish_dir)
 		else:
-			_friction(delta, FRICTION * (ICE_FRICTION if on_ice else 1.0))
+			var wet := _on_wet_deck()
+			_friction(delta, FRICTION * (ICE_FRICTION if on_ice else (WET_FRICTION if wet else 1.0)))
 			var top := CROUCH_SPEED if crouched else (MAX_SPEED if cmd.run else WALK_SPEED)
-			_accelerate(wish_dir, top * wish_speed * speed_mult(), GROUND_ACCEL * (ICE_ACCEL if on_ice else 1.0), delta)
+			_accelerate(wish_dir, top * wish_speed * speed_mult(), GROUND_ACCEL * (ICE_ACCEL if on_ice else (WET_ACCEL if wet else 1.0)), delta)
 		var floor_n := get_floor_normal()
 		if floor_n.is_normalized():
 			velocity = velocity.slide(floor_n)
@@ -593,6 +597,12 @@ func _move_normal(delta: float) -> void:
 
 	_prev_grounded = grounded
 	_move_and_collide_events()
+
+
+## Standing on a ship's wet deck.
+func _on_wet_deck() -> bool:
+	var ship := world.arena.carrier as Ship if world and world.arena else null
+	return ship != null and ship.wet() and ship.deck_box.has_point(ship.global_transform.affine_inverse() * global_position)
 
 
 func _auto_hop() -> bool:

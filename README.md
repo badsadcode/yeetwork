@@ -312,10 +312,16 @@ menu, or in Pumpkin Smash, every map gets:
   side, where it floats. A few containers stand open on deck as hideouts, some with a power-up
   inside. Cargo that drifts far off comes back. More of the ship (weather over the deck,
   cranes, the engine room) is coming.
-  Three variants: **High Seas** (open ocean, tropical sky), **Golden Hour** (calm sea at
-  sunset) and **Storm** (a knife-edged, confused stormy sea whose wave trains cross from wide
+  Four variants: **High Seas** (open ocean, tropical sky), **Golden Hour** (calm sea at
+  sunset), **Storm** (a knife-edged, confused stormy sea whose wave trains cross from wide
   angles, streaks of blown foam, spray off the crests and the hull, rain, wind wisps, low
-  storm clouds, lightning and thunder).
+  storm clouds, lightning and thunder) and **Hurricane** (wilder still: she rolls up to 20
+  degrees). In a storm or a hurricane **green water** comes over the low side when she rolls
+  hard and runs across the deck, shoving whoever's there (into the stacks, or over the far
+  rail) and putting out fires; every few minutes a **rogue wave**: a warning, the ship's horn,
+  a wall of water rising out of the sea, then it breaks over the whole deck, she lurches, Yeets
+  are knocked flying and lashings give. Decks are **wet** in rain and after green water:
+  less grip for Yeets and cargo.
 - **Lagoon**: a ring island around a swimmable lagoon out at sea. Dive off the tower,
   float the junk, fight over the breakable piers to the glass-fronted team bases. The
   place to see both water styles.
@@ -490,6 +496,9 @@ godot --headless --path . -- --host --map highseas --bots 0 --tour x --tour-mode
 godot --headless --path . -- --host --map highseas --bots 1 --tour x --tour-mode shiproutes
 # High Seas cargo: lashed containers break loose (a blast, a storm), open containers, floating
 godot --headless --path . -- --host --map highseas --bots 0 --tour x --tour-mode shipcargo
+# High Seas weather: a hurricane's roll and washes; a wash, a rogue wave, a wet deck (calm sea)
+godot --headless --path . -- --host --map highseas_extreme --bots 1 --tour x --tour-mode shipweather
+godot --headless --path . -- --host --map highseas_dusk --bots 1 --tour x --tour-mode shipweather
 
 # Effects in front of a still camera (explosion, dust, gun arc, lens drops), and a cracked window
 godot --path . -- --host --map lagoon --bots 0 --tour /tmp/shots --tour-mode fx

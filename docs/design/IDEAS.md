@@ -17,7 +17,10 @@ The MV *Bad Decisions*: a giant container ship on the open ocean.
    and a storm's rolling, creaking first; open containers with pickups; floating cargo; far
    drifting cargo comes back). Original notes: secured containers with breakable restraints, sliding containers, open and
    special containers, floating debris overboard, ladders back aboard.
-4. **Weather**: calm, rough, storm and extreme presets; rain, lightning, waves washing over
+4. **Weather** (phase 2, done: the Hurricane variant (an extreme sea, up to 20 degrees of
+   roll), green water washing over the low side in storms, rogue waves with a warning, the
+   horn and a lurch, wet decks; the ship's motion on a smooth clock of its own). Original
+   notes: calm, rough, storm and extreme presets; rain, lightning, waves washing over
    the deck, rogue waves, wet decks.
 5. **Machinery**: cranes with swinging loads, the engine room.
 

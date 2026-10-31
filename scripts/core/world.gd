@@ -553,6 +553,7 @@ func _physics_process(delta: float) -> void:
 		_server_storm(delta)
 	if arena.carrier is Ship:
 		_server_cargo(delta)
+		_server_sea(delta)
 	_machine_accum += delta
 	if _machine_accum >= 0.05 and not arena.puzzle.is_empty():
 		_machine_accum = 0.0
@@ -2233,6 +2234,68 @@ func _s_cargo_loose(i: int, fx_on := true) -> void:
 		Sfx.play3d("metal", at, 4.0, 0.5)
 		for ex in [-1, 1]:
 			fx.zap((e[0] as Node3D).global_transform * Vector3(ex * 6.1, -1.0, 0))
+
+
+# --- High Seas weather -----------------------------------------------------------------
+
+var _wash_cd := 4.0
+var _next_rogue := -1.0
+
+
+## Rough seas over the deck: in a storm (more in a hurricane), when she rolls hard green water
+## pours over the low side now and then; every few minutes a rogue wave.
+func _server_sea(delta: float) -> void:
+	var ship := arena.carrier as Ship
+	var rough: float = {"stormy": 1.0, "extreme": 1.6}.get(ship.sea, 0.0)
+	if rough == 0.0:
+		return
+	_wash_cd -= delta
+	var roll := absf(ship.global_transform.basis.get_euler().x)
+	if _wash_cd <= 0.0 and roll > 0.2 - 0.04 * rough and rng.randf() < delta * 1.5 * rough:
+		_wash_cd = rng.randf_range(4.0, 8.0) / rough
+		server_wash(ship.low_side(), rng.randf_range(-45.0, 50.0), rng.randf_range(9.0, 16.0), rough)
+	if _next_rogue < 0.0:
+		_next_rogue = now() + rng.randf_range(100.0, 160.0) / rough
+	elif now() >= _next_rogue:
+		_next_rogue = now() + rng.randf_range(160.0, 260.0) / rough
+		server_rogue(1.0 if rng.randf() < 0.5 else -1.0)
+
+
+func server_wash(side: float, center_x: float, half_width: float, strength: float) -> void:
+	_bc_all("_s_wash", [side, center_x, half_width, strength])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_wash(side: float, center_x: float, half_width: float, strength: float) -> void:
+	if arena.carrier is Ship:
+		(arena.carrier as Ship).wash(side, center_x, half_width, strength)
+
+
+## A rogue wave on `side`: a warning and the ship's horn now, impact in a few seconds (it
+## sweeps the whole deck and the lashings take a beating).
+func server_rogue(side: float) -> void:
+	var hit := Liquid.wave_time() + RogueWave.RUN
+	_bc_all("_s_rogue", [side, hit])
+	get_tree().create_timer(RogueWave.RUN).timeout.connect(func():
+		if arena and arena.carrier is Ship:
+			for i in arena.lashed.size():
+				if not _cargo_loose.has(i):
+					_lashings[i] = _lashings.get(i, LASHING) - rng.randf_range(25.0, 70.0)
+					if _lashings[i] <= 0.0:
+						_server_cargo_loose(i))
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_rogue(side: float, hit: float) -> void:
+	var ship := arena.carrier as Ship
+	if ship == null:
+		return
+	ship.rogue(side, hit)
+	hud.show_message("ROGUE WAVE! " + ("STARBOARD" if side > 0.0 else "PORT") + " SIDE!", Color(1.0, 0.4, 0.3), true)
+	for n in arena.puzzle:
+		if n is ShipHorn:
+			Sfx.play3d("ship_horn", n.use_point(), 14.0, 1.0)
+			(n as ShipHorn).pull()
 
 
 # --- Map props coming back ------------------------------------------------------------

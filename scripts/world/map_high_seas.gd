@@ -32,6 +32,7 @@ const VARIANTS := {
 	"highseas": ["ocean", "tropical", Vector3(-38, -60, 0)],
 	"highseas_dusk": ["calm", "sunset", Vector3(-12, -110, 0)],
 	"highseas_storm": ["stormy", "storm", Vector3(-55, -40, 0)],
+	"highseas_extreme": ["extreme", "storm", Vector3(-62, -25, 0)],
 }
 
 
@@ -52,6 +53,9 @@ static func build(a: Arena, key := "highseas") -> void:
 	var ship := Ship.new()
 	ship.name = "Ship"
 	ship.ocean = ocean
+	ship.sea = sea
+	if sea == "extreme":
+		ship.max_roll = deg_to_rad(20.0) # (a hurricane throws her about)
 	ship.world = a.world
 	a.add_child(ship)
 	a.carrier = ship

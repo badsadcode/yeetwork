@@ -22,6 +22,7 @@ const BUILTIN_MAPS := [
 	{"key": "highseas", "name": "High Seas"},
 	{"key": "highseas_dusk", "name": "High Seas: Golden Hour"},
 	{"key": "highseas_storm", "name": "High Seas: Storm"},
+	{"key": "highseas_extreme", "name": "High Seas: Hurricane"},
 ]
 const MAPS_DIR := "res://maps"
 
