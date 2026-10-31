@@ -28,6 +28,8 @@ func _ready() -> void:
 			world.gun_action(q, GravityGun.Action.GRAB_END)
 			q.gun.release(false)
 			bot = q if bot == null else bot
+	# (the bots may have taken one in the first second, before they were stopped: put them back)
+	world._server_setup_pickups()
 	var pickups: Array = world.arena.pickups
 	var health := -1
 	var power := -1
