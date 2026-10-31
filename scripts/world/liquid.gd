@@ -154,7 +154,6 @@ func _ready() -> void:
 	material.set_shader_parameter("foam_noise", _foam_noise)
 	var q := water_quality()
 	material.set_shader_parameter("ssr_steps", [6, 12, 16][q])
-	material.set_shader_parameter("depth_look", kind == "water" and Game.water_look == 1)
 	Game.settings_changed.connect(_on_settings_changed)
 	if ocean:
 		_spacing = 0.75 if q != 0 else 1.4
@@ -208,16 +207,8 @@ static func water_quality() -> int:
 	return clampi(int(Game.gfx.get("water", 2)), 0, 2)
 
 
-## The colour you see under the surface: with the Depth water look, its deeper blue.
-func view_fog() -> Color:
-	if kind == "water" and Game.water_look == 1:
-		return Color(0.05, 0.25, 0.52)
-	return params.fog
-
-
 func _on_settings_changed() -> void:
 	material.set_shader_parameter("ssr_steps", [6, 12, 16][water_quality()])
-	material.set_shader_parameter("depth_look", kind == "water" and Game.water_look == 1)
 
 
 func _process(delta: float) -> void:

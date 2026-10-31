@@ -63,9 +63,6 @@ func _handle_cmdline(execute := true) -> bool:
 			"--fire-look":
 				Game.fire_look = 0 if next == "classic" else 1
 				i += 1
-			"--water-look":
-				Game.water_look = 0 if next == "classic" else 1
-				i += 1
 			"--models":
 				Game.character_detail = 1 if next == "original" else 0
 				i += 1
