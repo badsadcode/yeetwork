@@ -299,6 +299,7 @@ func _run() -> void:
 	await _ice_tests()
 	await _water_tests()
 	await _fire_tests()
+	_custom_parts_tests()
 	_logic_test()
 	_controls_test()
 	await _grapple_test()
@@ -359,6 +360,34 @@ func _logic_test() -> void:
 	var done: bool = pulse.call(2)
 	root.queue_free()
 	check("puzzle logic: sequence in order only", not early and done, "wrong order on: %s, right order on: %s" % [early, done])
+
+
+## Custom character models (assets/characters/): the example hat is found, listed after the
+## built-in hats, sits on top of the head (modelled in place on a standing Yeet), and its
+## "Shirt" material takes the shirt colour.
+func _custom_parts_tests() -> void:
+	var hats := CharacterParts.list("hats")
+	var i := -1
+	for k in hats.size():
+		if hats[k][0] == "Pirate hat":
+			i = k
+	var hat := CharacterModel.HAT_COUNT + i
+	var m := CharacterModel.new()
+	world.add_child(m)
+	m.global_position = Vector3(0, 200, 0)
+	m.setup(Color(0.2, 0.9, 0.3), hat, 1)
+	var top := -INF
+	var tinted := false
+	for n in m.hat_nodes:
+		for mi: MeshInstance3D in n.find_children("*", "MeshInstance3D", true, false):
+			top = maxf(top, (mi.global_transform * mi.get_aabb()).end.y)
+			for s in mi.mesh.get_surface_count():
+				var mat := mi.get_surface_override_material(s) as StandardMaterial3D
+				tinted = tinted or (mat != null and mat.albedo_color.is_equal_approx(Color(0.2, 0.9, 0.3)))
+	var head_top: float = m.global_position.y + 0.9 + 0.65 + 0.36
+	m.queue_free()
+	check("custom hat (assets/characters/hats) on the head, team-coloured band", i >= 0 and hat in CharacterModel.pickable_hats() and absf(top - head_top - 0.2) < 0.25 and tinted,
+		"found %s, top %.2f m over the head's top, tinted %s" % [i >= 0, top - head_top, tinted])
 
 
 ## Fire: a burning place sets a player alight and hurts them; jumping in water puts the fire

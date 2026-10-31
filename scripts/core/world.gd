@@ -413,19 +413,23 @@ func _server_add_player(peer: int, pname: String, bot: bool, look := {}) -> Play
 	if team == Game.TEAM_NONE and fav >= 0:
 		color = Game.FFA_COLORS[fav % Game.FFA_COLORS.size()] # favourite colour (free-for-all only)
 	var hat := int(look.get("hat", -1))
-	if hat < 0 or hat >= CharacterModel.PLAYER_HATS: # bot-only hats can't be picked
+	if not hat in CharacterModel.pickable_hats(): # (bot-only hats can't be picked)
 		hat = CharacterModel.random_hat(rng, Game.spooky)
 	if bot and pname == NOOR_BOT:
 		look = {"character": CharacterModel.NOOR}
 	if bot and pname == TRIBUTE_BOT:
 		look = {"hat": CharacterModel.HAT_CAPTAIN, "face": 0, "outfit": 1}
 		hat = CharacterModel.HAT_CAPTAIN
-	var face := int(look.get("face", (rng.randi() % CharacterModel.FACE_NAMES.size()) if bot and rng.randf() < 0.4 else 0))
+	var face := int(look.get("face", (rng.randi() % CharacterModel.face_names().size()) if bot and rng.randf() < 0.4 else 0))
+	# Players can wear custom outfits (assets/characters/outfits/); the built-in tunic is a bot's.
+	var outfit := int(look.get("outfit", 0))
+	if not bot and outfit < CharacterModel.OUTFIT_NAMES.size():
+		outfit = 0
 	var info := {
 		"id": id, "owner": 1 if bot else peer, "bot": bot, "name": pname, "team": team,
-		"color": color, "hat": hat, "face": clampi(face, 0, CharacterModel.FACE_NAMES.size() - 1),
+		"color": color, "hat": hat, "face": clampi(face, 0, CharacterModel.face_names().size() - 1),
 		"skin": clampi(int(look.get("skin", -1)), -1, CharacterModel.SKINS.size() - 1),
-		"outfit": clampi(int(look.get("outfit", 0)), 0, CharacterModel.OUTFIT_NAMES.size() - 1) if bot else 0,
+		"outfit": clampi(outfit, 0, CharacterModel.outfit_names().size() - 1),
 		"character": clampi(int(look.get("character", 0)), 0, CharacterModel.CHARACTER_NAMES.size() - 1),
 		"frags": 0, "deaths": 0, "score": 0, "pos": Vector3.ZERO, "yaw": 0.0, "hp": 100.0, "alive": true,
 	}

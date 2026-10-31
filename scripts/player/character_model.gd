@@ -102,14 +102,48 @@ var _next_blink := 2.0
 var _look_off := Vector2.ZERO
 
 
-## A random everyday hat (or, in spooky mode, mostly Halloween costumes).
+## A random everyday hat, custom ones too (or, in spooky mode, mostly Halloween costumes).
 static func random_hat(rng: RandomNumberGenerator, spooky: bool) -> int:
 	if spooky and rng.randf() < 0.75:
 		return SPOOKY_HATS[rng.randi() % SPOOKY_HATS.size()]
-	var hat := rng.randi() % PLAYER_HATS
+	var hats := pickable_hats()
+	var hat: int = hats[rng.randi() % hats.size()]
 	while hat in SPOOKY_HATS:
-		hat = rng.randi() % PLAYER_HATS
+		hat = hats[rng.randi() % hats.size()]
 	return hat
+
+
+# Custom models (CharacterParts: dropped into assets/characters/) come after the built-in
+# ones: hat HAT_COUNT + i, head extra FACE_NAMES.size() + i, outfit OUTFIT_NAMES.size() + i.
+
+## Every hat a player can pick: the built-in ones, then the custom ones.
+static func pickable_hats() -> Array[int]:
+	var out: Array[int] = []
+	for i in PLAYER_HATS:
+		out.append(i)
+	for i in CharacterParts.list("hats").size():
+		out.append(HAT_COUNT + i)
+	return out
+
+
+static func hat_name(hat: int) -> String:
+	if hat < HAT_COUNT:
+		return HAT_NAMES[maxi(hat, 0)]
+	var custom := CharacterParts.list("hats")
+	return custom[hat - HAT_COUNT][0] if hat - HAT_COUNT < custom.size() else HAT_NAMES[0]
+
+
+static func is_hat(hat: int) -> bool:
+	return hat >= 0 and (hat < HAT_COUNT or hat - HAT_COUNT < CharacterParts.list("hats").size())
+
+
+static func face_names() -> Array:
+	return FACE_NAMES + CharacterParts.names("extras")
+
+
+## Outfits: the built-in ones (only special bots wear the captain's tunic), then custom ones.
+static func outfit_names() -> Array:
+	return OUTFIT_NAMES + CharacterParts.names("outfits")
 
 
 ## skin_index < 0 picks a skin tone from the seed. face: index into FACE_NAMES,
@@ -125,6 +159,8 @@ func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1,
 	_lite = (Game.character_detail if detail < 0 else detail) == 0
 	var scarf := shirt
 	var noor := character == NOOR
+	if not is_hat(hat):
+		hat = 0 # (a custom hat this build doesn't have)
 	if noor:
 		skin = NOOR_GOLD
 		shirt = NOOR_GOLD # her body is golden all over
@@ -177,14 +213,14 @@ func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1,
 		_pupils.append(pupil)
 		_cheeks.append(_sphere(head, 0.07, Color(1.0, 0.5, 0.55), Vector3(sx * 0.22, -0.08, -0.26), Vector3(1, 0.6, 0.4)))
 	_mouth = _sphere(head, 0.08, Color(0.35, 0.1, 0.12), Vector3(0, -0.15, -0.31), Vector3(1.4, 0.55, 0.5))
-	if expressive and hat % HAT_COUNT != 7:
+	if expressive and hat != 7: # (the pumpkin head covers the face)
 		_build_expression_parts(head, skin)
 	var n := head.get_child_count()
 	_build_hat(head, hat, shirt, rng)
 	for i in range(n, head.get_child_count()):
 		hat_nodes.append(head.get_child(i))
 	n = head.get_child_count()
-	if hat % HAT_COUNT != 7:
+	if hat != 7:
 		_build_face(head, face, shirt)
 	for i in range(n, head.get_child_count()):
 		face_nodes.append(head.get_child(i))
@@ -206,8 +242,60 @@ func setup(shirt: Color, hat: int, seed_value: int, face := 0, skin_index := -1,
 			_cyl(leg, 0.14, 0.12, LEATHER, Vector3(0, -0.4, 0))
 		else:
 			_box(leg, Vector3(0.22, 0.14, 0.34), shoe, Vector3(0, -0.5, -0.06))
+	if not noor:
+		_replace_parts()
 	if _lite:
 		_merge_parts()
+	_add_custom(hat, face, outfit, shirt, skin, noor)
+
+
+## Body parts with a model of their own (assets/characters/parts/<part>): the built-in shape
+## goes (on a head the face stays: eyes, mouth, brows, cheeks), the model is added later.
+func _replace_parts() -> void:
+	var keep := {}
+	for a in [_eyes, _pupils, _cheeks, _brows, _x_eyes, hat_nodes, face_nodes, outfit_nodes]:
+		for n in a:
+			keep[n] = true
+	for n in [_mouth, _propeller, gun_socket]:
+		if n:
+			keep[n] = true
+	for part_name in CharacterParts.BODY_PARTS:
+		if CharacterParts.part_path(part_name) == "":
+			continue
+		for c in (parts[part_name] as Node3D).get_children():
+			if not keep.has(c):
+				c.free()
+
+
+## The custom models this character wears (a hat, a head extra, an outfit, body parts),
+## each modelled where it sits on a standing Yeet: placed back in its part's own space.
+func _add_custom(hat: int, face: int, outfit: int, shirt: Color, skin: Color, noor: bool) -> void:
+	var adds := [] # [path, part, list]
+	if hat >= HAT_COUNT:
+		adds.append([CharacterParts.list("hats")[hat - HAT_COUNT][1], "head", hat_nodes])
+	var extras := CharacterParts.list("extras")
+	if face >= FACE_NAMES.size() and face - FACE_NAMES.size() < extras.size() and hat != 7:
+		adds.append([extras[face - FACE_NAMES.size()][1], "head", face_nodes])
+	var outfits := CharacterParts.list("outfits")
+	if outfit >= OUTFIT_NAMES.size() and outfit - OUTFIT_NAMES.size() < outfits.size():
+		adds.append([outfits[outfit - OUTFIT_NAMES.size()][1], "torso", outfit_nodes])
+	if not noor:
+		for part_name in CharacterParts.BODY_PARTS:
+			var path := CharacterParts.part_path(part_name)
+			if path != "":
+				adds.append([path, part_name, null])
+	var skin_mat := Mats.skin(skin)
+	for a in adds:
+		var model := CharacterParts.instantiate(a[0])
+		if model == null:
+			continue
+		var part := parts[a[1]] as Node3D
+		part.add_child(model)
+		# (rest pose: where the part sits on a standing Yeet, as in the .blend)
+		model.transform = (body.transform * part.transform).affine_inverse() * model.transform
+		CharacterParts.tint(model, shirt, skin_mat)
+		if a[2] != null:
+			(a[2] as Array).append(model)
 
 
 ## One mesh per body part for everything that doesn't move on its own (the face's moving
@@ -293,7 +381,9 @@ func _box(parent: Node3D, size: Vector3, color: Color, pos: Vector3) -> MeshInst
 
 func _build_hat(head: Node3D, hat: int, shirt: Color, rng: RandomNumberGenerator) -> void:
 	var accent := Color.from_hsv(rng.randf(), 0.7, 1.0)
-	match hat % HAT_COUNT:
+	if hat >= HAT_COUNT:
+		return # (a custom hat: _add_custom)
+	match hat:
 		1: # Party cone.
 			var cone := _cyl(head, 0.2, 0.5, accent, Vector3(0.05, 0.5, 0), 0.0)
 			cone.rotation.z = -0.2
@@ -414,7 +504,9 @@ func _build_hat(head: Node3D, hat: int, shirt: Color, rng: RandomNumberGenerator
 
 func _build_face(head: Node3D, face: int, shirt: Color) -> void:
 	var black := Color(0.07, 0.07, 0.09)
-	match face % FACE_NAMES.size():
+	if face >= FACE_NAMES.size():
+		return # (a custom head extra: _add_custom)
+	match face:
 		1: # Round glasses.
 			for sx in [-1, 1]:
 				_ring(head, 0.14, 0.022, black, Vector3(sx * 0.13, 0.07, -0.39))

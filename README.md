@@ -528,8 +528,12 @@ godot --path . -- --host --map prime --bots 0 --tour /tmp/chars --tour-mode char
 blender --background --python tools/glb_to_blend.py -- /tmp/chars/characters.glb art/characters/characters.blend /tmp/chars/preview.png
 ```
 
-`art/` is ignored by Godot (it is source art). To use edited parts in the game, export them
-as `.glb` into `assets/` and replace the matching part in `CharacterModel`.
+`art/` is ignored by Godot (it is source art).
+
+**Your own models:** hats, head extras, outfits and body parts dropped into
+`assets/characters/` (as `.glb` from Blender) are in the game with no code: they show up in
+the character menu, take the team colour on a material named `Shirt`, and work online. Step
+by step, with an example hat: [docs/CHARACTERS.md](docs/CHARACTERS.md).
 
 ## Blender
 

@@ -1,5 +1,6 @@
 extends Node
-## Developer tool: every hat and every head attachment in a line-up, front and three-quarter.
+## Developer tool: every hat and every head attachment in a line-up, front and three-quarter
+## (custom models from assets/characters/ at the end of their rows).
 ## Usage: godot -- --host --map prime --bots 0 --tour <dir> --tour-mode looks
 
 var world: Node
@@ -17,7 +18,10 @@ func _ready() -> void:
 	Game.fov = 34.0 # close-up lens (not saved)
 	# Floating in the sky above the map: nothing in the way, sky behind.
 	var moods: Array = CharacterModel.MOODS.keys()
-	var rows := [CharacterModel.HAT_COUNT, CharacterModel.FACE_NAMES.size(), moods.size() + 1, 5]
+	var hat_ids: Array = range(CharacterModel.HAT_COUNT)
+	for j in CharacterParts.list("hats").size():
+		hat_ids.append(CharacterModel.HAT_COUNT + j)
+	var rows := [hat_ids.size(), CharacterModel.face_names().size(), moods.size() + 1, 5]
 	var noor_moods := ["", "grin", "scared", "angry", "dizzy"]
 	var groups := []
 	for row in 4:
@@ -27,7 +31,7 @@ func _ready() -> void:
 			world.add_child(m)
 			var col: Color = Game.FFA_COLORS[i % Game.FFA_COLORS.size()]
 			if row == 0:
-				m.setup(col, i, i + 3)
+				m.setup(col, hat_ids[i], i + 3)
 			elif row == 1:
 				m.setup(col, 0, i + 3, i, i % CharacterModel.SKINS.size())
 			elif row == 2 and i < moods.size():

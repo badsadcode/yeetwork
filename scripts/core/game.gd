@@ -82,6 +82,7 @@ var master_volume := 0.8
 # Character look (-1 = random). The shirt colour applies in free-for-all modes only.
 var look_hat := -1
 var look_face := 0
+var look_outfit := 0 # a custom outfit (assets/characters/outfits/), or 0: the shirt
 var look_skin := -1
 var look_color := -1
 var look_character := 0
@@ -183,7 +184,7 @@ func _input(event: InputEvent) -> void:
 
 ## The character choices sent to the server when joining.
 func look() -> Dictionary:
-	return {"hat": look_hat, "face": look_face, "skin": look_skin, "color": look_color, "character": look_character}
+	return {"hat": look_hat, "face": look_face, "skin": look_skin, "color": look_color, "character": look_character, "outfit": look_outfit}
 
 
 ## Steam sets SteamDeck=1 for games launched on the Deck; SteamOS sets SteamOS=1.
@@ -257,6 +258,7 @@ func save_settings() -> void:
 	cfg.set_value("audio", "volume", master_volume)
 	cfg.set_value("look", "hat", look_hat)
 	cfg.set_value("look", "face", look_face)
+	cfg.set_value("look", "outfit", look_outfit)
 	cfg.set_value("look", "skin", look_skin)
 	cfg.set_value("look", "color", look_color)
 	cfg.set_value("look", "character", look_character)
@@ -311,6 +313,7 @@ func load_settings() -> void:
 	master_volume = cfg.get_value("audio", "volume", master_volume)
 	look_hat = cfg.get_value("look", "hat", look_hat)
 	look_face = cfg.get_value("look", "face", look_face)
+	look_outfit = cfg.get_value("look", "outfit", look_outfit)
 	look_skin = cfg.get_value("look", "skin", look_skin)
 	look_color = cfg.get_value("look", "color", look_color)
 	look_character = cfg.get_value("look", "character", look_character)

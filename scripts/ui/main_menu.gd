@@ -322,14 +322,22 @@ func _page_character(stack: Control) -> Control:
 	_name.placeholder_text = "Your name"
 	var grid := _grid(v)
 	_field(grid, "Name", _name)
-	var hats := ["Random"] + CharacterModel.HAT_NAMES.slice(0, CharacterModel.PLAYER_HATS)
+	_hat_ids = CharacterModel.pickable_hats()
+	var hats := ["Random"] + Array(_hat_ids).map(func(h): return CharacterModel.hat_name(h))
+	# Outfits a player can wear: the shirt, then custom ones (assets/characters/outfits/).
+	_outfit_ids = [0]
+	for i in CharacterParts.list("outfits").size():
+		_outfit_ids.append(CharacterModel.OUTFIT_NAMES.size() + i)
+	var outfits := _outfit_ids.map(func(o): return CharacterModel.outfit_names()[o])
 	var skins := ["Random"] + CharacterModel.SKIN_NAMES
 	var colors := ["Auto"]
 	for i in Game.FFA_COLORS.size():
 		colors.append("Colour %d" % (i + 1))
 	_picker(grid, "character", "Yeet", CharacterModel.CHARACTER_NAMES, Game.look_character)
-	_picker(grid, "hat", "Hat", hats, Game.look_hat + 1)
-	_picker(grid, "face", "Head extra", CharacterModel.FACE_NAMES, Game.look_face)
+	_picker(grid, "hat", "Hat", hats, _hat_ids.find(Game.look_hat) + 1)
+	_picker(grid, "face", "Head extra", CharacterModel.face_names(), Game.look_face)
+	if _outfit_ids.size() > 1:
+		_picker(grid, "outfit", "Outfit", outfits, maxi(_outfit_ids.find(Game.look_outfit), 0))
 	_picker(grid, "skin", "Skin", skins, Game.look_skin + 1)
 	_picker(grid, "color", "Shirt", colors, Game.look_color + 1)
 	_picker(grid, "faces", "Faces", ["Expressive", "Classic"], 0 if Game.expressive_faces else 1)
@@ -343,8 +351,8 @@ func _page_character(stack: Control) -> Control:
 	rnd.custom_minimum_size.x = 0
 	rnd.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	rnd.pressed.connect(func():
-		_set_pick("hat", randi() % (CharacterModel.PLAYER_HATS + 1))
-		_set_pick("face", randi() % CharacterModel.FACE_NAMES.size())
+		_set_pick("hat", randi() % (_hat_ids.size() + 1))
+		_set_pick("face", randi() % CharacterModel.face_names().size())
 		_set_pick("skin", randi() % (CharacterModel.SKINS.size() + 1))
 		_set_pick("color", randi() % (Game.FFA_COLORS.size() + 1)))
 	_update_preview.call_deferred()
@@ -378,6 +386,11 @@ func _page_options(stack: Control) -> Control:
 # --- Character pickers ------------------------------------------------------------
 
 ## "< value >" row: arrows step through the choices (gamepad friendly).
+## The hats and outfits the pickers step through (built-in, then custom models).
+var _hat_ids: Array[int] = []
+var _outfit_ids: Array = []
+
+
 func _picker(grid: GridContainer, key: String, title: String, names: Array, index: int) -> void:
 	grid.add_child(_label(title))
 	var row := HBoxContainer.new()
@@ -408,7 +421,9 @@ func _set_pick(key: String, index: int) -> void:
 	p.index = posmod(index, p.names.size())
 	p.label.text = p.names[p.index]
 	Game.look_character = _pickers.character.index
-	Game.look_hat = _pickers.hat.index - 1
+	Game.look_hat = _hat_ids[_pickers.hat.index - 1] if _pickers.hat.index > 0 else -1
+	if _pickers.has("outfit"):
+		Game.look_outfit = _outfit_ids[_pickers.outfit.index]
 	Game.look_face = _pickers.face.index
 	Game.look_skin = _pickers.skin.index - 1
 	Game.look_color = _pickers.color.index - 1
@@ -419,7 +434,7 @@ func _set_pick(key: String, index: int) -> void:
 func _update_preview() -> void:
 	var shirt: Color = Game.FFA_COLORS[maxi(Game.look_color, 0) % Game.FFA_COLORS.size()]
 	var hat := Game.look_hat if Game.look_hat >= 0 else 0
-	_preview.show_look(shirt, hat, Game.look_face, Game.look_skin, 1, 0, Game.look_character)
+	_preview.show_look(shirt, hat, Game.look_face, Game.look_skin, 1, Game.look_outfit, Game.look_character)
 
 
 # --- Building blocks --------------------------------------------------------------

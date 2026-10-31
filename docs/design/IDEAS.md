@@ -55,7 +55,7 @@ picked all of them; built, see the README). Later: more kinds, a pickup sound pa
 - **Iron Yeet**: can't be grabbed or knocked around, half damage, 12 s; a metallic rim.
 Every timed buff shows on the HUD: what it is and a countdown, plus its screen effect.
 
-## Docs: characters (requested)
+## Docs: characters (done: docs/CHARACTERS.md, drop-in folders in assets/characters/)
 
 A step-by-step tutorial on adding and changing character models and attachments (hats,
 head extras, outfits): where they're built, the Blender file, and replacing a part with a
