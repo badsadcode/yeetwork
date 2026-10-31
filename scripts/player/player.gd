@@ -78,6 +78,8 @@ var character := 0
 
 # Gameplay (server authoritative, replicated).
 var hp := 100.0
+## Boosts from power-ups: kind -> net time it ends (set by the server, the same everywhere).
+var buffs := {}
 var frags := 0
 var deaths := 0
 var score := 0
@@ -534,7 +536,7 @@ func _move_normal(delta: float) -> void:
 		else:
 			_friction(delta, FRICTION * (ICE_FRICTION if on_ice else 1.0))
 			var top := CROUCH_SPEED if crouched else (MAX_SPEED if cmd.run else WALK_SPEED)
-			_accelerate(wish_dir, top * wish_speed, GROUND_ACCEL * (ICE_ACCEL if on_ice else 1.0), delta)
+			_accelerate(wish_dir, top * wish_speed * speed_mult(), GROUND_ACCEL * (ICE_ACCEL if on_ice else 1.0), delta)
 		var floor_n := get_floor_normal()
 		if floor_n.is_normalized():
 			velocity = velocity.slide(floor_n)
@@ -551,7 +553,7 @@ func _auto_hop() -> bool:
 
 
 func _do_jump() -> void:
-	var up_v := maxf(velocity.y, 0.0) + JUMP_VELOCITY
+	var up_v := maxf(velocity.y, 0.0) + JUMP_VELOCITY * (Pickups.FEATHER_JUMP if has_buff("feather") else 1.0)
 	if sliding:
 		sliding = false
 		up_v *= 0.92
@@ -623,9 +625,9 @@ func _air_move(delta: float, wish_dir: Vector3, wish_speed: float) -> void:
 				if model:
 					model.squash(-0.15)
 				Sfx.play3d("jump", global_position, -6.0, 1.15)
-	_air_accelerate(wish_dir, wish_speed * MAX_SPEED, delta)
+	_air_accelerate(wish_dir, wish_speed * MAX_SPEED * speed_mult(), delta)
 	_air_control(wish_dir, delta)
-	velocity.y -= GRAVITY * delta
+	velocity.y -= GRAVITY * delta * (Pickups.FEATHER_GRAVITY if has_buff("feather") else 1.0)
 
 
 func _end_wallrun() -> void:
@@ -1014,6 +1016,20 @@ func die(death_velocity: Vector3) -> void:
 	_update_flags()
 
 
+## Is this boost on right now?
+func has_buff(kind: String) -> bool:
+	return world != null and buffs.get(kind, -1.0) > world.net_time()
+
+
+## Seconds of a boost left (0: none).
+func buff_left(kind: String) -> float:
+	return maxf(buffs.get(kind, -1.0) - world.net_time(), 0.0) if world else 0.0
+
+
+func speed_mult() -> float:
+	return Pickups.SPEED_MULT if has_buff("speed") else 1.0
+
+
 func respawn(pos: Vector3, p_yaw: float) -> void:
 	state = State.NORMAL
 	hp = 100.0
@@ -1124,7 +1140,7 @@ func _update_camera(delta: float) -> void:
 		var s := _shake * _shake
 		shake_off = Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * s * 0.06
 	camera.rotation = Vector3(shake_off.x, shake_off.y, _cam_roll)
-	var speed_fov := clampf((horizontal_speed() - MAX_SPEED) * 1.1, 0.0, 22.0)
+	var speed_fov := clampf((horizontal_speed() - MAX_SPEED) * 1.1, 0.0, 22.0) + (6.0 if has_buff("speed") else 0.0)
 	_punch = lerpf(_punch, 0.0, 1.0 - exp(-9.0 * delta))
 	if _base_fov <= 0.0:
 		_base_fov = Game.fov

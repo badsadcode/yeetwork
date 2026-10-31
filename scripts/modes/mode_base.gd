@@ -97,6 +97,11 @@ func allow_build() -> bool:
 	return true
 
 
+## False: this kind of pickup isn't used in this mode (it stays hidden).
+func allows_pickup(_kind: String) -> bool:
+	return true
+
+
 ## False: no bots join (the Puzzle mode).
 func allows_bots() -> bool:
 	return true

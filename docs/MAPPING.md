@@ -177,6 +177,21 @@ A destructible wall, floor or bridge. In game it fractures into irregular pieces
   couch, tire, cone.
 - Map props come back at their spot a while after they are destroyed or fall out.
 
+### PickupSpawn
+A pickup floating a metre over a glowing pad: walk through it to take it. Put the node on
+the floor. It comes back after a while (**Respawn**, seconds; 0 = the usual for its kind).
+- **Kind**:
+  - `health`: first aid, +50 HP (back after 20 s). `health_big`: +100 HP (40 s). Never above
+    100 HP; at full health you walk past it.
+  - `speed`: run 40% faster for 12 s. `super` (Super Yeet): throws, punts and launches 1.8x
+    stronger for 15 s. `feather`: low gravity and high jumps for 12 s. `iron` (Iron Yeet):
+    can't be grabbed, barely knocked about, half damage, for 12 s. (Back after 35-40 s.)
+  - `random`: a different power-up each time it comes back.
+- The host can play with first aid only or no pickups (*Pickups* in the menu); the Puzzle
+  mode has none. Bots go for first aid when hurt and grab power-ups close by.
+- Good spots: first aid out at the sides, power-ups where the fights are (and somewhere a
+  little risky to reach).
+
 ### JumpPadNode
 - Move the **Target** (relative to the pad). The launch velocity is computed so the arc
   peaks **Arc Height** above the higher end. The editor draws the predicted arc in green.

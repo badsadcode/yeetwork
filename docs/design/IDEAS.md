@@ -44,10 +44,10 @@ now.
 - **Storm**: a stormy sky with heavy cloud, rain and realistic lightning (branching bolts,
   the flash lighting up the map, thunder arriving after it).
 
-## Pickups and power-ups (next)
+## Pickups and power-ups (first batch built)
 
-Placed with a new Map Kit piece, respawning; the host can turn power-ups off. First batch
-(Tomek picked all of them):
+Placed with PickupSpawn, respawning; the host can turn power-ups off. First batch (Tomek
+picked all of them; built, see the README). Later: more kinds, a pickup sound pass.
 - **First aid kit**: +50 HP (a big one +100).
 - **Speed boost**: 40% faster for 12 s; blue speed lines at the screen edge, a slight FOV
   kick.

@@ -42,6 +42,9 @@ jobs:
       - name: Yeetball check (kickoff, goals, hold limit, lost ball, bots playing, the win)
         timeout-minutes: 4
         run: timeout 150 godot --headless -- --host --map yeetball_stadium --mode yeetball --bots 3 --spooky off --tour x --tour-mode yeetball
+      - name: Pickups check (first aid, every power-up, the HUD, bots fetching first aid)
+        timeout-minutes: 4
+        run: timeout 180 godot --headless -- --host --map prime --bots 2 --spooky off --tour x --tour-mode pickups
 
   export:
     name: Export ${{ matrix.platform }}

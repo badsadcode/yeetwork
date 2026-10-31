@@ -31,6 +31,7 @@ var initial_props: Array = [] # [kind, Transform3D, key prop?]
 var kill_y := -45.0
 var avoid_rects: Array[Rect2] = [] # XZ areas bots should route around
 var fire_areas: Array = [] # [Transform3D, size]: burning places (World sets things alight in them)
+var pickups: Array[PickupSpawn] = [] # first aid kits and power-ups, in scene order
 var puzzle: Array[PuzzleNode] = [] # puzzle pieces of a Map Kit map, in scene order (same on every peer)
 var map_settings: MapSettings # a Map Kit map's settings (null for code-built maps)
 ## A moving body the whole map rides on (High Seas' ship), or null. When set, spawn points,
@@ -317,6 +318,8 @@ func _collect(n: Node) -> void:
 		goals.append(n)
 	elif n is BallSpot:
 		ball_spot = (n as Node3D).global_position
+	elif n is PickupSpawn:
+		pickups.append(n)
 	elif n is CSGShape3D:
 		var csg := n as CSGShape3D
 		if csg.is_root_shape() and csg.use_collision:

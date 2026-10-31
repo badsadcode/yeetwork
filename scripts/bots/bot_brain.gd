@@ -188,9 +188,29 @@ func _carrying_flag() -> bool:
 	return p != null and p.kind == "flag"
 
 
+func _pickup_goal() -> Vector3:
+	var best := Vector3.INF
+	var best_d := INF
+	for ps: PickupSpawn in world.arena.pickups:
+		if not ps.is_available():
+			continue
+		var d := pl.global_position.distance_to(ps.global_position)
+		var want := (pl.hp < 60.0 and d < 30.0) if not Pickups.is_powerup(ps.shown_kind) else d < 12.0
+		if want and d < best_d:
+			best_d = d
+			best = ps.global_position
+	return best
+
+
 func _reconsider() -> void:
 	_enemy = _find_enemy()
 	var holding := pl.gun.held_kind != GravityGun.Kind.NONE
+	# Pickups: first aid when hurt, a power-up when one is close by.
+	var pickup := _pickup_goal()
+	if pickup != Vector3.INF and not _carrying_flag():
+		_goal = pickup
+		_target_prop = null
+		return
 	if world.mode == Game.Mode.PUMPKIN and not holding:
 		# Candy first: walk over it.
 		var best: Prop = null

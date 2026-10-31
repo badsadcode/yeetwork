@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://scripts/mapkit/spawn_point.gd" id="spawn"]
 [ext_resource type="Script" path="res://scripts/mapkit/goal_zone.gd" id="goal"]
 [ext_resource type="Script" path="res://scripts/mapkit/ball_spot.gd" id="spot"]
+[ext_resource type="Script" path="res://scripts/mapkit/pickup_spawn.gd" id="pickup_spawn"]
 
 [node name="YeetballStadium" type="Node3D"]
 
@@ -372,3 +373,13 @@ script = ExtResource("spawn")
 [node name="SpawnAny3" type="Node3D" parent="Spawns"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 10)
 script = ExtResource("spawn")
+
+[node name="Pickup1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, -13.0)
+script = ExtResource("pickup_spawn")
+kind = "random"
+
+[node name="Pickup2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, 13.0)
+script = ExtResource("pickup_spawn")
+kind = "random"

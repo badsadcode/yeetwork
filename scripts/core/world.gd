@@ -74,6 +74,7 @@ var puzzle_finish := -1.0
 var puzzle_results := {} # the end screen (Puzzle mode), the same on every peer
 ## What the HUD shows of a mode's state (Yeetball: rules, clock, overtime), set by the server.
 var mode_state := {}
+var _pickups: Array = [] # server: per arena.pickups entry [0 off / 1 taken / 2 there, kind, back at]
 
 
 func _ready() -> void:
@@ -120,6 +121,7 @@ func start(server: bool) -> void:
 			if entry.size() > 2 and entry[2]:
 				p.set_meta("key_prop", true)
 		mode_logic.spawn_mode_props()
+		_server_setup_pickups()
 		for n in arena.puzzle:
 			n.server_spawn_props()
 		_start_ambience()
@@ -330,6 +332,8 @@ func _build_init_state() -> Dictionary:
 		"puzzle_time": [puzzle_start, puzzle_finish],
 		"puzzle_results": puzzle_results,
 		"mode_state": mode_state,
+		"pickups": _pickup_states(),
+		"buffs": _all_buffs(),
 		"machines": _machine_buffer(),
 		"floods": arena.puzzle.filter(func(n: PuzzleNode) -> bool: return n is FloodZone).map(func(n: FloodZone) -> Array: return [n.puzzle_index] + n.full_state()),
 	}
@@ -382,6 +386,9 @@ func _s_init(state: Dictionary) -> void:
 		_s_flood(f[0], f[1], f[2])
 	puzzle_results = state.get("puzzle_results", {})
 	mode_state = state.get("mode_state", {})
+	_s_pickups(state.get("pickups", []))
+	for id in state.get("buffs", {}):
+		_s_buffs(id, state.buffs[id])
 	var pt: Array = state.get("puzzle_time", [-1.0, -1.0])
 	puzzle_start = pt[0]
 	puzzle_finish = pt[1]
@@ -494,6 +501,7 @@ func _physics_process(delta: float) -> void:
 	if not is_server:
 		return
 	mode_logic.tick(delta)
+	_server_pickups_tick()
 	if not _crumbling.is_empty():
 		_server_crumble_tick()
 	var t := now()
@@ -1151,6 +1159,8 @@ func server_damage_player(pl: Player, amount: float, attacker: int, cause: Strin
 	if attacker == 0 and t - pl.last_attacker_time < 7.0:
 		attacker = pl.last_attacker # environmental kills credit whoever sent you there
 	server_set_last_attacker(pl, attacker)
+	if pl.has_buff("iron"):
+		amount *= Pickups.IRON_DAMAGE
 	pl.hp -= amount
 	_bc_all("_s_hp", [pl.player_id, pl.hp])
 	if amount >= 6.0 and cause != "void":
@@ -1171,6 +1181,7 @@ func _s_hp(id: int, hp: float) -> void:
 
 func _server_kill(pl: Player, killer_id: int, cause: String, dir: Vector3) -> void:
 	pl.gun.release(false)
+	server_clear_buffs(pl)
 	for other: Player in players.values():
 		if other.gun.held_kind == GravityGun.Kind.PLAYER and other.gun.held_id == pl.player_id:
 			other.gun.release(false)
@@ -1223,6 +1234,113 @@ func _s_stats(id: int, frags: int, deaths: int, score: int) -> void:
 		pl.deaths = deaths
 		pl.score = score
 		hud.on_players_changed()
+
+
+# --- Pickups and boosts -------------------------------------------------------------
+
+## Which pickups this match has: all, first aid only or none (Game.pickups), and only the
+## kinds the mode uses. A "random" one rolls a power-up each time it comes back.
+func _server_setup_pickups() -> void:
+	_pickups.clear()
+	for ps in arena.pickups:
+		var kind := _roll_pickup(ps)
+		_pickups.append([2 if kind != "" else 0, kind, 0.0])
+	if not _pickups.is_empty():
+		_s_pickups(_pickup_states())
+
+
+func _roll_pickup(ps: PickupSpawn) -> String:
+	var kind := ps.kind
+	if kind == "random":
+		kind = Pickups.POWERUPS[rng.randi() % Pickups.POWERUPS.size()]
+	var power := Pickups.is_powerup(kind)
+	if Game.pickups == 2 or (Game.pickups == 1 and power) or not mode_logic.allows_pickup(kind):
+		return ""
+	return kind
+
+
+func _pickup_states() -> Array:
+	return _pickups.map(func(s: Array) -> Array: return [s[0], s[1]])
+
+
+func _all_buffs() -> Dictionary:
+	var out := {}
+	for pl: Player in players.values():
+		if not pl.buffs.is_empty():
+			out[pl.player_id] = pl.buffs
+	return out
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_pickups(states: Array) -> void:
+	for i in mini(states.size(), arena.pickups.size()):
+		var s: Array = states[i]
+		if s[0] == 0:
+			arena.pickups[i].set_disabled()
+		else:
+			arena.pickups[i].set_state(s[0] == 2, s[1])
+
+
+func _server_pickups_tick() -> void:
+	if _pickups.is_empty():
+		return
+	var t := now()
+	var changed := false
+	for i in _pickups.size():
+		var s: Array = _pickups[i]
+		if s[0] == 0:
+			continue
+		var ps: PickupSpawn = arena.pickups[i]
+		if s[0] == 1:
+			if t >= s[2]:
+				s[0] = 2
+				s[1] = _roll_pickup(ps)
+				if s[1] == "":
+					s[0] = 0
+				changed = true
+				server_fx("spawn", ps.item_position(), Vector3.UP, 0.6)
+			continue
+		var at := ps.item_position()
+		for pl: Player in players.values():
+			if not pl.is_alive():
+				continue
+			var d := pl.global_position + Vector3.UP * 0.9 - at
+			if Vector2(d.x, d.z).length() < 1.0 and absf(d.y) < 1.5 and _server_take_pickup(pl, s[1], at):
+				s[0] = 1
+				s[2] = t + (ps.respawn if ps.respawn > 0.0 else Pickups.respawn_time(s[1]))
+				changed = true
+				break
+	if changed:
+		_bc_all("_s_pickups", [_pickup_states()])
+
+
+## A Yeet walks through a pickup: heal, or a boost for a while. False: not taken (full
+## health walks past a first aid kit).
+func _server_take_pickup(pl: Player, kind: String, at: Vector3) -> bool:
+	if not Pickups.is_powerup(kind):
+		if pl.hp >= 100.0:
+			return false
+		pl.hp = minf(pl.hp + Pickups.INFO[kind].heal, 100.0)
+		_bc_all("_s_hp", [pl.player_id, pl.hp])
+		server_fx("heal", at, Vector3.UP, 1.0)
+		return true
+	pl.buffs[kind] = net_time() + Pickups.duration(kind)
+	_bc_all("_s_buffs", [pl.player_id, pl.buffs])
+	server_fx("powerup", at, Vector3.UP, 1.0)
+	return true
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_buffs(id: int, buffs: Dictionary) -> void:
+	var pl := get_player(id)
+	if pl:
+		pl.buffs = buffs.duplicate()
+
+
+func server_clear_buffs(pl: Player) -> void:
+	if not pl.buffs.is_empty():
+		pl.buffs = {}
+		_bc_all("_s_buffs", [pl.player_id, {}])
 
 
 func server_mode_state(state: Dictionary) -> void:
@@ -1378,6 +1496,9 @@ func _server_push(pl: Player, p: Prop, vel: Vector3, _point: Vector3) -> void:
 func server_launch_player(pl: Player, vel: Vector3, replace: bool, ragdoll: float, attacker: int) -> void:
 	if not pl.is_alive():
 		return
+	if pl.has_buff("iron"): # an Iron Yeet barely budges
+		vel *= Pickups.IRON_KNOCKBACK
+		ragdoll = 0.0
 	server_set_last_attacker(pl, attacker)
 	mode_logic.on_player_launched(pl, vel, attacker)
 	_to_owner(pl, "_s_launch", [pl.player_id, vel, replace, ragdoll])
@@ -2236,6 +2357,12 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 		"score":
 			fx.explosion(pos + Vector3.UP * 2.0, 3.0)
 			Sfx.play_ui("score", 0.0)
+		"heal":
+			fx.puffs(pos, Vector3.UP, 10, [Color(1.0, 0.35, 0.4), Color(1, 1, 1)], 0.08, 0.16, 1.0, 2.5, 0.8)
+			Sfx.play3d("heal", pos, -2.0)
+		"powerup":
+			fx.confetti(pos, Vector3.UP, 1.0)
+			Sfx.play3d("powerup", pos, 0.0)
 		"confetti":
 			fx.confetti(pos, dir, amount)
 		"whistle":

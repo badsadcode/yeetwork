@@ -611,6 +611,9 @@ func _try_grab(origin: Vector3, dir: Vector3) -> void:
 		if pl != player and pl.is_alive() and origin.distance_to(pl.body_center()) <= PLAYER_GRAB_RANGE:
 			if pl.gun.held_kind == Kind.PLAYER and pl.gun.held_id == player.player_id:
 				return # no mutual holding loops
+			if pl.has_buff("iron"):
+				Sfx.play3d("metal", pl.global_position, -4.0, 1.4)
+				return # an Iron Yeet can't be grabbed
 			held_kind = Kind.PLAYER
 			held_id = pl.player_id
 			hold_extra = 0.0
@@ -798,7 +801,7 @@ func release(throw_ragdoll: bool) -> void:
 
 func _throw(dir: Vector3, charge := 0.0) -> void:
 	var w := player.world
-	var power := 1.0 + CHARGE_BONUS * charge
+	var power := (1.0 + CHARGE_BONUS * charge) * (Pickups.SUPER_MULT if player.has_buff("super") else 1.0)
 	var now := Time.get_ticks_msec() / 1000.0
 	_regrab_block = 0.5
 	match held_kind:
@@ -853,7 +856,7 @@ func _punt(origin: Vector3, dir: Vector3) -> void:
 		var los := PhysicsRayQueryParameters3D.create(origin, center, Game.L_WORLD, [player.get_rid()])
 		if not space.intersect_ray(los).is_empty():
 			continue
-		var falloff := 1.0 - (d / PUNT_RANGE) * 0.5
+		var falloff := (1.0 - (d / PUNT_RANGE) * 0.5) * (Pickups.SUPER_MULT if player.has_buff("super") else 1.0)
 		if n is Prop:
 			var p := n as Prop
 			if p.freeze and not p.frozen_by_player:

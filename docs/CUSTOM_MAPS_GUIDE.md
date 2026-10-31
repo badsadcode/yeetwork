@@ -133,6 +133,10 @@ the floor (crate Position y `0.6`).
 
 ![Props](images/custom_maps/09_props.jpg)
 
+**Pickups:** add a **PickupSpawn** on the floor for a first aid kit (**Kind** `health`) or a
+power-up (`speed`, `super`, `feather`, `iron`, or `random`). It floats over a glowing pad
+and comes back a while after someone takes it.
+
 ## 10. Play it!
 
 Save (Ctrl+S) and press **F6** (*Run Current Scene*, the clapperboard button at the top

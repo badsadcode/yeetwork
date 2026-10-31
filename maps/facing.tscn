@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/mapkit/spawn_point.gd" id="6_oc5bc"]
 [ext_resource type="Script" path="res://scripts/mapkit/prop_spawn.gd" id="7_8ti1i"]
 [ext_resource type="Script" path="res://scripts/mapkit/spinner.gd" id="8_os0x8"]
+[ext_resource type="Script" path="res://scripts/mapkit/pickup_spawn.gd" id="pickup_spawn"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gpc0p"]
 shading_mode = 0
@@ -1361,3 +1362,31 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.45, 6.4, 0)
 material_override = SubResource("StandardMaterial3D_3hata")
 cast_shadow = 0
 mesh = SubResource("BoxMesh_gax0c")
+
+[node name="Pickup1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 4.0, -4.5)
+script = ExtResource("pickup_spawn")
+kind = "random"
+
+[node name="Pickup2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 16.5)
+script = ExtResource("pickup_spawn")
+kind = "random"
+
+[node name="Pickup3" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.3, 0.0, 15.0)
+script = ExtResource("pickup_spawn")
+
+[node name="Pickup4" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.2, 0.0, 13.5)
+script = ExtResource("pickup_spawn")
+
+[node name="Pickup5" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.3, 0.0, -15.0)
+script = ExtResource("pickup_spawn")
+kind = "health_big"
+
+[node name="Pickup6" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.7, -0.06, -18.0)
+script = ExtResource("pickup_spawn")
+kind = "random"

@@ -22,6 +22,7 @@ var _bots: SpinBox
 var _rules: OptionButton
 var _minutes: OptionButton
 var _knock: OptionButton
+var _pickups: OptionButton
 var _pages := {}
 var _page_title: Label
 var _preview: CharacterPreview
@@ -169,6 +170,12 @@ func _page_play(stack: Control) -> Control:
 	_bots.max_value = 11
 	_bots.value = Game.bot_count
 	_field(grid, "Bots", _bots)
+	_pickups = OptionButton.new()
+	for item in ["First aid + power-ups", "First aid only", "None"]:
+		_pickups.add_item(item)
+	_pickups.selected = clampi(Game.pickups, 0, 2)
+	_pickups.tooltip_text = "The pickups a map has: first aid kits, and power-ups (speed, Super Yeet, feather, Iron Yeet)."
+	_field(grid, "Pickups", _pickups)
 	_rules = OptionButton.new()
 	for item in ["Classic Chaos", "TOTAL YEET"]:
 		_rules.add_item(item)
@@ -495,6 +502,7 @@ func _store() -> void:
 	Game.sky_override = "" if _sky.selected <= 0 else MapEnvironment.PRESETS[_sky.selected - 1]
 	Game.map = _map.get_item_metadata(_map.selected) if _map.selected >= 0 else "facing"
 	Game.bot_count = int(_bots.value)
+	Game.pickups = _pickups.selected
 	Game.yeetball_rules = _rules.selected
 	Game.match_minutes = Game.MATCH_LENGTHS[maxi(_minutes.selected, 0)]
 	Game.ball_knockdown = _knock.selected == 1

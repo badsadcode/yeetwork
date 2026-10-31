@@ -51,6 +51,9 @@ func _ready() -> void:
 	_add("whistle_long", 1.3, _whistle)
 	_add("cheer", 2.6, _cheer)
 	_add("horn", 1.4, _horn)
+	_add("heal", 0.6, _heal)
+	_add("powerup", 0.7, _powerup)
+	_add("tick", 0.08, _tick)
 	_add("squelch", 0.6, _squelch)
 	_add("charge", 1.1, _charge)
 	_add("arc", 2.0, _arc)
@@ -539,6 +542,37 @@ func _horn(buf: PackedFloat32Array, v: int) -> void:
 			var env := clampf(t / 0.04, 0.0, 1.0) * clampf((length - t) / 0.25, 0.0, 1.0)
 			# A few odd harmonics make it brassy.
 			buf[i] += (sin(phase) + 0.45 * sin(phase * 3.0) + 0.2 * sin(phase * 5.0)) * env * 0.16
+
+
+## A soft two-note chime with a shimmer: first aid.
+func _heal(buf: PackedFloat32Array, v: int) -> void:
+	var notes := [660.0 * _vr(v, 0.02), 990.0 * _vr(v, 0.02)]
+	for i in buf.size():
+		var t := float(i) / RATE
+		var k := 0 if t < 0.12 else 1
+		var lt := t - k * 0.12
+		buf[i] += (sin(TAU * notes[k] * t) + 0.3 * sin(TAU * notes[k] * 2.0 * t)) * exp(-lt * 7.0) * 0.3
+
+
+## A quick rising arpeggio over a whoosh: a power-up.
+func _powerup(buf: PackedFloat32Array, v: int) -> void:
+	var notes := [392.0, 523.0, 659.0, 784.0, 1047.0]
+	var phase := 0.0
+	for i in buf.size():
+		var t := float(i) / RATE
+		var k := mini(int(t / 0.07), notes.size() - 1)
+		var lt := t - k * 0.07
+		phase += TAU * notes[k] * _vr(v, 0.02) / RATE
+		var sq := 1.0 if sin(phase) > 0.0 else -1.0 # a little square: arcade bright
+		buf[i] += (sin(phase) * 0.6 + sq * 0.12) * exp(-lt * 6.0) * (0.35 if k < notes.size() - 1 else 0.45)
+	_whoosh(buf, v, 0.5)
+
+
+## A soft, short tick: a boost's last seconds.
+func _tick(buf: PackedFloat32Array, v: int) -> void:
+	for i in buf.size():
+		var t := float(i) / RATE
+		buf[i] += sin(TAU * 1300.0 * _vr(v, 0.01) * t) * exp(-t * 60.0) * 0.25
 
 
 func _score(buf: PackedFloat32Array, _v: int) -> void:

@@ -214,6 +214,15 @@ come back to the middle; standing in your own net for more than 5 s gets you bou
 - Bots play too (the nearest chases the nearest ball and punts it at the goal, the others
   hang back). Map: **Yeetball Stadium**.
 
+**Pickups and power-ups.** Maps have first aid kits (+50, or +100 for the big one) and
+power-ups floating over glowing pads; walk through one to take it, and it comes back after
+a while. **Speed** (40% faster, 12 s), **Super Yeet** (throws, punts and launches 1.8x
+stronger, 15 s), **Feather** (low gravity, high jumps, 12 s) and **Iron Yeet** (can't be
+grabbed, barely knocked about, half damage, 12 s). Each boost shows above your health with
+a countdown, and has its own screen effect (speed lines, an orange glow, a cyan haze, a
+steel rim); its last 5 seconds tick quietly. Dying ends them. *Pickups* in the menu: first
+aid and power-ups, first aid only, or none. Maps place them with **PickupSpawn**.
+
 **Spooky mode.** During Halloween season (Oct 15 - Nov 3), when set to *Always* in the
 menu, or in Pumpkin Smash, every map gets:
 - Purple dusk lighting with an orange horizon, a big moon, thick fog and circling bats.
@@ -344,7 +353,7 @@ Command-line options (after `--`):
 # Host directly: mode, map and bot count
 godot --path . -- --host --mode ctf --map facing --bots 6 --bot-skill 1
 # Yeetball with TOTAL YEET rules and a 3-minute clock (--rules classic|total, --minutes 0 = first to 5,
-# --knockdown on|off: the ball knocks players over)
+# --knockdown on|off: the ball knocks players over). --pickups all|health|none in any mode.
 godot --path . -- --host --mode yeetball --map yeetball_stadium --bots 5 --rules total --minutes 3
 
 # Join a server
@@ -359,6 +368,10 @@ godot --headless --path . -- --host --map test_chambers --mode puzzle --tour x -
 godot --headless --path . -- --host --map warehouse --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map pump_house --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map scrapyard --mode puzzle --tour x --tour-mode puzzle
+
+# Pickups: first aid heals and comes back, every power-up measured on a bot, the HUD,
+# a hurt bot fetching first aid, the host's "no pickups" setting
+godot --headless --path . -- --host --map prime --bots 2 --tour x --tour-mode pickups
 
 # Yeetball: kickoff, goals, the hold limit, a lost ball, bots playing, full time, the
 # clock and golden goal, no camping, TOTAL YEET's multi-ball and barrels

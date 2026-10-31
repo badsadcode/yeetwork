@@ -46,6 +46,10 @@ func allows_bots() -> bool:
 	return false
 
 
+func allows_pickup(_kind: String) -> bool:
+	return false
+
+
 func allow_build() -> bool:
 	return true
 

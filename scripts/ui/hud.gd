@@ -47,6 +47,11 @@ var _messages: VBoxContainer
 var _big_label: Label
 var _yeet_label: Label
 var _vignette: ColorRect
+var _buff_fx: ColorRect # the power-ups' screen effects
+var _buff_rows: Control # what boosts you have, above the health plate
+var _buff_amt := {} # kind -> 0..1, the screen effect fading in and out
+var _buff_prev := {} # kind -> seconds left last frame (to notice a boost starting)
+var _buff_tick := 0 # the last whole second ticked (a boost's last 5 s tick quietly)
 var _death_label: Label
 var _scoreboard: PanelContainer
 var _scoreboard_text: RichTextLabel
@@ -73,6 +78,20 @@ func _ready() -> void:
 	_vignette.color = Color(0.8, 0.0, 0.05, 0.0)
 	_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_vignette)
+
+	_buff_fx = ColorRect.new()
+	_buff_fx.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_buff_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bm := ShaderMaterial.new()
+	bm.shader = preload("res://scripts/ui/buff_screen.gdshader")
+	_buff_fx.material = bm
+	_buff_fx.visible = false
+	_root.add_child(_buff_fx)
+	_buff_rows = Control.new()
+	_buff_rows.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_buff_rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_buff_rows.draw.connect(_draw_buffs)
+	_root.add_child(_buff_rows)
 
 	_crosshair = Control.new()
 	_crosshair.set_anchors_preset(Control.PRESET_CENTER)
@@ -584,6 +603,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	var pl: Player = world.local_player if world else null
+	_update_buffs(pl, delta)
 	_fps.visible = Game.show_fps
 	if _fps.visible:
 		_fps.text = "%d FPS" % Engine.get_frames_per_second()
@@ -772,6 +792,95 @@ func _draw_ball_marks() -> void:
 		_ball_marks.draw_circle(at - dir * 20.0, 7.0, Color(0.97, 0.97, 1.0))
 		_ball_marks.draw_colored_polygon(arrow, col)
 		_ball_marks.draw_polyline(PackedVector2Array([arrow[0], arrow[1], arrow[2], arrow[0]]), dark, 2.0)
+
+
+## Your boosts: a screen effect for each (fading in, and out over its last second), a line
+## when one starts, a quiet tick each second of the last 5 of the one ending first; the
+## rows redraw.
+func _update_buffs(pl: Player, delta: float) -> void:
+	var any := false
+	var soonest := INF
+	var mat := _buff_fx.material as ShaderMaterial
+	for kind: String in Pickups.POWERUPS:
+		var left := pl.buff_left(kind) if pl and pl.is_alive() else 0.0
+		var prev: float = _buff_prev.get(kind, 0.0)
+		if left > prev + 0.5:
+			show_message("%s for %d s!" % [Pickups.name_of(kind), roundi(left)], Pickups.color_of(kind), false)
+		_buff_prev[kind] = left
+		if left > 0.0:
+			soonest = minf(soonest, left)
+		var target := clampf(left, 0.0, 1.0)
+		_buff_amt[kind] = move_toward(_buff_amt.get(kind, 0.0), target, delta * 2.5)
+		mat.set_shader_parameter("super_yeet" if kind == "super" else kind, _buff_amt[kind] * Game.camera_shake * 0.5 + _buff_amt[kind] * 0.5)
+		any = any or _buff_amt[kind] > 0.001 or left > 0.0
+	var sec := ceili(soonest) if soonest <= 5.0 else 0
+	if sec > 0 and sec != _buff_tick:
+		Sfx.play_ui("tick", -12.0)
+	_buff_tick = sec
+	_buff_fx.visible = any and not _paused
+	_buff_rows.visible = any and not _paused
+	if any:
+		_buff_rows.queue_redraw()
+
+
+func _draw_buffs() -> void:
+	var pl: Player = world.local_player if world else null
+	if pl == null:
+		return
+	var active: Array = []
+	for kind: String in Pickups.POWERUPS:
+		var left := pl.buff_left(kind)
+		if left > 0.0:
+			active.append([kind, left])
+	active.sort_custom(func(a, b): return a[1] > b[1])
+	var font: Font = UiTheme.FONT
+	var bottom := _buff_rows.size.y - 108.0 # just above the health plate
+	var t := Time.get_ticks_msec() / 1000.0
+	for i in active.size():
+		var kind: String = active[i][0]
+		var left: float = active[i][1]
+		var col := Pickups.color_of(kind)
+		var alpha := 1.0 if left > 3.0 else 0.55 + 0.45 * absf(sin(t * 7.0)) # running out: blink
+		var r := Rect2(Vector2(24, bottom - (i + 1) * 50.0), Vector2(260, 42))
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.08, 0.07, 0.15, 0.78 * alpha)
+		sb.border_color = Color(col, alpha)
+		sb.set_border_width_all(2)
+		sb.set_corner_radius_all(10)
+		_buff_rows.draw_style_box(sb, r)
+		var ic := r.position + Vector2(22, 21)
+		_buff_rows.draw_circle(ic, 15.0, Color(col, alpha))
+		_draw_buff_icon(kind, ic, Color(0.08, 0.07, 0.15, alpha))
+		_buff_rows.draw_string_outline(font, r.position + Vector2(46, 26), Pickups.name_of(kind), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, 4, Color(0.05, 0.03, 0.1, alpha))
+		_buff_rows.draw_string(font, r.position + Vector2(46, 26), Pickups.name_of(kind), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 1, 1, alpha))
+		var secs := "%d s" % ceili(left)
+		_buff_rows.draw_string(font, r.position + Vector2(r.size.x - 12 - font.get_string_size(secs, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x, 26), secs, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(col.lightened(0.3), alpha))
+		var frac := clampf(left / Pickups.duration(kind), 0.0, 1.0)
+		_buff_rows.draw_rect(Rect2(r.position + Vector2(46, 32), Vector2((r.size.x - 58) * frac, 4)), Color(col, alpha))
+
+
+## A little symbol on each boost's badge.
+func _draw_buff_icon(kind: String, c: Vector2, ink: Color) -> void:
+	match kind:
+		"speed":
+			for dx in [-5.0, 3.0]:
+				_buff_rows.draw_polyline(PackedVector2Array([c + Vector2(dx - 3, -7), c + Vector2(dx + 4, 0), c + Vector2(dx - 3, 7)]), ink, 3.0)
+		"super":
+			var pts := PackedVector2Array()
+			for k in 10:
+				var a := -PI * 0.5 + k * PI / 5.0
+				pts.append(c + Vector2(cos(a), sin(a)) * (10.0 if k % 2 == 0 else 4.5))
+			_buff_rows.draw_colored_polygon(pts, ink)
+		"feather":
+			var pts := PackedVector2Array()
+			for k in 16:
+				var a := k * TAU / 16.0
+				pts.append(c + Vector2(cos(a) * 4.0, sin(a) * 10.0).rotated(0.5))
+			_buff_rows.draw_colored_polygon(pts, ink)
+			_buff_rows.draw_line(c + Vector2(-5, 9), c + Vector2(5, -9), Color(1, 1, 1, ink.a), 1.5)
+		"iron":
+			_buff_rows.draw_rect(Rect2(c - Vector2(8, 5), Vector2(16, 11)), ink)
+			_buff_rows.draw_rect(Rect2(c - Vector2(10, 8), Vector2(20, 4)), ink)
 
 
 func _fit_score_plate() -> void:

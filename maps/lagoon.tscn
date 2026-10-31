@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/mapkit/jump_pad.gd" id="7_pad"]
 [ext_resource type="Script" path="res://scripts/mapkit/lift_platform.gd" id="8_lift"]
 [ext_resource type="Script" path="res://scripts/mapkit/hazard_volume.gd" id="9_hazard"]
+[ext_resource type="Script" path="res://scripts/mapkit/pickup_spawn.gd" id="pickup_spawn"]
 
 [node name="Lagoon" type="Node3D"]
 
@@ -505,3 +506,26 @@ position = Vector3(37, 4.2, 0)
 light_color = Color(0.4, 0.55, 1, 1)
 light_energy = 2.5
 omni_range = 12
+
+[node name="Pickup1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 3.0, -9.5)
+script = ExtResource("pickup_spawn")
+kind = "random"
+
+[node name="Pickup2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.0, 0.0, 14.5)
+script = ExtResource("pickup_spawn")
+
+[node name="Pickup3" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.0, 0.0, 14.5)
+script = ExtResource("pickup_spawn")
+
+[node name="Pickup4" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.0, 0.0, -9.5)
+script = ExtResource("pickup_spawn")
+kind = "random"
+
+[node name="Pickup5" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.0, 0.0, -9.5)
+script = ExtResource("pickup_spawn")
+kind = "health_big"
