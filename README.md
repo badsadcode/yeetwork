@@ -113,7 +113,7 @@ and so do burning places (Lagoon has a bonfire). Fire is drawn as soft, glowing 
 flames: one metaball mass hugging the burning thing, see-through in the middle with a
 bright edge, rounded tongues that stretch, curl and pinch off droplets, plus a glowing shell,
 smoke, light and crackle. Burning things hurt players next to them and spread to their
-neighbours; wood burns down into smouldering boards; a burning boom barrel cooks off.
+neighbours; wood burns down into smouldering boards (anything that has burned out stays burnt and won't light again); a burning boom barrel cooks off.
 Players on fire take damage for a few seconds unless they jump into water.
 
 **Weather.** Rain is reusable on any map (`MapSettings → Weather`); the storm adds wind
@@ -255,11 +255,12 @@ weather) now strike real lightning: branching bolts from the clouds to the groun
 up the land, sheet lightning in the clouds, and thunder as late as sound would arrive, a
 crack first when it's close.
 
-**Fire look.** Burning things char dark with glowing ember cracks and flames crawling up
-their faces (3D noise in world space: no seams across faces), flames with real depth wrap
+**Fire look.** Burning things char dark in crisp patches, split by sharp glowing ember cracks
+(3D Voronoi cell borders in world space: no seams across faces), with the odd cell glowing as
+a hot ember and hard-edged licks of flame crawling up their faces; bold flames with real depth wrap
 round their sides and rise over the top, tearing into licking tongues (ray-marched through
-rising 3D noise in a box over the burning thing: hot yellow inside, orange, red at the edges,
-dark smoky tips; the thing hides the flames behind it, and a burning player doesn't see their
+rising 3D noise in a box over the burning thing: a hot core glowing past white (HDR), orange,
+red at the edges, dark smoky tips fading out; the thing hides the flames behind it, and a burning player doesn't see their
 own; 28 / 20 / 12 steps on High / Medium / Low), and embers drift up. Burning props and
 doors wobble like a cartoon while they burn (squash and stretch from their foot, a jiggling
 lean; their meshes only, not their collision). *Graphics details →

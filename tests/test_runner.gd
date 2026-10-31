@@ -383,6 +383,17 @@ func _fire_tests() -> void:
 	var lit_crate: bool = world.is_burning(crate)
 	await ticks(80)
 	check("burning crate burns down", lit_crate and world.get_prop(crate_id) == null, "lit %s, gone %s" % [lit_crate, world.get_prop(crate_id) == null])
+	# Burnt out, it stays burnt: things that have burned don't light again (or a pile of
+	# boards kept lighting each other and filled the fire cap, and nothing else could catch fire).
+	var board: Prop = world.server_spawn_prop("couch", Transform3D(Basis.IDENTITY, Vector3(-46, 0.6, -30))) # (not fragile: stays whole)
+	await ticks(2)
+	world.server_ignite_prop(board, 0.3)
+	var lit_board: bool = world.is_burning(board)
+	await ticks(40)
+	var out: bool = not world.is_burning(board)
+	world.server_ignite_prop(board, 5.0)
+	check("burnt out, it doesn't catch fire again", lit_board and out and not world.is_burning(board), "lit %s, out %s, lit again %s" % [lit_board, out, world.is_burning(board)])
+	world.server_despawn_prop(board)
 
 
 ## Rebinding: swap the mouse buttons, save, reset, load back (a scratch ConfigFile, so the

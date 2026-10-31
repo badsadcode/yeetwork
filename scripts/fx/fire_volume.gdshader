@@ -61,25 +61,28 @@ float flame(vec3 p, float t, out float heat) {
 		vec3 q = (fuel_inv * vec4(p, 1.0)).xyz;
 		env = sd_box(q, fuel_half, corner) - mix(0.02, 0.24, yf);
 	} else {
-		float s = pow(clamp((p.y - fuel_top) / flame_height, 0.0, 1.0), 0.75);
+		float s = max((p.y - fuel_top) / flame_height, 0.0);
 		vec2 hb = (foot.zw - foot.xy) * 0.5;
 		float d2 = sd_rect(p.xz - (foot.xy + foot.zw) * 0.5, hb, corner);
-		env = d2 - mix(0.24, -min(hb.x, hb.y) - 0.1, s);
+		env = d2 - mix(0.24, -min(hb.x, hb.y) - 0.1, pow(min(s, 1.0), 0.75));
+		env += max(s - 0.8, 0.0) * 2.5; // (nothing much past the tips)
 	}
 	env += (1.0 - intensity) * 0.7;
 	if (env > 0.7) {
 		heat = 0.0;
 		return 0.0;
 	}
-	// Noise rising through it: a slow big churn and a quicker finer flicker.
-	vec3 np = vec3(p.x * 0.85, p.y * 0.36 - t * 0.5, p.z * 0.85) + seed;
-	float n = texture(noise3d, np).r * 0.62;
-	n += texture(noise3d, vec3(p.x * 1.9, p.y * 1.25 - t * 1.9, p.z * 1.9) + seed * 1.37 + 0.31).r * 0.38;
+	// Noise rising through it: a slow big churn and a quicker smaller flicker (big, bold
+	// shapes: cartoon flames, not fine wisps).
+	vec3 np = vec3(p.x * 0.55, p.y * 0.26 - t * 0.38, p.z * 0.55) + seed;
+	float n = texture(noise3d, np).r * 0.66;
+	n += texture(noise3d, vec3(p.x * 1.15, p.y * 0.7 - t * 1.1, p.z * 1.15) + seed * 1.37 + 0.31).r * 0.34;
 	n = (n - 0.5) * 2.2; // (the texture's noise sits mostly within 0.3..0.7)
 	float amp = mix(0.3, 0.8, yf);
 	float d = n * amp - env;
 	heat = clamp(0.8 - yf * 1.1 + n * 0.35 + clamp(d, 0.0, 0.3) * 1.1, 0.0, 1.0);
-	return clamp(d * 6.0, 0.0, 1.0);
+	// Crisp edges; and gone before the top of the box (or the tips get cut off flat).
+	return clamp(d * 11.0, 0.0, 1.0) * smoothstep(box_c.y + box_h.y, box_c.y + box_h.y - 0.6, p.y);
 }
 
 void fragment() {
@@ -113,7 +116,7 @@ void fragment() {
 		if (dens > 0.004) {
 			vec3 c = mix(deep_color.rgb, core_color.rgb, smoothstep(0.18, 0.55, heat));
 			c = mix(c, tip_color.rgb, smoothstep(0.62, 0.95, heat));
-			c *= 0.9 + heat * heat * 1.8; // (over 1: it glows)
+			c *= 1.0 + heat * heat * heat * 4.5; // (HDR: the hot core glows; the rest stays coloured)
 			float hot = smoothstep(0.02, 0.2, heat);
 			c = mix(smoke_color.rgb, c, hot);
 			float a = 1.0 - exp(-dens * dt * 5.0);

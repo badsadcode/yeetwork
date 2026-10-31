@@ -258,7 +258,7 @@ func _update_volume() -> void:
 	m.set_shader_parameter("fuel_top", wb.end.y)
 	var grow := 0.6
 	var lo := wb.position - Vector3(grow, 0.05, grow)
-	var hi := wb.end + Vector3(grow, _flame_h + 0.35, grow)
+	var hi := wb.end + Vector3(grow, _flame_h + 0.7, grow)
 	_volume.global_transform = Transform3D(Basis.from_scale(hi - lo), (lo + hi) * 0.5)
 	# Not from inside it (a burning player's own first-person view: flames all over the
 	# screen); their gun's charred glow shows they're burning.
@@ -346,9 +346,9 @@ func _wobble() -> void:
 		return
 	var k := _fade
 	var s := sin(_t * 9.0 + _seed) * 0.6 + sin(_t * 14.3 + _seed * 2.0) * 0.4
-	var sy := 1.0 + s * 0.08 * k
+	var sy := 1.0 + s * 0.04 * k
 	var sxz := 1.0 / sqrt(sy)
-	var lean := Vector2(sin(_t * 6.1 + _seed * 3.0), sin(_t * 5.3 + _seed * 5.0)) * 0.09 * k
+	var lean := Vector2(sin(_t * 6.1 + _seed * 3.0), sin(_t * 5.3 + _seed * 5.0)) * 0.045 * k
 	var b := Basis(Vector3(sxz, 0, 0), Vector3(lean.x, 1.0, lean.y) * sy, Vector3(0, 0, sxz))
 	var foot := Vector3(box.get_center().x, box.position.y, box.get_center().z)
 	var w := Transform3D(b, foot - b * foot)

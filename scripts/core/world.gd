@@ -1710,7 +1710,11 @@ const MAX_FIRES := 16
 const FIRE_DPS := 12.0
 
 
+## (Not once it has burned out: burnt boards lying together used to keep lighting each
+## other forever, holding every fire slot, so nothing else could catch fire.)
 func is_flammable(p: Prop) -> bool:
+	if p.extra.get("burnt", false):
+		return false
 	return p.kind in FLAMMABLE or (p.kind == "shard" and str(p.extra.get("mat", "")) == "wood")
 
 
@@ -1940,6 +1944,7 @@ func _server_fire_tick() -> void:
 		var attacker: int = _burning_props[id][1]
 		if t >= _burning_props[id][0]:
 			_server_put_out(0, id)
+			p.extra["burnt"] = true
 			# Wood burns down and falls apart into smouldering boards (which then just go out).
 			if p.is_fragile() and not p.explosive and p.kind != "shard":
 				server_break_prop(p, Vector3.DOWN * 3.0)
