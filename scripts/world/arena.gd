@@ -366,7 +366,8 @@ func validate() -> Array[String]:
 	var out: Array[String] = []
 	if spawn_points[0].size() < 4:
 		out.append("Only %d 'Any' spawn points (want 4+ for free-for-all)." % spawn_points[0].size())
-	var co_op := map_settings != null and map_settings.puzzle
+	var puzzle_level := map_settings != null and map_settings.puzzle
+	var co_op := puzzle_level or heart != null # (puzzle levels and MegaYeet fortresses: no teams)
 	for t in [1, 2]:
 		if spawn_points[t].is_empty() and not co_op:
 			out.append("No %s spawn points (team modes will use 'Any' spawns)." % Game.TEAM_NAMES[t])
@@ -375,7 +376,7 @@ func validate() -> Array[String]:
 		out.append("CTF needs one Red and one Blue FlagStand.")
 	if sport and (goals.filter(func(g: GoalZone) -> bool: return g.team == 1).size() != 1 or goals.filter(func(g: GoalZone) -> bool: return g.team == 2).size() != 1):
 		out.append("Yeetball needs one Red and one Blue GoalZone (YeetHoops: one Red and one Blue Hoop; YeetVolley: one VolleyNet).")
-	if co_op and not puzzle.any(func(n: PuzzleNode) -> bool: return n is PuzzleExit):
+	if puzzle_level and not puzzle.any(func(n: PuzzleNode) -> bool: return n is PuzzleExit):
 		out.append("A puzzle level needs a PuzzleExit.")
 	var cells := 0
 	for d in destructibles:
