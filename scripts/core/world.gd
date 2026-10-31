@@ -188,6 +188,7 @@ func _spot_free(pos: Vector3, half: Vector3) -> bool:
 
 
 func _build_arena(key: String) -> void:
+	Music.play_match(key)
 	map_key = key
 	arena = Arena.new()
 	add_child(arena)

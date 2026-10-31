@@ -420,7 +420,8 @@ scripts/world/    arena.gd (+ Prime layout), map_facing.gd, destructible.gd, mat
 scripts/mapkit/   the Map Kit's pieces (fixture.gd: set dressing that hums, turns, breaks)
 scripts/modes/    mode_base.gd (sandbox), mode_ctf.gd, mode_dodgeball.gd
 scripts/fx/       effects.gd (blood, decals, explosions, debris), sfx.gd (synthesized sounds),
-                  ambience.gd (the fixtures' looping hums), yeetish.gd (the Yeets' voices)
+                  ambience.gd (the fixtures' looping hums), yeetish.gd (the Yeets' voices),
+                  music.gd (assets/music/ tracks by name, the Music bus)
 scripts/bots/     bot_brain.gd
 scripts/ui/       hud.gd, main_menu.gd, settings_form.gd, ui_theme.gd, character_preview.gd
 tests/            test_runner.gd (gameplay smoke tests)
@@ -581,6 +582,11 @@ as variants). The Yeets shout in Yeetish when things happen to them (hit, launch
 a goal, on fire, "YEET!" on a full throw): placeholder voices until recordings replace them;
 *Options → Yeet voices* turns them off. Every sound's name and the voice list:
 [docs/SOUNDS.md](docs/SOUNDS.md).
+
+**Your own music:** tracks saved into `assets/music/` play by name: `menu.ogg` on the main
+menu, `highseas.ogg` (any map's key) in that map's matches, `match.ogg` in the others
+(`menu_1.ogg`, `menu_2.ogg`... for several). *Options* has **Music** and **Sound effects**
+volumes with on/off switches, and **Match music** to keep music to the menu.
 
 ## Blender
 

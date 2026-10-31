@@ -210,6 +210,7 @@ func show_menu(status: String) -> void:
 		menu.quit_pressed.connect(func(): get_tree().quit())
 	menu.visible = true
 	menu.set_status(status)
+	Music.play_menu()
 
 
 func host() -> void:

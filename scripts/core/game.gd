@@ -80,6 +80,11 @@ var invert_y := false
 var halloween := 1 # 0 = off, 1 = auto (mid October - early November), 2 = always
 var third_person := false
 var master_volume := 0.8
+var music_volume := 0.7 # (the Music bus: assets/music/ tracks)
+var music_on := true
+var sfx_volume := 1.0 # (the SFX bus: every game sound)
+var sfx_on := true
+var match_music := true # music during matches too (a map's track, or `match`), not just the menu
 # Character look (-1 = random). The shirt colour applies in free-for-all modes only.
 var look_hat := -1
 var look_face := 0
@@ -258,6 +263,11 @@ func save_settings() -> void:
 	cfg.set_value("player", "invert_y", invert_y)
 	cfg.set_value("player", "third_person", third_person)
 	cfg.set_value("audio", "volume", master_volume)
+	cfg.set_value("audio", "music_volume", music_volume)
+	cfg.set_value("audio", "music_on", music_on)
+	cfg.set_value("audio", "sfx_volume", sfx_volume)
+	cfg.set_value("audio", "sfx_on", sfx_on)
+	cfg.set_value("audio", "match_music", match_music)
 	cfg.set_value("look", "hat", look_hat)
 	cfg.set_value("look", "face", look_face)
 	cfg.set_value("look", "outfit", look_outfit)
@@ -314,6 +324,11 @@ func load_settings() -> void:
 	invert_y = cfg.get_value("player", "invert_y", invert_y)
 	third_person = cfg.get_value("player", "third_person", third_person)
 	master_volume = cfg.get_value("audio", "volume", master_volume)
+	music_volume = cfg.get_value("audio", "music_volume", music_volume)
+	music_on = cfg.get_value("audio", "music_on", music_on)
+	sfx_volume = cfg.get_value("audio", "sfx_volume", sfx_volume)
+	sfx_on = cfg.get_value("audio", "sfx_on", sfx_on)
+	match_music = cfg.get_value("audio", "match_music", match_music)
 	look_hat = cfg.get_value("look", "hat", look_hat)
 	look_face = cfg.get_value("look", "face", look_face)
 	look_outfit = cfg.get_value("look", "outfit", look_outfit)
@@ -407,6 +422,12 @@ func _find_map_name(n: Node) -> String:
 
 func apply_audio() -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(master_volume, 0.0001)))
+	# (the SFX and Music buses exist once Sfx and Music are up: each calls this then)
+	for b in [["SFX", sfx_volume, sfx_on], ["Music", music_volume, music_on]]:
+		var idx := AudioServer.get_bus_index(b[0])
+		if idx >= 0:
+			AudioServer.set_bus_volume_db(idx, linear_to_db(maxf(b[1], 0.0001)))
+			AudioServer.set_bus_mute(idx, not b[2] or b[1] <= 0.001)
 
 
 ## Should the Halloween theme be used for a match hosted now?

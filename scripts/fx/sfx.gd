@@ -31,6 +31,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_rng.seed = 99
 	_setup_buses()
+	Game.apply_audio() # (its volume and switch, now the bus is there)
 	_add("thud", 0.5, _thud.bind(75.0, 38.0, 9.0))
 	_add("thud_heavy", 1.0, _thud_heavy)
 	_add("land", 0.25, _thud.bind(110.0, 60.0, 18.0))

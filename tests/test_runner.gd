@@ -303,10 +303,55 @@ func _run() -> void:
 	# The Yeets' voices (made on a thread at startup): every kind, with its takes.
 	var missing := Yeetish.KINDS.filter(func(k): return not Sfx._streams.has("voice_" + k))
 	check("Yeetish voices are made", missing.is_empty() and Sfx._streams.voice_yeet.size() >= 1, "missing %s" % [missing])
+	_music_test()
 	_logic_test()
 	_controls_test()
 	await _grapple_test()
 	_map_pack_test()
+
+
+## Music: tracks by name (the menu's, a map's, its variants', any match's), match music off,
+## and the Music and Sound effects switches on their buses.
+func _music_test() -> void:
+	var saved: Dictionary = Music.tracks.duplicate()
+	var was_match := Game.match_music
+	var tone := func() -> AudioStreamWAV:
+		var w := AudioStreamWAV.new()
+		w.format = AudioStreamWAV.FORMAT_16_BITS
+		w.mix_rate = 22050
+		var d := PackedByteArray()
+		d.resize(22050 * 2)
+		w.data = d
+		return w
+	var menu_t: AudioStream = tone.call()
+	var seas_t: AudioStream = tone.call()
+	var any_t: AudioStream = tone.call()
+	Music.tracks = {"menu": [menu_t], "highseas": [seas_t], "match": [any_t]}
+	Music.playing_list = "?" # (whatever played before)
+	Music.play_menu()
+	var on_menu: bool = Music.current() == menu_t
+	Music.play_match("highseas_storm")
+	var on_seas: bool = Music.current() == seas_t
+	Music.play_match("res://maps/pump_house.tscn")
+	var on_any: bool = Music.current() == any_t
+	Game.match_music = false
+	Music.refresh_match()
+	var quiet: bool = Music.playing_list == ""
+	check("music: the menu's, a map's (its variants too), any match's, off in matches", on_menu and on_seas and on_any and quiet, "menu %s, High Seas Storm %s, Pump House %s, off %s" % [on_menu, on_seas, on_any, quiet])
+	Game.match_music = was_match
+	Music.tracks = saved
+	Music.playing_list = "?"
+	Music.play_match(Game.map)
+	var mus := AudioServer.get_bus_index("Music")
+	var sfx := AudioServer.get_bus_index("SFX")
+	Game.music_on = false
+	Game.sfx_on = false
+	Game.apply_audio()
+	var muted := AudioServer.is_bus_mute(mus) and AudioServer.is_bus_mute(sfx)
+	Game.music_on = true
+	Game.sfx_on = true
+	Game.apply_audio()
+	check("music and sound effects switch off and on (their own buses)", mus >= 0 and sfx >= 0 and muted and not AudioServer.is_bus_mute(mus) and not AudioServer.is_bus_mute(sfx), "")
 
 
 ## Ice: Yeets skate (keep their speed with no input), props glide.

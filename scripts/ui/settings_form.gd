@@ -12,9 +12,18 @@ static func build_settings_controls() -> GridContainer:
 	_display_rows(g)
 	_row(g, "Mouse sensitivity", _slider(0.0005, 0.006, 0.0001, Game.mouse_sensitivity, func(v): Game.mouse_sensitivity = v))
 	_row(g, "Field of view", _slider(70.0, 120.0, 1.0, Game.fov, func(v): Game.fov = v))
-	_row(g, "Volume", _slider(0.0, 1.0, 0.01, Game.master_volume, func(v):
+	_row(g, "Master volume", _slider(0.0, 1.0, 0.01, Game.master_volume, func(v):
 		Game.master_volume = v
 		Game.apply_audio()))
+	_row(g, "Music", _switched_slider(Game.music_on, Game.music_volume, func(on): Game.music_on = on, func(v): Game.music_volume = v))
+	_row(g, "Sound effects", _switched_slider(Game.sfx_on, Game.sfx_volume, func(on): Game.sfx_on = on, func(v): Game.sfx_volume = v))
+	var match_music := CheckBox.new()
+	match_music.text = "Music during matches too (not just the menu)"
+	match_music.button_pressed = Game.match_music
+	match_music.toggled.connect(func(on):
+		Game.match_music = on
+		Music.refresh_match())
+	_row(g, "Match music", match_music)
 	var voices := CheckBox.new()
 	voices.text = "Yeets shout (in Yeetish) when things happen to them"
 	voices.button_pressed = Game.yeet_voices
@@ -204,6 +213,28 @@ static func _row(g: GridContainer, text: String, control: Control) -> void:
 	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	control.custom_minimum_size.x = 220
 	g.add_child(control)
+
+
+## An on/off switch and a volume slider side by side (Music, Sound effects).
+static func _switched_slider(on: bool, value: float, set_on: Callable, set_value: Callable) -> HBoxContainer:
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	var check := CheckBox.new()
+	check.text = "On"
+	check.custom_minimum_size.x = 70 # (the slider beside it would squeeze its label)
+	check.button_pressed = on
+	var s := _slider(0.0, 1.0, 0.01, value, func(v):
+		set_value.call(v)
+		Game.apply_audio())
+	s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	s.editable = on
+	check.toggled.connect(func(t):
+		set_on.call(t)
+		s.editable = t
+		Game.apply_audio())
+	box.add_child(check)
+	box.add_child(s)
+	return box
 
 
 static func _slider(min_v: float, max_v: float, step: float, value: float, on_change: Callable) -> HSlider:

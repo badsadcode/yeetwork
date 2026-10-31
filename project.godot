@@ -21,6 +21,7 @@ config/icon="res://icon.svg"
 
 Game="*res://scripts/core/game.gd"
 Sfx="*res://scripts/fx/sfx.gd"
+Music="*res://scripts/fx/music.gd"
 
 [display]
 

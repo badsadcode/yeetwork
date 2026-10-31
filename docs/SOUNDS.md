@@ -19,6 +19,22 @@ To hear a change: from the **Godot editor**, switch to its window (it imports th
 itself) and play (F5). The built `Yeetwork.exe` only has the recordings that were there when
 it was exported: export it again (*Project → Export*), or ask Claude to build it.
 
+## Music
+
+Music works the same way: save tracks into **`assets/music/`** and they play by name.
+
+| You save | It plays |
+|---|---|
+| `menu.ogg` | on the main menu |
+| `menu_1.ogg`, `menu_2.ogg`... | several: one after another, in a shuffled order (a single track loops) |
+| `highseas.ogg`, `pump_house.ogg`, `prime.ogg`... (a map's key) | in that map's matches; a variant uses its map's (`highseas` plays on Storm and Hurricane too) |
+| `match.ogg` | in any match without a track of its own |
+
+- Going from the menu to a match (and back) fades from one to the other.
+- Players have their own **Music** and **Sound effects** volumes, each with an on/off switch,
+  under *Options* (next to the master volume), and **Match music** to keep music to the menu.
+- Make loops seamless for a single track; for .ogg, the game turns looping on by itself.
+
 ## The Yeets' voices (Yeetish)
 
 The Yeets shout when things happen to them, in **Yeetish**: gibberish. For now the voices

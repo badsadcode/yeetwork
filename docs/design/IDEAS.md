@@ -82,7 +82,7 @@ variety, volume and repetition, and the sports sounds.
 Scripted, recorded scenes outside the game (camera moves, directed bots, explosions),
 rendered with Godot's movie writer for a YouTube trailer.
 
-## Music and volume controls (next after High Seas phase 2's turn comes up)
+## Music and volume controls (done: assets/music/ tracks by name, Music and Sound effects sliders with switches, Match music)
 
 Tomek is making music for the menu screen, and maybe ambient tracks. Needed: a music player
 (menu music, optional in-game ambience), and in Options separate volume sliders for

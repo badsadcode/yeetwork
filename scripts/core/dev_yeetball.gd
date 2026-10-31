@@ -157,6 +157,10 @@ func _ready() -> void:
 			victim = q
 			break
 	await _until(func() -> bool: return mode.phase == ModeYeetball.Phase.PLAY, 10.0) # (not mid-kickoff: the ball would be frozen)
+	var brain = victim.bot_brain
+	victim.bot_brain = null # (standing still where the ball comes: a bot could wander off its line)
+	victim.cmd.move = Vector2.ZERO
+	victim.cmd.jump = false
 	victim.respawn(world.arena.ball_spot + Vector3(0, -1.2, 6), 0.0)
 	await _wait(0.4)
 	b.freeze = false
@@ -169,6 +173,7 @@ func _ready() -> void:
 		await _wait(0.05)
 		knocked = knocked or victim.state != 0 or victim.velocity.length() > 6.0
 	_check("knockdown: a fast ball bowls a Yeet over, no damage", knocked and victim.hp >= hp0, "state %d, speed %.1f, hp %d -> %d" % [victim.state, victim.velocity.length(), hp0, victim.hp])
+	victim.bot_brain = brain
 	mode.knockdown = false
 	await _wait(1.5)
 	# TOTAL YEET: multi-ball and barrels; a goal with an extra ball counts.
