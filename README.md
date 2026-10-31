@@ -101,7 +101,8 @@ Liquids have Gerstner waves that roll in irregular sets, foam
 where crests fold over and along shores, sun glints, light glowing through thin crests,
 refraction with depth absorption (red fades first), caustics, and screen-space
 reflections. With your eyes at the surface the view splits above and below the
-waterline. Underwater there is fog, light shafts and Snell's window, and sound is muffled.
+waterline. Underwater there is fog, light shafts, caustics dancing over the floor and walls, Snell's
+window, a gentle wobble and colour fringe on the view (not the HUD), and sound is muffled.
 In pools and flood water you float with your head out (deep enough, the water lifts you off
 the bottom; hold crouch to stay down there), hold jump to swim up and crouch to dive. Wood,
 rubber and soft props float and bob on the waves; metal and stone sink. Big splashes

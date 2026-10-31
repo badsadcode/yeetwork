@@ -115,6 +115,7 @@ var _underwater_liquid: Liquid
 var _was_under := false
 ## Water on the camera lens (local human only).
 var lens: LensDrops
+var _under_lens: UnderwaterLens
 var _trail: CPUParticles3D
 var _eye_height := EYE_STAND
 var _air_time := 0.0
@@ -269,6 +270,8 @@ func _ready() -> void:
 		gun.build_viewmodel(camera)
 		lens = LensDrops.new()
 		add_child(lens)
+		_under_lens = UnderwaterLens.new()
+		add_child(_under_lens)
 		_view_third_person = Game.third_person
 	_net_pos = global_position
 	_update_view_mode()
@@ -1206,6 +1209,7 @@ func _update_underwater() -> void:
 			_underwater_mat.set_shader_parameter("visibility", liq.params.visibility)
 			_underwater_mat.set_shader_parameter("shafts", liq.params.shafts)
 			_underwater_mat.set_shader_parameter("glow_color", liq.params.glow_color)
+			_underwater_mat.set_shader_parameter("caustics", liq.params.get("caustics", 0.0))
 			_underwater_mat.set_shader_parameter("sun_dir", liq.sun_dir())
 			_underwater_mat.set_shader_parameter("shaft_noise", Liquid.shaft_noise())
 			_underwater_mat.set_shader_parameter("shaft_steps", [5, 8, 12][Liquid.water_quality()])
@@ -1213,6 +1217,10 @@ func _update_underwater() -> void:
 		if liq.flood:
 			_underwater_mat.set_shader_parameter("surface_y", liq.height_at(cam_pos.x, cam_pos.z))
 	_underwater.visible = near
+	if _under_lens:
+		# Eased in over the first 15 cm under (with the eyes at the waterline, only the part of
+		# the screen below it is under: no swimming picture there yet).
+		_under_lens.amount = clampf((liq.height_at(cam_pos.x, cam_pos.z) - cam_pos.y) / 0.15, 0.0, 1.0) if under else 0.0
 	Sfx.set_underwater(under)
 	if _was_under and not under and lens and liq and liq.kind == "water":
 		lens.wet(1.0) # surfacing: water runs off the lens
