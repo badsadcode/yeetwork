@@ -156,8 +156,10 @@ func _ready() -> void:
 		if q.is_bot and q.is_alive():
 			victim = q
 			break
+	await _until(func() -> bool: return mode.phase == ModeYeetball.Phase.PLAY, 10.0) # (not mid-kickoff: the ball would be frozen)
 	victim.respawn(world.arena.ball_spot + Vector3(0, -1.2, 6), 0.0)
 	await _wait(0.4)
+	b.freeze = false
 	var hp0 := victim.hp
 	var target := victim.body_center()
 	b.global_position = target + Vector3(0, 0, -5)

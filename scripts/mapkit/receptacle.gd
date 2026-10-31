@@ -22,6 +22,13 @@ extends PuzzleNode
 ## Over the counter, e.g. "FUSES" or "RESCUE" ("" for the kind's name).
 @export var title := ""
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var delivered: Array[int] = [] # prop ids, in slot order (synced as the machine state)
 var _parts: Node3D
 var _slot_mats: Array[StandardMaterial3D] = []
@@ -64,6 +71,7 @@ func _rebuild() -> void:
 	_label.position = Vector3(0, size.y + 0.4, 0)
 	_parts.add_child(_label)
 	_tint()
+	Looks.apply(_parts, MapTheme.pick(self, "receptacle", model), [_label])
 
 
 ## Slot i's spot (this node's space), where the prop's centre goes.

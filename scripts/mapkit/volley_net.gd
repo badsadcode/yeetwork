@@ -16,6 +16,14 @@ extends Node3D
 		net_height = v
 		_rebuild()
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+## A child named "Net" rises with the net (TOTAL YEET). The court lines stay.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var raise := 0.0 # TOTAL YEET: the net climbs a little with every point
 var _parts: Node3D
 var _net: Node3D
@@ -108,6 +116,8 @@ func _rebuild() -> void:
 	cs.shape = bs
 	cs.position = Vector3(0, net_height * 0.5, 0)
 	body.add_child(cs)
+	var look := Looks.apply(_parts, MapTheme.pick(self, "volley_net", model))
+	Looks.attach(look, "Net", _net)
 	# Court lines, and each half faintly tinted in its team's colour.
 	var line := Mats.plastic(Color(1.0, 1.0, 1.0), 0.5, 0.35)
 	var hx := court.x * 0.5

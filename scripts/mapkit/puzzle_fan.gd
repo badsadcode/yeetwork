@@ -52,6 +52,7 @@ func _rebuild() -> void:
 	stream.rotation_degrees = Vector3(90, 0, 0)
 	stream.position = Vector3(0, 0.2, -reach * 0.5)
 	_preview.add_child(stream)
+	Looks.apply(_preview, MapTheme.pick(self, "fan"), [stream])
 
 
 func evaluate() -> bool:

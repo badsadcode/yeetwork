@@ -27,6 +27,14 @@ extends PuzzleNode
 		color = v
 		_rebuild()
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+## A child named "Plank" tips with the plank (the rest stays put).
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 const PLANK_MASS := 40.0
 const THICK := 0.3
 const G := 24.0 # the game's gravity
@@ -89,6 +97,7 @@ func _rebuild() -> void:
 	_body.add_child(PuzzleNode.box_mesh(Vector3(1.4, 0.04, width - 0.1), drop_end, Vector3(length * 0.5 - 0.8, THICK * 0.5 + 0.01, 0)))
 	_body.add_child(PuzzleNode.box_mesh(Vector3(1.4, 0.04, width - 0.1), fly_end, Vector3(-length * 0.5 + 0.8, THICK * 0.5 + 0.01, 0)))
 	_parts.add_child(_body)
+	Looks.attach(Looks.apply(_parts, MapTheme.pick(self, "seesaw", model)), "Plank", _body)
 	_pose()
 
 

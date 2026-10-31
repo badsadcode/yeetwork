@@ -60,6 +60,9 @@ func _rebuild() -> void:
 		_pad.material_override = m
 		_pad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(_pad, false, Node.INTERNAL_MODE_FRONT)
+		var pad := MapTheme.pick(self, "pickup_pad")
+		if pad:
+			add_child(pad.instantiate(), false, Node.INTERNAL_MODE_FRONT) # (the glowing ring stays: it shows what's there)
 	shown_kind = Pickups.RANDOM_PREVIEW if kind == "random" else kind
 	_build_item()
 
@@ -67,7 +70,8 @@ func _rebuild() -> void:
 func _build_item() -> void:
 	if _item:
 		_item.queue_free()
-	_item = Pickups.build_model(shown_kind)
+	var themed := MapTheme.pick(self, "pickup_" + shown_kind)
+	_item = themed.instantiate() as Node3D if themed else Pickups.build_model(shown_kind)
 	_item.position.y = 1.0
 	_item.visible = _available
 	add_child(_item, false, Node.INTERNAL_MODE_FRONT)

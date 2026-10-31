@@ -16,6 +16,13 @@ extends PuzzleNode
 		area_center = v
 		_rebuild()
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var _parts: Node3D
 var _cap: MeshInstance3D
 var _cap_mat: StandardMaterial3D
@@ -80,6 +87,7 @@ func _rebuild() -> void:
 		gm.cull_mode = BaseMaterial3D.CULL_DISABLED
 		_ghost = PuzzleNode.box_mesh(area, gm, area_center)
 		_parts.add_child(_ghost)
+	Looks.apply(_parts, MapTheme.pick(self, "reset_post", model))
 
 
 func _tint() -> void:

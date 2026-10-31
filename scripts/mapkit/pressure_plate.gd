@@ -58,7 +58,8 @@ func _rebuild() -> void:
 	cs.position.y = HEIGHT * 0.5
 	_body.add_child(cs)
 	add_child(_body, false, Node.INTERNAL_MODE_FRONT)
-	_custom = model.instantiate() as Node3D if model else null
+	var look := MapTheme.pick(self, "pressure_plate", model)
+	_custom = look.instantiate() as Node3D if look else null
 	if _custom:
 		# The map's own look: a child named "Plate" (if any) sinks when pressed.
 		add_child(_custom, false, Node.INTERNAL_MODE_FRONT)

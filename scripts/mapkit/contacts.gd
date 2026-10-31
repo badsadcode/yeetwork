@@ -12,6 +12,13 @@ extends PuzzleNode
 		gap = v
 		_rebuild()
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 const PAD := 0.45 # pad radius
 
 var bridged_by := "" # what closes it now (server): "metal", "water", "yeet"
@@ -67,6 +74,7 @@ func _rebuild() -> void:
 		_spark.position.y = 0.15
 		_parts.add_child(_spark)
 	_tint()
+	Looks.apply(_parts, MapTheme.pick(self, "contacts", model))
 
 
 func _tint() -> void:

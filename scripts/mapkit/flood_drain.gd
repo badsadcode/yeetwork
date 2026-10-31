@@ -11,6 +11,13 @@ extends PuzzleNode
 		radius = v
 		_rebuild()
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var _zone: FloodZone
 var _parts: Node3D
 var _swirl: CPUParticles3D
@@ -48,6 +55,7 @@ func _rebuild() -> void:
 		var bar := PuzzleNode.box_mesh(Vector3(radius * 1.7, 0.03, 0.06), dark, Vector3(0, 0.045, (k - 2) * radius * 0.32))
 		_parts.add_child(bar)
 	_tint()
+	Looks.apply(_parts, MapTheme.pick(self, "drain", model))
 	if Engine.is_editor_hint():
 		return
 	_swirl = CPUParticles3D.new()

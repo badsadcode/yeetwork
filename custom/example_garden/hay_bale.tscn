@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=3]
+
+[sub_resource type="BoxMesh" id="bale"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="straw"]
+albedo_color = Color(0.92, 0.78, 0.36, 1)
+roughness = 0.95
+
+[sub_resource type="BoxMesh" id="twine"]
+size = Vector3(0.06, 1.02, 1.02)
+
+[sub_resource type="StandardMaterial3D" id="twine_mat"]
+albedo_color = Color(0.45, 0.3, 0.16, 1)
+roughness = 0.9
+
+[node name="HayBale" type="Node3D"]
+
+[node name="Bale" type="MeshInstance3D" parent="."]
+mesh = SubResource("bale")
+surface_material_override/0 = SubResource("straw")
+
+[node name="Twine1" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 0, 0)
+mesh = SubResource("twine")
+surface_material_override/0 = SubResource("twine_mat")
+
+[node name="Twine2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0, 0)
+mesh = SubResource("twine")
+surface_material_override/0 = SubResource("twine_mat")

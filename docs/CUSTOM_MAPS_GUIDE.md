@@ -199,6 +199,19 @@ And in the game:
 
 ![The mushroom jump pad in the game](images/custom_maps/22_pad.jpg)
 
+### A theme for the whole map
+
+Making a haunted map, a foundry, a beach? Rather than setting the Model slot on every jump
+pad, button and pipe, make a **theme**: right-click your folder > **Create New >
+Resource... > MapTheme**, save it as e.g. `haunted_theme.tres`, and drag your models onto
+its slots (jump pad, button, valve, door... and props: crate, barrel, couch...). Then pick it
+in **MapSettings > Theme**: every piece and prop on the map takes the theme's look (a
+piece's own Model slot still wins). Only the look changes: a themed crate still weighs and
+collides like a crate, so make your models about the built-in size. Moving parts are found
+by name (a button's `Cap`, a valve's `Wheel`...). The slots, sizes and names are listed in
+[MAPPING.md](MAPPING.md), "Themes"; `custom/example_garden/garden_theme.tres` is an example
+(hay bales for crates, a tree stump flag stand).
+
 ## 13. Your own functionality (optional)
 
 You can attach your own scripts to nodes (right-click a node → **Attach Script**) for moving
@@ -256,6 +269,7 @@ a friend who doesn't have it is told which map pack to get.
 | My map isn't in the map list | It needs a **MapSettings** node, and must be saved in `custom/<your_map>/`. A map pack must be in the `maps` folder next to the game (not inside another folder). |
 | The game says the pack is "waiting to be allowed" | It has scripts: click **Allow** on the PLAY page (only for packs you trust). |
 | The export fails | Godot's export templates must be installed (step 0), and `GODOT` must point to your Godot. |
+| A theme model doesn't show | Is the theme picked in MapSettings > Theme, and the piece's own Model slot empty? The theme only fills what the piece doesn't set itself. |
 | Textures or models are missing in the pack | Only what's in your map's folder goes into the pack: keep every texture and model in `custom/<your_map>/`. |
 | Players fall through something | Imported models need collision (step 12). |
 | A warning triangle about "non-uniform scale" on a block | Select the block and do anything (e.g. nudge it): the Map Kit plugin turns the scale into Size. Or set Scale back to 1 and type the Size. |

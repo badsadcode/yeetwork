@@ -10,6 +10,13 @@ extends PuzzleNode
 		size = v
 		_rebuild()
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var _parts: Node3D
 var _glow: StandardMaterial3D
 
@@ -44,6 +51,7 @@ func _rebuild() -> void:
 	sign.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 	_parts.add_child(sign)
 	_tint()
+	Looks.apply(_parts, MapTheme.pick(self, "exit", model))
 
 
 func _tint() -> void:

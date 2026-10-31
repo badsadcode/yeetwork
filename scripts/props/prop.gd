@@ -258,6 +258,24 @@ func _build(def: Dictionary) -> void:
 		mesh.material_override = mat
 	add_child(shape_node)
 	add_child(mesh)
+	_apply_theme(arena, mesh)
+
+
+## The map theme's model for this kind (MapTheme), in place of the built-in look: only the
+## look changes, the collision and weight stay. A fan's "Rotor" keeps turning.
+func _apply_theme(arena, mesh: MeshInstance3D) -> void:
+	var settings = arena.get("map_settings") if arena else null
+	var theme: MapTheme = settings.theme if settings else null
+	var look := theme.prop_model(kind) if theme else null
+	if look == null:
+		return
+	var model := look.instantiate() as Node3D
+	if model == null:
+		return
+	mesh.visible = false
+	add_child(model)
+	if kind == "fan" and Looks.part(model, "Rotor"):
+		_rotor = Looks.part(model, "Rotor")
 
 
 func _build_pumpkin(parent: MeshInstance3D, def: Dictionary) -> void:

@@ -14,6 +14,13 @@ extends PuzzleNode
 		palette = v
 		_rebuild()
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 const BOWL_Y := 1.25 # the bowl's height above the node
 const REACH := 1.1 # fire this close to the bowl lights it
 
@@ -78,6 +85,7 @@ func _rebuild() -> void:
 	coals.position.y = BOWL_Y + 0.08
 	_parts.add_child(coals)
 	_tint()
+	Looks.apply(_parts, MapTheme.pick(self, "beacon", model))
 
 
 func _tint() -> void:

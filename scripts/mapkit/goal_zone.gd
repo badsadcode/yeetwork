@@ -15,6 +15,13 @@ extends Node3D
 		size = v
 		_rebuild()
 
+## Your own model for the frame (a scene: an imported .glb...), instead of the built-in look
+## and the map theme's. The net stays solid where it is.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 const POST := 0.16
 
 var _parts: Node3D
@@ -95,6 +102,7 @@ func _rebuild() -> void:
 		cs.shape = cyl
 		cs.position = Vector3(sx * w * 0.5, h * 0.5, 0)
 		body.add_child(cs)
+	Looks.apply(_parts, MapTheme.pick(self, "goal", model))
 
 
 ## Is a ball of radius r at p all the way in?

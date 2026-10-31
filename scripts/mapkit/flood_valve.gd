@@ -10,10 +10,19 @@ extends PuzzleNode
 @export_range(0.0, 2000.0, 1.0) var total := 0.0
 @export_range(0.2, 3.0, 0.1) var radius := 0.6
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+## A child named "Wheel" turns while it pours.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var poured := 0.0 # host
 var _zone: FloodZone
 var _parts: Node3D
 var _stream: CPUParticles3D
+var _wheel: Node3D # the model's "Wheel", turning while it pours
 var _splash: CPUParticles3D
 var _sound_t := 0.0
 
@@ -48,6 +57,7 @@ func _rebuild() -> void:
 	lip.material_override = metal
 	lip.position.y = -0.1
 	_parts.add_child(lip)
+	_wheel = Looks.part(Looks.apply(_parts, MapTheme.pick(self, "valve", model)), "Wheel")
 	if Engine.is_editor_hint():
 		return
 	# The falling water: a column of streaks, and spray where it lands.
@@ -131,6 +141,8 @@ func _state_changed(play_fx: bool) -> void:
 func _process(delta: float) -> void:
 	if Engine.is_editor_hint() or _stream == null or not active:
 		return
+	if _wheel:
+		_wheel.rotate_object_local(Vector3.FORWARD, delta * 4.0)
 	# The stream falls to the water (or the floor) below.
 	var below := global_position.y - 6.0
 	if _zone:

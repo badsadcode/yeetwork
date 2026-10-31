@@ -245,6 +245,13 @@ a countdown, and has its own screen effect (speed lines, an orange glow, a cyan 
 steel rim); its last 5 seconds tick quietly. Dying ends them. *Pickups* in the menu: first
 aid and power-ups, first aid only, or none. Maps place them with **PickupSpawn**.
 
+**Map themes.** A **MapTheme** gives a map's pieces and props their look in one file: a
+model for each kind of piece (jump pads, buttons, valves, doors, goals, hoops, pickups...)
+and each prop (crates, barrels, couches...), picked in MapSettings. Only the look changes,
+so gameplay stays the same; moving parts come from the model by name (a button's `Cap`, a
+valve's `Wheel`...). Every piece also has a Model slot of its own, which wins over the theme.
+See [docs/MAPPING.md](docs/MAPPING.md), "Themes".
+
 **Spooky mode.** During Halloween season (Oct 15 - Nov 3), when set to *Always* in the
 menu, or in Pumpkin Smash, every map gets:
 - Purple dusk lighting with an orange horizon, a big moon, thick fog and circling bats.
@@ -390,6 +397,10 @@ godot --headless --path . -- --host --map test_chambers --mode puzzle --tour x -
 godot --headless --path . -- --host --map warehouse --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map pump_house --mode puzzle --tour x --tour-mode puzzle
 godot --headless --path . -- --host --map scrapyard --mode puzzle --tour x --tour-mode puzzle
+
+# Map themes: the example garden's theme on its pieces and props, own models first,
+# built-in looks hidden, named moving parts, themed pickups
+godot --headless --path . -- --host --map res://custom/example_garden/example_garden.tscn --mode sandbox --bots 0 --tour x --tour-mode themes
 
 # Pickups: first aid heals and comes back, every power-up measured on a bot, the HUD,
 # a hurt bot fetching first aid, the host's "no pickups" setting

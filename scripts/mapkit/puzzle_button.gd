@@ -59,7 +59,8 @@ func _rebuild() -> void:
 	cs.position.y = 0.06
 	body.add_child(cs)
 	_parts.add_child(body)
-	var custom: Node3D = model.instantiate() as Node3D if model else null
+	var look := MapTheme.pick(self, "button", model)
+	var custom: Node3D = look.instantiate() as Node3D if look else null
 	if custom:
 		# The map's own look: a child named "Cap" (if any) moves down when pressed.
 		_parts.add_child(custom)

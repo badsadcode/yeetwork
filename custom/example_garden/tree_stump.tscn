@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3]
+
+[sub_resource type="CylinderMesh" id="trunk"]
+top_radius = 1.35
+bottom_radius = 1.6
+height = 0.4
+radial_segments = 20
+
+[sub_resource type="StandardMaterial3D" id="bark"]
+albedo_color = Color(0.4, 0.27, 0.16, 1)
+roughness = 0.95
+
+[sub_resource type="CylinderMesh" id="rings"]
+top_radius = 1.25
+bottom_radius = 1.25
+height = 0.02
+radial_segments = 20
+
+[sub_resource type="StandardMaterial3D" id="wood"]
+albedo_color = Color(0.85, 0.68, 0.45, 1)
+roughness = 0.8
+
+[node name="TreeStump" type="Node3D"]
+
+[node name="Trunk" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+mesh = SubResource("trunk")
+surface_material_override/0 = SubResource("bark")
+
+[node name="Top" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.41, 0)
+mesh = SubResource("rings")
+surface_material_override/0 = SubResource("wood")

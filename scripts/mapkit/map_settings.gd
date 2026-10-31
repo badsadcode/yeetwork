@@ -7,6 +7,12 @@ extends Node
 @export var map_name := "Untitled Arena"
 @export var author := ""
 @export_multiline var description := ""
+## The map's look for its pieces and props: a MapTheme file (haunted, foundry, beach...).
+## Empty: the built-in look. A piece's own Model slot still wins over the theme.
+@export var theme: MapTheme:
+	set(v):
+		theme = v
+		retheme()
 ## Environment: sky, light, haze, distant scenery and clouds. sunset, day, tropical
 ## (islands), desert (mesas, dunes), snow (peaks, pines), volcano (red sky, ash, a glowing
 ## volcano), storm (dark slate sky, low clouds), night or space.
@@ -84,6 +90,23 @@ func _playtest(path: String) -> void:
 
 
 ## In the editor, show the lighting preset unless the map brings its own environment.
+## In the editor: the map's pieces take the theme's models now (the game reads it on load).
+func retheme() -> void:
+	if not Engine.is_editor_hint() or not is_inside_tree():
+		return
+	var root := owner if owner else get_parent()
+	if root:
+		_retheme(root)
+
+
+func _retheme(n: Node) -> void:
+	for c in n.get_children():
+		var s: Script = c.get_script()
+		if s and s.resource_path.begins_with("res://scripts/mapkit/") and c.has_method("_rebuild"):
+			c.call_deferred("_rebuild")
+		_retheme(c)
+
+
 func _refresh_preview() -> void:
 	if not Engine.is_editor_hint() or not is_inside_tree():
 		return

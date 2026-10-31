@@ -5,10 +5,27 @@ extends Node3D
 ## only takes hold on these (and on props and friends); aiming near one is enough.
 ## Hang them from ceilings, beams and ledge edges.
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var _parts: Node3D
 
 
 func _ready() -> void:
+	_rebuild()
+	if not Engine.is_editor_hint():
+		add_to_group("grapple_points")
+
+
+func _rebuild() -> void:
+	if not is_inside_tree():
+		return
+	if _parts:
+		_parts.queue_free()
 	_parts = Node3D.new()
 	add_child(_parts, false, Node.INTERNAL_MODE_FRONT)
 	var ring := MeshInstance3D.new()
@@ -28,5 +45,4 @@ func _ready() -> void:
 	mount.position.y = 0.55
 	mount.material_override = Mats.plastic(Color(0.35, 0.37, 0.42), 0.4)
 	_parts.add_child(mount)
-	if not Engine.is_editor_hint():
-		add_to_group("grapple_points")
+	Looks.apply(_parts, MapTheme.pick(self, "grapple_point", model))

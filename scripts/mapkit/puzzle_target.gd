@@ -14,6 +14,13 @@ extends PuzzleNode
 @export_range(0.0, 40.0, 0.5) var min_speed := 5.0
 @export_range(0.0, 120.0, 0.5) var stay_on := 4.0
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var _parts: Node3D
 var _ring_mats: Array[StandardMaterial3D] = []
 var _on_until := -1.0
@@ -60,6 +67,7 @@ func _rebuild() -> void:
 		mi.rotation_degrees = Vector3(90, 0, 0)
 		_parts.add_child(mi)
 	_tint()
+	Looks.apply(_parts, MapTheme.pick(self, "target", model))
 
 
 func _tint() -> void:

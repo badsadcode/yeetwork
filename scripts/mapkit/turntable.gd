@@ -20,6 +20,13 @@ extends PuzzleNode
 		color = v
 		_rebuild()
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var angle := 0.0
 var _target := 0.0
 var _body: AnimatableBody3D
@@ -73,6 +80,7 @@ func _rebuild() -> void:
 	rim.material_override = _rim_mat
 	_body.add_child(rim)
 	add_child(_body, false, Node.INTERNAL_MODE_FRONT)
+	Looks.apply(_body, MapTheme.pick(self, "turntable", model))
 	_tint()
 
 

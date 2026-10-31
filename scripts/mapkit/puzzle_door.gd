@@ -55,7 +55,8 @@ func _rebuild() -> void:
 	bs.size = size
 	cs.shape = bs
 	_body.add_child(cs)
-	var custom: Node = model.instantiate() if model else null
+	var look := MapTheme.pick(self, "door", model)
+	var custom: Node = look.instantiate() if look else null
 	if custom:
 		_body.add_child(custom)
 		add_child(_body, false, Node.INTERNAL_MODE_FRONT)

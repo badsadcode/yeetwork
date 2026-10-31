@@ -10,9 +10,17 @@ extends PuzzleNode
 		level = v
 		_rebuild()
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+## A child named "Float" rides up and down on the water.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var _zone: FloodZone
 var _parts: Node3D
-var _ball: MeshInstance3D
+var _ball: Node3D
 var _lamp_mat: StandardMaterial3D
 var _ride := 0.0
 
@@ -52,6 +60,9 @@ func _rebuild() -> void:
 	_ball.position.y = 0.25
 	_parts.add_child(_ball)
 	_tint()
+	var look := Looks.apply(_parts, MapTheme.pick(self, "float_switch", model))
+	if Looks.part(look, "Float"):
+		_ball = Looks.part(look, "Float")
 
 
 func _tint() -> void:

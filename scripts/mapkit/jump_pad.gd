@@ -60,8 +60,9 @@ func _rebuild() -> void:
 	if _model:
 		_model.queue_free()
 		_model = null
-	if model:
-		_model = model.instantiate() as Node3D
+	var look := MapTheme.pick(self, "jump_pad", model)
+	if look:
+		_model = look.instantiate() as Node3D
 		if _model:
 			add_child(_model, false, Node.INTERNAL_MODE_FRONT)
 	if _preview == null:

@@ -9,6 +9,13 @@ extends PuzzleNode
 		radius = v
 		_rebuild()
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var _ring_mat: StandardMaterial3D
 var _parts: Node3D
 
@@ -39,6 +46,7 @@ func _rebuild() -> void:
 	var flag := PuzzleNode.box_mesh(Vector3(0.9, 0.55, 0.04), _ring_mat, Vector3(0.48, 2.25, 0))
 	_parts.add_child(flag)
 	_tint()
+	Looks.apply(_parts, MapTheme.pick(self, "checkpoint", model))
 
 
 func _tint() -> void:

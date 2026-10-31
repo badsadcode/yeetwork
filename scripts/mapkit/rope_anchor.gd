@@ -17,6 +17,13 @@ extends PuzzleNode
 		_rebuild()
 @export var burnable := true
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 const BURN_TIME := 1.0
 
 var cut := false
@@ -24,6 +31,7 @@ var _burn := 0.0
 var _prop_id := -1
 var _rope: RopeLine
 var _preview: Node3D
+var _mount: Node3D
 
 
 func _ready() -> void:
@@ -31,12 +39,24 @@ func _ready() -> void:
 	if not Engine.is_editor_hint():
 		_rope = RopeLine.new()
 		add_child(_rope)
-	var mount := PuzzleNode.box_mesh(Vector3(0.4, 0.15, 0.4), Mats.plastic(Color(0.35, 0.37, 0.42), 0.4))
-	add_child(mount, false, Node.INTERNAL_MODE_FRONT)
+	_build_mount()
+
+
+func _build_mount() -> void:
+	if _mount:
+		_mount.queue_free()
+	_mount = Node3D.new()
+	add_child(_mount, false, Node.INTERNAL_MODE_FRONT)
+	_mount.add_child(PuzzleNode.box_mesh(Vector3(0.4, 0.15, 0.4), Mats.plastic(Color(0.35, 0.37, 0.42), 0.4)))
+	Looks.apply(_mount, MapTheme.pick(self, "rope_anchor", model))
 
 
 func _rebuild() -> void:
-	if not Engine.is_editor_hint() or not is_inside_tree():
+	if not is_inside_tree():
+		return
+	if _mount:
+		_build_mount()
+	if not Engine.is_editor_hint():
 		return
 	if _preview:
 		_preview.queue_free()

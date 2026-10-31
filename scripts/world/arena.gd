@@ -193,9 +193,17 @@ func lift(a: Vector3, b: Vector3, period: float, phase: float, size := Vector3(3
 
 
 ## Glowing team pedestal + flag base registration for Capture the Flag.
-func flag_stand(team: int, stand: Vector3) -> void:
+func flag_stand(team: int, stand: Vector3, model: PackedScene = null) -> void:
 	var tc := Game.team_color(team)
 	flag_stands[team] = stand + Vector3(0, 0.4, 0)
+	if model:
+		# A themed stand: the model at the spot (the flag sits 0.4 m up), the team light.
+		var inst := model.instantiate() as Node3D
+		inst.position = stand
+		add_child(inst)
+		inst.set_meta("mk", {"type": "flag", "team": team, "stand": stand})
+		light(stand + Vector3(0, 3, 0), tc, 10.0, 2.5).set_meta("mk_part", true)
+		return
 	var ped := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
 	cm.top_radius = 1.4
@@ -300,16 +308,16 @@ func _collect(n: Node) -> void:
 	elif n is SpawnPoint:
 		spawn_points[(n as SpawnPoint).team].append((n as Node3D).global_position + Vector3.UP * 0.2)
 	elif n is FlagStand:
-		flag_stand((n as FlagStand).team_id(), (n as Node3D).global_position)
+		flag_stand((n as FlagStand).team_id(), (n as Node3D).global_position, MapTheme.pick(n, "flag_stand"))
 	elif n is PropSpawn:
 		var ps := n as PropSpawn
 		initial_props.append([ps.kind, Transform3D(ps.global_transform.basis.orthonormalized(), ps.global_position), ps.key_prop])
 	elif n is JumpPadNode:
 		var jp := n as JumpPadNode
-		jump_pad(jp.global_position, jp.launch_velocity(), jp.model, jp.global_transform.basis.orthonormalized())
+		jump_pad(jp.global_position, jp.launch_velocity(), MapTheme.pick(jp, "jump_pad", jp.model), jp.global_transform.basis.orthonormalized())
 	elif n is LiftPlatform:
 		var lp := n as LiftPlatform
-		lift(lp.global_position, lp.global_position + lp.global_transform.basis * lp.travel, lp.period, lp.phase, lp.size, lp.model)
+		lift(lp.global_position, lp.global_position + lp.global_transform.basis * lp.travel, lp.period, lp.phase, lp.size, MapTheme.pick(lp, "lift", lp.model))
 	elif n is HazardVolume:
 		var hv := n as HazardVolume
 		hazard(hv.kind, Transform3D(hv.global_transform.basis.orthonormalized(), hv.global_position), hv.size, hv.damage, hv.wind, hv.fire_color)

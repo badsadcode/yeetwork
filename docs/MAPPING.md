@@ -308,6 +308,62 @@ electricity.
 
 ---
 
+### Themes (a look for a whole map)
+A **MapTheme** gives every piece and prop on a map the look of its theme (haunted, foundry,
+beach...) in one place. Make one: right-click a folder in the FileSystem > **Create New >
+Resource... > MapTheme**, save it (e.g. `custom/my_map/haunted_theme.tres`), then drag your
+models (`.glb`, `.gltf`, `.blend`, `.fbx` or a `.tscn`) onto its slots. Pick it in
+**MapSettings > Theme**. The same theme file can serve many maps.
+
+- **Which look wins**: a piece's own **Model** slot, then the theme's slot for that kind,
+  then the built-in look (an empty slot keeps it).
+- **Only the look changes.** Pieces work exactly the same, keep their collision and size;
+  props weigh and collide the same (a themed crate is still a 1 m box to the game), so make
+  your model about the size given below, its origin where the piece's node is.
+- Lights, sounds and the effects that tell players something stay: a valve's stream, a
+  drain's swirl, a magnet's field, a contacts' sparks, the beacon's fire, a receptacle's
+  count, a hoop's three-point arc, the volleyball court lines, a pickup's glowing ring, the
+  pulley's wheels.
+- In the editor, the map re-skins as soon as you change the theme or drop a model on one
+  of its slots. `custom/example_garden/garden_theme.tres` is an example: a mushroom jump pad,
+  hay bales for crates and a tree stump flag stand.
+
+**Moving parts** are found by name in your model (any depth):
+
+| Slot | Name a child... | ...and it |
+|---|---|---|
+| button | `Cap` | moves down when pressed |
+| pressure_plate | `Plate` | sinks when weighed down |
+| valve | `Wheel` | turns while water pours |
+| float_switch | `Float` | rides up and down on the water |
+| seesaw | `Plank` | tips with the plank (the rest stays put) |
+| volley_net | `Net` | rises with the net (TOTAL YEET) |
+| fan (prop) | `Rotor` | spins |
+| door | (the whole model) | slides open like the built-in door |
+| turntable, lift | (the whole model) | turns / rides along |
+
+**Slots**: *Movement* jump_pad, lift, grapple_point, rope_anchor. *Puzzle pieces* button,
+pressure_plate, door, target, receptacle, exit, checkpoint, reset_post, seesaw, turntable,
+pulley, magnet. *Water, fire, power* valve, drain, float_switch, beacon, contacts. *Modes*
+flag_stand, goal (the frame; the net stays solid), hoop (the arc stays), volley_net.
+*Pickups* pickup_pad (added around the glowing ring) and one item per kind
+(pickup_health, pickup_health_big, pickup_speed, pickup_super, pickup_feather, pickup_iron).
+*Props* (sizes in metres; spheres and cylinders give the radius):
+
+| Prop | Size | Prop | Size |
+|---|---|---|---|
+| crate | box 1 x 1 x 1 | crate_big | box 1.7 x 1.7 x 1.7 |
+| barrel, boom_barrel | cylinder r 0.42, h 1.15 | tire | cylinder r 0.6, h 0.38 |
+| ball | sphere r 0.36 | beachball | sphere r 0.95 |
+| anvil | box 0.55 x 0.5 x 1.0 | plank | box 3.2 x 0.16 x 0.55 |
+| couch | 2.0 x 0.9 x 0.95 | cone | cone r 0.3, h 0.8 |
+| boulder | sphere r 0.55 | pumpkin | r 0.46, h 0.4 |
+| gravestone | 0.8 x 1.1 x 0.25 | coffin | 0.9 x 1.8 x 0.45 |
+| battery | box 0.5 x 0.7 x 0.5 | fuse | cylinder r 0.22, h 0.62 |
+| fan | 1.5 x 1.7 x 0.8 | flag | pole 2.4 tall |
+| yeetball | sphere r 0.7 | basketball | sphere r 0.32 |
+| volleyball | sphere r 0.5 | | |
+
 ### Selecting pieces in the 3D view
 The Map Kit's pieces draw themselves with internal meshes (not saved in the map), which
 Godot doesn't pick when you click. The **Yeetwork Map Kit** editor plugin

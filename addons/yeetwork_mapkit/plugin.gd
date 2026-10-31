@@ -6,9 +6,12 @@ extends EditorPlugin
 ## - Resize boxes (blocks, hazard volumes, doors, lifts) with the handles on their faces.
 ## - Or with the Scale tool (R): when you let go, the scale becomes the piece's Size (a scaled
 ##   physics body misbehaves; Godot warns about it) and the scale goes back to 1.
+## - Edits to the open map's MapTheme show on its pieces straight away.
 
 var _gizmos: EditorNode3DGizmoPlugin
 var _baking := false
+var _theme_seen := 0 # the open map's theme, hashed (edits to it re-skin the map)
+var _theme_clock := 0.0
 
 
 func _enter_tree() -> void:
@@ -61,6 +64,28 @@ func _bake_scales() -> void:
 		ur.add_undo_method(n, "update_gizmos")
 	ur.commit_action()
 	_baking = false
+
+
+## Edits to the open map's MapTheme (a model dropped on a slot) show at once: resources don't
+## say when they change, so the theme is checked twice a second.
+func _process(delta: float) -> void:
+	_theme_clock += delta
+	if _theme_clock < 0.5:
+		return
+	_theme_clock = 0.0
+	var root := EditorInterface.get_edited_scene_root()
+	var settings := MapTheme._find_settings(root) if root else null
+	var theme: MapTheme = settings.theme if settings else null
+	var h := 0
+	if theme:
+		var values := []
+		for p in theme.get_property_list():
+			if p.usage & PROPERTY_USAGE_STORAGE:
+				values.append(theme.get(p.name))
+		h = hash(values)
+	if h != _theme_seen and _theme_seen != 0 and settings:
+		settings.retheme()
+	_theme_seen = h
 
 
 func _is_mapkit(n: Node) -> bool:

@@ -13,14 +13,16 @@
 [ext_resource type="Material" path="res://custom/example_garden/wood.tres" id="wood"]
 [ext_resource type="PackedScene" path="res://custom/example_garden/mushroom_pad.tscn" id="mushroom"]
 [ext_resource type="PackedScene" path="res://custom/example_garden/wooden_gate.tscn" id="gate"]
+[ext_resource type="Resource" path="res://custom/example_garden/garden_theme.tres" id="theme"]
 
 [node name="ExampleGarden" type="Node3D"]
 
 [node name="MapSettings" type="Node" parent="."]
 script = ExtResource("settings")
+theme = ExtResource("theme")
 map_name = "Example Garden"
 author = "Yeetwork Map Kit"
-description = "An example custom map: textured blocks (custom_material), a mushroom jump pad and a wooden gate (model)."
+description = "An example custom map: textured blocks (custom_material), a wooden gate (model), and a theme: a mushroom jump pad, hay bales for crates, a tree stump flag stand."
 sky = "day"
 kill_height = -20.0
 playtest_mode = 0

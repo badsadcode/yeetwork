@@ -17,6 +17,13 @@ extends PuzzleNode
 		radius = v
 		_rebuild()
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 var _parts: Node3D
 var _face_mat: StandardMaterial3D
 var _field: CPUParticles3D
@@ -107,6 +114,7 @@ func _rebuild() -> void:
 		_field.mesh = sm
 		_parts.add_child(_field)
 	_tint()
+	Looks.apply(_parts, MapTheme.pick(self, "magnet", model))
 
 
 func _tint() -> void:

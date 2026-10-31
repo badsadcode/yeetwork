@@ -93,6 +93,7 @@ func _rebuild() -> void:
 	sock.position = Vector3(0, RIM_HEIGHT - 0.3, 0)
 	sock.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_parts.add_child(sock)
+	Looks.apply(_parts, MapTheme.pick(self, "hoop", model)) # (the arc below stays)
 	# The three-point arc on the floor (a half circle out toward the court).
 	var arc := StandardMaterial3D.new()
 	arc.albedo_color = Color(tc.r, tc.g, tc.b, 0.75)

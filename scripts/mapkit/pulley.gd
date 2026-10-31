@@ -21,6 +21,13 @@ extends PuzzleNode
 		drop_b = v
 		_rebuild()
 
+## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
+## the map theme's.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+
 const MIN_DROP := 1.2 # a platform can't come closer to its wheel than this
 const PLAYER_MASS := 70.0
 const MAX_SPEED := 4.0
@@ -74,6 +81,7 @@ func _rebuild() -> void:
 			r.set_color(Color(0.3, 0.3, 0.33))
 			_parts.add_child(r)
 			_ropes.append(r)
+	Looks.apply(_parts, MapTheme.pick(self, "pulley", model), _wheels)
 
 
 func wheel(side: int) -> Vector3:
