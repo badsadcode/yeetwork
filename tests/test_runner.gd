@@ -393,7 +393,23 @@ func _fire_tests() -> void:
 	var out: bool = not world.is_burning(board)
 	world.server_ignite_prop(board, 5.0)
 	check("burnt out, it doesn't catch fire again", lit_board and out and not world.is_burning(board), "lit %s, out %s, lit again %s" % [lit_board, out, world.is_burning(board)])
+	# ...but a map prop that comes back after it's gone comes back new, and burns again.
+	board.set_meta("map_prop", true)
+	world._queue_restock(board, 0.0)
 	world.server_despawn_prop(board)
+	var back: Prop = null
+	var before: Array = world.props.keys()
+	world._restock_now(world._restock.size() - 1)
+	for id in world.props.keys():
+		if not id in before:
+			back = world.props[id]
+	await ticks(2)
+	if back:
+		world.server_ignite_prop(back, 0.5)
+	check("a map prop that comes back burns again", back != null and world.is_burning(back), "back %s, burning %s" % [back != null, back != null and world.is_burning(back)])
+	if back:
+		world._server_put_out(0, back.prop_id)
+		world.server_despawn_prop(back)
 
 
 ## Rebinding: swap the mouse buttons, save, reset, load back (a scratch ConfigFile, so the

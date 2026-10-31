@@ -2014,7 +2014,9 @@ func _queue_restock(p: Prop, delay: float) -> void:
 	if not p.has_meta("map_prop"):
 		return
 	var key := p.has_meta("key_prop")
-	_restock.append([now() + (2.5 if key else delay), p.kind, p.home_transform, key, p.extra])
+	var extra := p.extra.duplicate()
+	extra.erase("burnt") # (it comes back new: it can burn again)
+	_restock.append([now() + (2.5 if key else delay), p.kind, p.home_transform, key, extra])
 
 
 func _restock_now(i: int) -> void:
@@ -2045,6 +2047,7 @@ func server_reset_area(xf: Transform3D, size: Vector3) -> int:
 				holder.gun.release(false)
 		if _burning_props.has(p.prop_id):
 			_server_put_out(0, p.prop_id)
+		p.extra.erase("burnt") # (back as new)
 		server_fx("spawn", p.global_position, Vector3.UP, 0.6)
 		p.freeze = false
 		p.global_transform = arena.xf_world(p.home_transform)
