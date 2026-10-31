@@ -378,6 +378,15 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
   60), **First Break** and **Break Time** (seconds, 12 and 25), **Wave Size** (times the
   usual: 24 in wave 1, ten more each wave) and **Max Monsters** (at once, 220; fewer for the
   Steam Deck).
+- **TrapSpot**: a place for a trap (a box, **Size**, its bottom on the node), built between
+  waves by a player with Use, paid out of the Fortress meter (**Cost**; 0: the usual).
+  **Kind**: `spikes` (monsters crossing are hurt and slowed), `fire` (a burning grate: they
+  catch fire), `mine` (blows up under the first monsters, then it's gone: build it again).
+  Built traps last until the fortress falls. Put them where monsters will come: behind a
+  gate, in a passage. Not built, a faint outline shows where it goes.
+- Between waves players also **repair gates** (Use on a broken one; the more is gone, the
+  more it costs) and buy **team upgrades** at the Heart (Use on it: Mighty pushes, Thick
+  skin, Quick return, in that order). Spending never takes the meter below a tenth of it.
 - **Gates**: any BreakableSlab. Its **material** and **Hp Scale** (toughness: 0.5 half as
   tough, 10 ten times) set how long it holds against monsters battering it; brutes hit
   hardest, bombers blow holes in it.

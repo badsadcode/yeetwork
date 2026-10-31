@@ -10,10 +10,13 @@ extends ModeBase
 ## game puts a Heart amid the spawn points, rings of zones round it and rifts far out
 ## (prepare_arena, every peer). Waves mix the kinds of monster as they go on (KIND_MIX, brutes
 ## a few a wave from wave 3), each announced the first time it comes, with how to beat it.
+## The breaks between waves are for spending the meter (buy): repairing gates (MegaYeetGate),
+## building traps (TrapSpot), team upgrades at the Heart (MegaYeetUpgrades, UPGRADES); never
+## below a tenth of it, and only between waves.
 
 ## (fallbacks with no Heart yet; a FortressHeart sets them: its MegaYeet Rules)
 const METER := 1000.0
-const STYLE := ["fall", "crushed", "drowned", "lava", "acid", "bowled", "wall", "fire", "light", "bomb"]
+const STYLE := ["fall", "crushed", "drowned", "lava", "acid", "bowled", "wall", "fire", "light", "bomb", "spikes"]
 const FIRST_BREAK := 12.0
 const OVER_TIME := 12.0
 const RINGS := [32.0, 18.0, 8.0] # (automatic zones' radii, outer to inner)
@@ -21,6 +24,13 @@ const COMBOS := [[3, "TRIPLE SPLAT", 10.0], [5, "MONSTER MASH", 20.0], [10, "MEG
 ## [kind, from wave, share of the wave]; the rest are shamblers.
 const KIND_MIX := [["runner", 2, 0.18], ["bomber", 2, 0.07], ["climber", 4, 0.14], ["ghost", 5, 0.1]]
 const BRUTES_FROM := 3
+## Team upgrades at the Heart, bought in this order: [name, cost, what it does].
+const UPGRADES := [
+	["Mighty pushes", 150, "Everyone's pushes and throws 30% stronger"],
+	["Thick skin", 200, "Monster bites hurt 35% less"],
+	["Quick return", 120, "Back in the fight twice as fast"],
+]
+const KEEP := 0.1 # (spending never takes the meter below this much of it)
 const ANNOUNCE := {
 	"runner": "RUNNERS!  Fast, but they fall apart",
 	"bomber": "BOMBERS!  Keep them off the gates, or throw them into the crowd",
@@ -42,6 +52,8 @@ var phase_end := 0.0
 var started := 0.0
 var kills := 0
 var heart_hits := 0
+var ups := 0 # team upgrades bought
+var _broke_msg := 0.0
 var _to_spawn := 0
 var _spawn_gap := 1.0
 var _spawn_t := 0.0
@@ -87,6 +99,20 @@ static func prepare_arena(a: Arena) -> void:
 		a.add_child(h)
 		a.heart = h
 	a.all_flashlights = true # (light burns ghosts)
+	# Between waves: a repair point on every breakable wall, team upgrades at the Heart.
+	var helpers: Array[PuzzleNode] = []
+	for d in a.destructibles:
+		var g := MegaYeetGate.new()
+		g.wall = d
+		helpers.append(g)
+	var up := MegaYeetUpgrades.new()
+	up.heart = a.heart
+	helpers.append(up)
+	for n in helpers:
+		n.world = a.world
+		n.puzzle_index = a.puzzle.size()
+		a.puzzle.append(n)
+		a.add_child(n)
 	if a.defense_zones.is_empty():
 		for i in RINGS.size():
 			var z := DefenseZone.new()
@@ -351,17 +377,62 @@ func _restart() -> void:
 	wave = 0
 	kills = 0
 	_seen.clear()
+	ups = 0
+	for n in world.arena.puzzle:
+		if n is TrapSpot:
+			(n as TrapSpot).server_clear()
 	started = world.now()
 	phase = Phase.BREAK
 	phase_end = world.now() + heart.first_break
 	world.server_message("The fortress stands again. Get ready!", Color(0.6, 0.9, 1.0), true)
 
 
+## Server: a Yeet spends `cost` of the Fortress meter on something (between waves, and not
+## below KEEP of it). True when it's paid; everyone's told what was bought.
+func buy(pl: Player, cost: float, what: String) -> bool:
+	if phase != Phase.BREAK:
+		return false
+	var floor := max_meter * KEEP
+	if meter - cost < floor:
+		var now: float = world.now()
+		if now - _broke_msg > 2.0:
+			_broke_msg = now
+			world.server_message("Not enough in the Fortress meter: %d needed, %d kept back" % [int(cost), int(floor)], Color(1.0, 0.5, 0.4))
+		return false
+	meter -= cost
+	world.server_message("%s %s  -%d" % [pl.display_name, what, int(cost)], Color(0.7, 0.9, 1.0))
+	Sfx.play_ui("pickup")
+	_send_state()
+	return true
+
+
+func buy_upgrade(pl: Player) -> void:
+	if ups >= UPGRADES.size():
+		return
+	var up: Array = UPGRADES[ups]
+	if buy(pl, up[1], "bought %s for the team (%s)" % [up[0], up[2].to_lower()]):
+		ups += 1
+		_send_state()
+
+
+## Upgrades at work (World, the gun, the Horde ask).
+func gun_power(_pl: Player) -> float:
+	return 1.3 if ups >= 1 else 1.0
+
+
+func bite_scale() -> float:
+	return 0.65 if ups >= 2 else 1.0
+
+
+func respawn_scale() -> float:
+	return 0.5 if ups >= 3 else 1.0
+
+
 func _send_state() -> void:
 	world.server_mode_state({
 		"meter": int(ceil(meter)), "max": int(max_meter), "wave": wave, "phase": phase,
 		"next": phase_end if phase != Phase.WAVE else -1.0, "left": _to_spawn + horde.count(),
-		"zones": _zone_counts.slice(1), "best": best, "kills": kills,
+		"zones": _zone_counts.slice(1), "best": best, "kills": kills, "ups": ups,
 	})
 
 

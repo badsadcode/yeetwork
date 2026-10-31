@@ -249,7 +249,11 @@ and one that reaches the glowing **Heart** in the middle takes a big bite. Kills
 back, more for style (thrown off a wall, crushed by a crate, drowned, into lava, bowled over
 by a flying friend), and a burst of kills is a combo (TRIPLE SPLAT, MONSTER MASH,
 MEGAYEET). Holding a wave tops the meter up; there's a short break before the next, bigger
-one. Monsters walk the ways to the Heart, batter gates down and hit any Yeet they reach; a
+one, and the break is for spending the meter (it's money as well as life): look at a broken
+gate and Use to rebuild it, Use a trap spot to build its trap (spikes that hurt and slow,
+a fire grate that sets them alight, a mine that blows up under them), or Use the Heart
+for a team upgrade (stronger pushes and throws for everyone, softer bites, quicker
+respawns). Monsters walk the ways to the Heart, batter gates down and hit any Yeet they reach; a
 gravity-gun push and blasts send them flying, flung props crush them, they die from falls,
 lava, acid and deep water, and fire spreads through a crowd. Grab one with the gun and
 throw it, or swing it into the others. Waves mix the kinds as they go on, each announced

@@ -815,6 +815,8 @@ func _megayeet_hud() -> void:
 	if phase == ModeMegaYeet.Phase.BREAK:
 		var left := maxf(float(s.get("next", 0.0)) - world.net_time(), 0.0)
 		text = "Wave %d in %d  ·  get ready" % [wave + 1, ceili(left)] if wave > 0 else "The monsters are coming in %d  ·  defend the Heart!" % ceili(left)
+		var ups: int = s.get("ups", 0)
+		text += "\nSpend the meter (Use): repair gates  ·  build traps  ·  team upgrade at the Heart (%d/%d)" % [ups, ModeMegaYeet.UPGRADES.size()]
 		_threat.label_settings.font_color = Color(0.7, 0.9, 1.0)
 	elif phase == ModeMegaYeet.Phase.WAVE:
 		var parts := []

@@ -136,6 +136,10 @@ func _handle_cmdline(execute := true) -> bool:
 				Game.set_graphics_preset(int(next))
 				i += 1
 		i += 1
+	# Checks, tests and validation run in Sandbox unless told a mode (never in whatever mode the
+	# player last saved: MegaYeet's bots, say, would hunt monsters instead of fetching first aid).
+	if (_test or _validate or _tour_dir != "") and not args.has("--mode"):
+		Game.mode = Game.Mode.SANDBOX
 	if not execute:
 		return false
 	match action:

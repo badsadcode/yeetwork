@@ -8,7 +8,7 @@ import math
 
 out = []
 ext = [("settings", "map_settings"), ("block", "arena_block"), ("slab", "breakable_slab"), ("spawn", "spawn_point"),
-       ("prop", "prop_spawn"), ("pad", "jump_pad"), ("zone", "defense_zone"), ("rift", "monster_spawn"), ("heart", "fortress_heart")]
+       ("prop", "prop_spawn"), ("pad", "jump_pad"), ("zone", "defense_zone"), ("rift", "monster_spawn"), ("heart", "fortress_heart"), ("trap", "trap_spot")]
 out.append('[gd_scene format=3]\n')
 for i, f in ext:
     out.append('[ext_resource type="Script" path="res://scripts/mapkit/%s.gd" id="%s"]' % (f, i))
@@ -24,7 +24,7 @@ kill_height = -20.0
 playtest_mode = 8
 playtest_bots = 3
 ''')
-for g in ["Geometry", "Gates", "Zones", "Rifts", "Spawns", "Props", "Pads"]:
+for g in ["Geometry", "Gates", "Zones", "Rifts", "Spawns", "Props", "Pads", "Traps"]:
     out.append('[node name="%s" type="Node3D" parent="."]\n' % g)
 
 n = {"i": 0}
@@ -96,6 +96,12 @@ node(".", "Heart", "heart", 0, 0, 0, "radius = 2.5\n")
 for k in range(6):
     a = k * math.pi / 3 + math.pi / 6
     node("Rifts", "Rift%d" % k, "rift", round(math.cos(a) * 62, 2), 0, round(math.sin(a) * 62, 2), "radius = 3.5\n" + ("from_wave = 3\n" if k in (1, 4) else ""))
+
+# Trap spots just inside the gates (built between waves): spikes and fire grates behind the
+# outer gates, mines behind the inner ones.
+for name, (x, z), kind in [("SpikesN", (0, -33.5), "spikes"), ("SpikesS", (0, 33.5), "spikes"), ("FireE", (33.5, 0), "fire"), ("FireW", (-33.5, 0), "fire"),
+                           ("MineN", (0, -17.5), "mine"), ("MineS", (0, 17.5), "mine"), ("MineE", (17.5, 0), "mine"), ("MineW", (-17.5, 0), "mine")]:
+    node("Traps", name, "trap", x, 0, z, 'kind = "%s"\nsize = Vector3(4, 1, 4)\n' % kind)
 
 # Player spawns round the Heart, inside the keep.
 for k, (x, z) in enumerate([(4, 4), (-4, 4), (4, -4), (-4, -4), (5.5, 0), (-5.5, 0), (0, 5.5), (0, -5.5)]):

@@ -1249,7 +1249,7 @@ func _server_kill(pl: Player, killer_id: int, cause: String, dir: Vector3) -> vo
 	server_player_stats(pl)
 	var vel := pl.velocity + dir.normalized() * minf(dir.length(), 20.0) * 0.4
 	_bc_all("_s_died", [pl.player_id, killer_id, cause, vel])
-	_respawn_at[pl.player_id] = now() + RESPAWN_TIME
+	_respawn_at[pl.player_id] = now() + RESPAWN_TIME * mode_logic.respawn_scale()
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -1426,6 +1426,28 @@ func _s_heart_hurt() -> void:
 		Sfx.play3d("thud_heavy", arena.heart.global_position, 4.0, 0.6)
 		if local_player and local_player.global_position.distance_to(arena.heart.global_position) < 25.0:
 			local_player.shake(0.5)
+
+
+## One breakable wall whole again (MegaYeet's gate repair), on every peer.
+func server_restore_wall(wall_id: int) -> void:
+	# (its rubble swept up: the bigger, networked pieces lying round it)
+	if wall_id < arena.destructibles.size():
+		var d := arena.destructibles[wall_id]
+		var r := maxf(d.size.x, d.size.y) * 0.5 + 2.5
+		for p: Prop in props.values():
+			if is_instance_valid(p) and p.kind == "shard" and p.held_by == 0 and p.global_position.distance_to(d.global_position) < r:
+				server_despawn_prop(p)
+	_bc_all("_s_restore_wall", [wall_id])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_restore_wall(wall_id: int) -> void:
+	if wall_id < arena.destructibles.size():
+		var d := arena.destructibles[wall_id]
+		d.restore_all()
+		fx.clear_chunks_near(d.global_position, maxf(d.size.x, d.size.y) * 0.5 + 2.5)
+		Sfx.play3d("metal", d.global_position, 0.0, 0.8)
+		fx.puffs(arena.destructibles[wall_id].global_position, Vector3.UP, 12, [Color(0.8, 0.8, 0.75, 0.6), Color(0.7, 0.7, 0.65, 0.0)], 0.5, 1.0, 1.0, 2.5, 1.2)
 
 
 ## Every breakable wall whole again (MegaYeet's fresh start), on every peer.

@@ -93,6 +93,16 @@ func on_puzzle_changed(_n: PuzzleNode) -> void:
 	pass
 
 
+## How hard this player's gun pushes and throws (MegaYeet's team upgrade), times.
+func gun_power(_pl: Player) -> float:
+	return 1.0
+
+
+## How long players wait to respawn, times (MegaYeet's team upgrade).
+func respawn_scale() -> float:
+	return 1.0
+
+
 func allow_build() -> bool:
 	return true
 

@@ -261,6 +261,13 @@ func _chunk(pos: Vector3, size: Vector3, color: Color, vel: Vector3, life: float
 
 
 ## Local-only fragment: an extruded polygon that tumbles, settles and fades.
+## Pieces lying within r of pos fade away now (a wall repaired: its rubble swept up).
+func clear_chunks_near(pos: Vector3, r: float) -> void:
+	for c in _chunks:
+		if is_instance_valid(c) and (c as Node3D).global_position.distance_to(pos) < r:
+			_fade_body(c.get_instance_id())
+
+
 func shard(poly: PackedVector2Array, t: float, xf: Transform3D, vel: Vector3, spin: Vector3, color: Color, material: String) -> void:
 	var rb := RigidBody3D.new()
 	rb.collision_layer = Game.L_LIMBS

@@ -128,6 +128,7 @@ func _ready() -> void:
 	_check("a monster reaching the Heart takes a bite", mode.heart_hits >= bites + 1 and mode.meter < before, "%.0f -> %.0f, %d bites" % [before, mode.meter, mode.heart_hits - bites])
 	await _kinds()
 	await _way_out(brains)
+	await _shop()
 	# Bots fight.
 	for q: Player in brains:
 		q.bot_brain = brains[q]
@@ -177,7 +178,8 @@ func _ready() -> void:
 	mode.phase_end = world.now()
 	await _wait(0.25) # (straight after: the bots may punt a gate again soon enough)
 	var whole: bool = world.arena.destructibles.all(func(d): return d.broken_cells.is_empty())
-	_check("... and it all starts again (walls whole, the meter full, wave 0)", mode.phase == ModeMegaYeet.Phase.BREAK and mode.wave == 0 and mode.meter == mode.max_meter and whole and horde.count() == 0, "phase %d wave %d meter %.0f walls whole %s" % [mode.phase, mode.wave, mode.meter, whole])
+	var traps_down: bool = world.arena.puzzle.all(func(n): return not (n is TrapSpot) or not n.built)
+	_check("... and it all starts again (walls whole, the meter full, wave 0, no traps or upgrades)", mode.phase == ModeMegaYeet.Phase.BREAK and mode.wave == 0 and mode.meter == mode.max_meter and whole and horde.count() == 0 and mode.ups == 0 and traps_down, "phase %d wave %d meter %.0f walls whole %s ups %d traps down %s" % [mode.phase, mode.wave, mode.meter, whole, mode.ups, traps_down])
 	print("MEGAYEET CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -366,6 +368,94 @@ func _way_out(brains: Dictionary) -> void:
 	_check("... and a bot gets there by itself", reached, "closest %.1f m" % best)
 	bot.bot_brain = null
 	bot.cmd.move = Vector2.ZERO
+	horde.server_clear()
+
+
+## Between waves, spending the meter: a gate repaired, spikes built (a monster crossing them
+## is hurt), a mine built (it goes off under the first monster), a team upgrade (stronger
+## pushes); nothing for sale during a wave, nor below what's kept back.
+func _shop() -> void:
+	horde.server_clear()
+	world.server_restore_walls()
+	mode.phase = ModeMegaYeet.Phase.BREAK
+	mode.phase_end = world.now() + 999.0
+	mode.meter = mode.max_meter
+	mode._send_state()
+	await _wait(0.3)
+	var gate: Destructible = null
+	for d: Destructible in world.arena.destructibles:
+		if absf(d.global_position.z + 38.0) < 1.0 and absf(d.global_position.x) < 1.0:
+			gate = d
+	world.server_damage_destructible(gate, gate.global_position, 2.5, 3000.0, Vector3(0, 0, 5), 0, 1.0)
+	await _wait(0.3)
+	var broken := gate.broken_cells.size()
+	pl.respawn(Vector3(0, 0, -35.4), 0.0)
+	await _wait(0.3)
+	_face(pl, gate.global_position)
+	var m0 := mode.meter
+	world.use_pressed(pl)
+	await _wait(0.2)
+	_check("between waves: Use on a broken gate repairs it, out of the meter", broken > 0 and gate.broken_cells.is_empty() and mode.meter < m0, "%d cells broken, meter %.0f -> %.0f" % [broken, m0, mode.meter])
+	var traps := {}
+	for n in world.arena.puzzle:
+		if n is TrapSpot:
+			traps[String(n.name)] = n
+	var spikes: TrapSpot = traps["SpikesN"]
+	pl.respawn(Vector3(0, 0, -31.2), 0.0) # (within Use reach of its middle)
+	await _wait(0.3)
+	_face(pl, spikes.use_point())
+	m0 = mode.meter
+	world.use_pressed(pl)
+	await _wait(0.3)
+	_check("... Use on a trap spot builds its trap", spikes.built and spikes.active and absf(m0 - mode.meter - spikes.price()) < 0.5, "built %s, meter %.0f -> %.0f" % [spikes.active, m0, mode.meter])
+	pl.respawn(mode.heart.global_position + Vector3(6, 0, 6), 0.0)
+	var walker := horde.server_spawn(Vector3(0, 0, -36.2), "shambler")
+	_cam(Vector3(5, 4, -28), Vector3(0, 0.5, -33.5))
+	await _wait(1.5)
+	await _shot("m13_spikes")
+	for k in 40:
+		await _wait(0.2)
+		if walker.hp <= 0.0:
+			break
+	_check("spikes hurt (and slow) the monsters crossing them", walker.hp <= 0.0 and walker.cause == "spikes", "hp %.0f, %s" % [walker.hp, walker.cause])
+	var mine: TrapSpot = traps["MineN"]
+	pl.respawn(Vector3(0, 0, -15.2), 0.0)
+	await _wait(0.3)
+	_face(pl, mine.use_point())
+	world.use_pressed(pl)
+	await _wait(0.3)
+	var mine_built := mine.active
+	pl.respawn(mode.heart.global_position + Vector3(6, 0, 6), 0.0)
+	var stepper := horde.server_spawn(Vector3(0, 0, -19.6), "shambler") # (in the courtyard, clear of the gate)
+	for k in 60:
+		await _wait(0.2)
+		if not mine.built:
+			break
+	await _wait(0.3)
+	_check("a mine goes off under the first monster (and is gone)", mine_built and not mine.built and not mine.active and stepper.hp <= 0.0, "built %s, still there %s, hp %.0f" % [mine_built, mine.built, stepper.hp])
+	# A team upgrade at the Heart.
+	pl.respawn(mode.heart.global_position + Vector3(0, 0, 2.2), 0.0)
+	await _wait(0.3)
+	_face(pl, mode.heart.global_position + Vector3.UP * 1.6)
+	world.use_pressed(pl)
+	await _wait(0.2)
+	_check("... Use on the Heart buys a team upgrade (stronger pushes)", mode.ups == 1 and is_equal_approx(mode.gun_power(pl), 1.3), "%d bought" % mode.ups)
+	await _shot("m14_break")
+	mode.phase = ModeMegaYeet.Phase.WAVE
+	mode._to_spawn = 3 # (a wave with monsters still to come: it doesn't end at once)
+	mode._send_state()
+	await _wait(0.1)
+	world.use_pressed(pl)
+	await _wait(0.2)
+	var in_wave := mode.ups
+	mode.phase = ModeMegaYeet.Phase.BREAK
+	mode.meter = mode.max_meter * ModeMegaYeet.KEEP + 20.0
+	mode._send_state()
+	await _wait(0.1)
+	world.use_pressed(pl)
+	await _wait(0.2)
+	_check("nothing for sale during a wave, nor below what's kept back", in_wave == 1 and mode.ups == 1, "during the wave %d, kept back %d" % [in_wave, mode.ups])
+	mode.meter = mode.max_meter
 	horde.server_clear()
 
 

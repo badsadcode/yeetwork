@@ -45,7 +45,8 @@ const KINDS := {
 	"bomber": {"hp": 16.0, "speed": 2.9, "bite": 0.0, "bash": 0.0, "knock": 1.2, "grab": true, "size": 0.8, "radius": 0.32, "burn": 1.5, "bomb": true},
 }
 const KIND_IDS := ["shambler", "runner", "brute", "ghost", "climber", "bomber"]
-const CAUSES := ["", "punt", "blast", "crushed", "fall", "lava", "acid", "drowned", "bowled", "wall", "heart", "hit", "fire", "light", "bomb"]
+const CAUSES := ["", "punt", "blast", "crushed", "fall", "lava", "acid", "drowned", "bowled", "wall", "heart", "hit", "fire", "light", "bomb", "spikes"]
+const SPIKES := 30.0 # (a second, on spikes)
 
 enum State { WALK, FLY, STUN, CLIMB, HELD }
 
@@ -76,6 +77,7 @@ class Monster:
 	var burn_by := 0
 	var climb_to := -1
 	var held_by := 0
+	var slow := 0.0
 
 
 var world: Node
@@ -94,6 +96,8 @@ var _light_t := 0.0
 var _prop_hits := {} # "monster:prop" -> time
 var _heart: Vector3
 var _heart_r := 2.5
+var _traps: Array[TrapSpot] = []
+var _trap_t := 0.0
 # Every peer's view of them: id -> [pos, target, vel, yaw, flags, seen, kind]
 var _views := {}
 var _draw := {} # kind -> [MultiMeshInstance3D, buffer]
@@ -123,6 +127,10 @@ func _ready() -> void:
 	if world and world.arena and world.arena.heart:
 		_heart = world.arena.heart.global_position
 		_heart_r = world.arena.heart.radius
+	if world and world.arena:
+		for n in world.arena.puzzle:
+			if n is TrapSpot:
+				_traps.append(n)
 
 
 func _exit_tree() -> void:
@@ -162,6 +170,13 @@ func server_spawn(pos: Vector3, kind := "shambler") -> Monster:
 
 func get_monster(id: int) -> Monster:
 	return _by_id.get(id)
+
+
+## A gate was repaired: look at the ways to the Heart again in a moment (once its wall's
+## collision is back in the physics world).
+func request_gate_refresh() -> void:
+	_gates_hit = true
+	_gate_t = 0.3
 
 
 func server_clear() -> void:
@@ -317,11 +332,16 @@ func _physics_process(delta: float) -> void:
 	if _light_t <= 0.0:
 		_light_t = 0.1
 		_flashlights()
+	_trap_t -= delta
+	if _trap_t <= 0.0:
+		_trap_t = 0.1
+		_trap_tick(0.1)
 	for m: Monster in monsters.duplicate():
 		if m.hp <= 0.0:
 			continue
 		m.flash = maxf(m.flash - delta * 4.0, 0.0)
 		m.attack_cd -= delta
+		m.slow = maxf(m.slow - delta, 0.0)
 		if m.burn > 0.0:
 			m.burn -= delta
 			_damage(m, FIRE_BURN * float(m.def.burn) * delta, "fire")
@@ -413,7 +433,7 @@ func _walk(m: Monster, delta: float, _now: float) -> void:
 		var to := m.chase.global_position - m.pos
 		var flat := Vector2(to.x, to.z)
 		dir = flat.normalized() if flat.length() > 0.8 else Vector2.ZERO
-	var step := Vector3(dir.x, 0, dir.y) * m.speed * (0.45 if m.wet > 0.0 else 1.0)
+	var step := Vector3(dir.x, 0, dir.y) * m.speed * (0.45 if m.wet > 0.0 else 1.0) * (0.4 if m.slow > 0.0 else 1.0)
 	var push := _apart(m)
 	var move := (step + push) * delta
 	var to_pos := m.pos + move
@@ -656,6 +676,37 @@ func _spread_fire() -> void:
 				_ignite(o, 4.0, m.burn_by)
 
 
+## Built traps (TrapSpot) at work on the monsters in them: spikes hurt and slow, a fire grate
+## sets them alight, a mine goes off under the first to step on it (and is gone). Ghosts
+## float over spikes and mines; nothing flying or held is caught.
+func _trap_tick(dt: float) -> void:
+	for t in _traps:
+		if not t.built:
+			continue
+		var c := t.global_position
+		for m: Monster in _near(c, Vector2(t.size.x, t.size.z).length() * 0.5 + 1.0):
+			if m.hp <= 0.0 or m.state == State.FLY or m.state == State.HELD:
+				continue
+			if m.def.has("ghost") and t.kind != "fire":
+				continue
+			if not t.has_point(m.pos + Vector3.UP * 0.3):
+				continue
+			match t.kind:
+				"spikes":
+					if t.owner_id != 0:
+						m.attacker = t.owner_id
+						m.attacker_t = world.now()
+					m.slow = 0.3
+					m.flash = maxf(m.flash, 0.5)
+					_damage(m, SPIKES * dt, "spikes")
+				"fire":
+					_ignite(m, 4.0, t.owner_id)
+				"mine":
+					t.server_clear()
+					world.server_explode_at(c + Vector3.UP * 0.5, 6.0, t.owner_id)
+					break
+
+
 ## Everyone's flashlight burns the ghosts in its beam.
 func _flashlights() -> void:
 	if not world.arena.flashlights:
@@ -730,7 +781,8 @@ func _bite_players(_now: float) -> void:
 				continue
 			m.attack_cd = 1.3
 			var dir := Vector3(to.x, 0, to.z).normalized()
-			world.server_damage_player(pl, m.def.bite, 0, "monster", pl.body_center(), dir)
+			var bite: float = m.def.bite * (world.mode_logic.bite_scale() if world.mode_logic.has_method("bite_scale") else 1.0)
+			world.server_damage_player(pl, bite, 0, "monster", pl.body_center(), dir)
 			if pl.is_alive():
 				var brute := m.kind == "brute"
 				world.server_launch_player(pl, dir * (11.0 if brute else 3.5) + Vector3.UP * (5.0 if brute else 1.5), false, 0.8 if brute else 0.0, 0)

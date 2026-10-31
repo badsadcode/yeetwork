@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/mapkit/defense_zone.gd" id="zone"]
 [ext_resource type="Script" path="res://scripts/mapkit/monster_spawn.gd" id="rift"]
 [ext_resource type="Script" path="res://scripts/mapkit/fortress_heart.gd" id="heart"]
+[ext_resource type="Script" path="res://scripts/mapkit/trap_spot.gd" id="trap"]
 
 [node name="Fortress" type="Node3D"]
 
@@ -35,6 +36,8 @@ playtest_bots = 3
 [node name="Props" type="Node3D" parent="."]
 
 [node name="Pads" type="Node3D" parent="."]
+
+[node name="Traps" type="Node3D" parent="."]
 
 [node name="Ground" type="StaticBody3D" parent="Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
@@ -507,6 +510,54 @@ from_wave = 3
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.69, 0, -31)
 script = ExtResource("rift")
 radius = 3.5
+
+[node name="SpikesN" type="Node3D" parent="Traps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -33.5)
+script = ExtResource("trap")
+kind = "spikes"
+size = Vector3(4, 1, 4)
+
+[node name="SpikesS" type="Node3D" parent="Traps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 33.5)
+script = ExtResource("trap")
+kind = "spikes"
+size = Vector3(4, 1, 4)
+
+[node name="FireE" type="Node3D" parent="Traps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.5, 0, 0)
+script = ExtResource("trap")
+kind = "fire"
+size = Vector3(4, 1, 4)
+
+[node name="FireW" type="Node3D" parent="Traps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33.5, 0, 0)
+script = ExtResource("trap")
+kind = "fire"
+size = Vector3(4, 1, 4)
+
+[node name="MineN" type="Node3D" parent="Traps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -17.5)
+script = ExtResource("trap")
+kind = "mine"
+size = Vector3(4, 1, 4)
+
+[node name="MineS" type="Node3D" parent="Traps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 17.5)
+script = ExtResource("trap")
+kind = "mine"
+size = Vector3(4, 1, 4)
+
+[node name="MineE" type="Node3D" parent="Traps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.5, 0, 0)
+script = ExtResource("trap")
+kind = "mine"
+size = Vector3(4, 1, 4)
+
+[node name="MineW" type="Node3D" parent="Traps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.5, 0, 0)
+script = ExtResource("trap")
+kind = "mine"
+size = Vector3(4, 1, 4)
 
 [node name="Spawn0" type="Node3D" parent="Spawns"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 4)

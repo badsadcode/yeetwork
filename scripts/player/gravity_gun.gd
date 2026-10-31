@@ -841,7 +841,7 @@ func release(throw_ragdoll: bool) -> void:
 
 func _throw(dir: Vector3, charge := 0.0) -> void:
 	var w := player.world
-	var power := (1.0 + CHARGE_BONUS * charge) * (Pickups.SUPER_MULT if player.has_buff("super") else 1.0)
+	var power := (1.0 + CHARGE_BONUS * charge) * (Pickups.SUPER_MULT if player.has_buff("super") else 1.0) * float(w.mode_logic.gun_power(player))
 	var now := Time.get_ticks_msec() / 1000.0
 	_regrab_block = 0.5
 	match held_kind:
@@ -906,7 +906,7 @@ func _punt(origin: Vector3, dir: Vector3) -> void:
 		var los := PhysicsRayQueryParameters3D.create(origin, center, Game.L_WORLD, [player.get_rid()])
 		if not space.intersect_ray(los).is_empty():
 			continue
-		var falloff := (1.0 - (d / PUNT_RANGE) * 0.5) * (Pickups.SUPER_MULT if player.has_buff("super") else 1.0)
+		var falloff := (1.0 - (d / PUNT_RANGE) * 0.5) * (Pickups.SUPER_MULT if player.has_buff("super") else 1.0) * float(w.mode_logic.gun_power(player))
 		if n is Prop:
 			var p := n as Prop
 			if p.freeze and not p.frozen_by_player:
@@ -929,7 +929,7 @@ func _punt(origin: Vector3, dir: Vector3) -> void:
 				w.server_launch_player(pl, dir * 17.0 * falloff + Vector3.UP * 5.0, false, 0.9, player.player_id)
 				affected += 1
 	if w.horde: # (MegaYeet: monsters go flying too)
-		affected += w.horde.server_punt(origin, dir, PUNT_RANGE, PUNT_COS, Pickups.SUPER_MULT if player.has_buff("super") else 1.0, player.player_id)
+		affected += w.horde.server_punt(origin, dir, PUNT_RANGE, PUNT_COS, (Pickups.SUPER_MULT if player.has_buff("super") else 1.0) * float(w.mode_logic.gun_power(player)), player.player_id)
 	# Chip at breakable walls directly ahead.
 	var q := PhysicsRayQueryParameters3D.create(origin, origin + dir * 4.5, Game.L_WORLD, [player.get_rid()])
 	var hit := space.intersect_ray(q)
