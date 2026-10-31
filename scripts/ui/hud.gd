@@ -29,6 +29,8 @@ var _score_plate: HudPlate
 var _fortress: HudPlate # MegaYeet: the Fortress meter
 var _fortress_label: Label
 var _threat: Label
+var _boss_bar: HudPlate # MegaYeet: the boss's health while it lives
+var _boss_label: Label
 var _speed_plate: HudPlate
 var _slot_plates: Array[PanelContainer] = []
 var _speed_label: Label
@@ -216,6 +218,20 @@ func _ready() -> void:
 	_threat.custom_minimum_size = Vector2(800, 0)
 	_threat.visible = false
 	_root.add_child(_threat)
+	_boss_bar = HudPlate.new()
+	_boss_bar.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_boss_bar.position = Vector2(-320, 150)
+	_boss_bar.size = Vector2(640, 34)
+	_boss_bar.chamfer = 9.0
+	_boss_bar.segments = 30
+	_boss_bar.bar_color = Color(0.95, 0.3, 0.15)
+	_boss_bar.visible = false
+	_root.add_child(_boss_bar)
+	_boss_label = _label(20, Color.WHITE)
+	_boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boss_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_boss_label.size = Vector2(640, 34)
+	_boss_bar.add_child(_boss_label)
 	# "[E] Reset the room" under the crosshair when looking at something usable.
 	_use_prompt = _label(22, Color.WHITE)
 	_use_prompt.set_anchors_preset(Control.PRESET_CENTER)
@@ -838,6 +854,12 @@ func _megayeet_hud() -> void:
 		_threat.label_settings.font_color = Color(1.0, 0.5, 0.35) if zones.size() > 1 and (zones[1] > 0 or zones[2] > 0) else Color(1.0, 0.86, 0.35)
 	_threat.text = text
 	_threat.visible = text != ""
+	var b: Array = s.get("boss", [])
+	_boss_bar.visible = not b.is_empty()
+	if not b.is_empty():
+		_boss_bar.value = float(b[1])
+		_boss_bar.queue_redraw()
+		_boss_label.text = "%s  %d%%" % [b[0], ceili(float(b[1]) * 100.0)]
 
 
 ## Yeetball: where the balls are. Out of view, an arrow at the screen edge points the way;

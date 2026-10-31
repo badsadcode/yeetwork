@@ -176,7 +176,9 @@ func _think_megayeet(delta: float) -> void:
 			_hold_timer += delta
 			if _hold_timer > 0.4 and d < 28.0 and close and _aim_error(look_at) < 0.12:
 				_throw(d)
-		elif _target_prop and is_instance_valid(_target_prop) and _target_prop.held_by == 0 and d > 6.0 and eye.distance_to(_target_prop.global_position) < 10.0:
+			elif _hold_timer > 3.0 and not close:
+				_finish_throw() # (nothing to throw it at here: don't lug it round the fortress)
+		elif _target_prop and is_instance_valid(_target_prop) and _target_prop.held_by == 0 and d > 6.0 and d < 20.0 and _can_see(mp) and eye.distance_to(_target_prop.global_position) < 10.0:
 			var tp := _target_prop.global_position
 			look_at = tp
 			if not _grabbing and _aim_error(tp) < 0.15:
@@ -198,10 +200,10 @@ func _think_megayeet(delta: float) -> void:
 	_on_route = not _path.is_empty()
 	_steer(delta, want_move)
 	# Up a step on the route: hop.
-	if _on_route and _path_i < _path.size() and pl.is_on_floor():
+	if _on_route and _path_i < _path.size() and pl.is_on_floor() and not _is_pad_step(_path_i):
 		var nxt := _path[_path_i]
 		if nxt.y > pl.global_position.y + 0.45 and Vector2(nxt.x - pl.global_position.x, nxt.z - pl.global_position.z).length() < 1.8:
-			pl.cmd.jump_pressed = true
+			pl.cmd.jump_pressed = true # (up a step: hop; a pad does the lifting itself)
 
 
 ## The monster to go after: nearest the Heart (and near us) among those we can get to; the
@@ -220,10 +222,10 @@ func _pick_monster(mode: ModeMegaYeet, heart: Vector3, field: FlowField, now: fl
 	_path = PackedVector3Array()
 	for k in mini(ranked.size(), 3): # (a few tries a think, the best first)
 		var m = ranked[k][1]
-		if m.pos.distance_to(pl.global_position) < 8.0:
-			_monster = m
+		if m.pos.distance_to(pl.global_position) < 8.0 and _can_see(m.pos + Vector3.UP * 0.9):
+			_monster = m # (right here, in sight: straight at it)
 			return
-		var route := BotRoute.find(field, world.arena.jump_links, pl.global_position, m.pos)
+		var route := BotRoute.find(field, world.arena.jump_links, pl.global_position, m.pos, 9000, _prop_cells(field))
 		if not route.is_empty():
 			_monster = m
 			_path = route
@@ -232,8 +234,34 @@ func _pick_monster(mode: ModeMegaYeet, heart: Vector3, field: FlowField, now: fl
 		_unreachable[m.id] = now + 4.0
 	# Nothing to go for (or nothing we can reach): back toward the Heart.
 	if field and pl.global_position.distance_to(heart) > 8.0:
-		_path = BotRoute.find(field, world.arena.jump_links, pl.global_position, heart)
+		_path = BotRoute.find(field, world.arena.jump_links, pl.global_position, heart, 9000, _prop_cells(field))
 		_path_i = 0
+
+
+## The route's step to waypoint k is a jump pad's launch (higher than a hop).
+func _is_pad_step(k: int) -> bool:
+	return k > 0 and _path[k].y - _path[k - 1].y > BotRoute.JUMP + 0.05
+
+
+## The cells big props stand on (crates, an iron ball): routes go round them, not over (a
+## bot that walks into one ends up on top of it, or rolling it about).
+func _prop_cells(field: FlowField) -> Dictionary:
+	var out := {}
+	if field == null:
+		return out
+	for p: Prop in world.props.values():
+		if not is_instance_valid(p) or p.held_by != 0 or p.lift_count > 0:
+			continue
+		var r := maxf(p.size.x, maxf(p.size.y, p.size.z)) * (1.0 if p.kind == "iron_ball" else 0.5)
+		if r < 0.45 or p.linear_velocity.length() > 2.0:
+			continue
+		var c := p.global_position
+		for dz in range(-2, 3):
+			for dx in range(-2, 3):
+				var q := field.cell_of(c + Vector3(dx, 0, dz) * 0.7)
+				if q >= 0 and Vector2(dx, dz).length() * 0.7 <= r + 0.4:
+					out[q] = true
+	return out
 
 
 ## Where to steer now along the route: a little way ahead on it (the waypoint after the
@@ -245,10 +273,15 @@ func _route_goal(fallback: Vector3) -> Vector3:
 	while _path_i < _path.size() - 1 and Vector2(_path[_path_i].x - pos.x, _path[_path_i].z - pos.z).length() < 1.1:
 		_path_i += 1
 	var ahead := mini(_path_i + 2, _path.size() - 1)
-	# (not past a step up: the hop happens at its foot)
+	# (not past a step up: the hop happens at its foot; a jump pad's launch: onto the pad)
 	for k in range(_path_i, ahead + 1):
 		if _path[k].y > pos.y + 0.45:
 			ahead = k
+			if k > 0 and _is_pad_step(k):
+				# Straight across the pad's middle (stopping short of it, it wouldn't fire).
+				var pad := _path[k - 1]
+				var across := Vector3(pad.x - pos.x, 0, pad.z - pos.z)
+				return pad + (across.normalized() if across.length() > 0.05 else Vector3.ZERO) * 1.8
 			break
 	var g := _path[ahead]
 	# (the last bit of the way, and the steering's stop distance: aim past it a little)

@@ -15,6 +15,11 @@ extends Node3D
 ## - climber (a skeleton): goes straight at the Heart and climbs any wall in the way.
 ## - bomber: runs at gates and Yeets with a powder keg and blows up (killed, it blows up
 ##   where it falls: chain reactions, or throw one into the crowd).
+## - golem (the boss, ModeMegaYeet's boss waves): three times a Yeet's height; gates crumble
+##   under it; pushes, grabs, falls and water do nothing; it stomps (Yeets near it go flying,
+##   its own minions get flattened), hurls boulders at anyone up on the walls (real props:
+##   throw them back), and now and then calls a pack out of the ground round it. Blasts,
+##   fire and heavy things hurt it: the iron ball most of all.
 ## Every peer draws them from compact snapshots (10 a second, 12 bytes a monster) in one
 ## MultiMesh per kind, the shader making them shamble; deaths go out reliably (a tumbling
 ## body). World holds the RPCs (_s_horde, _s_horde_deaths) and calls in here.
@@ -43,8 +48,11 @@ const KINDS := {
 	"ghost": {"hp": 60.0, "speed": 1.5, "bite": 9.0, "bash": 0.0, "knock": 0.0, "grab": false, "size": 1.0, "radius": 0.3, "burn": 2.5, "ghost": true},
 	"climber": {"hp": 30.0, "speed": 2.1, "bite": 6.0, "bash": 12.0, "knock": 1.1, "grab": true, "size": 1.0, "radius": 0.32, "burn": 1.0, "climb": true},
 	"bomber": {"hp": 16.0, "speed": 2.9, "bite": 0.0, "bash": 0.0, "knock": 1.2, "grab": true, "size": 0.8, "radius": 0.32, "burn": 1.5, "bomb": true},
+	# The boss: hp is ModeMegaYeet's to set (how many Yeets, which time it comes).
+	"golem": {"hp": 3000.0, "speed": 1.0, "bite": 30.0, "bash": 400.0, "knock": 0.0, "grab": false, "size": 3.0, "radius": 1.5, "burn": 0.5, "boss": true},
 }
-const KIND_IDS := ["shambler", "runner", "brute", "ghost", "climber", "bomber"]
+const KIND_IDS := ["shambler", "runner", "brute", "ghost", "climber", "bomber", "golem"]
+const BOSS_NAME := "THE SIEGE GOLEM"
 const CAUSES := ["", "punt", "blast", "crushed", "fall", "lava", "acid", "drowned", "bowled", "wall", "heart", "hit", "fire", "light", "bomb", "spikes"]
 const SPIKES := 30.0 # (a second, on spikes)
 
@@ -78,6 +86,9 @@ class Monster:
 	var climb_to := -1
 	var held_by := 0
 	var slow := 0.0
+	var stomp_cd := 3.0 # (the boss's: stomp, throw, call)
+	var throw_cd := 5.0
+	var call_cd := 12.0
 
 
 var world: Node
@@ -97,6 +108,7 @@ var _prop_hits := {} # "monster:prop" -> time
 var _heart: Vector3
 var _heart_r := 2.5
 var _traps: Array[TrapSpot] = []
+var _boulders: Array[int] = [] # (the boss's, the oldest cleared past a few)
 var _trap_t := 0.0
 # Every peer's view of them: id -> [pos, target, vel, yaw, flags, seen, kind]
 var _views := {}
@@ -280,6 +292,8 @@ func _damage(m: Monster, amount: float, cause: String) -> void:
 		return
 	if m.def.has("ghost") and cause not in ["fire", "light", "heart"]:
 		return
+	if m.def.has("boss") and cause in ["fall", "bowled", "wall", "light", "drowned"]:
+		return # (it doesn't care)
 	m.hp -= amount
 	m.cause = cause
 	if m.hp <= 0.0:
@@ -345,6 +359,10 @@ func _physics_process(delta: float) -> void:
 		if m.burn > 0.0:
 			m.burn -= delta
 			_damage(m, FIRE_BURN * float(m.def.burn) * delta, "fire")
+			if m.hp <= 0.0:
+				continue
+		if m.def.has("boss") and m.state == State.WALK:
+			_boss(m, delta)
 			if m.hp <= 0.0:
 				continue
 		match m.state:
@@ -513,10 +531,96 @@ func _bash(m: Monster) -> void:
 	var c := field.center(m.bash_at)
 	var at := Vector3(c.x, field.height[m.bash_at] + 1.0, c.y)
 	var dir := (at - m.pos).normalized()
-	world.server_damage_destructible(wall, at, 0.9 if m.kind == "brute" else 0.7, m.def.bash, dir * 3.0, 0, 1.0)
-	if m.kind == "brute":
+	var reach := 1.8 if m.def.has("boss") else (0.9 if m.kind == "brute" else 0.7)
+	world.server_damage_destructible(wall, at, reach, m.def.bash, dir * 3.0, 0, 1.0)
+	if m.kind == "brute" or m.def.has("boss"):
 		world.server_fx("impact:metal", at, dir * 6.0, 1.5, -dir)
 	_gates_hit = true
+
+
+## The boss's moves: a stomp when Yeets come close, a boulder at anyone it can see up on the
+## walls (or out of reach), a pack called out of the ground now and then.
+func _boss(m: Monster, delta: float) -> void:
+	m.stomp_cd -= delta
+	m.throw_cd -= delta
+	m.call_cd -= delta
+	var near: Player = null
+	var far: Player = null
+	var far_d := 36.0
+	for pl: Player in world.players.values():
+		if not pl.is_alive():
+			continue
+		var to := pl.global_position - m.pos
+		var flat := Vector2(to.x, to.z).length()
+		if flat < 6.5 and absf(to.y) < 3.5:
+			near = pl
+		elif (to.y > 2.5 or flat > 12.0) and flat < far_d:
+			far = pl
+			far_d = flat
+	if near and m.stomp_cd <= 0.0:
+		m.stomp_cd = 4.0
+		_stomp(m)
+	elif far and m.throw_cd <= 0.0:
+		var from := m.pos + Vector3.UP * 4.6
+		var space := get_world_3d().direct_space_state
+		if space.intersect_ray(PhysicsRayQueryParameters3D.create(from, far.body_center(), Game.L_WORLD)).is_empty():
+			m.throw_cd = 7.0
+			_throw_boulder(m, far)
+	if m.call_cd <= 0.0:
+		m.call_cd = 18.0
+		for k in 5:
+			var a := k * TAU / 5.0 + randf()
+			server_spawn(m.pos + Vector3(cos(a), 0, sin(a)) * 3.5, "shambler")
+		world.server_fx("crack", m.pos, Vector3.UP, 2.0)
+		world.server_fx("horn", m.pos, Vector3.UP, 1.0)
+
+
+## The ground shakes: Yeets near it go flying, its own minions get flattened, things fly.
+func _stomp(m: Monster) -> void:
+	var at := m.pos
+	world.server_fx("impact:concrete", at + Vector3.UP * 0.2, Vector3.UP * 6.0, 3.0)
+	for pl: Player in world.players.values():
+		if not pl.is_alive():
+			continue
+		var to := pl.global_position - at
+		var d := Vector2(to.x, to.z).length()
+		if d > 7.0 or absf(to.y) > 3.5:
+			continue
+		var away := Vector3(to.x, 0, to.z).normalized() if d > 0.1 else Vector3.FORWARD
+		world.server_damage_player(pl, 15.0, 0, "monster", pl.body_center(), away)
+		if pl.is_alive():
+			world.server_launch_player(pl, away * 12.0 + Vector3.UP * 7.0, false, 1.0, 0)
+	for o: Monster in _near(at, 5.0):
+		if o == m or o.def.has("boss"):
+			continue
+		var away := o.pos - at
+		away.y = 0.0
+		_hit(o, 25.0, away.normalized() * 10.0 + Vector3.UP * 6.0, 0, "bowled")
+	for p: Prop in world.props.values():
+		if is_instance_valid(p) and not p.freeze and p.held_by == 0 and p.global_position.distance_to(at) < 7.0:
+			var away := p.global_position - at
+			away.y = 0.0
+			p.linear_velocity += away.normalized() * 8.0 + Vector3.UP * 6.0
+			p.sleeping = false
+
+
+## A boulder lobbed at a Yeet (a real prop: it can be caught and thrown back).
+func _throw_boulder(m: Monster, pl: Player) -> void:
+	var dir := pl.global_position - m.pos
+	m.yaw = atan2(-dir.x, -dir.z)
+	var from := m.pos + Vector3.UP * 4.6 + Vector3(dir.x, 0, dir.z).normalized() * 1.2
+	var target := pl.body_center() + pl.velocity * 0.4
+	var g: float = ProjectSettings.get_setting("physics/3d/default_gravity", 24.0)
+	var t := clampf(from.distance_to(target) / 20.0, 0.5, 1.6)
+	var vel := (target - from) / t + Vector3.UP * 0.5 * g * t
+	var rock: Prop = world.server_spawn_prop("boulder", Transform3D(Basis.IDENTITY, from), Vector3.ZERO, Color(0, 0, 0, 0), 0, vel)
+	if rock:
+		_boulders.append(rock.prop_id)
+		while _boulders.size() > 6:
+			var old: Prop = world.get_prop(_boulders.pop_front())
+			if old and old.held_by == 0:
+				world.server_despawn_prop(old)
+	world.server_fx("throw", from, vel.normalized(), 2.0)
 
 
 ## A bomber at a gate or a Yeet: off it goes.
@@ -636,12 +740,15 @@ func _hazards(m: Monster, delta: float) -> void:
 		m.wet = 0.0
 		return
 	if liq.kind == "lava" or liq.kind == "acid":
-		_kill(m, liq.kind)
+		if m.def.has("boss"):
+			_damage(m, 80.0 * delta, liq.kind) # (it wades through, burning)
+		else:
+			_kill(m, liq.kind)
 		return
 	var depth := liq.height_at(m.pos.x, m.pos.z) - m.pos.y
 	if depth > 0.4:
 		m.burn = 0.0 # (water puts it out)
-	if depth > 1.5:
+	if depth > 1.5 and not m.def.has("boss"):
 		m.wet += delta
 		if m.wet > 3.0:
 			_kill(m, "drowned")
@@ -755,10 +862,11 @@ func _props_hit(now: float) -> void:
 			_prop_hits[key] = now
 			var energy := 0.5 * p.mass * speed * speed
 			var attacker: int = p.last_thrower if now - p.last_thrown_time < 6.0 else 0
-			_hit(m, clampf(energy / 30.0, 6.0, 500.0), v * 0.6 + Vector3.UP * 4.0, attacker, "crushed")
+			var big: bool = m.def.has("boss")
+			_hit(m, clampf(energy / 30.0, 6.0, 900.0 if big else 500.0), v * 0.6 + Vector3.UP * 4.0, attacker, "crushed")
 			if world.is_burning(p):
 				_ignite(m, 5.0, attacker)
-			p.linear_velocity = v * (0.85 if m.kind != "brute" else 0.4)
+			p.linear_velocity = v * (0.25 if big else (0.4 if m.kind == "brute" else 0.85))
 	if _prop_hits.size() > 2000:
 		_prop_hits.clear()
 
@@ -784,7 +892,7 @@ func _bite_players(_now: float) -> void:
 			var bite: float = m.def.bite * (world.mode_logic.bite_scale() if world.mode_logic.has_method("bite_scale") else 1.0)
 			world.server_damage_player(pl, bite, 0, "monster", pl.body_center(), dir)
 			if pl.is_alive():
-				var brute := m.kind == "brute"
+				var brute: bool = m.kind == "brute" or m.def.has("boss")
 				world.server_launch_player(pl, dir * (11.0 if brute else 3.5) + Vector3.UP * (5.0 if brute else 1.5), false, 0.8 if brute else 0.0, 0)
 
 
@@ -1012,6 +1120,10 @@ func _death_fx(pos: Vector3, vel: Vector3, yaw: float, cause: int, kind: String)
 		return
 	if kind == "bomber":
 		return # (the blast says it all)
+	if kind == "golem": # (it comes down in a cloud of rock)
+		world.fx.explosion(pos + Vector3.UP * 2.5, 4.0)
+		world.fx.puffs(pos + Vector3.UP * 2.0, Vector3.UP, 30, [Color(0.5, 0.48, 0.45, 0.9), Color(0.4, 0.38, 0.36, 0.0)], 1.0, 2.2, 2.0, 6.0, 2.5)
+		Sfx.play3d("boom", pos, 8.0, 0.5)
 	var size: float = KINDS[kind].size
 	if Game.gore_level > 0:
 		world.fx.blood(pos + Vector3.UP * size, Vector3.UP, vel.normalized() if vel.length() > 0.1 else Vector3.UP, 0.6 * size)

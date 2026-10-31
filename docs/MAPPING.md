@@ -377,7 +377,8 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
   Refill** (what kills put back, 3 and 2 more for style), **Wave Bonus** (holding a wave,
   60), **First Break** and **Break Time** (seconds, 12 and 25), **Wave Size** (times the
   usual: 24 in wave 1, ten more each wave) and **Max Monsters** (at once, 220; fewer for the
-  Steam Deck).
+  Steam Deck), **Boss Every** (a boss wave every this many, 5; 0: none), **Boss Health**
+  (3000; more with more players and each time it returns) and **Boss Reward** (300).
 - **TrapSpot**: a place for a trap (a box, **Size**, its bottom on the node), built between
   waves by a player with Use, paid out of the Fortress meter (**Cost**; 0: the usual).
   **Kind**: `spikes` (monsters crossing are hurt and slowed), `fire` (a burning grate: they

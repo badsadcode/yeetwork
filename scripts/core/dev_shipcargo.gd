@@ -52,9 +52,12 @@ func _ready() -> void:
 	await get_tree().physics_frame
 	world.server_explode(barrel)
 	await _wait(0.6)
+	# (the nearest container prop to where it stood: the blast may have shoved it a good way)
 	var freed: Prop = null
+	var near := 15.0
 	for p: Prop in world.props.values():
-		if is_instance_valid(p) and p.kind == "container" and p.global_position.distance_to(ship.global_transform * l0.origin) < 6.0:
+		if is_instance_valid(p) and p.kind == "container" and p.global_position.distance_to(ship.global_transform * l0.origin) < near:
+			near = p.global_position.distance_to(ship.global_transform * l0.origin)
 			freed = p
 	_check("a blast breaks a container's lashings: it's loose (a heavy prop)", world._cargo_loose.has(li) and freed != null and not (lashed[li][0] as Node3D).visible and freed.mass > 500.0,
 		"loose %s, prop %s" % [world._cargo_loose.has(li), freed != null])

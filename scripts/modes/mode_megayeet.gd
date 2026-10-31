@@ -53,6 +53,8 @@ var started := 0.0
 var kills := 0
 var heart_hits := 0
 var ups := 0 # team upgrades bought
+var boss # (Horde.Monster) the boss while it lives
+var _bosses := 0 # how many have come this game
 var _broke_msg := 0.0
 var _to_spawn := 0
 var _spawn_gap := 1.0
@@ -238,6 +240,9 @@ func _start_wave() -> void:
 	wave += 1
 	phase = Phase.WAVE
 	_to_spawn = _wave_count()
+	if heart.boss_every > 0 and wave % heart.boss_every == 0:
+		_to_spawn = maxi(int(_to_spawn * 0.6), 1) # (the boss is plenty)
+		_spawn_boss()
 	_spawn_gap = (18.0 + wave * 1.5) / _to_spawn
 	_spawned = 0
 	_brutes = 0 if wave < BRUTES_FROM else 1 + (wave - BRUTES_FROM) / 2
@@ -287,6 +292,22 @@ func _pick_kind() -> String:
 	return "shambler"
 
 
+## The Siege Golem, at a rift: tougher with more Yeets playing and each time it comes back.
+func _spawn_boss() -> void:
+	if _spots.is_empty():
+		return
+	var s = _spots[0]
+	var at: Vector3 = (s as MonsterSpawn).spot(world.rng) if s is MonsterSpawn else s
+	var m = horde.server_spawn(at, "golem")
+	var yeets: int = world.players.size()
+	m.max_hp = heart.boss_health * (1.0 + 0.35 * maxi(yeets - 1, 0)) * (1.0 + 0.5 * _bosses)
+	m.hp = m.max_hp
+	_bosses += 1
+	boss = m
+	world.server_message("WAVE %d: %s!\nBlast it, burn it, throw the iron ball at it" % [wave, Horde.BOSS_NAME], Color(1.0, 0.35, 0.2), true)
+	world.server_fx("horn", heart.global_position, Vector3.UP, 1.0)
+
+
 func _wave_cleared() -> void:
 	phase = Phase.BREAK
 	phase_end = world.now() + heart.break_time
@@ -320,9 +341,16 @@ func _drain() -> void:
 		_fallen()
 
 
-func on_monster_killed(_m, cause: String, attacker: int) -> void:
+func on_monster_killed(m, cause: String, attacker: int) -> void:
+	if m == boss:
+		boss = null
+		_send_state()
 	if phase == Phase.OVER or cause == "heart":
 		return
+	if m.kind == "golem":
+		meter = minf(meter + heart.boss_reward, max_meter)
+		var who: Player = world.get_player(attacker) if attacker != 0 else null
+		world.server_message("%s FALLS!  +%d%s" % [Horde.BOSS_NAME, int(heart.boss_reward), ("  (" + who.display_name + ")") if who else ""], Color(1.0, 0.85, 0.3), true)
 	kills += 1
 	var gain := heart.kill_refill + (heart.style_refill if cause in STYLE else 0.0)
 	meter = minf(meter + gain, max_meter)
@@ -342,8 +370,8 @@ func on_monster_killed(_m, cause: String, attacker: int) -> void:
 			world.server_message("%s: %s!  +%d" % [pl.display_name, step[1], int(step[2])], Color(1.0, 0.8, 0.2))
 
 
-func on_monster_reached(_m) -> void:
-	meter -= heart.bite
+func on_monster_reached(m) -> void:
+	meter -= heart.bite * (5.0 if m.kind == "golem" else 1.0)
 	heart_hits += 1
 	world.server_heart_hurt()
 	var now: float = world.now()
@@ -378,6 +406,8 @@ func _restart() -> void:
 	kills = 0
 	_seen.clear()
 	ups = 0
+	boss = null
+	_bosses = 0
 	for n in world.arena.puzzle:
 		if n is TrapSpot:
 			(n as TrapSpot).server_clear()
@@ -433,6 +463,7 @@ func _send_state() -> void:
 		"meter": int(ceil(meter)), "max": int(max_meter), "wave": wave, "phase": phase,
 		"next": phase_end if phase != Phase.WAVE else -1.0, "left": _to_spawn + horde.count(),
 		"zones": _zone_counts.slice(1), "best": best, "kills": kills, "ups": ups,
+		"boss": [Horde.BOSS_NAME, boss.hp / boss.max_hp] if boss and boss.hp > 0.0 else [],
 	})
 
 

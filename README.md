@@ -256,7 +256,12 @@ for a team upgrade (stronger pushes and throws for everyone, softer bites, quick
 respawns). The **iron ball** is too heavy for one gun: grab it alone and it only strains
 toward you ("1 of 2 pulling"); with two guns on it, it lifts and floats where you aim
 together, and either of you charges and throws it along your shared aim (harder with more
-of you): it flattens whatever it hits, brutes included. The Fortress has two. Monsters walk the ways to the Heart, batter gates down and hit any Yeet they reach; a
+of you): it flattens whatever it hits, brutes included. The Fortress has two. Every fifth
+wave is a **boss wave**: **the Siege Golem**, three times a Yeet's height, leads it in (its
+health bar on the HUD). Gates crumble under it; pushes, grabs, falls and water do nothing; it
+stomps anyone close (and flattens its own minions), hurls boulders at Yeets up on the walls
+(catch one and throw it back), and calls packs out of the ground. Blasts, fire and heavy
+things hurt it, the iron ball most of all; bringing it down tops the meter up. Monsters walk the ways to the Heart, batter gates down and hit any Yeet they reach; a
 gravity-gun push and blasts send them flying, flung props crush them, they die from falls,
 lava, acid and deep water, and fire spreads through a crowd. Grab one with the gun and
 throw it, or swing it into the others. Waves mix the kinds as they go on, each announced

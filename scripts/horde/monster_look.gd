@@ -9,6 +9,7 @@ extends RefCounted
 ## - brute: Frankenstein's monster: square head, flat black hair, neck bolts, a dark coat.
 ## - ghost: a floating sheet with trailing arms (see-through: monster_ghost.gdshader).
 ## - climber: a skeleton. - bomber: a little imp with a lit powder keg on its back.
+## - golem (the boss): a hulk of stone blocks, glowing cracks, fists like boulders.
 
 const HIP := 0.8
 const SHOULDER := 1.35
@@ -33,6 +34,8 @@ static func mesh(kind: String) -> ArrayMesh:
 			_skeleton(st)
 		"bomber":
 			_bomber(st)
+		"golem":
+			_golem(st)
 		_:
 			_shambler(st)
 	st.generate_normals()
@@ -146,6 +149,38 @@ static func _bomber(st: SurfaceTool) -> void:
 	_box(st, Vector3(0, 1.25, 0.33), Vector3(0.46, 0.06, 0.42), Color(0.2, 0.2, 0.22), 0)
 	_box(st, Vector3(0, 1.62, 0.33), Vector3(0.04, 0.16, 0.04), Color(0.25, 0.2, 0.15), 0)
 	_box(st, Vector3(0, 1.72, 0.33), Vector3(0.08, 0.08, 0.08), Color(1.0, 0.7, 0.2), 0, 1.0)
+
+
+static func _golem(st: SurfaceTool) -> void:
+	var stone := Color(0.46, 0.44, 0.42)
+	var dark := Color(0.3, 0.29, 0.28)
+	var moss := Color(0.3, 0.45, 0.2)
+	var glow := Color(1.0, 0.45, 0.1)
+	for s in [-1, 1]:
+		_box(st, Vector3(s * 0.17, HIP * 0.5, 0), Vector3(0.28, HIP, 0.3), dark, _leg(s))
+		_box(st, Vector3(s * 0.17, 0.08, -0.04), Vector3(0.34, 0.16, 0.42), stone, _leg(s))
+		# Long arms hanging to the knees, fists like boulders.
+		_box(st, Vector3(s * 0.48, SHOULDER - 0.3, -0.05), Vector3(0.22, 0.62, 0.24), stone, _arm(s))
+		_box(st, Vector3(s * 0.5, SHOULDER - 0.72, -0.08), Vector3(0.32, 0.3, 0.32), dark, _arm(s))
+		_box(st, Vector3(s * 0.5, SHOULDER - 0.6, -0.245), Vector3(0.2, 0.03, 0.02), glow, _arm(s), 1.0)
+		_box(st, Vector3(s * 0.4, SHOULDER + 0.08, 0.0), Vector3(0.36, 0.26, 0.4), stone, 0) # (shoulder slabs)
+		_box(st, Vector3(s * 0.4, SHOULDER + 0.22, 0.0), Vector3(0.3, 0.05, 0.34), moss, 0)
+	_box(st, Vector3(0, 1.08, 0.04), Vector3(0.72, 0.66, 0.48), stone, 0)
+	_box(st, Vector3(0, 0.84, 0.02), Vector3(0.6, 0.14, 0.42), dark, 0)
+	# Glowing cracks across the chest.
+	_box(st, Vector3(-0.08, 1.16, -0.205), Vector3(0.04, 0.4, 0.02), glow, 0, 1.0)
+	_box(st, Vector3(0.06, 1.02, -0.205), Vector3(0.3, 0.04, 0.02), glow, 0, 1.0)
+	_box(st, Vector3(0.16, 1.24, -0.205), Vector3(0.04, 0.22, 0.02), glow, 0, 1.0)
+	# Its back: a ridge of stones down the spine, cracks glowing between them, moss.
+	for k in 3:
+		_box(st, Vector3(0, 0.95 + k * 0.17, 0.3), Vector3(0.2, 0.12, 0.08), dark, 0)
+	_box(st, Vector3(0.14, 1.1, 0.29), Vector3(0.04, 0.42, 0.02), glow, 0, 1.0) # (on the back's surface, z 0.28)
+	_box(st, Vector3(-0.16, 1.18, 0.29), Vector3(0.26, 0.04, 0.02), glow, 0, 1.0)
+	_box(st, Vector3(-0.2, 0.98, 0.29), Vector3(0.22, 0.16, 0.03), moss, 0)
+	# A small head sunk between the shoulders.
+	_box(st, Vector3(0, 1.5, -0.08), Vector3(0.3, 0.26, 0.28), stone, 5)
+	_box(st, Vector3(0, 1.65, -0.08), Vector3(0.32, 0.06, 0.3), moss, 5)
+	_eyes(st, 1.52, -0.225, glow, 0.06)
 
 
 static func _eyes(st: SurfaceTool, y: float, z: float, col: Color, size := 0.07) -> void:

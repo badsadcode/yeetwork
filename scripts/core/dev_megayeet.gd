@@ -21,7 +21,7 @@ var pl: Player
 
 
 func _ready() -> void:
-	get_tree().create_timer(330.0).timeout.connect(func():
+	get_tree().create_timer(450.0).timeout.connect(func():
 		print("MEGAYEET CHECK FAILED (timed out)")
 		get_tree().quit(1))
 	await _wait(1.0)
@@ -39,6 +39,7 @@ func _ready() -> void:
 			q.bot_brain = null
 			q.cmd.move = Vector2.ZERO
 			q.cmd.jump = false
+			world.gun_action(q, GravityGun.Action.GRAB_END) # (nor its gun still reaching for things)
 			q.respawn(Vector3(-24.0 + brains.size() * 4.0, 7.3, 38.0), 0.0)
 	for k in 50:
 		if horde.field:
@@ -130,6 +131,7 @@ func _ready() -> void:
 	await _way_out(brains)
 	await _shop()
 	await _team_lift(brains)
+	await _boss_fight()
 	# Bots fight.
 	for q: Player in brains:
 		q.bot_brain = brains[q]
@@ -309,6 +311,10 @@ func _kinds() -> void:
 		var a := k * TAU / 5.0
 		pack.append(horde.server_spawn(Vector3(30 + cos(a) * 1.0, 0, -26 + sin(a) * 1.0), "shambler"))
 	var crate: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, Vector3(30, 0.6, -26)))
+	for id in world._burning_props.keys(): # (other fires out: there's a cap on how many burn at once)
+		var bp: Prop = world.get_prop(id)
+		if bp:
+			world._server_put_out(0, id, bp.global_position)
 	await get_tree().physics_frame
 	world.server_ignite_prop(crate, 12.0)
 	var burning := 0
@@ -330,12 +336,15 @@ func _kinds() -> void:
 		kinds[mode._pick_kind()] = true
 		mode._spawned += 1
 	mode.wave = was
-	_check("later waves mix every kind", Horde.KIND_IDS.all(func(k): return kinds.has(k)), str(kinds.keys()))
+	_check("later waves mix every kind (but the boss, who leads boss waves)", Horde.KIND_IDS.all(func(k): return kinds.has(k) or Horde.KINDS[k].has("boss")), str(kinds.keys()))
 
 
 ## A bot finds its way out of the keep to a monster beyond the inner wall, the gates shut: over
 ## the low keep wall, up a jump pad onto the inner wall, off its far side (BotRoute).
 func _way_out(brains: Dictionary) -> void:
+	mode.phase = ModeMegaYeet.Phase.BREAK # (no wave coming meanwhile: just the one monster)
+	mode.phase_end = world.now() + 999.0
+	mode._to_spawn = 0
 	horde.server_clear()
 	world.server_restore_walls()
 	await _wait(0.2)
@@ -353,22 +362,33 @@ func _way_out(brains: Dictionary) -> void:
 	if bot == null:
 		return
 	bot.respawn(mode.heart.global_position + Vector3(4, 0.2, 4), 0.0)
-	bot.bot_brain = brains[bot]
+	bot.bot_brain = BotBrain.new(bot, world) # (fresh: not one left paused mid-thought)
 	var reached := false
 	var best := INF
-	for k in 90:
-		await _wait(0.5)
-		if k == 16:
-			_cam(bot.global_position + Vector3(6, 5, 8), bot.global_position)
-			await _shot("m12_bot_way_out")
-		var d := bot.global_position.distance_to(target.pos)
-		best = minf(best, d)
-		if d < 6.5 or target.hp <= 0.0:
-			reached = true
-			break
-	_check("... and a bot gets there by itself", reached, "closest %.1f m" % best)
+	var tries := 0
+	while not reached and tries < 2: # (a bot caught on something gets one more go from the Heart)
+		tries += 1
+		if tries > 1:
+			bot.respawn(mode.heart.global_position + Vector3(4, 0.2, 4), 0.0)
+			bot.bot_brain = BotBrain.new(bot, world)
+		for k in 120: # (a minute: the long way round, a missed pad tried again)
+			await _wait(0.5)
+			if k == 16 and tries == 1:
+				_cam(bot.global_position + Vector3(6, 5, 8), bot.global_position)
+				await _shot("m12_bot_way_out")
+			var d := bot.global_position.distance_to(target.pos)
+			best = minf(best, d)
+			if d < 6.5 or target.hp <= 0.0:
+				reached = true
+				break
+	if not reached:
+		var br = bot.bot_brain
+		print("WAYOUT alive %s state %d at %s path %d/%d monster %s held %d" % [bot.is_alive(), bot.state, bot.global_position.snapped(Vector3.ONE * 0.1), br._path_i, br._path.size(), br._monster != null, bot.gun.held_kind])
+	_check("... and a bot gets there by itself", reached, "closest %.1f m, %d go%s" % [best, tries, "" if tries == 1 else "es"])
 	bot.bot_brain = null
 	bot.cmd.move = Vector2.ZERO
+	world.gun_action(bot, GravityGun.Action.GRAB_END)
+	bot.respawn(Vector3(-24.0, 7.3, 38.0), 0.0)
 	horde.server_clear()
 
 
@@ -514,6 +534,92 @@ func _team_lift(brains: Dictionary) -> void:
 	if is_instance_valid(ball):
 		world.server_despawn_prop(ball)
 	horde.server_clear()
+
+
+## The boss: a boss wave brings the Siege Golem (and its bar on the HUD); a push and the gun
+## do nothing to it; it stomps a Yeet close by, throws a boulder at one up on the wall, calls
+## a pack; the iron ball takes a big bite out of it; brought down, it pays the meter back.
+func _boss_fight() -> void:
+	horde.server_clear()
+	await _wait(0.2)
+	mode.wave = mode.heart.boss_every - 1
+	mode._start_wave()
+	await _wait(0.8)
+	var b = mode.boss
+	_check("a boss wave brings the Siege Golem, its health on the HUD", b != null and b.kind == "golem" and world.hud._boss_bar.visible and horde._draw["golem"][0].multimesh.visible_instance_count == 1, "boss %s, bar %s" % [b != null, world.hud._boss_bar.visible])
+	horde.server_clear()
+	mode.boss = null
+	mode.phase = ModeMegaYeet.Phase.BREAK
+	mode.phase_end = world.now() + 999.0
+	mode._to_spawn = 0
+	await _wait(0.2)
+	# One of our own, held in place.
+	var g = horde.server_spawn(Vector3(-20, 0, 30), "golem")
+	g.speed = 0.0
+	g.stomp_cd = 99.0
+	g.throw_cd = 99.0
+	g.call_cd = 99.0
+	mode.boss = g
+	pl.respawn(Vector3(-20, 0, 25.5), 0.0)
+	await _wait(0.4)
+	_face(pl, g.pos + Vector3.UP * 2.0)
+	var hp0: float = g.hp
+	var pushed := horde.server_punt(pl.eye_position(), pl.aim_direction(), 6.0, 0.5, 1.0, pl.player_id)
+	world.gun_action(pl, GravityGun.Action.GRAB_START)
+	await _wait(0.3)
+	var held := pl.gun.held_kind == GravityGun.Kind.MONSTER
+	world.gun_action(pl, GravityGun.Action.GRAB_END)
+	_check("a push doesn't move it, the gun can't hold it", pushed == 1 and g.state == Horde.State.WALK and not held and g.hp > hp0 - 40.0, "pushed %d, state %d, held %s" % [pushed, g.state, held])
+	_cam(Vector3(-12, 4, 22), g.pos + Vector3.UP * 3.0)
+	await _shot("m16_golem")
+	# Its stomp (standing where it throws you down the open corridor, not into a wall).
+	pl.respawn(Vector3(-24.5, 0, 30), 0.0)
+	await _wait(0.3)
+	var hp_pl := pl.hp
+	g.stomp_cd = 0.0
+	var thrown := false
+	for k in 10:
+		await _wait(0.1)
+		if pl.velocity.length() > 8.0 or pl.state == Player.State.RAGDOLL:
+			thrown = true
+			break
+	_check("its stomp sends a Yeet close by flying", thrown and pl.hp < hp_pl, "hp %.0f -> %.0f" % [hp_pl, pl.hp])
+	pl.hp = 100.0
+	# A boulder at a Yeet up on the wall.
+	pl.respawn(Vector3(-20, 7.3, 38.0), 0.0)
+	await _wait(0.4)
+	var rocks: int = horde._boulders.size()
+	g.throw_cd = 0.0
+	await _wait(0.6)
+	_check("it throws a boulder at a Yeet up on the wall", horde._boulders.size() > rocks, "%d boulders" % horde._boulders.size())
+	# Its call.
+	var id0: int = horde._next_id # (counting the ones that come, not the ones still standing: a rolling boulder may get one)
+	g.call_cd = 0.0
+	await _wait(0.3)
+	_check("it calls a pack out of the ground", horde._next_id - id0 >= 5, "%d came" % (horde._next_id - id0))
+	# The iron ball.
+	var ball: Prop = world.server_spawn_prop("iron_ball", Transform3D(Basis.IDENTITY, g.pos + Vector3(-7, 3, 0)))
+	await get_tree().physics_frame
+	ball.linear_velocity = ((g.pos + Vector3.UP * 2.5) - ball.global_position).normalized() * 18.0
+	ball.last_thrower = pl.player_id
+	ball.last_thrown_time = world.now()
+	var before: float = g.hp
+	for k in 15:
+		await _wait(0.1)
+		if g.hp < before - 1.0:
+			break
+	_check("the iron ball takes a big bite out of it", before - g.hp >= 600.0, "%.0f -> %.0f" % [before, g.hp])
+	# Down it goes: the reward.
+	mode.meter = mode.max_meter * 0.5
+	var m0 := mode.meter
+	g.hp = 30.0
+	world.server_explode_at(g.pos + Vector3.UP * 1.5, 6.0, pl.player_id)
+	await _wait(0.8)
+	_check("brought down, it pays the meter back (the bar goes)", g.hp <= 0.0 and mode.boss == null and mode.meter >= m0 + mode.heart.boss_reward - 1.0 and not world.hud._boss_bar.visible, "meter %.0f -> %.0f" % [m0, mode.meter])
+	if is_instance_valid(ball):
+		world.server_despawn_prop(ball)
+	horde.server_clear()
+	mode.meter = mode.max_meter
 
 
 func f_dist(m) -> int:

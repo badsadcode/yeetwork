@@ -37,6 +37,12 @@ extends Node3D
 @export_range(0.2, 5.0, 0.05) var wave_size := 1.0
 ## The most monsters at once (the rest of a wave waits for room). Mind the Steam Deck.
 @export_range(10, 400, 5) var max_monsters := 220
+## A boss wave every this many waves (0: never): the Siege Golem leads it in.
+@export_range(0, 50, 1) var boss_every := 5
+## Its hit points (more with more Yeets playing, and each time it comes back), and what
+## bringing it down puts back in the meter.
+@export_range(200.0, 50000.0, 50.0) var boss_health := 3000.0
+@export_range(0.0, 5000.0, 10.0) var boss_reward := 300.0
 
 var _parts: Node3D
 var _gem: Node3D

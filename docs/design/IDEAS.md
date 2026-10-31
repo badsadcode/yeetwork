@@ -95,8 +95,9 @@ Step 2 done: runners, brutes, ghosts (flashlights burn them), climbers, bombers;
 and throwing monsters; fire burns and spreads through them.
 Step 3 done: the break between waves (repair gates, build traps at TrapSpots: spikes,
 fire, mines; team upgrades at the Heart; the meter as money, a tenth always kept).
-Next: more upgrades and traps players place anywhere; (4) more maps (a factory); (5)
-bosses, polish and tuning for the Steam Deck.
+Step 5 begun: the boss, the Siege Golem (every fifth wave; stomps, throws boulders, calls
+packs; the iron ball is its bane). Next: more upgrades and traps players place anywhere;
+(4) more maps (a factory); more bosses, polish and tuning for the Steam Deck.
 
 Co-op survival: endless waves of NPC monsters (zombies, Frankenstein's monsters, ghosts and
 the like) come for the players, who work together and use everything the game has (the
