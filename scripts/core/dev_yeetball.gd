@@ -26,6 +26,7 @@ func _ready() -> void:
 			q.cmd.move = Vector2.ZERO
 			q.cmd.jump = false
 	var mode := world.mode_logic as ModeYeetball
+	mode.rules = ModeYeetball.Rules.CLASSIC # (whatever the saved setting: the hold limit below is Classic's)
 	_check("Yeetball mode with two goals", mode != null and world.arena.goals.size() == 2 and world.is_team_mode(), "")
 	var b := mode.ball()
 	_check("kickoff: the ball waits on its spot, frozen", b != null and b.freeze and b.global_position.distance_to(world.arena.ball_spot) < 0.3 and mode.phase == ModeYeetball.Phase.KICKOFF, "")

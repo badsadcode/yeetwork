@@ -571,6 +571,8 @@ func server_tick(delta: float) -> void:
 	if grab_active and held_kind == Kind.NONE and _regrab_block <= 0.0:
 		# Whatever we are already pulling gets caught once it is close, wherever we aim.
 		var pulled := player.world.get_prop(_pull_id) as Prop
+		if pulled and not player.world.mode_logic.allow_grab(player, pulled):
+			pulled = null
 		if pulled and pulled.held_by == 0 and origin.distance_to(pulled.global_position) <= GRAB_RANGE + pulled.size.length() * 0.5:
 			_grab_prop(pulled)
 		elif pulled and pulled.held_by == 0 and origin.distance_to(pulled.global_position) < PULL_RANGE * 1.2 and _has_los(origin, pulled):
@@ -595,6 +597,8 @@ func _try_grab(origin: Vector3, dir: Vector3) -> void:
 		target = _catch_assist(origin, dir)
 	if target is Prop and (target.has_meta("delivered") or target.has_meta("no_grab")):
 		return # locked in a Receptacle, or waiting for a kickoff
+	if target is Prop and not w.mode_logic.allow_grab(player, target):
+		return # the rules say no (YeetVolley: the ball on the other side)
 	if target is Prop:
 		var p := target as Prop
 		var d := origin.distance_to(p.global_position)
@@ -788,7 +792,7 @@ func release(throw_ragdoll: bool) -> void:
 			var p := w.get_prop(held_id) as Prop
 			if p and is_instance_valid(p):
 				p.held_by = 0
-				p.gravity_scale = 1.0
+				p.gravity_scale = p.base_gravity
 		Kind.PLAYER:
 			var pl := w.get_player(held_id) as Player
 			if pl:
@@ -866,6 +870,8 @@ func _punt(origin: Vector3, dir: Vector3) -> void:
 			if p.freeze:
 				w.server_unfreeze_prop(p)
 			var dv := minf(1600.0 / p.mass, 36.0) * falloff
+			if Prop.DEFS.get(p.kind, {}).has("punt_speed"):
+				dv = Prop.DEFS[p.kind].punt_speed * falloff # (a volleyball: over the net, not out of the map)
 			p.linear_velocity += dir * dv + Vector3.UP * 2.0 + player.velocity * 0.5
 			p.angular_velocity += Vector3(randf_range(-6, 6), randf_range(-6, 6), randf_range(-6, 6))
 			p.last_thrower = player.player_id

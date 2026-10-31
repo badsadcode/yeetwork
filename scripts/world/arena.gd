@@ -25,7 +25,8 @@ var world: Node
 var destructibles: Array[Destructible] = []
 var spawn_points := {0: [], 1: [], 2: []}
 var flag_stands := {} # team -> Vector3 (base of the flag)
-var goals: Array = [] # Yeetball GoalZones
+var goals: Array = [] # Yeetball GoalZones (YeetHoops' Hoops, YeetVolley's court halves)
+var nets: Array[VolleyNet] = [] # YeetVolley
 var ball_spot := Vector3(0, 1.2, 0) # Yeetball kickoff spot (a BallSpot)
 var initial_props: Array = [] # [kind, Transform3D, key prop?]
 var kill_y := -45.0
@@ -316,6 +317,9 @@ func _collect(n: Node) -> void:
 		puzzle.append(n)
 	elif n is GoalZone:
 		goals.append(n)
+	elif n is VolleyNet:
+		nets.append(n)
+		goals.append_array((n as VolleyNet).halves())
 	elif n is BallSpot:
 		ball_spot = (n as Node3D).global_position
 	elif n is PickupSpawn:
@@ -340,7 +344,7 @@ func validate() -> Array[String]:
 	if (not flag_stands.has(1) or not flag_stands.has(2)) and not co_op and not sport:
 		out.append("CTF needs one Red and one Blue FlagStand.")
 	if sport and (goals.filter(func(g: GoalZone) -> bool: return g.team == 1).size() != 1 or goals.filter(func(g: GoalZone) -> bool: return g.team == 2).size() != 1):
-		out.append("Yeetball needs one Red and one Blue GoalZone (YeetHoops: one Red and one Blue Hoop).")
+		out.append("Yeetball needs one Red and one Blue GoalZone (YeetHoops: one Red and one Blue Hoop; YeetVolley: one VolleyNet).")
 	if co_op and not puzzle.any(func(n: PuzzleNode) -> bool: return n is PuzzleExit):
 		out.append("A puzzle level needs a PuzzleExit.")
 	var cells := 0

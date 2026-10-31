@@ -45,6 +45,9 @@ jobs:
       - name: YeetHoops check (2s and 3s, dunks, the backboard, bots shooting and scoring, full time)
         timeout-minutes: 5
         run: timeout 220 godot --headless -- --host --map hoops_court --mode hoops --bots 3 --spooky off --tour x --tour-mode hoops
+      - name: YeetVolley check (serve, points, out, touches, sides, the net rising, bots rallying, full time)
+        timeout-minutes: 5
+        run: timeout 220 godot --headless -- --host --map volley_beach --mode volley --bots 3 --spooky off --tour x --tour-mode volley
       - name: Pickups check (first aid, every power-up, the HUD, bots fetching first aid)
         timeout-minutes: 4
         run: timeout 180 godot --headless -- --host --map prime --bots 2 --spooky off --tour x --tour-mode pickups

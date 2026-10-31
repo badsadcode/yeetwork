@@ -97,6 +97,12 @@ func allow_build() -> bool:
 	return true
 
 
+## False: this player's gravity gun can't grab or pull this prop (YeetVolley: the ball on the
+## other side of the net).
+func allow_grab(_pl: Player, _p: Prop) -> bool:
+	return true
+
+
 ## False: this kind of pickup isn't used in this mode (it stays hidden).
 func allows_pickup(_kind: String) -> bool:
 	return true

@@ -224,6 +224,18 @@ swishes, threes, dunks, buzzer beaters and players on fire. Bots pull the ball i
 gun, set their feet and lob it in on an arc they work out the way the physics flies it;
 the others crash the boards or go and punt whoever has the ball. Map: **Hoops Court**.
 
+**YeetVolley** (sports). Volleyball with gravity guns, on the same sports rules: keep the
+big, floaty volleyball off your side's sand and send it over the net. The ball touching the
+floor in a half is a point for the other team; out of the lines (or in the sea) is a point
+against whoever touched it last. Rally scoring: whoever wins the point serves, the serve
+floating in over the back of their half. First to 15. **Classic**: three touches a side,
+brief catches (1 s), the gun only reaches the ball on your own side, everyone stays on
+their side of the net. **TOTAL YEET**: unlimited touches, grab it anywhere, 2 s catches,
+multi-ball, barrels, and the net climbs with every point. Aces, spikes, long rallies and
+outs get the commentator going. Bots read where the ball will come down, the nearest gets
+under it, catches it and lobs it deep into the other half; the rest spread over their half.
+Map: **Volley Beach**.
+
 **Pickups and power-ups.** Maps have first aid kits (+50, or +100 for the big one) and
 power-ups floating over glowing pads; walk through one to take it, and it comes back after
 a while. **Speed** (40% faster, 12 s), **Super Yeet** (throws, punts and launches 1.8x
@@ -382,6 +394,10 @@ godot --headless --path . -- --host --map scrapyard --mode puzzle --tour x --tou
 # Pickups: first aid heals and comes back, every power-up measured on a bot, the HUD,
 # a hurt bot fetching first aid, the host's "no pickups" setting
 godot --headless --path . -- --host --map prime --bots 2 --tour x --tour-mode pickups
+
+# YeetVolley: the serve, landing in a half, out, four touches, the gun on your side only,
+# staying on your side, the sea, the net rising, bots rallying, full time at 15
+godot --headless --path . -- --host --map volley_beach --mode volley --bots 3 --tour x --tour-mode volley
 
 # YeetHoops: 2 and 3 points, no basket from below, a solid backboard, a dunk, bots shooting
 # (and a lone bot scoring), full time at 21

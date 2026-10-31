@@ -378,8 +378,12 @@ func _fire_tests() -> void:
 
 
 ## Rebinding: swap the mouse buttons, save, reset, load back (a scratch ConfigFile, so the
-## player's own settings are never touched).
+## player's own settings are never touched). Starts from the defaults, whatever the player
+## has bound, and puts their bindings back afterwards.
 func _controls_test() -> void:
+	var mine := ConfigFile.new()
+	Controls.save(mine)
+	Controls.reset_all()
 	var grab0 := Controls.key_of("gun_grab")
 	var throw0 := Controls.key_of("gun_throw")
 	Controls.swap_mouse_buttons()
@@ -393,7 +397,7 @@ func _controls_test() -> void:
 	k.physical_keycode = KEY_H
 	Controls.rebind("freeze_prop", k)
 	var rebound := Controls.key_of("freeze_prop") == "H" and Controls.pad_of("freeze_prop") != "-"
-	Controls.reset_all()
+	Controls.init(mine)
 	check("controls: swap, save, reset, load, rebind", reset_ok and swapped and rebound, "grab %s -> %s, freeze rebound to H: %s" % [grab0, throw0, rebound])
 
 

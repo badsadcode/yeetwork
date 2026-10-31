@@ -115,6 +115,11 @@ func ball_kind() -> String:
 	return "yeetball"
 
 
+## How long the gun may hold the ball.
+func hold_limit() -> float:
+	return HOLD_LIMIT[rules]
+
+
 ## What a score is called (results screen: "3 goals", "21 points").
 func unit() -> String:
 	return "goal"
@@ -171,7 +176,7 @@ func _new_match() -> void:
 func _publish() -> void:
 	var timed := clock_left != INF
 	var left := maxf(clock_left, 0.0) if timed else -1.0
-	world.server_mode_state({
+	var state := {
 		"rules": rules,
 		"timed": timed,
 		"clock_left": left,
@@ -180,7 +185,14 @@ func _publish() -> void:
 		"golden": _golden_label(),
 		"phase": phase,
 		"results": _results,
-	})
+	}
+	state.merge(_extra_state())
+	world.server_mode_state(state)
+
+
+## More for the HUD and every peer (YeetVolley: how high the net is).
+func _extra_state() -> Dictionary:
+	return {}
 
 
 ## Seconds of play left as the HUD shows it ("" without a clock).
@@ -327,7 +339,7 @@ func _scored(p: Prop) -> Array:
 func _ball_rules(p: Prop, delta: float) -> void:
 	if p.held_by != 0:
 		_held_for[p.prop_id] = _held_for.get(p.prop_id, 0.0) + delta
-		if _held_for[p.prop_id] > HOLD_LIMIT[rules]:
+		if _held_for[p.prop_id] > hold_limit():
 			var holder := world.get_player(p.held_by) as Player
 			if holder:
 				holder.gun.force_release(1.2)

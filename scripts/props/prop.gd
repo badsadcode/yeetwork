@@ -38,6 +38,9 @@ const DEFS := {
 	# Yeetball: big, light, bouncy and easy to spot.
 	"yeetball": {"shape": "sphere", "size": Vector3(0.7, 0.7, 0.7), "mass": 6.0, "color": Color(0.97, 0.97, 1.0), "bounce": 0.7, "label": "Yeetball", "damp": 0.15},
 	# YeetHoops: smaller, bouncier, and thrown gently enough to lob (throw_speed, m/s).
+	# YeetVolley: big, light and floaty (half gravity, some air drag); a punt is capped
+	# (punt_speed) so a smack sends it over the net, not out of the map.
+	"volleyball": {"shape": "sphere", "size": Vector3(0.5, 0.5, 0.5), "mass": 1.0, "color": Color(0.98, 0.97, 0.92), "bounce": 0.55, "label": "Volleyball", "damp": 0.25, "gravity": 0.5, "throw_speed": 12.0, "punt_speed": 13.0},
 	"basketball": {"shape": "sphere", "size": Vector3(0.32, 0.32, 0.32), "mass": 2.5, "color": Color(0.95, 0.45, 0.12), "bounce": 0.82, "label": "Basketball", "damp": 0.0, "throw_speed": 14.0},
 	"fan": {"shape": "fan", "size": Vector3(1.5, 1.7, 0.8), "mass": 40.0, "color": Color(0.3, 0.75, 0.95), "bounce": 0.1, "label": "Fan", "metal": true},
 }
@@ -67,6 +70,8 @@ var exploded := false
 var home_transform := Transform3D.IDENTITY
 var _prev_velocity := Vector3.ZERO
 var _ball_mark: MeshInstance3D # the Yeetball's ring on the ground
+## The prop's own gravity (a volleyball floats down at half); the gun goes back to it.
+var base_gravity := 1.0
 var _last_fx_time := 0.0
 
 # Client-side interpolation.
@@ -139,6 +144,8 @@ func _build(def: Dictionary) -> void:
 	pm.friction = 0.7
 	physics_material_override = pm
 	linear_damp = def.get("damp", 0.05)
+	base_gravity = def.get("gravity", 1.0)
+	gravity_scale = base_gravity
 	angular_damp = 0.3
 	# On a moving map (a ship) props must stay awake to ride along and slide.
 	var arena = world.get("arena") if world else null
@@ -175,6 +182,8 @@ func _build(def: Dictionary) -> void:
 				_build_yeetball(mesh)
 			elif kind == "basketball":
 				_build_basketball(mesh)
+			elif kind == "volleyball":
+				_build_volleyball(mesh)
 		"cyl":
 			var s := CylinderShape3D.new()
 			s.radius = size.x
@@ -643,6 +652,23 @@ func _build_basketball(parent: MeshInstance3D) -> void:
 	_add_ball_mark()
 
 
+## The volleyball: white with blue and yellow bands.
+func _build_volleyball(parent: MeshInstance3D) -> void:
+	var cols := [Color(0.2, 0.45, 0.95), Color(1.0, 0.82, 0.15), Color(0.2, 0.45, 0.95)]
+	for k in 3:
+		var band := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = size.x * 0.97
+		tm.outer_radius = size.x * 1.03
+		tm.rings = 28
+		tm.ring_segments = 4
+		band.mesh = tm
+		band.material_override = Mats.plastic(cols[k], 0.4)
+		band.rotation = [Vector3(PI * 0.5, 0, 0), Vector3(0, 0, PI * 0.5), Vector3(0, PI * 0.25, 0)][k]
+		parent.add_child(band)
+	_add_ball_mark()
+
+
 func _add_ball_mark() -> void:
 	_ball_mark = MeshInstance3D.new()
 	var ring := TorusMesh.new()
@@ -665,7 +691,7 @@ func _add_ball_mark() -> void:
 
 ## The sports' balls (Yeetball, YeetHoops).
 static func is_sport_ball(k: String) -> bool:
-	return k == "yeetball" or k == "basketball"
+	return k == "yeetball" or k == "basketball" or k == "volleyball"
 
 
 ## A big fuse: a glowing cylinder with metal caps.

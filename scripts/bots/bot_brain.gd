@@ -59,6 +59,9 @@ func think(delta: float) -> void:
 	if world.mode == Game.Mode.HOOPS:
 		_think_hoops(delta)
 		return
+	if world.mode == Game.Mode.VOLLEY:
+		_think_volley(delta)
+		return
 	if world.mode == Game.Mode.YEETBALL:
 		_think_yeetball(delta)
 		return
@@ -229,7 +232,7 @@ func _think_hoops(delta: float) -> void:
 			# Nearly on target, feet planted (a throw carries the thrower's own speed): steady
 			# the aim (the skill's slop is the error) and shoot.
 			var planted := pl.is_on_floor() and Vector2(pl.velocity.x, pl.velocity.z).length() < 1.5
-			if planted and _aim_error(look_at) < 0.03 and _hold_timer < ModeYeetball.HOLD_LIMIT[mode.rules] - 0.3:
+			if planted and _aim_error(look_at) < 0.03 and _hold_timer < mode.hold_limit() - 0.3:
 				var slop: float = SHOT_SLOP[_skill()]
 				_shot_dir = dir.rotated(Vector3.UP, _rng.randf_range(-1, 1) * slop).rotated(dir.cross(Vector3.UP).normalized(), _rng.randf_range(-1, 1) * slop)
 				_set_aim(_shot_dir)
@@ -287,6 +290,115 @@ const LOB_MARGIN := 0.03 # the wind-up always charges a little: plan the throw s
 var _lob_charge := 0.0
 
 
+## YeetVolley: read where the ball comes down; the nearest of us to that spot (when it's on
+## our side) goes there, catches it and lobs it over, deep into their half on an arc high
+## enough to clear the net. The others spread out over our half, front and back. Nobody
+## crosses the net.
+func _think_volley(delta: float) -> void:
+	var mode := world.mode_logic as ModeVolley
+	var n: VolleyNet = mode.net() if mode else null
+	var b: Prop = mode.nearest_ball(pl.global_position) if mode else null
+	if n == null or b == null or pl.team == Game.TEAM_NONE:
+		_aim(pl.eye_position() + Vector3.FORWARD, delta)
+		_steer(delta, false)
+		return
+	var mine := -1.0 if pl.team == Game.TEAM_RED else 1.0 # our half's side of the net (local z)
+	var held := world.get_prop(pl.gun.held_id) as Prop if pl.gun.held_kind == GravityGun.Kind.PROP else null
+	var look_at := b.global_position
+	var move := true
+	_shot_cool -= delta
+	if _release_in > 0.0:
+		_release_in -= delta
+		if _release_in <= 0.0 or held == null:
+			_finish_throw()
+			_shot_cool = 1.0
+	if held and held.kind == mode.ball_kind():
+		_hold_timer += delta
+		move = false
+		if _think <= 0.0 or _volley_to == Vector3.ZERO:
+			_think = 1.0
+			_volley_to = n.global_transform * Vector3(_rng.randf_range(-0.35, 0.35) * n.court.x, 0.3, -mine * _rng.randf_range(0.2, 0.42) * n.court.y)
+		# High enough to clear the net: aim at a point over it if the lob would skim it.
+		var dir := _lob(held.global_position, _volley_to)
+		if _release_in > 0.0:
+			_set_aim(_shot_dir)
+			look_at = pl.eye_position() + _shot_dir * 10.0
+		elif dir != Vector3.ZERO:
+			look_at = pl.eye_position() + dir * 10.0
+			var planted := Vector2(pl.velocity.x, pl.velocity.z).length() < 2.5
+			if planted and _aim_error(look_at) < 0.03 and _hold_timer < mode.hold_limit() - 0.2:
+				var slop: float = SHOT_SLOP[_skill()]
+				_shot_dir = dir.rotated(Vector3.UP, _rng.randf_range(-1, 1) * slop)
+				_set_aim(_shot_dir)
+				world.gun_action(pl, GravityGun.Action.THROW)
+				_release_in = (_lob_charge + LOB_MARGIN) * GravityGun.CHARGE_TIME
+		else:
+			look_at = _volley_to + Vector3.UP * 4.0
+	else:
+		_hold_timer = 0.0
+		_volley_to = Vector3.ZERO
+		var land := _landing(b, n.global_position.y + 1.4)
+		var ours := n.side_of(land) == pl.team
+		var me := pl.global_position.distance_to(land)
+		var chaser := true
+		for q: Player in world.players.values():
+			if q != pl and q.team == pl.team and q.is_alive() and q.global_position.distance_to(land) < me - 0.5:
+				chaser = false
+		var want_grab := false
+		if ours and chaser and _shot_cool <= 0.0:
+			_goal = land
+			want_grab = n.side_of(b.global_position) == pl.team and pl.eye_position().distance_to(b.global_position) < 9.0
+		else:
+			# Our spot: spread over our half by order in the team, front and back.
+			var idx := 0
+			var count := 0
+			for q: Player in world.players.values():
+				if q.team == pl.team:
+					if q.player_id < pl.player_id:
+						idx += 1
+					count += 1
+			var col := (float(idx % 2) - 0.5) * 0.45 * n.court.x if count > 1 else 0.0
+			var depth := (0.18 if idx % 2 == 0 else 0.34) * n.court.y
+			_goal = n.global_transform * Vector3(col, 0, mine * depth)
+		# Never past the net.
+		var lg := n.global_transform.affine_inverse() * _goal
+		lg.z = mine * maxf(lg.z * mine, 1.0)
+		_goal = n.global_transform * lg
+		if want_grab and not pl.gun.grab_active and _aim_error(look_at) < 0.1:
+			world.gun_action(pl, GravityGun.Action.GRAB_START)
+			_grabbing = true
+		elif not want_grab and pl.gun.grab_active:
+			world.gun_action(pl, GravityGun.Action.GRAB_END)
+			_grabbing = false
+	_hopping = false
+	_aim(look_at, delta)
+	_steer(delta, move and pl.global_position.distance_to(_goal) > 0.8)
+
+
+var _volley_to := Vector3.ZERO
+
+
+## Where a ball will next pass down through height y (its own gravity and damping), or where
+## it is if it's held or already below.
+func _landing(b: Prop, y: float) -> Vector3:
+	if b.held_by != 0 or b.freeze:
+		return b.global_position
+	var g: float = ProjectSettings.get_setting("physics/3d/default_gravity", 24.0) * b.base_gravity
+	var damp: float = b.linear_damp + (ProjectSettings.get_setting("physics/3d/default_linear_damp", 0.1) if b.linear_damp_mode == RigidBody3D.DAMP_MODE_COMBINE else 0.0)
+	var dt := 1.0 / Engine.physics_ticks_per_second
+	var keep := maxf(1.0 - damp * dt, 0.0)
+	var p := b.global_position
+	var v := b.linear_velocity
+	for i in 300:
+		v.y -= g * dt
+		v *= keep
+		var np := p + v * dt
+		if v.y < 0.0 and np.y <= y:
+			return np
+		p = np
+	return p
+
+
 func _set_aim(d: Vector3) -> void:
 	pl.yaw = atan2(-d.x, -d.z)
 	pl.pitch = atan2(d.y, Vector2(d.x, d.z).length())
@@ -297,14 +409,14 @@ func _set_aim(d: Vector3) -> void:
 ## charge the distance needs (_lob_charge). ZERO: too close (or too far) for a lob.
 func _lob(from: Vector3, to: Vector3) -> Vector3:
 	var held := world.get_prop(pl.gun.held_id) as Prop
-	var g: float = ProjectSettings.get_setting("physics/3d/default_gravity", 24.0)
+	var g: float = ProjectSettings.get_setting("physics/3d/default_gravity", 24.0) * (held.base_gravity if held else 1.0)
 	var damp: float = held.linear_damp if held else 0.0
 	if held == null or held.linear_damp_mode == RigidBody3D.DAMP_MODE_COMBINE:
 		damp += ProjectSettings.get_setting("physics/3d/default_linear_damp", 0.1)
 	var flat := Vector3(to.x - from.x, 0.0, to.z - from.z)
 	var d := flat.length()
 	var h := to.y - from.y
-	var base: float = Prop.DEFS.basketball.throw_speed * (Pickups.SUPER_MULT if pl.has_buff("super") else 1.0)
+	var base: float = (Prop.DEFS.get(held.kind, {}).get("throw_speed", 14.0) if held else 14.0) * (Pickups.SUPER_MULT if pl.has_buff("super") else 1.0)
 	var lo := deg_to_rad(42.0)
 	var hi := deg_to_rad(78.0)
 	_lob_charge = 0.0

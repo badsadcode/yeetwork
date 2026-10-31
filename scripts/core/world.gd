@@ -209,6 +209,8 @@ func _make_mode(m: int) -> ModeBase:
 			return ModeYeetball.new()
 		Game.Mode.HOOPS:
 			return ModeHoops.new()
+		Game.Mode.VOLLEY:
+			return ModeVolley.new()
 	return ModeBase.new()
 
 
@@ -388,6 +390,8 @@ func _s_init(state: Dictionary) -> void:
 		_s_flood(f[0], f[1], f[2])
 	puzzle_results = state.get("puzzle_results", {})
 	mode_state = state.get("mode_state", {})
+	for n in arena.nets:
+		n.set_raise(mode_state.get("net_raise", 0.0))
 	_s_pickups(state.get("pickups", []))
 	for id in state.get("buffs", {}):
 		_s_buffs(id, state.buffs[id])
@@ -1352,6 +1356,8 @@ func server_mode_state(state: Dictionary) -> void:
 @rpc("authority", "call_remote", "reliable")
 func _s_mode_state(state: Dictionary) -> void:
 	mode_state = state
+	for n in arena.nets:
+		n.set_raise(state.get("net_raise", 0.0))
 	hud.on_players_changed()
 
 

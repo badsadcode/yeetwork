@@ -335,6 +335,7 @@ func _panel_style(alpha := 0.82) -> StyleBoxFlat:
 func show_match_results(r: Dictionary) -> void:
 	if _match_end:
 		_match_end.queue_free()
+	_big_label.modulate.a = 0.0 # (the last goal's banner would show through)
 	_match_end = PanelContainer.new()
 	_match_end.set_anchors_preset(Control.PRESET_CENTER)
 	_match_end.grow_horizontal = Control.GROW_DIRECTION_BOTH
@@ -387,7 +388,9 @@ func show_match_results(r: Dictionary) -> void:
 					parts.append("%d pts" % t[0])
 				elif t[0] > 0:
 					parts.append("x%d" % t[0] if t[0] > 1 else "")
-				if t[1] > 0:
+				if t[1] > 0 and points:
+					parts.append("%d error%s" % [t[1], "" if t[1] == 1 else "s"])
+				elif t[1] > 0:
 					parts.append("own goal" + (" x%d" % t[1] if t[1] > 1 else ""))
 				l.text = ("%s  %s" % [who, " ".join(parts)]).strip_edges()
 				l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

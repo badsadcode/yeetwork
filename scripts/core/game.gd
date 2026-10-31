@@ -14,8 +14,8 @@ const L_PROPS := 4
 const L_LIMBS := 8
 const L_TRIGGERS := 16
 
-enum Mode { SANDBOX, CTF, DODGEBALL, PUMPKIN, PUZZLE, YEETBALL, HOOPS }
-const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash", "Puzzle (co-op)", "Yeetball", "YeetHoops"]
+enum Mode { SANDBOX, CTF, DODGEBALL, PUMPKIN, PUZZLE, YEETBALL, HOOPS, VOLLEY }
+const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash", "Puzzle (co-op)", "Yeetball", "YeetHoops", "YeetVolley"]
 const BUILTIN_MAPS := [
 	{"key": "facing", "name": "Facing Yeets"},
 	{"key": "prime", "name": "Yeetwork Prime"},
@@ -26,9 +26,9 @@ const BUILTIN_MAPS := [
 const MAPS_DIR := "res://maps"
 
 
-## The sports (a ball, two goals or hoops, a clock): Yeetball and YeetHoops.
+## The sports (a ball, two goals, hoops or a net, a clock): Yeetball, YeetHoops, YeetVolley.
 static func is_sport(m: int) -> bool:
-	return m == Mode.YEETBALL or m == Mode.HOOPS
+	return m == Mode.YEETBALL or m == Mode.HOOPS or m == Mode.VOLLEY
 
 const TEAM_NONE := 0
 const TEAM_RED := 1
