@@ -11,16 +11,11 @@ extends ModeBase
 ## (prepare_arena, every peer). Waves mix the kinds of monster as they go on (KIND_MIX, brutes
 ## a few a wave from wave 3), each announced the first time it comes, with how to beat it.
 
+## (fallbacks with no Heart yet; a FortressHeart sets them: its MegaYeet Rules)
 const METER := 1000.0
-const KILL_REFILL := 3.0
-const STYLE_REFILL := 2.0 # (on top: thrown off something, crushed, drowned, in lava, bowled over)
 const STYLE := ["fall", "crushed", "drowned", "lava", "acid", "bowled", "wall", "fire", "light", "bomb"]
-const HEART_BITE := 40.0
-const WAVE_BONUS := 60.0
 const FIRST_BREAK := 12.0
-const BREAK := 25.0
 const OVER_TIME := 12.0
-const MAX_ALIVE := 220
 const RINGS := [32.0, 18.0, 8.0] # (automatic zones' radii, outer to inner)
 const COMBOS := [[3, "TRIPLE SPLAT", 10.0], [5, "MONSTER MASH", 20.0], [10, "MEGAYEET", 50.0]]
 ## [kind, from wave, share of the wave]; the rest are shamblers.
@@ -39,6 +34,7 @@ enum Phase { BREAK, WAVE, OVER }
 var horde: Horde
 var heart: FortressHeart
 var meter := METER
+var max_meter := METER # (the Heart's rules: health)
 var wave := 0
 var best := 0
 var phase := Phase.BREAK
@@ -72,8 +68,10 @@ func setup(p_world: Node) -> void:
 	super(p_world)
 	horde = world.horde
 	heart = world.arena.heart
+	max_meter = heart.health if heart else METER
+	meter = max_meter
 	started = world.now()
-	phase_end = world.now() + FIRST_BREAK
+	phase_end = world.now() + (heart.first_break if heart else FIRST_BREAK)
 
 
 ## Every peer: a Heart and zones if the map has none (the same everywhere: from its spawns).
@@ -205,10 +203,15 @@ func _far_spots(f: FlowField, hp: Vector3) -> Array:
 	return best.filter(func(p): return p != null)
 
 
+## How many monsters this wave brings (the Heart's wave size).
+func _wave_count() -> int:
+	return maxi(int(round((14 + wave * 10) * heart.wave_size)), 1)
+
+
 func _start_wave() -> void:
 	wave += 1
 	phase = Phase.WAVE
-	_to_spawn = 14 + wave * 10
+	_to_spawn = _wave_count()
 	_spawn_gap = (18.0 + wave * 1.5) / _to_spawn
 	_spawned = 0
 	_brutes = 0 if wave < BRUTES_FROM else 1 + (wave - BRUTES_FROM) / 2
@@ -219,7 +222,7 @@ func _start_wave() -> void:
 
 func _spawn(delta: float) -> void:
 	_spawn_t -= delta
-	while _spawn_t <= 0.0 and _to_spawn > 0 and horde.count() < MAX_ALIVE and not _spots.is_empty():
+	while _spawn_t <= 0.0 and _to_spawn > 0 and horde.count() < heart.max_monsters and not _spots.is_empty():
 		_spawn_t += _spawn_gap
 		_to_spawn -= 1
 		var at: Vector3
@@ -246,7 +249,7 @@ func _spawn(delta: float) -> void:
 ## What comes out next: a brute now and then (spread through the wave), otherwise the wave's
 ## mix (KIND_MIX), mostly shamblers.
 func _pick_kind() -> String:
-	if _brutes > 0 and _spawned > 0 and _spawned % maxi(int((14 + wave * 10) / (_brutes + 1.0)), 1) == 0:
+	if _brutes > 0 and _spawned > 0 and _spawned % maxi(int(_wave_count() / (_brutes + 1.0)), 1) == 0:
 		_brutes -= 1
 		return "brute"
 	var r: float = world.rng.randf()
@@ -260,9 +263,9 @@ func _pick_kind() -> String:
 
 func _wave_cleared() -> void:
 	phase = Phase.BREAK
-	phase_end = world.now() + BREAK
-	meter = minf(meter + WAVE_BONUS, METER)
-	world.server_message("WAVE %d HELD!  +%d" % [wave, int(WAVE_BONUS)], Color(0.5, 1.0, 0.5), true)
+	phase_end = world.now() + heart.break_time
+	meter = minf(meter + heart.wave_bonus, max_meter)
+	world.server_message("WAVE %d HELD!  +%d" % [wave, int(heart.wave_bonus)], Color(0.5, 1.0, 0.5), true)
 
 
 func _drain() -> void:
@@ -295,8 +298,8 @@ func on_monster_killed(_m, cause: String, attacker: int) -> void:
 	if phase == Phase.OVER or cause == "heart":
 		return
 	kills += 1
-	var gain := KILL_REFILL + (STYLE_REFILL if cause in STYLE else 0.0)
-	meter = minf(meter + gain, METER)
+	var gain := heart.kill_refill + (heart.style_refill if cause in STYLE else 0.0)
+	meter = minf(meter + gain, max_meter)
 	var pl: Player = world.get_player(attacker) if attacker != 0 else null
 	if pl == null:
 		return
@@ -309,18 +312,18 @@ func on_monster_killed(_m, cause: String, attacker: int) -> void:
 	_combo[attacker] = c
 	for step in COMBOS:
 		if c[0] == step[0]:
-			meter = minf(meter + step[2], METER)
+			meter = minf(meter + step[2], max_meter)
 			world.server_message("%s: %s!  +%d" % [pl.display_name, step[1], int(step[2])], Color(1.0, 0.8, 0.2))
 
 
 func on_monster_reached(_m) -> void:
-	meter -= HEART_BITE
+	meter -= heart.bite
 	heart_hits += 1
 	world.server_heart_hurt()
 	var now: float = world.now()
 	if now - _heart_msg > 4.0:
 		_heart_msg = now
-		world.server_message("The Heart is hit!  -%d" % int(HEART_BITE), Color(1.0, 0.25, 0.2))
+		world.server_message("The Heart is hit!  -%d" % int(heart.bite), Color(1.0, 0.25, 0.2))
 	if meter <= 0.0:
 		_fallen()
 
@@ -344,19 +347,19 @@ func _restart() -> void:
 	world.server_reset_area(Transform3D(Basis.IDENTITY, heart.global_position), Vector3(4000, 4000, 4000))
 	if horde.field and horde.field.refresh_gates():
 		horde.field.solve_async()
-	meter = METER
+	meter = max_meter
 	wave = 0
 	kills = 0
 	_seen.clear()
 	started = world.now()
 	phase = Phase.BREAK
-	phase_end = world.now() + FIRST_BREAK
+	phase_end = world.now() + heart.first_break
 	world.server_message("The fortress stands again. Get ready!", Color(0.6, 0.9, 1.0), true)
 
 
 func _send_state() -> void:
 	world.server_mode_state({
-		"meter": int(ceil(meter)), "max": int(METER), "wave": wave, "phase": phase,
+		"meter": int(ceil(meter)), "max": int(max_meter), "wave": wave, "phase": phase,
 		"next": phase_end if phase != Phase.WAVE else -1.0, "left": _to_spawn + horde.count(),
 		"zones": _zone_counts.slice(1), "best": best, "kills": kills,
 	})

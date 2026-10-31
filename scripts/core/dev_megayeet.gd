@@ -21,7 +21,7 @@ var pl: Player
 
 
 func _ready() -> void:
-	get_tree().create_timer(260.0).timeout.connect(func():
+	get_tree().create_timer(330.0).timeout.connect(func():
 		print("MEGAYEET CHECK FAILED (timed out)")
 		get_tree().quit(1))
 	await _wait(1.0)
@@ -83,10 +83,10 @@ func _ready() -> void:
 	_check("they batter the gate down", broke, "%d cells broken" % (gate.broken_cells.size() if gate else -1))
 	for k in 30: # (a few broken cells may not be a monster-sized hole yet: they keep at it)
 		await _wait(0.5)
-		if mode.meter < ModeMegaYeet.METER and (mode._zone_counts[1] + mode._zone_counts[2]) > 0:
+		if mode.meter < mode.max_meter and (mode._zone_counts[1] + mode._zone_counts[2]) > 0:
 			break
 	await _shot("m04_through")
-	_check("monsters in the zones drain the Fortress meter", mode.meter < ModeMegaYeet.METER and (mode._zone_counts[1] + mode._zone_counts[2]) > 0, "meter %.0f, in zones %s" % [mode.meter, mode._zone_counts])
+	_check("monsters in the zones drain the Fortress meter", mode.meter < mode.max_meter and (mode._zone_counts[1] + mode._zone_counts[2]) > 0, "meter %.0f, in zones %s" % [mode.meter, mode._zone_counts])
 	# A push sends one flying.
 	pl.respawn(Vector3(30, 0, 30), 0.0)
 	await _wait(0.3)
@@ -127,6 +127,7 @@ func _ready() -> void:
 	await _wait(1.5)
 	_check("a monster reaching the Heart takes a bite", mode.heart_hits >= bites + 1 and mode.meter < before, "%.0f -> %.0f, %d bites" % [before, mode.meter, mode.heart_hits - bites])
 	await _kinds()
+	await _way_out(brains)
 	# Bots fight.
 	for q: Player in brains:
 		q.bot_brain = brains[q]
@@ -176,7 +177,7 @@ func _ready() -> void:
 	mode.phase_end = world.now()
 	await _wait(0.25) # (straight after: the bots may punt a gate again soon enough)
 	var whole: bool = world.arena.destructibles.all(func(d): return d.broken_cells.is_empty())
-	_check("... and it all starts again (walls whole, the meter full, wave 0)", mode.phase == ModeMegaYeet.Phase.BREAK and mode.wave == 0 and mode.meter == ModeMegaYeet.METER and whole and horde.count() == 0, "phase %d wave %d meter %.0f walls whole %s" % [mode.phase, mode.wave, mode.meter, whole])
+	_check("... and it all starts again (walls whole, the meter full, wave 0)", mode.phase == ModeMegaYeet.Phase.BREAK and mode.wave == 0 and mode.meter == mode.max_meter and whole and horde.count() == 0, "phase %d wave %d meter %.0f walls whole %s" % [mode.phase, mode.wave, mode.meter, whole])
 	print("MEGAYEET CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -327,6 +328,45 @@ func _kinds() -> void:
 		mode._spawned += 1
 	mode.wave = was
 	_check("later waves mix every kind", Horde.KIND_IDS.all(func(k): return kinds.has(k)), str(kinds.keys()))
+
+
+## A bot finds its way out of the keep to a monster beyond the inner wall, the gates shut: over
+## the low keep wall, up a jump pad onto the inner wall, off its far side (BotRoute).
+func _way_out(brains: Dictionary) -> void:
+	horde.server_clear()
+	world.server_restore_walls()
+	await _wait(0.2)
+	if horde.field.refresh_gates():
+		horde.field.solve()
+	var at := Vector3(6, 0, -30)
+	var route := BotRoute.find(horde.field, world.arena.jump_links, mode.heart.global_position + Vector3(4, 0, 4), at)
+	var over := false
+	for p: Vector3 in route:
+		over = over or p.y > 6.0
+	_check("a bot's route from the Heart to beyond the inner wall (gates shut) goes up a pad and over", not route.is_empty() and over, "%d steps, over the wall %s" % [route.size(), over])
+	var target := horde.server_spawn(at, "shambler")
+	target.speed = 0.0 # (it stays put: the bot has to get there)
+	var bot: Player = brains.keys()[0] if not brains.is_empty() else null
+	if bot == null:
+		return
+	bot.respawn(mode.heart.global_position + Vector3(4, 0.2, 4), 0.0)
+	bot.bot_brain = brains[bot]
+	var reached := false
+	var best := INF
+	for k in 90:
+		await _wait(0.5)
+		if k == 16:
+			_cam(bot.global_position + Vector3(6, 5, 8), bot.global_position)
+			await _shot("m12_bot_way_out")
+		var d := bot.global_position.distance_to(target.pos)
+		best = minf(best, d)
+		if d < 6.5 or target.hp <= 0.0:
+			reached = true
+			break
+	_check("... and a bot gets there by itself", reached, "closest %.1f m" % best)
+	bot.bot_brain = null
+	bot.cmd.move = Vector2.ZERO
+	horde.server_clear()
 
 
 func f_dist(m) -> int:

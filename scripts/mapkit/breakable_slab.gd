@@ -34,8 +34,9 @@ enum Layout { WALL, FLOOR }
 @export var anchor_top := false
 @export var anchor_left := false
 @export var anchor_right := false
-## Multiplies the material's toughness.
-@export_range(0.1, 5.0, 0.05) var hp_scale := 1.0
+## Toughness: multiplies the material's (0.5 half as tough, 10 ten times). MegaYeet's gates:
+## how long they hold against the monsters battering them.
+@export_range(0.1, 50.0, 0.05, "or_greater") var hp_scale := 1.0
 
 var _preview: MeshInstance3D
 

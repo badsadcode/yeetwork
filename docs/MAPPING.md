@@ -372,7 +372,15 @@ nothing taller than a step (about half a metre): walls stop them, a low wall pla
 over still does; anything a monster fits under (a gate under a lintel) is a way through.
 - **FortressHeart**: what's defended. **Radius**: how close a monster gets before it bites.
   **Color**; **Model** (or the theme's `heart` slot) replaces the crystal: a throne, a
-  reactor, a giant cake.
+  reactor, a giant cake. Its **MegaYeet Rules** tune the game on your map: **Health** (the
+  Fortress meter, 1000), **Bite** (a monster reaching it, 40), **Kill Refill** and **Style
+  Refill** (what kills put back, 3 and 2 more for style), **Wave Bonus** (holding a wave,
+  60), **First Break** and **Break Time** (seconds, 12 and 25), **Wave Size** (times the
+  usual: 24 in wave 1, ten more each wave) and **Max Monsters** (at once, 220; fewer for the
+  Steam Deck).
+- **Gates**: any BreakableSlab. Its **material** and **Hp Scale** (toughness: 0.5 half as
+  tough, 10 ten times) set how long it holds against monsters battering it; brutes hit
+  hardest, bombers blow holes in it.
 - **DefenseZone**: a box (**Size**, its bottom on the node). **Level** 1 the outer walls, 2 the
   courtyard, 3 the keep: each monster inside drains the Fortress meter 1, 3 or 6 points a
   second (**Drain** sets your own); where zones overlap the deepest counts, so nest them.
@@ -380,6 +388,10 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
   line round it on the ground.
 - **MonsterSpawn**: a rift monsters come out of (**Radius**). Several round the outside;
   **From Wave** keeps one shut until then (a surprise later on).
+- Bots find their way round your fortress the way players can: walking, hopping anything
+  up to about 1.3 m, dropping off walls, and riding **jump pads** (aimed with Target; not
+  ones set by Velocity Override). Give the inner rings a way out (a low wall, a pad up onto
+  a wall) or the bots stay inside until a gate falls.
 - No Heart, zones or rifts on a map: the game makes them (a Heart amid the spawn points,
   rings of zones round it, rifts at the farthest ground monsters can walk from).
 - `maps/fortress.tscn` is the example (built by `tools/make_fortress.py`, plain Map Kit

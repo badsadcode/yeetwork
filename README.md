@@ -260,7 +260,10 @@ Yeets; blast, burn, drop or drown it), **climbers** (skeletons: straight at the 
 and over the walls) and **ghosts** (through walls; only fire and light hurt them, and in
 MegaYeet everyone carries a flashlight). At zero the fortress falls:
 how many waves you held, then everything starts again (walls rebuilt). Hundreds at once
-stay cheap (they aren't physics bodies; drawn in one batch). Map: **The Fortress**; any
+stay cheap (they aren't physics bodies; drawn in one batch). Bots find their way round the fortress
+(hopping walls, riding jump pads) to the monsters they can reach. A map's FortressHeart
+sets the rules (the meter's size, bites, refills, breaks, wave sizes); gates are as tough
+as their map says. Map: **The Fortress**; any
 other map works too (the game puts a Heart amid its spawns, zones round it and rifts far
 out).
 

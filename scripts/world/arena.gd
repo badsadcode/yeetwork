@@ -40,6 +40,7 @@ var lashed: Array = []
 var fire_areas: Array = [] # [Transform3D, size]: burning places (World sets things alight in them)
 var pickups: Array[PickupSpawn] = [] # first aid kits and power-ups, in scene order
 var heart: FortressHeart # MegaYeet: what's defended
+var jump_links: Array = [] # [pad, landing] (world): Map Kit jump pads, for bots finding their way (BotRoute)
 var defense_zones: Array[DefenseZone] = []
 var monster_spawns: Array[MonsterSpawn] = []
 var puzzle: Array[PuzzleNode] = [] # puzzle pieces of a Map Kit map, in scene order (same on every peer)
@@ -334,6 +335,8 @@ func _collect(n: Node) -> void:
 	elif n is JumpPadNode:
 		var jp := n as JumpPadNode
 		jump_pad(jp.global_position, jp.launch_velocity(), MapTheme.pick(jp, "jump_pad", jp.model), jp.global_transform.basis.orthonormalized())
+		if jp.velocity_override == Vector3.ZERO:
+			jump_links.append([jp.global_position, jp.global_transform * jp.target])
 	elif n is LiftPlatform:
 		var lp := n as LiftPlatform
 		lift(lp.global_position, lp.global_position + lp.global_transform.basis * lp.travel, lp.period, lp.phase, lp.size, MapTheme.pick(lp, "lift", lp.model))
