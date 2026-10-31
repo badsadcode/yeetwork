@@ -255,9 +255,12 @@ weather) now strike real lightning: branching bolts from the clouds to the groun
 up the land, sheet lightning in the clouds, and thunder as late as sound would arrive, a
 crack first when it's close.
 
-**Fire look (test).** *Graphics details → Flame outline (test)*: burning things wear crisp,
-cartoon flames licking up their outline (a flame-outline shader in the stylized-fire style:
-noise eroded toward the tongue tips), no flame mass or smoke. Off: the soft flame mass.
+**Fire look.** Burning things char dark with glowing ember cracks and flames crawling up
+their faces (3D noise in world space: no seams across faces), tongues of flame lick up
+round their sides and over the top (camera-facing flame cards in one batch, shaped by noise
+eroding toward the tips in the stylized-fire manner: yellow cores, orange bodies, tips going
+smoky red-violet), and embers drift up. *Graphics details → Fire look → Classic* brings back
+the soft flame mass and smoke.
 
 **Map themes.** A **MapTheme** gives a map's pieces and props their look in one file: a
 model for each kind of piece (jump pads, buttons, valves, doors, goals, hoops, pickups...)

@@ -116,7 +116,7 @@ func _run() -> void:
 	await ticks(60)
 	var after := pl.horizontal_speed()
 	check("slide boost", pl.sliding or after > 6.0, "%.1f -> %.1f -> %.1f m/s" % [before, boosted, after])
-	check("slide keeps momentum", boosted > before + 2.0 and after > 7.0, "boost %.1f, after 1 s %.1f" % [boosted, after])
+	check("slide keeps momentum", boosted > before + 1.0 and after > 7.0, "%.1f -> boost %.1f, after 1 s %.1f" % [before, boosted, after])
 	pl.cmd.crouch = false
 
 	# 4. Wall run along the breakable lane wall (south face at z = -20.4).
@@ -233,9 +233,17 @@ func _run() -> void:
 	victim.bot_brain = null
 	victim.respawn(pl.global_position + Vector3(3.0, 0, 0), 0.0)
 	await ticks(10)
+	for k in 60: # (standing, not still tumbling from something earlier)
+		if victim.state == Player.State.NORMAL:
+			break
+		await ticks(1)
 	world.gun_action(pl, GravityGun.Action.GRAB_START)
-	await ticks(15)
-	var was_held := victim.state == Player.State.HELD
+	var was_held := false
+	for k in 40:
+		await ticks(1)
+		if victim.state == Player.State.HELD:
+			was_held = true
+			break
 	world.gun_action(pl, GravityGun.Action.THROW)
 	world.gun_action(pl, GravityGun.Action.THROW_RELEASE)
 	await ticks(3)

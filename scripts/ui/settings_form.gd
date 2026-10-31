@@ -173,11 +173,12 @@ static func _graphics_rows(g: GridContainer) -> void:
 Original: the first build, for comparison."
 	models.item_selected.connect(func(i): Game.character_detail = i)
 	_row(g, "Character models", models)
-	var outline := CheckBox.new()
-	outline.text = "Burning things: stylized flame outline, no flame mass or smoke"
-	outline.button_pressed = Game.fire_outline
-	outline.toggled.connect(func(on): Game.fire_outline = on)
-	_row(g, "Flame outline (test)", outline)
+	var fire := OptionButton.new()
+	for item in ["Classic (soft flame mass)", "New (tongues of flame, embers)"]:
+		fire.add_item(item)
+	fire.selected = clampi(Game.fire_look, 0, 1)
+	fire.item_selected.connect(func(i): Game.fire_look = i)
+	_row(g, "Fire look", fire)
 	check.call("VSync", "vsync", "Sync to the display (no tearing)")
 	var caps := ["Unlimited"]
 	for v in FPS_CAPS.slice(1):

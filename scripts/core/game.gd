@@ -88,7 +88,7 @@ var look_character := 0
 ## Faces that blink and react (false: the classic, unchanging faces). Only changes what you see.
 var expressive_faces := true
 var character_detail := 0 # 0 optimised character models, 1 the original (heavier) build
-var fire_outline := true # burning things: a stylized flame outline instead of the flame mass and smoke (a test)
+var fire_look := 1 # burning things: 1 new (charred glowing surface, tongues of flame, embers), 0 classic (soft flame mass)
 # Display (persisted). Window mode: 0 windowed, 1 borderless fullscreen, 2 exclusive fullscreen
 # (-1 = pick automatically: fullscreen on the Steam Deck, a window elsewhere).
 var window_mode := -1
@@ -260,7 +260,7 @@ func save_settings() -> void:
 	cfg.set_value("look", "character", look_character)
 	cfg.set_value("look", "expressive", expressive_faces)
 	cfg.set_value("video", "character_detail", character_detail)
-	cfg.set_value("video", "fire_outline", fire_outline)
+	cfg.set_value("video", "fire_look", fire_look)
 	cfg.set_value("net", "address", join_address)
 	cfg.set_value("net", "port", port)
 	cfg.set_value("match", "mode", mode)
@@ -314,7 +314,7 @@ func load_settings() -> void:
 	look_character = cfg.get_value("look", "character", look_character)
 	expressive_faces = cfg.get_value("look", "expressive", expressive_faces)
 	character_detail = cfg.get_value("video", "character_detail", character_detail)
-	fire_outline = cfg.get_value("video", "fire_outline", fire_outline)
+	fire_look = cfg.get_value("video", "fire_look", fire_look)
 	join_address = cfg.get_value("net", "address", join_address)
 	port = cfg.get_value("net", "port", port)
 	mode = cfg.get_value("match", "mode", mode)
