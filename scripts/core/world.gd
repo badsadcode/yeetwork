@@ -2056,8 +2056,13 @@ func _server_lights_tick() -> void:
 			continue
 		var at: Vector3 = (n as MapLight).glow_position()
 		for p: Prop in props.values():
-			if is_instance_valid(p) and p.linear_velocity.length() > 7.0 \
-					and p.global_position.distance_to(at) < maxf(p.size.x, maxf(p.size.y, p.size.z)) * 0.6 + 0.3:
+			if not is_instance_valid(p) or p.linear_velocity.length() <= 7.0:
+				continue
+			# (the path it flew since the last look, not just where it is: a fast prop can
+			# pass right through a lamp between two looks)
+			var now_at := p.global_position
+			var near := Geometry3D.get_closest_point_to_segment(at, now_at - p.linear_velocity * 0.1, now_at)
+			if near.distance_to(at) < maxf(p.size.x, maxf(p.size.y, p.size.z)) * 0.6 + 0.3:
 				_server_break_light(n)
 				break
 

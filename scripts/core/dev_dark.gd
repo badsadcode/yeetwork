@@ -82,7 +82,9 @@ func _haunted(arena) -> void:
 	_check("the flashlight switches off (and says so to everyone)", not pl._torch.visible and (pl.flags & Player.F_TORCH_OFF) != 0, "")
 	pl.torch_on = true
 	await _wait(0.2)
-	_check("... and on again", pl._torch.visible and (pl.flags & Player.F_TORCH_OFF) == 0, "")
+	# (lit unless the bots have just knocked us down: then it's rightly off)
+	var standing := pl.is_alive() and pl.state != Player.State.RAGDOLL
+	_check("... and on again", pl._torch.visible == standing and (pl.flags & Player.F_TORCH_OFF) == 0, "standing %s" % standing)
 	# A crate dropped on a lamp post smashes it; it comes back on after its repair time.
 	var lamp: MapLight = null
 	for l in lights:
