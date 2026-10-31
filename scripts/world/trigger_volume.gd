@@ -1,9 +1,9 @@
 class_name TriggerVolume
 extends Area3D
-## Jump pads, acid, water and wind. Players are affected by the peer that controls them;
-## props are affected on the server only.
+## Jump pads, acid, water, wind and ladders. Players are affected by the peer that controls
+## them; props are affected on the server only.
 
-enum Kind { JUMP_PAD, ACID, WIND, KILL, WATER }
+enum Kind { JUMP_PAD, ACID, WIND, KILL, WATER, LADDER }
 
 var kind: int = Kind.JUMP_PAD
 var launch_velocity := Vector3.ZERO
@@ -18,6 +18,10 @@ const WATER_JUMP := 11.0
 ## Swimming speed and stroke acceleration in pools.
 const SWIM_SPEED := 5.0
 const SWIM_ACCEL := 14.0
+## Climbing speed on a ladder.
+const CLIMB_SPEED := 4.5
+var _half_height := 0.0
+var _half_width := 0.0
 
 
 func setup(p_kind: int, size: Vector3, p_velocity := Vector3.ZERO, p_strength := 0.0) -> void:
@@ -32,6 +36,8 @@ func setup(p_kind: int, size: Vector3, p_velocity := Vector3.ZERO, p_strength :=
 	shape.size = size
 	cs.shape = shape
 	add_child(cs)
+	_half_height = size.y * 0.5
+	_half_width = maxf(size.x, size.z) * 0.5
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 
@@ -129,6 +135,45 @@ func _affect_player(pl: Player, delta: float, now: float) -> void:
 				pl.report_hazard_damage(1000.0, "void")
 		Kind.WATER:
 			_swim(pl, delta)
+		Kind.LADDER:
+			_climb(pl, delta)
+
+
+## Ladder: hold forward (or jump) to climb, back (or crouch) to go down, let go and you hang
+## on; step off sideways. Standing at its foot you just walk. On it, it holds you on its line
+## (forward climbs, it doesn't walk you over the top), and near the top launch_velocity
+## (ladder-local: x along it, y up, z out from the wall) carries you off onto the deck.
+func _climb(pl: Player, delta: float) -> void:
+	if pl.state != Player.State.NORMAL:
+		return
+	# (really on it: the overlap list lags a frame behind a teleport or a big shove)
+	var l := global_transform.affine_inverse() * pl.global_position
+	if absf(l.x) > _half_width + 0.4 or absf(l.z) > _half_width + 0.4 or absf(l.y) > _half_height + 1.0:
+		return
+	var up := pl.cmd.move.y > 0.2 or pl.cmd.jump
+	var down := pl.cmd.move.y < -0.2 or pl.cmd.crouch
+	if pl.is_on_floor() and not up:
+		return
+	if absf(pl.cmd.move.x) > 0.6 and not up and not down:
+		return # stepping off sideways
+	var v := pl.velocity
+	if up and pl.global_position.y > global_position.y + _half_height - 1.0:
+		pl.velocity = global_transform.basis.orthonormalized() * launch_velocity
+		pl.lift_off()
+		return
+	# Onto the ladder's line, whatever the input says sideways.
+	var to := global_position - pl.global_position
+	to -= global_transform.basis.y.normalized() * to.dot(global_transform.basis.y.normalized())
+	v.x = to.x * 8.0
+	v.z = to.z * 8.0
+	if up:
+		v.y = CLIMB_SPEED
+		pl.lift_off()
+	elif down:
+		v.y = -CLIMB_SPEED
+	else:
+		v.y = Player.GRAVITY * delta # (hanging on: what gravity takes this step, given back)
+	pl.velocity = v
 
 
 ## Water: drag, buoyancy and swimming (hold jump to rise). The open ocean is too rough to
@@ -145,7 +190,7 @@ func _swim(pl: Player, delta: float) -> void:
 		var cur := liquid.flood.current_at(pl.global_position)
 		if cur.length() > 0.3:
 			pl.velocity += (cur * 1.4 - Vector3(pl.velocity.x, 0, pl.velocity.z)) * 2.5 * maxf(sub, 0.35) * delta
-	if liquid.ocean:
+	if liquid.ocean and not liquid.swimmable:
 		pl.velocity.y += Player.GRAVITY * 0.8 * sub * delta
 		if depth > 6.0 and pl.is_alive():
 			pl.report_hazard_damage(1000.0, "drown")

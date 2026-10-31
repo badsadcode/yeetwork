@@ -4,7 +4,11 @@ extends RefCounted
 ## the ship (Arena.carrier), which heaves, pitches and rolls on the sculpted ocean's swell.
 ## Phase 1: hull, deck, container stacks with aisles, the stern superstructure (bridge),
 ## the raised bow, ramps and pads, loose cargo that slides when the deck tilts.
-## Red team at the bow, Blue at the stern. Falling overboard: the ocean.
+## Phase 2 (around the ship): overboard isn't the end (the sea is swimmable, ladders on the
+## hull lead back aboard); the bridge is a room with breakable windows and the ship's horn,
+## reached by ladders through hatches in its wings; lashing bridges with ladders span the
+## gaps between the container bays.
+## Red team at the bow, Blue at the stern.
 ## Local space: origin on the waterline amidships, bow toward +X, starboard toward +Z.
 
 const DECK := 8.0 # main deck height above the waterline
@@ -37,6 +41,7 @@ static func build(a: Arena, key := "highseas") -> void:
 	var v: Array = VARIANTS.get(key, VARIANTS.highseas)
 	var sea: String = Game.sea_override if Game.sea_override in Liquid.SCULPTED else v[0]
 	var ocean := Liquid.create_ocean(0.0, sea)
+	ocean.swimmable = true # (overboard: swim to a ladder and climb back aboard)
 	a.add_child(ocean)
 	var settings := MapSettings.new()
 	settings.ocean = true
@@ -56,8 +61,11 @@ static func build(a: Arena, key := "highseas") -> void:
 	_superstructure(a, ship)
 	_containers(ship, rng)
 	_bow(a, ship)
+	_hull_ladders(a, ship)
 	_gameplay(a, ship)
 	_cargo(a, rng)
+	# Bots coming off the forecastle go round by its ramps (its back edge is a 2.5 m drop).
+	a.avoid_rects.append(Rect2(Vector2(59.0, -7.5), Vector2(2.0, 15.0)))
 
 
 # --- Helpers (everything is a child of the ship) --------------------------------------
@@ -149,6 +157,63 @@ static func _pad(ship: Ship, pos: Vector3, velocity: Vector3) -> void:
 	ship.add_child(arrow)
 
 
+## A ladder from `bottom` up to `top_y` against a wall, climbed on its `out` side (ship-local
+## directions). At the top it carries you `over` (ladder-local: x along it, y up, z out).
+static func _ladder(a: Arena, ship: Ship, bottom: Vector3, top_y: float, out: Vector3, over: Vector3) -> void:
+	var h := top_y - bottom.y
+	var side := Vector3.UP.cross(out).normalized()
+	var basis := Basis(side, Vector3.UP, out)
+	var yellow := Mats.plastic(Color(0.95, 0.75, 0.15), 0.4)
+	for s in [-1, 1]:
+		var rail := MeshInstance3D.new()
+		var rm := BoxMesh.new()
+		rm.size = Vector3(0.07, h, 0.07)
+		rail.mesh = rm
+		rail.transform = Transform3D(basis, bottom + basis * Vector3(s * 0.25, h * 0.5, 0.1))
+		rail.material_override = yellow
+		ship.add_child(rail)
+	var rungs := MultiMeshInstance3D.new()
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	var rung := BoxMesh.new()
+	rung.size = Vector3(0.5, 0.05, 0.05)
+	mm.mesh = rung
+	mm.instance_count = int(h / 0.35)
+	for i in mm.instance_count:
+		mm.set_instance_transform(i, Transform3D(basis, bottom + basis * Vector3(0, 0.25 + i * 0.35, 0.1)))
+	rungs.multimesh = mm
+	rungs.material_override = yellow
+	ship.add_child(rungs)
+	var t := TriggerVolume.new()
+	t.transform = Transform3D(basis, bottom + basis * Vector3(0, h * 0.5, 0.5))
+	ship.add_child(t)
+	t.setup(TriggerVolume.Kind.LADDER, Vector3(1.5, h, 1.0), over)
+	# Where a swimming bot heads for (just off its foot), and how tall it is.
+	var foot := Node3D.new()
+	foot.position = bottom + out * 0.8
+	foot.set_meta("height", h)
+	ship.add_child(foot)
+	a.ladders.append(foot)
+
+
+## Ladders up the hull out of the sea, on both sides and at the stern (over the rail at the top).
+static func _hull_ladders(a: Arena, ship: Ship) -> void:
+	for x in [-40.0, -10.0, 20.0, 46.0]:
+		for s in [-1, 1]:
+			_ladder(a, ship, Vector3(x, -1.8, s * 16.02), DECK + 1.5, Vector3(0, 0, s), Vector3(0, 3.0, -6.0))
+	_ladder(a, ship, Vector3(-72.02, -1.8, 0.0), DECK + 1.5, Vector3(-1, 0, 0), Vector3(0, 3.0, -6.0))
+
+
+## A breakable glass pane (ship-local), `size` across (local x) by high, facing `normal`.
+static func _glass(a: Arena, ship: Ship, center: Vector3, normal: Vector3, size: Vector2) -> void:
+	var along := Vector3.UP.cross(normal).normalized()
+	var d := Destructible.new()
+	d.transform = Transform3D(Basis(along, Vector3.UP, normal), center)
+	ship.add_child(d)
+	d.setup(a.destructibles.size(), size, 0.08, Color(0.72, 0.86, 0.95), ["bottom", "top"], "glass")
+	a.destructibles.append(d)
+
+
 static func _light(ship: Ship, pos: Vector3, color: Color, range_m: float, energy := 2.0) -> void:
 	var l := OmniLight3D.new()
 	l.position = pos
@@ -236,10 +301,7 @@ static func _superstructure(a: Arena, ship: Ship) -> void:
 	for lvl in 5:
 		var y := DECK + 2.0 + lvl * 3.4
 		_box(ship, Vector3(-49.96, y, 0), Vector3(0.1, 1.0, 19), Color(0.15, 0.22, 0.32), Basis.IDENTITY, false)
-	# The wheelhouse with bridge wings spanning the full beam.
-	_box(ship, Vector3(-55, DECK + 19.5, 0), Vector3(10, 3, 32), WHITE)
-	_box(ship, Vector3(-49.96, DECK + 19.8, 0), Vector3(0.1, 1.6, 30), Color(0.2, 0.35, 0.5), Basis.IDENTITY, false)
-	_box(ship, Vector3(-55, DECK + 21.1, 0), Vector3(10.6, 0.2, 32.6), Color(0.25, 0.28, 0.32))
+	_bridge(a, ship)
 	# Funnel with the company stripe.
 	_box(ship, Vector3(-62, DECK + 24, 0), Vector3(4, 10, 6), Color(0.15, 0.15, 0.18))
 	_box(ship, Vector3(-62, DECK + 25, 0), Vector3(4.05, 2.0, 6.05), Color(0.95, 0.55, 0.1), Basis.IDENTITY, false)
@@ -254,6 +316,44 @@ static func _superstructure(a: Arena, ship: Ship) -> void:
 	_light(ship, Vector3(-47, DECK + 4.0, 0), Color(1.0, 0.85, 0.6), 14.0, 1.5)
 	_light(ship, Vector3(-55, DECK + 23.0, 0), Color(0.6, 0.85, 1.0), 12.0, 1.0)
 	_flag_stand(a, ship, Game.TEAM_BLUE, Vector3(-46.5, DECK, 0))
+
+
+## The wheelhouse on top (DECK+18..21), with bridge wings spanning the full beam: a room
+## you can get into. Big windows of breakable glass look forward over the cargo; the ship's
+## horn stands at the console. In each wing a hatch in the floor, with a ladder from the main
+## deck below, is the way in (the roof is still reached by the balcony's pad).
+static func _bridge(a: Arena, ship: Ship) -> void:
+	var floor_y := DECK + 18.0
+	# Floor (its top 5 cm over the block's, no flicker), with a hatch in each wing.
+	_box(ship, Vector3(-55, floor_y - 0.1, 0), Vector3(10, 0.3, 27.2), WHITE)
+	for s in [-1, 1]:
+		_box(ship, Vector3(-58, floor_y - 0.1, s * 14.8), Vector3(4, 0.3, 2.4), WHITE)
+		_box(ship, Vector3(-52.3, floor_y - 0.1, s * 14.8), Vector3(4.6, 0.3, 2.4), WHITE)
+		_box(ship, Vector3(-55.3, floor_y - 0.1, s * 15.8), Vector3(1.4, 0.3, 0.4), WHITE)
+	# Walls: back and sides solid; the front a sill, posts and a lintel round the glass.
+	_box(ship, Vector3(-59.8, floor_y + 1.5, 0), Vector3(0.4, 3.0, 32), WHITE)
+	for s in [-1, 1]:
+		_box(ship, Vector3(-55, floor_y + 1.5, s * 15.8), Vector3(10, 3.0, 0.4), WHITE)
+		_box(ship, Vector3(-50.2, floor_y + 1.75, s * 14.6), Vector3(0.4, 1.5, 2.0), WHITE)
+	_box(ship, Vector3(-50.2, floor_y + 0.5, 0), Vector3(0.4, 1.0, 32), WHITE)
+	_box(ship, Vector3(-50.2, floor_y + 2.75, 0), Vector3(0.4, 0.5, 32), WHITE)
+	_box(ship, Vector3(-55, DECK + 21.1, 0), Vector3(10.6, 0.2, 32.6), Color(0.25, 0.28, 0.32))
+	# Four panes looking forward.
+	for k in 4:
+		_glass(a, ship, Vector3(-50.2, floor_y + 1.75, -10.2 + k * 6.8), Vector3(1, 0, 0), Vector2(6.8, 1.5))
+	# The console under the windows, the horn's lever on it, a light.
+	_box(ship, Vector3(-51.2, floor_y + 0.45, 0), Vector3(1.2, 0.9, 6.0), Color(0.22, 0.24, 0.28))
+	_box(ship, Vector3(-51.25, floor_y + 0.92, 0), Vector3(1.0, 0.04, 5.6), Color(0.1, 0.45, 0.4), Basis.IDENTITY, false)
+	var horn := ShipHorn.new()
+	horn.position = Vector3(-51.4, floor_y + 0.9, 2.0)
+	ship.add_child(horn)
+	horn.world = a.world
+	horn.puzzle_index = a.puzzle.size()
+	a.puzzle.append(horn)
+	_light(ship, Vector3(-55, floor_y + 2.6, 0), Color(1.0, 0.92, 0.75), 12.0, 1.2)
+	# Ladders from the main deck up through the hatches (climbed facing outboard).
+	for s in [-1, 1]:
+		_ladder(a, ship, Vector3(-55.3, DECK, s * 15.3), floor_y + 1.2, Vector3(0, 0, -s), Vector3(-5.0, 2.0, 0.0))
 
 
 ## Six bays of container stacks (1-3 high) between the superstructure and the bow, with
@@ -298,6 +398,33 @@ static func _containers(ship: Ship, rng: RandomNumberGenerator) -> void:
 		pads_at.append(Vector3(bx + 7.6, DECK, 6.0 * (1 if b % 2 == 0 else -1)))
 	for p: Vector3 in pads_at:
 		_pad(ship, p, Vector3(0.0, 14.0, -signf(p.z) * 1.2))
+	_lashing_bridges(ship, bay_x, pads_at)
+
+
+## Lashing bridges: steel walkways across the gaps between bays, two containers up, with
+## ladders from the side walkways (on the side without the gap's ramp). They leave the
+## gap's jump pad clear.
+static func _lashing_bridges(ship: Ship, bay_x: Array, pads_at: Array) -> void:
+	var a := ship.get_parent() as Arena
+	var y := DECK + CONT.y * 2.0
+	for g in bay_x.size() - 1:
+		var gx: float = (float(bay_x[g]) + float(bay_x[g + 1])) * 0.5
+		var pad: Vector3 = pads_at[g]
+		# Two spans either side of the pad's column.
+		var gap0 := pad.z - 1.7
+		var gap1 := pad.z + 1.7
+		for span in [[-12.6, gap0], [gap1, 12.6]]:
+			var z0: float = span[0]
+			var z1: float = span[1]
+			if z1 - z0 < 1.0:
+				continue
+			_box(ship, Vector3(gx, y - 0.15, (z0 + z1) * 0.5), Vector3(1.8, 0.3, z1 - z0), STEEL)
+			for rx in [-0.85, 0.85]: # (thin rails along its edges)
+				_box(ship, Vector3(gx + rx, y + 0.5, (z0 + z1) * 0.5), Vector3(0.06, 1.0, z1 - z0), Color(0.95, 0.75, 0.15), Basis.IDENTITY, false)
+		# Ladders up from the side walkways (gaps 0, 2, 4 have a ramp on the starboard side).
+		var sides := [-1] if g % 2 == 0 else [-1, 1]
+		for s in sides:
+			_ladder(a, ship, Vector3(gx, DECK, s * 13.1), y + 1.2, Vector3(0, 0, s), Vector3(0.0, 2.0, -5.0))
 
 
 static func _gameplay(a: Arena, _ship: Ship) -> void:

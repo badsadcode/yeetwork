@@ -13,6 +13,7 @@ var _enemy: Player
 var _think := 0.0
 var _hold_timer := 0.0
 var _stuck := 0.0
+var _ladder: Node3D # (overboard: the ladder we're making for)
 var _strafe := 0.0
 var _strafe_timer := 0.0
 var _aim_yaw := 0.0
@@ -56,6 +57,8 @@ func think(delta: float) -> void:
 		return
 	_think -= delta
 	_punt_cd -= delta
+	if _overboard(delta):
+		return
 	if world.mode == Game.Mode.HOOPS:
 		_think_hoops(delta)
 		return
@@ -605,6 +608,41 @@ func _aim(point: Vector3, delta: float) -> void:
 func _aim_error(point: Vector3) -> float:
 	var to := (point - pl.eye_position()).normalized()
 	return 1.0 - pl.aim_direction().dot(to)
+
+
+## Overboard (High Seas: the sea is swimmable, ladders lead back up): swim to the nearest
+## ladder's foot and climb it to the top. True while that's what we're doing.
+func _overboard(delta: float) -> bool:
+	if world.arena.ladders.is_empty():
+		return false
+	var pos := pl.global_position
+	var liq := Liquid.at(pos, 0.5)
+	var in_sea := liq != null and liq.ocean and pos.y < liq.height_at(pos.x, pos.z) + 0.3
+	if not in_sea and _ladder == null:
+		return false
+	if in_sea and (_ladder == null or not is_instance_valid(_ladder)):
+		var best := INF
+		for f: Node3D in world.arena.ladders:
+			var d := f.global_position.distance_to(pos)
+			if d < best:
+				best = d
+				_ladder = f
+	var foot := _ladder.global_position
+	var top := foot.y + float(_ladder.get_meta("height", 10.0))
+	if not in_sea and (pl.is_on_floor() or pos.y > top + 0.5):
+		_ladder = null # (aboard again)
+		return false
+	var flat := Vector2(foot.x - pos.x, foot.z - pos.z)
+	_aim(Vector3(foot.x, pos.y + 1.0, foot.z) + (Vector3(foot.x - pos.x, 0, foot.z - pos.z).normalized() * 3.0 if flat.length() > 0.1 else Vector3.ZERO), delta)
+	var cmd := pl.cmd
+	if flat.length() > 1.6 and in_sea:
+		_goal = Vector3(foot.x, pos.y, foot.z)
+		_steer(delta, true)
+	else:
+		# At the ladder: face it and climb.
+		cmd.move = Vector2(0, 1)
+		cmd.jump = true
+	return true
 
 
 func _steer(delta: float, want_move: bool) -> void:

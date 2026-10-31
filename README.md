@@ -300,8 +300,13 @@ menu, or in Pumpkin Smash, every map gets:
   rolls, pitches and heaves on the ocean's long swell (gently in calm seas, up to about 13°
   in a storm), the same for every player. Loose cargo starts to move as the deck tilts:
   balls and barrels on their side first, crates in rough seas, anvils hardly ever. Red
-  spawns on the bow, Blue at the bridge. Falling overboard means the ocean. Container stacks
-  with aisles, ramps and pads; more of the ship (interiors, cranes, weather) is coming.
+  spawns on the bow, Blue at the bridge. Falling overboard isn't the end: swim to one of the
+  yellow ladders on the hull and climb back aboard (bots do too). Climb a ladder through the
+  hatch in a bridge wing into the **bridge**: big breakable windows over the cargo, and the
+  **ship's horn** on the console (Use to sound it). Container stacks with aisles, ramps and
+  pads, and **lashing bridges** between the bays (ladders up from the side walkways). Ladders:
+  forward climbs, back goes down, let go to hang on. More of the ship (cargo breaking loose,
+  weather over the deck, cranes, the engine room) is coming.
   Three variants: **High Seas** (open ocean, tropical sky), **Golden Hour** (calm sea at
   sunset) and **Storm** (a knife-edged, confused stormy sea whose wave trains cross from wide
   angles, streaks of blown foam, spray off the crests and the hull, rain, wind wisps, low
@@ -475,6 +480,9 @@ godot --path . -- --host --map courtyard --water-style sculpted --sea stormy --s
 
 # High Seas: how far the ship rolls and pitches, and whether players and cargo stay aboard
 godot --headless --path . -- --host --map highseas --bots 0 --tour x --tour-mode ship --sea stormy
+# High Seas routes: overboard and back up a ladder (a bot too), into the bridge, its horn
+# and windows, up onto a lashing bridge
+godot --headless --path . -- --host --map highseas --bots 1 --tour x --tour-mode shiproutes
 
 # Effects in front of a still camera (explosion, dust, gun arc, lens drops), and a cracked window
 godot --path . -- --host --map lagoon --bots 0 --tour /tmp/shots --tour-mode fx

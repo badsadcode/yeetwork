@@ -33,6 +33,7 @@ var kill_y := -45.0
 ## A storm over the map (Weather): lightning can strike the map itself (World._server_storm).
 var storm := false
 var avoid_rects: Array[Rect2] = [] # XZ areas bots should route around
+var ladders: Array[Node3D] = [] # ladders out of the sea (bots overboard swim to the nearest)
 var fire_areas: Array = [] # [Transform3D, size]: burning places (World sets things alight in them)
 var pickups: Array[PickupSpawn] = [] # first aid kits and power-ups, in scene order
 var puzzle: Array[PuzzleNode] = [] # puzzle pieces of a Map Kit map, in scene order (same on every peer)

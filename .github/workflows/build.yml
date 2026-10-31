@@ -33,6 +33,9 @@ jobs:
           for sea in calm stormy; do
             timeout 120 godot --headless -- --host --map highseas --bots 0 --spooky off --tour x --tour-mode ship --sea "$sea"
           done
+      - name: Ship routes check (overboard and back up a ladder, a bot too; the bridge, its horn and windows; lashing bridges)
+        timeout-minutes: 4
+        run: timeout 170 godot --headless -- --host --map highseas --bots 1 --spooky off --tour x --tour-mode shiproutes
       - name: Puzzle check (Moving Day, Test Chambers, the Warehouse, the Pump House and the Scrapyard played through by a script)
         timeout-minutes: 11
         run: |

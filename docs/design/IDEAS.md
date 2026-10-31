@@ -8,9 +8,11 @@ The MV *Bad Decisions*: a giant container ship on the open ocean.
 
 1. **Ship and motion** (phase 1, done): the ship rolls, pitches and heaves on the ocean's
    long swell, the same on every peer; loose cargo slides and rolls with the tilt.
-   To do next in phase 2: bots bunch up at the bow ramps.
-2. **Layout**: cargo deck routes over and between containers, the bridge (breakable
-   windows, ship's horn), the bow, interiors.
+2. **Layout** (phase 2, first step done: "around the ship"): overboard isn't the end (a
+   swimmable sea, ladders up the hull; bots swim to them), the bridge as a room (breakable
+   windows, the ship's horn, ladders through hatches in its wings), lashing bridges between
+   the bays, bots routed round the forecastle's drop. Still to do: interiors (a cabin route
+   inside the superstructure), more of the bow.
 3. **Cargo**: secured containers with breakable restraints, sliding containers, open and
    special containers, floating debris overboard, ladders back aboard.
 4. **Weather**: calm, rough, storm and extreme presets; rain, lightning, waves washing over

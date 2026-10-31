@@ -61,6 +61,7 @@ func _ready() -> void:
 	_add("whistle_long", 1.3, _whistle)
 	_add("cheer", 2.6, _cheer)
 	_add("horn", 1.4, _horn)
+	_add("ship_horn", 3.4, _ship_horn)
 	_add("heal", 0.6, _heal)
 	_add("powerup", 0.7, _powerup)
 	_add("tick", 0.08, _tick)
@@ -616,6 +617,22 @@ func _horn(buf: PackedFloat32Array, v: int) -> void:
 			var env := clampf(t / 0.04, 0.0, 1.0) * clampf((length - t) / 0.25, 0.0, 1.0)
 			# A few odd harmonics make it brassy.
 			buf[i] += (sin(phase) + 0.45 * sin(phase * 3.0) + 0.2 * sin(phase * 5.0)) * env * 0.16
+
+
+## A ship's horn: a deep, slightly beating blast with a breathy start, swelling and dying.
+func _ship_horn(buf: PackedFloat32Array, v: int) -> void:
+	var n := buf.size()
+	var length := float(n) / RATE
+	var base := 82.0 * _vr(v, 0.015)
+	for f: float in [base, base * 1.007, base * 1.5]: # (two close: it beats; a fifth above)
+		var phase := 0.0
+		for i in n:
+			var t := float(i) / RATE
+			phase += TAU * (f * (1.0 + 0.004 * sin(TAU * 0.7 * t))) / RATE
+			var env := clampf(t / 0.35, 0.0, 1.0) * clampf((length - t) / 0.8, 0.0, 1.0)
+			var s := sin(phase) + 0.6 * sin(phase * 2.0) + 0.4 * sin(phase * 3.0) + 0.25 * sin(phase * 4.0) + 0.12 * sin(phase * 6.0)
+			buf[i] += s * env * (0.14 if f > base * 1.2 else 0.2)
+	_add_noise(buf, _bp_noise(n, 400.0), 2.5, 0.08, 0.3)
 
 
 ## A soft two-note chime with a shimmer: first aid.

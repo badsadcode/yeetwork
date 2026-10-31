@@ -2536,6 +2536,13 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 			Sfx.play_ui("cheer", lerpf(-6.0, 4.0, clampf(amount, 0.0, 1.0)))
 		"horn":
 			Sfx.play_ui("horn", -4.0)
+		"ship_horn":
+			Sfx.play3d("ship_horn", pos, 14.0, 1.0)
+			for n in arena.puzzle:
+				if n is ShipHorn and n.use_point().distance_to(pos) < 1.0:
+					(n as ShipHorn).pull()
+			if local_player:
+				local_player.shake(clampf(0.5 - local_player.global_position.distance_to(pos) / 120.0, 0.0, 0.4))
 		"beep":
 			Sfx.play_ui("pickup", -6.0, amount)
 		"steam":

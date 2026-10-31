@@ -89,6 +89,9 @@ var kind := "water"
 ## Surface size (x, z) and how deep the volume reaches below the surface (y).
 var size := Vector3(20, 4, 20)
 var ocean := false
+## An ocean you can swim in (High Seas: overboard isn't the end, there are ladders back up);
+## otherwise the open sea is too rough: you sink and drown.
+var swimmable := false
 var damage := 22.0
 var params: Dictionary
 var material: ShaderMaterial
