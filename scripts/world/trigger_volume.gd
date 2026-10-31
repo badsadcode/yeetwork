@@ -22,6 +22,10 @@ const SWIM_ACCEL := 14.0
 const CLIMB_SPEED := 4.5
 var _half_height := 0.0
 var _half_width := 0.0
+# A ladder on something moving (a rolling ship): how it moved this tick, so a climber moves with it.
+var _prev_xf: Transform3D
+var _moved := Transform3D.IDENTITY
+var _tracking := false
 
 
 func setup(p_kind: int, size: Vector3, p_velocity := Vector3.ZERO, p_strength := 0.0) -> void:
@@ -102,6 +106,10 @@ func _on_body_exited(body: Node3D) -> void:
 
 func _physics_process(delta: float) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
+	if kind == Kind.LADDER:
+		_moved = global_transform * _prev_xf.affine_inverse() if _tracking else Transform3D.IDENTITY
+		_prev_xf = global_transform
+		_tracking = true
 	for body in get_overlapping_bodies():
 		if _ceded(body):
 			continue
@@ -161,23 +169,27 @@ func _climb(pl: Player, delta: float) -> void:
 	if absf(pl.cmd.move.x) > 0.6 and not up and not down:
 		return # stepping off sideways
 	var v := pl.velocity
+	# (on a rolling ship the ladder swings: move with it where you are on it, or a tall one
+	# sweeps past and you end up through it)
+	var ride := (_moved * pl.global_position - pl.global_position) / maxf(delta, 0.001)
 	if up and pl.global_position.y > global_position.y + _half_height - 1.0:
-		pl.velocity = global_transform.basis.orthonormalized() * launch_velocity
+		pl.velocity = global_transform.basis.orthonormalized() * launch_velocity + ride
 		pl.lift_off()
 		return
 	# Onto the ladder's line, whatever the input says sideways.
 	var to := global_position - pl.global_position
 	to -= global_transform.basis.y.normalized() * to.dot(global_transform.basis.y.normalized())
-	v.x = to.x * 8.0
-	v.z = to.z * 8.0
+	v.x = ride.x + to.x * 8.0
+	v.z = ride.z + to.z * 8.0
 	if up:
-		v.y = CLIMB_SPEED
+		v.y = ride.y + CLIMB_SPEED
 		pl.lift_off()
 	elif down:
-		v.y = -CLIMB_SPEED
+		v.y = ride.y - CLIMB_SPEED
 	else:
-		v.y = Player.GRAVITY * delta # (hanging on: what gravity takes this step, given back)
+		v.y = ride.y + Player.GRAVITY * delta # (hanging on: what gravity takes this step, given back)
 	pl.velocity = v
+	pl.ladder_frame = Engine.get_physics_frames()
 
 
 ## Water: drag, buoyancy and swimming (hold jump to rise). The open ocean is too rough to

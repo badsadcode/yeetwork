@@ -100,6 +100,10 @@ var ocean := false
 ## An ocean you can swim in (High Seas: overboard isn't the end, there are ladders back up);
 ## otherwise the open sea is too rough: you sink and drown.
 var swimmable := false
+## Ocean only: a room the sea stays out of (a ship's engine room below the waterline): a box
+## in `dry_node`'s space where the surface isn't drawn and nobody swims (Liquid.at).
+var dry_node: Node3D
+var dry_box := AABB()
 var damage := 22.0
 var params: Dictionary
 var material: ShaderMaterial
@@ -224,6 +228,11 @@ func _on_settings_changed() -> void:
 
 func _process(delta: float) -> void:
 	material.set_shader_parameter("wave_time", wave_time())
+	if dry_node and is_instance_valid(dry_node):
+		material.set_shader_parameter("dry_on", true)
+		material.set_shader_parameter("dry_inv", Projection(dry_node.global_transform.affine_inverse()))
+		material.set_shader_parameter("dry_min", dry_box.position)
+		material.set_shader_parameter("dry_max", dry_box.end)
 	if ocean:
 		_spray(delta)
 	if sculpted:
@@ -510,6 +519,8 @@ static func at(p: Vector3, margin := 1.5) -> Liquid:
 		if is_instance_valid(l) and l.contains_xz(p) and p.y > l.global_position.y - l.size.y - 0.5 and p.y < l.global_position.y + margin:
 			if l.flood and l.flood.depth_at(p) <= FloodZone.WET:
 				continue # dry here
+			if l.dry_node and is_instance_valid(l.dry_node) and l.dry_box.has_point(l.dry_node.global_transform.affine_inverse() * p):
+				continue # a dry room in the sea
 			if best == null or l.size.x * l.size.z < best.size.x * best.size.z:
 				best = l
 	return best

@@ -22,7 +22,10 @@ The MV *Bad Decisions*: a giant container ship on the open ocean.
    horn and a lurch, wet decks; the ship's motion on a smooth clock of its own). Original
    notes: calm, rough, storm and extreme presets; rain, lightning, waves washing over
    the deck, rogue waves, wet decks.
-5. **Machinery**: cranes with swinging loads, the engine room.
+5. **Machinery** (done: the engine room below deck, built from Map Kit Fixtures, dry below
+   the waterline, with a scalding steam leak and a zapping switchboard; a deck crane
+   sweeping a swinging container over the forward stacks). Possible later: more cranes, a
+   crane players can work.
 
 Design notes from the brief: motion builds gradually and stays readable (creaks and
 scraping before cargo lets go), most containers stay secured, falling overboard is not
@@ -95,7 +98,9 @@ Waves grow bigger and nastier. To design: monster kinds and how they move and at
 must be yeetable), wave pacing, downed/revive or respawns, scoring (waves survived), which
 maps, bots joining in.
 
-## Set dressing with features (after the current work)
+## Set dressing with features (done: the Map Kit's **Fixture**; see MAPPING.md)
+
+Built as described below, except the big fan's gentle push (not yet).
 
 Tomek's idea: decoration pieces that do more than sit there. A Blender model of machinery
 filling out an environment, with its own hum or buzz. A Map Kit piece (say **Ambience** or

@@ -389,8 +389,8 @@ func _s_init(state: Dictionary) -> void:
 	for i in state.get("cargo_loose", []):
 		_s_cargo_loose(i, false)
 	for i in state.get("lights_broken", []):
-		if i < arena.puzzle.size() and arena.puzzle[i] is MapLight:
-			(arena.puzzle[i] as MapLight).set_broken(true, false)
+		if i < arena.puzzle.size() and (arena.puzzle[i] is MapLight or arena.puzzle[i] is Fixture):
+			arena.puzzle[i].set_broken(true, false)
 	if state.has("machines"):
 		_s_machines(state.machines)
 	for f: Array in state.get("floods", []):
@@ -740,6 +740,8 @@ func server_prop_impact(p: Prop, body: Node, rel: Vector3, speed: float) -> void
 		(body.get_meta("seesaw") as Seesaw).server_landed(p)
 	if body.has_meta("puzzle_target"):
 		(body.get_meta("puzzle_target") as PuzzleTarget).server_hit(p, speed)
+	if body.has_meta("fixture") and speed > 7.0:
+		_server_break_light(body.get_meta("fixture")) # (a big machine stops a prop dead: on the hit)
 	if body.has_meta("destructible") and speed > 7.0:
 		var energy := 0.5 * p.mass * speed * speed
 		if energy > 900.0:
@@ -2034,11 +2036,11 @@ var _next_strike := 25.0
 ## Lights near `pos` break (a blast, a push, lightning).
 func server_break_lights(pos: Vector3, r: float) -> void:
 	for n in arena.puzzle:
-		if n is MapLight and (n as MapLight).glow_position().distance_to(pos) < r:
+		if (n is MapLight or n is Fixture) and n.glow_position().distance_to(pos) < r + (n.hit_size() if n is Fixture else 0.0):
 			_server_break_light(n)
 
 
-func _server_break_light(n: MapLight) -> void:
+func _server_break_light(n: PuzzleNode) -> void:
 	if not n.breakable or n.broken:
 		return
 	_broken_lights[n.puzzle_index] = now() + n.repair_time if n.repair_time > 0.0 else INF
@@ -2047,8 +2049,8 @@ func _server_break_light(n: MapLight) -> void:
 
 @rpc("authority", "call_remote", "reliable")
 func _s_light(i: int, is_broken: bool) -> void:
-	if i < arena.puzzle.size() and arena.puzzle[i] is MapLight:
-		(arena.puzzle[i] as MapLight).set_broken(is_broken)
+	if i < arena.puzzle.size() and (arena.puzzle[i] is MapLight or arena.puzzle[i] is Fixture):
+		arena.puzzle[i].set_broken(is_broken)
 
 
 ## Flying props smash the lights they hit; broken ones come back on in time.
@@ -2059,9 +2061,9 @@ func _server_lights_tick() -> void:
 			_broken_lights.erase(i)
 			_bc_all("_s_light", [i, false])
 	for n in arena.puzzle:
-		if not (n is MapLight) or n.broken or not n.breakable:
+		if not (n is MapLight or n is Fixture) or n.broken or not n.breakable:
 			continue
-		var at: Vector3 = (n as MapLight).glow_position()
+		var at: Vector3 = n.glow_position()
 		for p: Prop in props.values():
 			if not is_instance_valid(p) or p.linear_velocity.length() <= 7.0:
 				continue
@@ -2069,7 +2071,8 @@ func _server_lights_tick() -> void:
 			# pass right through a lamp between two looks)
 			var now_at := p.global_position
 			var near := Geometry3D.get_closest_point_to_segment(at, now_at - p.linear_velocity * 0.1, now_at)
-			if near.distance_to(at) < maxf(p.size.x, maxf(p.size.y, p.size.z)) * 0.6 + 0.3:
+			var reach: float = maxf(p.size.x, maxf(p.size.y, p.size.z)) * 0.6 + (n.hit_size() if n is Fixture else 0.3)
+			if near.distance_to(at) < reach:
 				_server_break_light(n)
 				break
 

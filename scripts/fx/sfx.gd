@@ -15,7 +15,7 @@ const VARIANTS := 4
 const CUSTOM_DIR := "res://assets/sounds/"
 const CUSTOM_EXT := ["ogg", "wav", "mp3"]
 ## Sounds that loop (a recording replacing one loops too).
-const LOOPING := ["arc", "wind", "rain", "fire"]
+const LOOPING := ["arc", "wind", "rain", "fire", "hum", "buzz", "engine", "fan", "steam", "radio"]
 
 var _streams := {} # name -> Array[AudioStreamWAV]
 var _pool: Array[AudioStreamPlayer3D] = []
@@ -88,7 +88,7 @@ func _ready() -> void:
 		w.loop_end = w.data.size() / 2 - int(RATE * 0.5) # same crossfade as wind
 	_load_custom()
 	# The voices take a while to make: on a thread, ready a moment after startup.
-	WorkerThreadPool.add_task(_make_voices)
+	_voices_task = WorkerThreadPool.add_task(_make_voices)
 	_streams.hit = _streams.smack
 	_streams.clang = _streams.metal
 	for i in POOL:
@@ -293,7 +293,19 @@ func _load_custom() -> void:
 			_streams[sound] = list
 
 
-## (on a worker thread: its own random numbers, and the streams handed over on the main one)
+## (on a worker thread: its own random numbers, and the streams handed over on the main one;
+## the voices, and the ambient loops)
+var _voices_task := -1
+var _stop_voices := false # (quitting: the worker stops, Sfx waits for it before it goes)
+
+
+func _exit_tree() -> void:
+	_stop_voices = true
+	if _voices_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_voices_task)
+		_voices_task = -1
+
+
 func _make_voices() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4242
@@ -301,11 +313,27 @@ func _make_voices() -> void:
 	for k in Yeetish.KINDS:
 		var list: Array[AudioStreamWAV] = []
 		for v in 6:
+			if _stop_voices:
+				return
 			var buf := PackedFloat32Array()
 			buf.resize(int(Yeetish.LENGTH[k] * RATE))
 			Yeetish.speak(buf, v, k, rng, RATE)
 			list.append(_to_wav(buf))
 		made["voice_" + k] = list
+	# And the ambient loops (set dressing: Fixture), two takes each.
+	for k in Ambience.KINDS:
+		var loops: Array[AudioStreamWAV] = []
+		for v in 2:
+			if _stop_voices:
+				return
+			var buf := PackedFloat32Array()
+			buf.resize(int(Ambience.LENGTH * RATE))
+			var end := Ambience.make(k, buf, v, rng, RATE)
+			var w := _to_wav(buf)
+			w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			w.loop_end = end
+			loops.append(w)
+		made[k] = loops
 	_voices_made.call_deferred(made)
 
 

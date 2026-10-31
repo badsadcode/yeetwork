@@ -2,7 +2,9 @@ extends Node
 ## Developer check for High Seas' cargo (phase 2): containers lashed down in a way that can
 ## give, open containers (hideouts, pickups inside); a blast frees a lashed container (a heavy
 ## prop now); a long storm roll strains the lashings until one gives; a container overboard
-## floats; cargo drifting far off comes back. Screenshots. Exits 1 if a step fails.
+## floats; cargo drifting far off comes back; the deck crane slews, its load hangs under the
+## jib, a Yeet rides it, and it sweeps one off the stack tops. Screenshots. Exits 1 if a step
+## fails.
 ## Usage: godot -- --host --map highseas --bots 0 --port 24700 --tour <dir> --tour-mode shipcargo
 
 var world: Node
@@ -13,7 +15,7 @@ var pl: Player
 
 
 func _ready() -> void:
-	get_tree().create_timer(90.0).timeout.connect(func():
+	get_tree().create_timer(120.0).timeout.connect(func():
 		print("SHIP CARGO CHECK FAILED (timed out)")
 		get_tree().quit(1))
 	await _wait(1.0)
@@ -76,6 +78,46 @@ func _ready() -> void:
 	var far_id := far.prop_id
 	await _wait(1.6)
 	_check("cargo drifting far off goes (and map props come back)", world.get_prop(far_id) == null, "")
+	# The deck crane.
+	var crane: ShipCrane = null
+	for c in ship.get_children():
+		if c is ShipCrane:
+			crane = c
+	var load: AnimatableBody3D = crane._load
+	var h0: float = crane._slew.rotation.y
+	var p0 := load.global_position
+	await _wait(2.0)
+	var tip: Vector3 = crane.global_transform * (crane._slew.position + Basis(Vector3.UP, crane._slew.rotation.y) * Vector3(crane.jib, 0, 0))
+	var under := Vector2(load.global_position.x - tip.x, load.global_position.z - tip.z).length()
+	_check("the crane slews, its load hanging under the jib", absf(crane._slew.rotation.y - h0) > 0.01 and load.global_position.distance_to(p0) > 0.1 and under < 4.0, "turned %.3f rad, load %.1f m off plumb" % [absf(crane._slew.rotation.y - h0), under])
+	_look(ship.global_transform.affine_inverse() * load.global_position + Vector3(-14, 4, 10), ship.global_transform.affine_inverse() * load.global_position + Vector3(4, 0, 0))
+	await _wait(0.3)
+	await _shot("c05_crane")
+	# Ride it: stand on top, it carries you.
+	pl.respawn(load.global_position + Vector3(0, crane.load_size.y * 0.5 + 0.2, 0), 0.0)
+	await _wait(3.0)
+	var on: Vector3 = load.global_transform.affine_inverse() * pl.global_position
+	_check("ride the load: it carries a Yeet standing on it", absf(on.y - crane.load_size.y * 0.5) < 0.4 and absf(on.x) < crane.load_size.x * 0.5 + 0.3 and absf(on.z) < crane.load_size.z * 0.5 + 0.3, "on it at %s" % on)
+	# Swept by it: wait till it's moving, stand in its way.
+	var knocked := false
+	for tries in 6:
+		var was := load.global_position
+		await get_tree().physics_frame
+		var vel := (load.global_position - was) * Engine.physics_ticks_per_second
+		if vel.length() < 1.5:
+			await _wait(1.0)
+			continue
+		var ahead := vel.normalized()
+		ahead.y = 0.0
+		pl.respawn(load.global_position + ahead.normalized() * 2.0 - Vector3(0, 1.0, 0), 0.0)
+		for k in 20:
+			await get_tree().physics_frame
+			if pl.velocity.length() > 4.0:
+				knocked = true
+				break
+		if knocked:
+			break
+	_check("the load sweeps a Yeet in its way", knocked, "v %.1f" % pl.velocity.length())
 	print("SHIP CARGO CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
 	get_tree().quit(0 if _failed == 0 else 1)
 

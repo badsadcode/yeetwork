@@ -149,6 +149,7 @@ var _prev_grounded := true
 ## Set by an upward launch: the next movement step is airborne even though the last move
 ## ended on the floor (otherwise the ground's friction and slope slide eat the launch).
 var _launch_lift := false
+var ladder_frame := -10 # (the physics tick a ladder last held us: our own steering is off)
 ## Standing on ice (the floor's collider has the "ice" meta), from the last move.
 var on_ice := false
 var _view_third_person := false
@@ -682,8 +683,9 @@ func _air_move(delta: float, wish_dir: Vector3, wish_speed: float) -> void:
 				if model:
 					model.squash(-0.15)
 				Sfx.play3d("jump", global_position, -6.0, 1.15)
-	_air_accelerate(wish_dir, wish_speed * MAX_SPEED * speed_mult(), delta)
-	_air_control(wish_dir, delta)
+	if Engine.get_physics_frames() - ladder_frame > 1: # (on a ladder, forward climbs: it doesn't push you through it)
+		_air_accelerate(wish_dir, wish_speed * MAX_SPEED * speed_mult(), delta)
+		_air_control(wish_dir, delta)
 	velocity.y -= GRAVITY * delta * (Pickups.FEATHER_GRAVITY if has_buff("feather") else 1.0)
 
 

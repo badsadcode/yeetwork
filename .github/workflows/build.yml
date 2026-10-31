@@ -38,7 +38,7 @@ jobs:
         run: timeout 170 godot --headless -- --host --map highseas --bots 1 --spooky off --tour x --tour-mode shiproutes
       - name: Ship cargo check (lashed containers break loose to blasts and storms, open containers, floating cargo)
         timeout-minutes: 3
-        run: timeout 100 godot --headless -- --host --map highseas --bots 0 --spooky off --tour x --tour-mode shipcargo
+        run: timeout 140 godot --headless -- --host --map highseas --bots 0 --spooky off --tour x --tour-mode shipcargo
       - name: Ship weather check (a hurricane's roll and washes; a wash, a rogue wave and a wet deck on a calm sea)
         timeout-minutes: 6
         run: |
@@ -64,6 +64,9 @@ jobs:
         run: |
           timeout 100 godot --headless -- --host --map haunted_yard --mode sandbox --bots 2 --spooky off --tour x --tour-mode dark
           timeout 100 godot --headless -- --host --map lagoon --sky storm --mode sandbox --bots 0 --spooky off --tour x --tour-mode dark
+      - name: Fixture check (machines humming, spinning, wired, breaking and mending, an electric one)
+        timeout-minutes: 3
+        run: timeout 100 godot --headless -- --host --map pump_house --mode puzzle --bots 0 --spooky off --tour x --tour-mode fixtures
       - name: Theme check (a map theme on pieces and props, own models first, moving parts)
         timeout-minutes: 3
         run: timeout 120 godot --headless -- --host --map res://custom/example_garden/example_garden.tscn --mode sandbox --bots 0 --spooky off --tour x --tour-mode themes

@@ -188,8 +188,22 @@ bool in_hole(vec2 p) {
 	return false;
 }
 
+// Ocean only: a dry room (Liquid.dry_box, in its node's space: a ship's engine room).
+uniform bool dry_on = false;
+uniform mat4 dry_inv;
+uniform vec3 dry_min;
+uniform vec3 dry_max;
+
+bool in_dry(vec3 p) {
+	if (!dry_on) {
+		return false;
+	}
+	vec3 l = (dry_inv * vec4(p, 1.0)).xyz;
+	return all(greaterThan(l, dry_min)) && all(lessThan(l, dry_max));
+}
+
 void fragment() {
-	if (in_hole(world_pos.xz) || (flood_on && flood_depth < 0.02)) {
+	if (in_hole(world_pos.xz) || (flood_on && flood_depth < 0.02) || in_dry(world_pos)) {
 		discard;
 	}
 	float t = wave_time;

@@ -37,6 +37,10 @@ const WET_GRIP := 0.7
 
 ## Where on deck counts as aboard (local AABB) for sliding and pushing.
 var deck_box := AABB(Vector3(-80, -2, -17), Vector3(160, 40, 34))
+## The engine room below deck (ship-local; empty: none), and the ladders out of it (bots
+## knocked down a hatch climb out).
+var hold := AABB()
+var hold_ladders: Array[Node3D] = []
 
 ## Downhill slope (sin of the angle) each kind needs before it starts to move: round things
 ## go first, heavy flat things last. Kinds not listed use DEFAULT_GRIP.
@@ -159,3 +163,8 @@ func _physics_process(delta: float) -> void:
 		for pl: Player in world.players.values():
 			if pl.is_controlled_here() and pl.is_alive() and pl.is_on_floor() and deck_box.has_point(inv * pl.global_position):
 				pl.velocity += dir * Player.GRAVITY * (slope - player_grip) * 1.5 * delta
+
+
+## Below deck, in the engine room (a world position).
+func in_hold(p: Vector3) -> bool:
+	return hold.size != Vector3.ZERO and hold.has_point(global_transform.affine_inverse() * p)

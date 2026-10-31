@@ -329,6 +329,40 @@ along local -Z) or `neon` (a 1.2 m tube along X).
 - `maps/haunted_yard.tscn` is an example: lamp posts (one failing), candles on the graves,
   torches at the crypt and a power switch for the crypt's lights.
 
+### Fixture (set dressing that does something)
+Machinery, appliances, anything that fills out a place and hums, turns, steams or sparks.
+Everything is optional: a fixture can just be a model.
+- **Kind**: a built-in placeholder look and its usual behaviour: `generator` (hums, a puff of
+  exhaust, a green panel light), `engine` (thumps, its flywheel turns, it shudders and shakes
+  the camera nearby), `fan` (whirs, its blades turn), `pump` (hums, drips), `pipes` (a steam
+  leak, a valve wheel), `radio` (static and a voice somewhere in it), `box` (a plain block).
+- **Model**: your own (an imported .glb...), or the theme's `fixture_<kind>` slot. Parts
+  named **`Spin`** (turns), **`Emitter`** (where the steam, smoke, sparks or drips come from)
+  and **`Light`** (where its glow is) are used if the model has them.
+- **Solid**: players bump into a box round its look; untick for things to walk past.
+- **Sound**: `auto` (the kind's), `none`, or one of the game's loops: `hum`, `buzz`, `engine`,
+  `fan`, `steam`, `radio` (replace them with recordings: [SOUNDS.md](SOUNDS.md)). **Custom
+  Sound** plays your own loop instead. **Volume**, **Reach** (metres), **Pitch**. **One Shot
+  Sounds** (game sounds: `creak`, `metal`, `zap`, `sizzle`...) and **One Shot Recordings**
+  (yours) play now and then, every **One Shot Every** seconds (a random time in that range).
+- **Motion**: **Spin Speed** (turns a second of the `Spin` part; -1: the kind's) about **Spin
+  Axis**; **Vibrate** (metres of shaking); **Sway** (degrees) and **Sway Speed** for a hanging
+  sign or a buoy.
+- **Effect**: `auto`, `none`, `steam`, `smoke`, `sparks`, `drips`, with **Effect Rate**.
+- **Light**: **Light Color**, **Light Energy** (-1: the kind's; 0: none), **Light Pulse**
+  (pulses a second; 0: steady).
+- **Inputs** (it's a puzzle piece): on while its inputs are on ("restore the power and the
+  machines start up"); without inputs it's always on. Switched on, it winds up (the sound
+  rises, the parts speed up); off, it winds down.
+- **Breakable** (off by default): a prop flung at it, a blast, a gravity-gun push or
+  lightning breaks it: sparks, it falls silent and smokes. **Repair Time**: seconds until it
+  starts again (0: until a PuzzleReset over it).
+- **Hazard**: `hot` (burns and sets alight) or `electric` (a zap and a jolt) for whoever comes
+  within **Hazard Radius** of its `Emitter` (or its middle) while it runs. **Shake**: camera
+  shake for anyone close (-1: the kind's).
+- `maps/pump_house.tscn` has six (a pump that starts with the valves' button, steam pipes, a
+  fan, a radio, a breakable generator, an engine); High Seas' engine room is built from them.
+
 ### Themes (a look for a whole map)
 A **MapTheme** gives every piece and prop on a map the look of its theme (haunted, foundry,
 beach...) in one place. Make one: right-click a folder in the FileSystem > **Create New >

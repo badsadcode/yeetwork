@@ -7,7 +7,8 @@ extends RefCounted
 ## Phase 2 (around the ship): overboard isn't the end (the sea is swimmable, ladders on the
 ## hull lead back aboard); the bridge is a room with breakable windows and the ship's horn,
 ## reached by ladders through hatches in its wings; lashing bridges with ladders span the
-## gaps between the container bays.
+## gaps between the container bays. The engine room below deck, built from Fixtures; a deck
+## crane forward sweeping its swinging load over the stacks.
 ## Red team at the bow, Blue at the stern.
 ## Local space: origin on the waterline amidships, bow toward +X, starboard toward +Z.
 
@@ -23,6 +24,13 @@ const CONTAINER_COLORS := [
 	Color(0.95, 0.8, 0.15), Color(0.55, 0.58, 0.62), Color(0.1, 0.55, 0.6), Color(0.62, 0.22, 0.45),
 ]
 const CONT := Vector3(12.2, 2.6, 2.44) # a 40 ft container
+## The engine room below deck, under the superstructure: x, its half-width, floor and ceiling.
+const ROOM_X := Vector2(-63.5, -44.0)
+const ROOM_Z := 9.0
+const ROOM_FLOOR := 1.5
+const ROOM_TOP := 7.4
+## Its two hatches in the deck (XZ), by Blue's base, with ladders down.
+const HATCHES := [Rect2(-45.6, 5.7, 1.6, 1.6), Rect2(-45.6, -7.3, 1.6, 1.6)]
 
 static var _cont_mats := {}
 
@@ -63,13 +71,17 @@ static func build(a: Arena, key := "highseas") -> void:
 	rng.seed = 4242
 	_hull(ship)
 	_superstructure(a, ship)
+	_engine_room(a, ship)
 	_containers(ship, rng)
+	_crane(a, ship)
 	_bow(a, ship)
 	_hull_ladders(a, ship)
 	_gameplay(a, ship)
 	_cargo(a, rng)
 	# Bots coming off the forecastle go round by its ramps (its back edge is a 2.5 m drop).
 	a.avoid_rects.append(Rect2(Vector2(59.0, -7.5), Vector2(2.0, 15.0)))
+	for h: Rect2 in HATCHES: # (and round the engine room's hatches)
+		a.avoid_rects.append(h)
 
 
 # --- Helpers (everything is a child of the ship) --------------------------------------
@@ -90,6 +102,37 @@ static func _box(ship: Ship, center: Vector3, size: Vector3, color: Color, basis
 		cs.transform = mi.transform
 		ship.add_child(cs)
 	return mi
+
+
+## A flat slab over x0..x1, z0..z1 (y0..y1) with rectangular holes (XZ): boxes round them.
+static func _slab(ship: Ship, x0: float, x1: float, z0: float, z1: float, y0: float, y1: float, holes: Array, color: Color) -> void:
+	var xs := [x0, x1]
+	var zs := [z0, z1]
+	for h: Rect2 in holes:
+		xs.append_array([h.position.x, h.end.x])
+		zs.append_array([h.position.y, h.end.y])
+	xs.sort()
+	zs.sort()
+	for i in xs.size() - 1:
+		var xa: float = xs[i]
+		var xb: float = xs[i + 1]
+		if xb - xa < 0.001:
+			continue
+		# Runs of solid cells along z in this column, one box each.
+		var start := NAN
+		for j in zs.size():
+			var solid := false
+			if j < zs.size() - 1:
+				if float(zs[j + 1]) - float(zs[j]) < 0.001:
+					continue # (a zero-width cell: the run goes on)
+				var mid := Vector2((xa + xb) * 0.5, (float(zs[j]) + float(zs[j + 1])) * 0.5)
+				solid = not holes.any(func(h: Rect2) -> bool: return h.has_point(mid))
+			if solid and is_nan(start):
+				start = zs[j]
+			elif not solid and not is_nan(start):
+				var zb: float = zs[j]
+				_box(ship, Vector3((xa + xb) * 0.5, (y0 + y1) * 0.5, (start + zb) * 0.5), Vector3(xb - xa, y1 - y0, zb - start), color)
+				start = NAN
 
 
 ## A slab whose top runs from `from` to `to` (ship-local), like Arena.ramp.
@@ -163,7 +206,7 @@ static func _pad(ship: Ship, pos: Vector3, velocity: Vector3) -> void:
 
 ## A ladder from `bottom` up to `top_y` against a wall, climbed on its `out` side (ship-local
 ## directions). At the top it carries you `over` (ladder-local: x along it, y up, z out).
-static func _ladder(a: Arena, ship: Ship, bottom: Vector3, top_y: float, out: Vector3, over: Vector3) -> void:
+static func _ladder(a: Arena, ship: Ship, bottom: Vector3, top_y: float, out: Vector3, over: Vector3, from_sea := true) -> void:
 	var h := top_y - bottom.y
 	var side := Vector3.UP.cross(out).normalized()
 	var basis := Basis(side, Vector3.UP, out)
@@ -196,8 +239,12 @@ static func _ladder(a: Arena, ship: Ship, bottom: Vector3, top_y: float, out: Ve
 	var foot := Node3D.new()
 	foot.position = bottom + out * 0.8
 	foot.set_meta("height", h)
+	foot.set_meta("into", -out) # (which way you face to climb it)
 	ship.add_child(foot)
-	a.ladders.append(foot)
+	if from_sea:
+		a.ladders.append(foot)
+	else:
+		ship.hold_ladders.append(foot)
 
 
 ## Ladders up the hull out of the sea, on both sides and at the stern (over the rail at the top).
@@ -218,11 +265,12 @@ static func _glass(a: Arena, ship: Ship, center: Vector3, normal: Vector3, size:
 	a.destructibles.append(d)
 
 
-static func _light(ship: Ship, pos: Vector3, color: Color, range_m: float, energy := 2.0) -> void:
+static func _light(ship: Ship, pos: Vector3, color: Color, range_m: float, energy := 2.0, attenuation := 1.0) -> void:
 	var l := OmniLight3D.new()
 	l.position = pos
 	l.light_color = color
 	l.omni_range = range_m
+	l.omni_attenuation = attenuation
 	l.light_energy = energy
 	ship.add_child(l)
 
@@ -260,10 +308,21 @@ static func _hull(ship: Ship) -> void:
 	# Main hull: red antifouling below the waterline, dark blue above, a white line.
 	_box(ship, Vector3(-3, -4.5, 0), Vector3(126, 9, 32), HULL_RED)
 	# (The hull tops stop 10 cm under the deck plating: two surfaces at one height flicker.)
-	_box(ship, Vector3(-3, 3.95, 0), Vector3(126, 7.9, 32), HULL_DARK) # y 0..7.9, on top of the red
+	# (y 0..7.9 on top of the red, round the engine room: ahead of it, behind it, under it,
+	# beside it, and its ceiling with the hatches)
+	var rx0 := ROOM_X.x
+	var rx1 := ROOM_X.y
+	var rc := (rx0 + rx1) * 0.5
+	var rl := rx1 - rx0
+	_box(ship, Vector3((-66.0 + rx0) * 0.5, 3.95, 0), Vector3(rx0 + 66.0, 7.9, 32), HULL_DARK)
+	_box(ship, Vector3((rx1 + 60.0) * 0.5, 3.95, 0), Vector3(60.0 - rx1, 7.9, 32), HULL_DARK)
+	_box(ship, Vector3(rc, ROOM_FLOOR * 0.5, 0), Vector3(rl, ROOM_FLOOR, 32), HULL_DARK)
+	for s in [-1, 1]:
+		_box(ship, Vector3(rc, (ROOM_FLOOR + 7.9) * 0.5, s * (ROOM_Z + 16.0) * 0.5), Vector3(rl, 7.9 - ROOM_FLOOR, 16.0 - ROOM_Z), HULL_DARK)
+	_slab(ship, rx0, rx1, -ROOM_Z, ROOM_Z, ROOM_TOP, 7.9, HATCHES, HULL_DARK)
 	_box(ship, Vector3(-3, 0.6, 0), Vector3(126.1, 0.35, 32.1), WHITE, Basis.IDENTITY, false)
 	# Deck surface (slightly proud of the hull top, green deck paint).
-	_box(ship, Vector3(-3, DECK - 0.05, 0), Vector3(126, 0.1, 31.2), DECK_COL)
+	_slab(ship, -66.0, 60.0, -15.6, 15.6, DECK - 0.1, DECK, HATCHES, DECK_COL)
 	# Stern: rounded transom.
 	_prism(ship, PackedVector2Array([Vector2(-66, -16), Vector2(-70, -14), Vector2(-72, -9), Vector2(-72, 9), Vector2(-70, 14), Vector2(-66, 16)]), -6.0, DECK - 0.1, HULL_DARK)
 	_box(ship, Vector3(-69, DECK - 0.05, 0), Vector3(5.9, 0.1, 17.5), DECK_COL)
@@ -358,6 +417,108 @@ static func _bridge(a: Arena, ship: Ship) -> void:
 	# Ladders from the main deck up through the hatches (climbed facing outboard).
 	for s in [-1, 1]:
 		_ladder(a, ship, Vector3(-55.3, DECK, s * 15.3), floor_y + 1.2, Vector3(0, 0, -s), Vector3(-5.0, 2.0, 0.0))
+
+
+## The engine room below deck (ROOM_X, under the superstructure), built from Fixtures: the
+## main engine thumping (it shakes the room), two generators, pumps, pipes (one leaks steam
+## that scalds), ventilation fans, a switchboard that zaps whoever leans on it, a radio left
+## on. Down the two hatches by Blue's base, ladders back up. The sea stays out of it however
+## far she heels (Liquid.dry_box), and bots knocked down a hatch climb back out.
+static func _engine_room(a: Arena, ship: Ship) -> void:
+	var f := ROOM_FLOOR
+	var rx0 := ROOM_X.x
+	var rx1 := ROOM_X.y
+	var rc := (rx0 + rx1) * 0.5
+	var rl := rx1 - rx0
+	var h := ROOM_TOP - f
+	ship.hold = AABB(Vector3(rx0, f - 1.0, -ROOM_Z), Vector3(rl, DECK - f + 1.0, ROOM_Z * 2.0))
+	ship.ocean.dry_node = ship
+	ship.ocean.dry_box = ship.hold
+	# Inside: steel plating on the floor, pale green-grey walls (just in front of the hull's).
+	var plate := Color(0.46, 0.48, 0.48)
+	var wall := Color(0.55, 0.62, 0.58)
+	_box(ship, Vector3(rc, f + 0.03, 0), Vector3(rl, 0.06, ROOM_Z * 2.0), plate, Basis.IDENTITY, false)
+	for s in [-1, 1]:
+		_box(ship, Vector3(rc, f + h * 0.5, s * (ROOM_Z - 0.03)), Vector3(rl, h, 0.06), wall, Basis.IDENTITY, false)
+		_box(ship, Vector3(rc, f + 0.4, s * (ROOM_Z - 0.06)), Vector3(rl, 0.8, 0.02), Color(0.2, 0.3, 0.26), Basis.IDENTITY, false)
+	for x in [rx0 + 0.03, rx1 - 0.03]:
+		_box(ship, Vector3(x, f + h * 0.5, 0), Vector3(0.06, h, ROOM_Z * 2.0), wall, Basis.IDENTITY, false)
+	# The hatches: yellow edges round them on deck, ladders down the forward wall.
+	var yellow := Color(0.95, 0.75, 0.15)
+	for r: Rect2 in HATCHES:
+		var c := r.get_center()
+		_box(ship, Vector3(c.x, DECK + 0.01, r.position.y), Vector3(r.size.x + 0.3, 0.02, 0.15), yellow, Basis.IDENTITY, false)
+		_box(ship, Vector3(c.x, DECK + 0.01, r.end.y), Vector3(r.size.x + 0.3, 0.02, 0.15), yellow, Basis.IDENTITY, false)
+		_box(ship, Vector3(r.position.x, DECK + 0.01, c.y), Vector3(0.15, 0.02, r.size.y), yellow, Basis.IDENTITY, false)
+		_ladder(a, ship, Vector3(rx1, f, c.y), DECK + 1.2, Vector3(-1, 0, 0), Vector3(0.0, 3.0, -3.0), false)
+	# Caged lamps down the ceiling (none forward of x -50: their light would reach through the
+	# deck onto the first bay's containers).
+	var lamp := Mats.plastic(Color(1.0, 0.9, 0.7), 0.4, 3.0)
+	for x in [-60.0, -55.0, -50.0]:
+		for z in [-4.5, 4.5]:
+			_box(ship, Vector3(x, ROOM_TOP - 0.12, z), Vector3(1.2, 0.16, 0.3), Color(0.2, 0.2, 0.22), Basis.IDENTITY, false)
+			_box(ship, Vector3(x, ROOM_TOP - 0.24, z), Vector3(1.0, 0.1, 0.18), Color.WHITE, Basis.IDENTITY, false, lamp)
+		_light(ship, Vector3(x, ROOM_TOP - 0.5, 0), Color(1.0, 0.88, 0.68), 8.0, 5.0, 0.6)
+	# The main engine down the middle (its collision the ship's: fixtures on her aren't solid).
+	_fixture(a, ship, "engine", Vector3(-54.5, f, 0), 0.0, Vector3.ONE * 1.8, {"volume_db": 6.0, "reach": 34.0, "breakable": true, "repair_time": 30.0})
+	_solid(ship, Vector3(-54.5, f + 1.3, 0), Vector3(5.8, 2.6, 2.9))
+	# Generators aft, the switchboard between them (a radio on it), pumps and pipes along the
+	# sides, fans high on the walls.
+	var creak: Array[String] = ["creak"]
+	for s in [-1, 1]:
+		_fixture(a, ship, "generator", Vector3(-61.0, f, s * 5.0), PI * 0.5, Vector3.ONE * 1.2, {"breakable": true, "pitch": 0.9 + s * 0.05})
+		_solid(ship, Vector3(-61.0, f + 0.66, s * 5.0), Vector3(1.25, 1.32, 2.1))
+		_fixture(a, ship, "pump", Vector3(-48.5, f, s * 8.0), 0.0, Vector3.ONE, {"pitch": 0.8, "one_shot_sounds": creak})
+		_solid(ship, Vector3(-48.5, f + 0.75, s * 8.0), Vector3(1.0, 1.5, 1.0))
+		_fixture(a, ship, "pipes", Vector3(-57.0, f, s * 8.5), PI * 0.5, Vector3.ONE * 1.6, {"volume_db": -8.0, "reach": 10.0})
+		_fixture(a, ship, "fan", Vector3(-51.5, f + 4.0, s * 8.7), 0.0 if s < 0 else PI, Vector3.ONE, {"volume_db": -6.0, "reach": 12.0})
+	_fixture(a, ship, "box", Vector3(-63.2, f, 0), 0.0, Vector3(0.6, 2.0, 3.2), {"sound": "buzz", "effect": "sparks", "effect_rate": 0.5,
+		"hazard": "electric", "hazard_radius": 0.9, "light_energy": 0.8, "light_color": Color(1.0, 0.3, 0.2), "light_pulse": 1.2,
+		"breakable": true, "volume_db": -4.0, "reach": 10.0})
+	_solid(ship, Vector3(-63.2, f + 1.0, 0), Vector3(0.6, 2.0, 3.2))
+	_fixture(a, ship, "radio", Vector3(-63.2, f + 2.0, 1.0), PI * 0.5, Vector3.ONE, {"volume_db": -8.0, "reach": 8.0})
+	# A leaking joint by the port pump: steam that scalds.
+	_fixture(a, ship, "pipes", Vector3(-46.5, f, -8.6), PI * 0.5, Vector3.ONE, {"hazard": "hot", "hazard_radius": 0.7, "effect_rate": 1.6, "volume_db": -4.0, "reach": 9.0})
+
+
+## The deck crane forward of the last bay (ShipCrane): its jib sweeps over the forward stacks,
+## the container hanging from it swinging as she rolls (ride it; it sweeps you off the tops).
+## Its machinery house on the pedestal hums and creaks.
+static func _crane(a: Arena, ship: Ship) -> void:
+	var at := Vector3(49.5, DECK, 0)
+	var crane := ShipCrane.new()
+	crane.ship = ship
+	crane.position = at
+	ship.add_child(crane)
+	_solid(ship, at + Vector3(0, crane.height * 0.5, 0), Vector3(2.0, crane.height, 2.0))
+	var creak: Array[String] = ["creak", "metal"]
+	_fixture(a, ship, "box", at + Vector3(-0.2, crane.height - 1.6, 0), 0.0, Vector3(2.6, 1.6, 2.4), {"sound": "engine",
+		"pitch": 1.6, "volume_db": -6.0, "reach": 24.0, "one_shot_sounds": creak, "one_shot_every": Vector2(3.0, 8.0)})
+
+
+## A Fixture on the ship (ship-local), registered with the map's puzzle pieces.
+static func _fixture(a: Arena, ship: Ship, kind: String, pos: Vector3, yaw: float, scale: Vector3, props: Dictionary) -> Fixture:
+	var fx := Fixture.new()
+	fx.kind = kind
+	fx.solid = false # (a StaticBody wouldn't ride the ship: _solid gives it the ship's collision)
+	for k in props:
+		fx.set(k, props[k])
+	fx.transform = Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(scale), pos)
+	ship.add_child(fx)
+	fx.world = a.world
+	fx.puzzle_index = a.puzzle.size()
+	a.puzzle.append(fx)
+	return fx
+
+
+## Collision on the ship (ship-local box) with nothing drawn: a fixture's bulk.
+static func _solid(ship: Ship, center: Vector3, size: Vector3) -> void:
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = size
+	cs.shape = sh
+	cs.position = center
+	ship.add_child(cs)
 
 
 ## Six bays of container stacks (1-3 high) between the superstructure and the bow, with

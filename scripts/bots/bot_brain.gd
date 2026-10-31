@@ -618,24 +618,30 @@ func _overboard(delta: float) -> bool:
 	var pos := pl.global_position
 	var liq := Liquid.at(pos, 0.5)
 	var in_sea := liq != null and liq.ocean and pos.y < liq.height_at(pos.x, pos.z) + 0.3
-	if not in_sea and _ladder == null:
+	var ship := world.arena.carrier as Ship
+	var below := ship != null and ship.in_hold(pos) # (down a hatch: up a ladder and out)
+	if not in_sea and not below and _ladder == null:
 		return false
-	if in_sea and (_ladder == null or not is_instance_valid(_ladder)):
+	if (in_sea or below) and (_ladder == null or not is_instance_valid(_ladder)):
 		var best := INF
-		for f: Node3D in world.arena.ladders:
+		for f: Node3D in (ship.hold_ladders if below else world.arena.ladders):
 			var d := f.global_position.distance_to(pos)
 			if d < best:
 				best = d
 				_ladder = f
 	var foot := _ladder.global_position
 	var top := foot.y + float(_ladder.get_meta("height", 10.0))
-	if not in_sea and (pl.is_on_floor() or pos.y > top + 0.5):
+	if not in_sea and not below and (pl.is_on_floor() or pos.y > top + 0.5):
 		_ladder = null # (aboard again)
 		return false
 	var flat := Vector2(foot.x - pos.x, foot.z - pos.z)
-	_aim(Vector3(foot.x, pos.y + 1.0, foot.z) + (Vector3(foot.x - pos.x, 0, foot.z - pos.z).normalized() * 3.0 if flat.length() > 0.1 else Vector3.ZERO), delta)
+	var into: Vector3 = _ladder.global_transform.basis * (_ladder.get_meta("into", Vector3.ZERO) as Vector3)
+	if flat.length() <= 1.6 and into != Vector3.ZERO:
+		_aim(pos + Vector3(0, 1.6, 0) + into * 3.0, delta) # (at it: face the ladder itself)
+	else:
+		_aim(Vector3(foot.x, pos.y + 1.0, foot.z) + (Vector3(foot.x - pos.x, 0, foot.z - pos.z).normalized() * 3.0 if flat.length() > 0.1 else Vector3.ZERO), delta)
 	var cmd := pl.cmd
-	if flat.length() > 1.6 and in_sea:
+	if flat.length() > 1.6 and (in_sea or below):
 		_goal = Vector3(foot.x, pos.y, foot.z)
 		_steer(delta, true)
 	else:
@@ -695,6 +701,9 @@ func _ground_ahead(pos: Vector3, dir: Vector3) -> bool:
 func _route(from: Vector3, to: Vector3) -> Vector3:
 	if from.y < -1.0 or to.y < -1.0:
 		return to
+	var ship := world.arena.carrier as Ship
+	if ship and ship.in_hold(from):
+		return to # (below deck: the hatches' avoid areas are overhead)
 	var a := Vector2(from.x, from.z)
 	var b := Vector2(to.x, to.z)
 	for r: Rect2 in world.arena.avoid_rects:

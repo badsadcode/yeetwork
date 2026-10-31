@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/mapkit/map_settings.gd" id="settings"]
 [ext_resource type="Script" path="res://scripts/mapkit/arena_block.gd" id="block"]
@@ -19,6 +19,7 @@
 [ext_resource type="Script" path="res://scripts/mapkit/fuse_line.gd" id="fuse"]
 [ext_resource type="Script" path="res://scripts/mapkit/breakable_slab.gd" id="slab"]
 [ext_resource type="Script" path="res://scripts/mapkit/break_sensor.gd" id="sensor"]
+[ext_resource type="Script" path="res://scripts/mapkit/fixture.gd" id="fixture"]
 
 [node name="PumpHouse" type="Node3D"]
 
@@ -487,3 +488,45 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.5, 65)
 light_color = Color(0.92, 0.97, 1, 1)
 omni_range = 14.0
 light_energy = 1.2
+
+[node name="Machines" type="Node3D" parent="."]
+
+[node name="ValvePump" type="Node3D" parent="Machines"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 4.3, 0, 11)
+script = ExtResource("fixture")
+kind = "pump"
+inputs = Array[NodePath]([NodePath("../../Puzzle/Button1")])
+one_shot_sounds = Array[String](["creak"])
+
+[node name="SteamPipes" type="Node3D" parent="Machines"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 3, 13.6)
+script = ExtResource("fixture")
+kind = "pipes"
+solid = false
+volume_db = -6.0
+
+[node name="BathtubFan" type="Node3D" parent="Machines"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 4.85, 6.4, 24)
+script = ExtResource("fixture")
+kind = "fan"
+solid = false
+volume_db = -4.0
+
+[node name="LedgeRadio" type="Node3D" parent="Machines"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.4, 3, 17.4)
+script = ExtResource("fixture")
+kind = "radio"
+solid = false
+volume_db = -6.0
+reach = 9.0
+
+[node name="Generator" type="Node3D" parent="Machines"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -4.35, 0, 38)
+script = ExtResource("fixture")
+kind = "generator"
+breakable = true
+
+[node name="ExitEngine" type="Node3D" parent="Machines"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -4.1, 0, 66)
+script = ExtResource("fixture")
+kind = "engine"

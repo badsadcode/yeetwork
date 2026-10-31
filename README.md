@@ -188,7 +188,8 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   Windy Business, Thin Ice, Structural Engineering (Gone Wrong), Hot Potato, Pass the Yeet),
   **The Warehouse**, an open level: three
   fuses for the main gate, one in each wing, and a Lost Yeet in a cage; split up, any order,
-  **The Pump House**: flood water that fills rooms, floats crates and drains away, and
+  **The Pump House** (with machines humming, pumping and steaming: Map Kit Fixtures): flood
+  water that fills rooms, floats crates and drains away, and
   fire that spreads from beacon to beacon, burns wooden walls down, runs along fuses and
   melts ice, and **The Scrapyard**: grapple ring to ring over a chasm, ride a counterweight
   lift, work a magnet crane (a battery powers it), close a circuit (metal, water, or a
@@ -310,8 +311,12 @@ menu, or in Pumpkin Smash, every map gets:
   rolling works them loose (they creak first), and the container breaks free, 900 kg sliding
   across the tilting deck (too heavy to grab, deadly when it drops on you) and maybe over the
   side, where it floats. A few containers stand open on deck as hideouts, some with a power-up
-  inside. Cargo that drifts far off comes back. More of the ship (weather over the deck,
-  cranes, the engine room) is coming.
+  inside. Cargo that drifts far off comes back. Down the two hatches by Blue's base is the
+  **engine room**: the main engine thumping (it shakes the room), generators, pumps, fans,
+  steam pipes (one leak scalds), a radio left on, and a switchboard that zaps whoever leans
+  on it; anything flung hard enough breaks a machine for a while. It stays dry however far
+  she heels. Forward, a **deck crane** sweeps its swinging container over the stacks: ride
+  it, or get swept off the tops by it.
   Four variants: **High Seas** (open ocean, tropical sky), **Golden Hour** (calm sea at
   sunset), **Storm** (a knife-edged, confused stormy sea whose wave trains cross from wide
   angles, streaks of blown foam, spray off the crests and the hull, rain, wind wisps, low
@@ -411,9 +416,11 @@ scripts/world/    arena.gd (+ Prime layout), map_facing.gd, destructible.gd, mat
                   liquid_sculpted.gdshader + liquid_waves_sculpted.gdshaderinc (sculpted water),
                   underwater*.gdshader (full-screen underwater pass), glass.gdshader,
                   ssr.gdshaderinc (screen-space reflections for water and glass),
-                  map_high_seas.gd + ship.gd + container.gdshader (High Seas)
+                  map_high_seas.gd + ship.gd + container.gdshader (High Seas), ship_crane.gd
+scripts/mapkit/   the Map Kit's pieces (fixture.gd: set dressing that hums, turns, breaks)
 scripts/modes/    mode_base.gd (sandbox), mode_ctf.gd, mode_dodgeball.gd
-scripts/fx/       effects.gd (blood, decals, explosions, debris), sfx.gd (synthesized sounds)
+scripts/fx/       effects.gd (blood, decals, explosions, debris), sfx.gd (synthesized sounds),
+                  ambience.gd (the fixtures' looping hums), yeetish.gd (the Yeets' voices)
 scripts/bots/     bot_brain.gd
 scripts/ui/       hud.gd, main_menu.gd, settings_form.gd, ui_theme.gd, character_preview.gd
 tests/            test_runner.gd (gameplay smoke tests)
@@ -492,13 +499,16 @@ godot --path . -- --host --map courtyard --water-style sculpted --sea stormy --s
 # High Seas: how far the ship rolls and pitches, and whether players and cargo stay aboard
 godot --headless --path . -- --host --map highseas --bots 0 --tour x --tour-mode ship --sea stormy
 # High Seas routes: overboard and back up a ladder (a bot too), into the bridge, its horn
-# and windows, up onto a lashing bridge
+# and windows, up onto a lashing bridge, the engine room (down a hatch, dry, the switchboard)
 godot --headless --path . -- --host --map highseas --bots 1 --tour x --tour-mode shiproutes
-# High Seas cargo: lashed containers break loose (a blast, a storm), open containers, floating
+# High Seas cargo: lashed containers break loose (a blast, a storm), open containers, floating,
+# the deck crane (it slews, ride its load, it sweeps you off)
 godot --headless --path . -- --host --map highseas --bots 0 --tour x --tour-mode shipcargo
 # High Seas weather: a hurricane's roll and washes; a wash, a rogue wave, a wet deck (calm sea)
 godot --headless --path . -- --host --map highseas_extreme --bots 1 --tour x --tour-mode shipweather
 godot --headless --path . -- --host --map highseas_dusk --bots 1 --tour x --tour-mode shipweather
+# Fixtures: the Pump House's machines run, the wired pump waits, breaking and mending, a zap
+godot --path . -- --host --map pump_house --mode puzzle --bots 0 --tour /tmp/shots --tour-mode fixtures
 
 # Effects in front of a still camera (explosion, dust, gun arc, lens drops), and a cracked window
 godot --path . -- --host --map lagoon --bots 0 --tour /tmp/shots --tour-mode fx

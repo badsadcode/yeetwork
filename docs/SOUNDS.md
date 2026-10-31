@@ -99,6 +99,13 @@ Effects (3D: heard from where it happens, unless marked *UI*):
 | `thunder_crack` | a close lightning strike (*UI*) |
 | `wind` | wind (*loops*) |
 | `rain` | rain (*loops*) |
+| `hum` | a machine's mains hum: generators, pumps (*loops*; Map Kit Fixtures) |
+| `buzz` | an electric buzz with crackles: switchboards (*loops*) |
+| `engine` | a diesel engine thumping below decks (*loops*) |
+| `fan` | air through a fan (*loops*) |
+| `steam` | a steam leak's hiss (*loops*) |
+| `radio` | a radio left on: static and a voice in it (*loops*) |
+| `ship_horn` | High Seas' horn |
 
 Match and menu sounds (*UI*: the same everywhere):
 

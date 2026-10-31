@@ -1,8 +1,11 @@
 extends Node
 ## Developer check for High Seas' routes (phase 2): overboard, a Yeet swims to a hull ladder
 ## and climbs back aboard; a bot does it by itself; a ladder up through the wing's hatch into
-## the bridge; the ship's horn; a bridge window breaks; a ladder up onto a lashing bridge.
-## Screenshots of the bridge, a hull ladder and the lashing bridges. Exits 1 if a step fails.
+## the bridge; the ship's horn; a bridge window breaks; a ladder up onto a lashing bridge;
+## the engine room (down a hatch, dry below the waterline, its machines running, the
+## switchboard's zap, up the ladder and out; a bot down there climbs out by itself).
+## Screenshots of the bridge, a hull ladder, the lashing bridges and the engine room.
+## Exits 1 if a step fails.
 ## Usage: godot -- --host --map highseas --bots 1 --port 24700 --tour <dir> --tour-mode shiproutes
 
 var world: Node
@@ -22,6 +25,7 @@ func _ready() -> void:
 	pl.is_bot = true
 	pl.bot_brain = null
 	var bot: Player = null
+	var brain = null
 	for q: Player in world.players.values():
 		if q != pl and q.is_bot:
 			bot = q
@@ -49,6 +53,7 @@ func _ready() -> void:
 				aboard = true
 				break
 		_check("a bot overboard swims to a ladder and climbs aboard", aboard, "bot at %s" % _local(bot))
+		brain = bot.bot_brain
 		bot.bot_brain = null
 		bot.respawn(ship.global_transform * Vector3(30, deck + 0.2, -14), 0.0)
 	# 3. Up the ladder through the starboard wing's hatch into the bridge.
@@ -94,6 +99,66 @@ func _ready() -> void:
 	_put(pl, Vector3(-12, deck + 4.0, 24), Vector3(0.2, -0.35, -1))
 	await _wait(0.5)
 	await _shot("r06_hull_ladders")
+	# 7. The engine room.
+	var f := MapHighSeas.ROOM_FLOOR
+	var machines: Array = world.arena.puzzle.filter(func(n): return n is Fixture)
+	_check("the engine room's machines are running", machines.size() >= 10 and machines.all(func(m): return m._level > 0.9 and (m._audio.stream == null or m._audio.playing)), "%d fixtures" % machines.size())
+	# Into the starboard hatch: you catch the ladder; hold back to climb down.
+	_put(pl, Vector3(-44.8, deck + 0.6, 6.5), Vector3(1, 0, 0))
+	await _wait(0.5)
+	var down := false
+	for k in 60:
+		pl.cmd.move = Vector2(0, -1)
+		await _wait(0.1)
+		if ship.in_hold(pl.global_position) and pl.is_on_floor() and absf(_local(pl).y - f) < 0.5:
+			down = true
+			break
+	pl.cmd.move = Vector2.ZERO
+	_check("down a hatch and its ladder into the engine room", down, "at %s" % _local(pl))
+	# (points under the swell: beside her, and inside the room's walls)
+	var ocean: Liquid = ship.ocean
+	var beside := ship.global_transform * Vector3(-54, 1.2, 20)
+	beside.y = ocean.height_at(beside.x, beside.z) - 0.5
+	var in_room := ship.global_transform * Vector3(-54, 1.2, 4)
+	var sea_beside: Liquid = Liquid.at(beside, 30.0)
+	var sea_inside: Liquid = Liquid.at(in_room, 30.0)
+	_check("... dry below the waterline (the sea's beside her, not in there)", sea_beside != null and sea_inside == null, "beside %s, inside %s" % [sea_beside != null, sea_inside != null])
+	_put(pl, Vector3(-45.2, f + 0.2, -4.0), Vector3(-1, -0.12, 0.25))
+	await _wait(0.6)
+	await _shot("r07_engine_room")
+	_put(pl, Vector3(-56.5, f + 0.2, 3.2), Vector3(-1, -0.1, -0.45))
+	await _wait(0.5)
+	await _shot("r08_engine_room_aft")
+	_put(pl, Vector3(-49.5, deck + 0.2, -1.0), Vector3(1, -0.3, 0.6))
+	await _wait(0.5)
+	await _shot("r09_hatches")
+	var hp := pl.hp
+	_put(pl, Vector3(-62.4, f + 0.2, 0.3), Vector3(-1, 0, 0))
+	var zapped := false
+	for k in 30:
+		await _wait(0.05)
+		if pl.hp < hp or pl.velocity.length() > 3.0:
+			zapped = true
+			break
+	_check("lean on the switchboard: zap", zapped, "hp %.0f -> %.0f" % [hp, pl.hp])
+	pl.hp = 100.0
+	_put(pl, Vector3(-44.6, f + 0.2, 6.5), Vector3(1, 0, 0))
+	await _wait(0.3)
+	var out := await _climb(pl, Vector3(1, 0, 0), 10.0, func(l: Vector3): return absf(l.y - deck) < 0.7 and l.x > -48.0)
+	_check("up the ladder and out of the hatch", out and not ship.in_hold(pl.global_position), "at %s" % _local(pl))
+	if bot and brain:
+		bot.bot_brain = brain
+		bot.respawn(ship.global_transform * Vector3(-52.0, f + 0.2, 5.0), 0.0)
+		var climbed := false
+		for k in 300:
+			await _wait(0.1)
+			var l := _local(bot)
+			if OS.get_cmdline_user_args().has("--trace") and k % 10 == 0:
+				print("TRACE hold bot %s v %s move %s" % [l, bot.velocity, bot.cmd.move])
+			if l.y > deck - 0.5 and not ship.in_hold(bot.global_position) and bot.is_alive():
+				climbed = true
+				break
+		_check("a bot down there climbs out by itself", climbed, "bot at %s" % _local(bot))
 	print("SHIP ROUTES CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
 	get_tree().quit(0 if _failed == 0 else 1)
 
