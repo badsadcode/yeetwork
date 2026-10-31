@@ -74,6 +74,7 @@ var puzzle_finish := -1.0
 var puzzle_results := {} # the end screen (Puzzle mode), the same on every peer
 ## What the HUD shows of a mode's state (Yeetball: rules, clock, overtime), set by the server.
 var mode_state := {}
+var horde: Horde # MegaYeet's monsters (every peer)
 var _pickups: Array = [] # server: per arena.pickups entry [0 off / 1 taken / 2 there, kind, back at]
 
 
@@ -189,6 +190,17 @@ func _spot_free(pos: Vector3, half: Vector3) -> bool:
 
 func _build_arena(key: String) -> void:
 	Music.play_match(key)
+	_build_arena_now(key)
+	if mode == Game.Mode.MEGAYEET:
+		# (every peer: the Heart and zones if the map has none, and the monsters' node)
+		ModeMegaYeet.prepare_arena(arena)
+		horde = Horde.new()
+		horde.name = "Horde"
+		horde.world = self
+		add_child(horde)
+
+
+func _build_arena_now(key: String) -> void:
 	map_key = key
 	arena = Arena.new()
 	add_child(arena)
@@ -212,6 +224,8 @@ func _make_mode(m: int) -> ModeBase:
 			return ModeHoops.new()
 		Game.Mode.VOLLEY:
 			return ModeVolley.new()
+		Game.Mode.MEGAYEET:
+			return ModeMegaYeet.new()
 	return ModeBase.new()
 
 
@@ -920,6 +934,8 @@ func server_explode(p: Prop) -> void:
 	var attacker := p.last_thrower if t - p.last_thrown_time < 8.0 else 0
 	server_fx("explosion", pos, Vector3.UP, radius)
 	mode_logic.on_explosion(pos)
+	if horde:
+		horde.server_blast(pos, radius, attacker)
 	server_break_lights(pos, radius * 0.8)
 	server_strain_lashings(pos, radius * 1.4, 170.0)
 	var to_break: Array[Prop] = []
@@ -1369,6 +1385,53 @@ func server_clear_buffs(pl: Player) -> void:
 	if not pl.buffs.is_empty():
 		pl.buffs = {}
 		_bc_all("_s_buffs", [pl.player_id, {}])
+
+
+# --- MegaYeet ----------------------------------------------------------------------------
+
+func server_horde_snapshot(buf: PackedByteArray) -> void:
+	_bc("_s_horde", [buf])
+
+
+@rpc("authority", "call_remote", "unreliable_ordered", 3)
+func _s_horde(buf: PackedByteArray) -> void:
+	if horde:
+		horde.apply_snapshot(buf)
+
+
+func server_horde_deaths(buf: PackedFloat32Array) -> void:
+	_bc_all("_s_horde_deaths", [buf])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_horde_deaths(buf: PackedFloat32Array) -> void:
+	if horde:
+		horde.apply_deaths(buf)
+
+
+func server_heart_hurt() -> void:
+	_bc_all("_s_heart_hurt", [])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_heart_hurt() -> void:
+	if arena.heart:
+		arena.heart.hurt()
+		Sfx.play3d("thud_heavy", arena.heart.global_position, 4.0, 0.6)
+		if local_player and local_player.global_position.distance_to(arena.heart.global_position) < 25.0:
+			local_player.shake(0.5)
+
+
+## Every breakable wall whole again (MegaYeet's fresh start), on every peer.
+func server_restore_walls() -> void:
+	_crumbling.clear()
+	_bc_all("_s_restore_walls", [])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_restore_walls() -> void:
+	for d in arena.destructibles:
+		d.restore_all()
 
 
 func server_mode_state(state: Dictionary) -> void:

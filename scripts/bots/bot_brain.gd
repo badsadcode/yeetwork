@@ -24,6 +24,7 @@ var _jump_held := false
 var _release_in := 0.0
 var _hopping := false
 var _miss := Vector3.ZERO # per-target aim error, re-rolled each think
+var _monster # MegaYeet: the monster we're after (Horde.Monster)
 
 # Per Game.bot_skill (easy, normal, hard). Hard is the original, merciless bot.
 const TURN_RATE := [2.5, 4.0, 7.0]
@@ -64,6 +65,9 @@ func think(delta: float) -> void:
 		return
 	if world.mode == Game.Mode.VOLLEY:
 		_think_volley(delta)
+		return
+	if world.mode == Game.Mode.MEGAYEET:
+		_think_megayeet(delta)
 		return
 	if world.mode == Game.Mode.YEETBALL:
 		_think_yeetball(delta)
@@ -124,6 +128,70 @@ func think(delta: float) -> void:
 				if _aim_error(look_at) < 0.3:
 					world.gun_action(pl, GravityGun.Action.THROW)
 					_punt_cd = PUNT_REST[_skill()] + _rng.randf()
+	_aim(look_at, delta)
+	_steer(delta, want_move)
+
+
+## MegaYeet: go for the monster nearest the Heart (the worst danger) that isn't too far off,
+## push it away when it's close, and grab a prop on the way to throw into them.
+func _think_megayeet(delta: float) -> void:
+	var mode := world.mode_logic as ModeMegaYeet
+	if mode == null or mode.heart == null:
+		return
+	var heart: Vector3 = mode.heart.global_position
+	var holding := pl.gun.held_kind != GravityGun.Kind.NONE
+	if _release_in > 0.0:
+		_release_in -= delta
+		if _release_in <= 0.0 or not holding:
+			_finish_throw()
+	if _think <= 0.0:
+		_think = 0.35 + _rng.randf() * 0.2
+		_miss = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-0.3, 0.6), _rng.randf_range(-1, 1)) * AIM_SLOP[_skill()] * 0.5
+		_monster = null
+		var best := INF
+		for m in mode.threats():
+			var score: float = m.pos.distance_to(pl.global_position) + m.pos.distance_to(heart) * 0.7
+			if score < best:
+				best = score
+				_monster = m
+		if not holding and _target_prop == null and _rng.randf() < 0.35:
+			_target_prop = _find_prop()
+	var eye := pl.eye_position()
+	var look_at := heart + Vector3.UP * 1.5
+	var want_move := true
+	_goal = heart
+	if _monster != null and _monster.hp > 0.0:
+		var mp: Vector3 = _monster.pos + Vector3.UP * 0.9
+		var d := eye.distance_to(mp)
+		var back: Vector3 = pl.global_position - _monster.pos
+		back.y = 0.0
+		_goal = _monster.pos + (back.normalized() if back.length() > 0.1 else Vector3.FORWARD) * 4.0
+		want_move = d > 5.0
+		look_at = mp + _miss * clampf(d / 15.0, 0.3, 1.2)
+		if holding:
+			_hold_timer += delta
+			if _hold_timer > 0.4 and d < 28.0 and _aim_error(look_at) < 0.12:
+				_throw(d)
+		elif _target_prop and is_instance_valid(_target_prop) and _target_prop.held_by == 0 and d > 6.0:
+			var tp := _target_prop.global_position
+			if eye.distance_to(tp) < 18.0:
+				look_at = tp
+				_goal = tp
+				if not _grabbing and _aim_error(tp) < 0.15:
+					world.gun_action(pl, GravityGun.Action.GRAB_START)
+					_grabbing = true
+		elif d < 5.5 and _punt_cd <= 0.0 and _aim_error(mp) < 0.3:
+			world.gun_action(pl, GravityGun.Action.THROW)
+			_punt_cd = PUNT_REST[_skill()] * 0.6 + _rng.randf() * 0.5
+	else:
+		want_move = pl.global_position.distance_to(heart) > 6.0
+		if holding and _hold_timer > 3.0:
+			_finish_throw()
+	if not holding and _grabbing and (_target_prop == null or not is_instance_valid(_target_prop)):
+		world.gun_action(pl, GravityGun.Action.GRAB_END)
+		_grabbing = false
+	if holding:
+		_target_prop = null
 	_aim(look_at, delta)
 	_steer(delta, want_move)
 

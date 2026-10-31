@@ -26,6 +26,9 @@ var _crosshair: Control
 var _health_label: Label
 var _health_bar: HudPlate
 var _score_plate: HudPlate
+var _fortress: HudPlate # MegaYeet: the Fortress meter
+var _fortress_label: Label
+var _threat: Label
 var _speed_plate: HudPlate
 var _slot_plates: Array[PanelContainer] = []
 var _speed_label: Label
@@ -191,6 +194,28 @@ func _ready() -> void:
 	_objective.custom_minimum_size = Vector2(800, 0)
 	_objective.visible = false
 	_root.add_child(_objective)
+	# MegaYeet: the Fortress meter under the score, and what's coming or where they are.
+	_fortress = HudPlate.new()
+	_fortress.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_fortress.position = Vector2(-270, 64)
+	_fortress.size = Vector2(540, 34)
+	_fortress.chamfer = 9.0
+	_fortress.segments = 20
+	_fortress.value = 1.0
+	_fortress.visible = false
+	_root.add_child(_fortress)
+	_fortress_label = _label(20, Color.WHITE)
+	_fortress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_fortress_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_fortress_label.size = Vector2(540, 34)
+	_fortress.add_child(_fortress_label)
+	_threat = _label(19, Color(1.0, 0.86, 0.35))
+	_threat.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_threat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_threat.position = Vector2(-400, 102)
+	_threat.custom_minimum_size = Vector2(800, 0)
+	_threat.visible = false
+	_root.add_child(_threat)
 	# "[E] Reset the room" under the crosshair when looking at something usable.
 	_use_prompt = _label(22, Color.WHITE)
 	_use_prompt.set_anchors_preset(Control.PRESET_CENTER)
@@ -642,7 +667,7 @@ func _process(delta: float) -> void:
 		_use_prompt.text = "[%s]  %s" % [Controls.pad_of("use") if _pad_used else Controls.key_of("use"), usable.use_label()]
 	if world and Game.is_sport(world.mode):
 		_ball_marks.queue_redraw()
-	if world and (world.mode == Game.Mode.PUZZLE or Game.is_sport(world.mode)):
+	if world and (world.mode == Game.Mode.PUZZLE or world.mode == Game.Mode.MEGAYEET or Game.is_sport(world.mode)):
 		_clock_t -= delta
 		if _clock_t <= 0.0:
 			_clock_t = 0.25
@@ -740,6 +765,8 @@ func on_players_changed() -> void:
 		_objective_plate.offset_right = ow * 0.5
 		_objective_plate.offset_top = 63
 		_objective_plate.offset_bottom = 97 + 28 * _objective.text.count("\n")
+	elif world.mode == Game.Mode.MEGAYEET:
+		_megayeet_hud()
 	elif world.mode == Game.Mode.PUMPKIN:
 		var pl: Player = world.local_player
 		var leader: Player = null
@@ -766,6 +793,42 @@ func on_players_changed() -> void:
 		var pl: Player = world.local_player
 		_score_label.text = "%s     Frags: %d" % [world.mode_name(), pl.frags if pl else 0]
 	_fit_score_plate.call_deferred()
+
+
+## MegaYeet: the wave, the Fortress meter (green to red as it drains), and what's coming
+## (the next wave's countdown) or where the monsters are (how many in each zone).
+func _megayeet_hud() -> void:
+	var s: Dictionary = world.mode_state
+	var pl: Player = world.local_player
+	var wave: int = s.get("wave", 0)
+	var phase: int = s.get("phase", 0)
+	_score_label.text = "%s     Wave %d     Kills: %d" % [world.mode_name(), wave, pl.score if pl else 0]
+	var top: float = s.get("max", 1000)
+	var meter: float = s.get("meter", top)
+	var k := clampf(meter / maxf(top, 1.0), 0.0, 1.0)
+	_fortress.visible = true
+	_fortress.value = k
+	_fortress.bar_color = Color(1.0, 0.25, 0.2).lerp(Color(1.0, 0.85, 0.2), clampf(k * 2.0, 0.0, 1.0)).lerp(Color(0.4, 1.0, 0.5), clampf(k * 2.0 - 1.0, 0.0, 1.0))
+	_fortress.queue_redraw()
+	_fortress_label.text = "FORTRESS  %d / %d" % [int(meter), int(top)]
+	var text := ""
+	if phase == ModeMegaYeet.Phase.BREAK:
+		var left := maxf(float(s.get("next", 0.0)) - world.net_time(), 0.0)
+		text = "Wave %d in %d  ·  get ready" % [wave + 1, ceili(left)] if wave > 0 else "The monsters are coming in %d  ·  defend the Heart!" % ceili(left)
+		_threat.label_settings.font_color = Color(0.7, 0.9, 1.0)
+	elif phase == ModeMegaYeet.Phase.WAVE:
+		var parts := []
+		var zones: Array = s.get("zones", [0, 0, 0])
+		var names := ["Outer walls", "Courtyard", "KEEP"]
+		for i in zones.size():
+			if zones[i] > 0:
+				parts.append("%s %d" % [names[i], zones[i]])
+		text = "%d monsters left" % s.get("left", 0)
+		if not parts.is_empty():
+			text += "  ·  " + "  ·  ".join(parts)
+		_threat.label_settings.font_color = Color(1.0, 0.5, 0.35) if zones.size() > 1 and (zones[1] > 0 or zones[2] > 0) else Color(1.0, 0.86, 0.35)
+	_threat.text = text
+	_threat.visible = text != ""
 
 
 ## Yeetball: where the balls are. Out of view, an arrow at the screen edge points the way;

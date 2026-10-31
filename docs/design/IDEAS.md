@@ -89,7 +89,13 @@ Tomek is making music for the menu screen, and maybe ambient tracks. Needed: a m
 **Music** and **Sound effects** (on top of the master volume), each with an on/off switch.
 Music files dropped into a folder like the sounds (assets/music/), no code.
 
-## MegaYeet (mode, after High Seas phase 2)
+## MegaYeet (mode; first step done: shamblers, the Fortress meter and zones, waves and breaks, combos and style kills, bots, the fall and a fresh start, the Fortress map, Map Kit pieces)
+
+Next steps, as proposed: (2) monster kinds (runner, brute that smashes gates and can't be
+grabbed, ghost only light and fire hurt, climber, bomber) and grabbing monsters with the
+gun; (3) the break between waves: spend the meter on repairs, traps and team upgrades; (4)
+more maps (a factory), the gate repair; (5) bosses, polish and tuning for the Steam Deck.
+Fire doesn't hurt them yet.
 
 Co-op survival: endless waves of NPC monsters (zombies, Frankenstein's monsters, ghosts and
 the like) come for the players, who work together and use everything the game has (the
@@ -97,6 +103,12 @@ gravity gun, props, explosives, fire, water, traps, the map) to survive as long 
 Waves grow bigger and nastier. To design: monster kinds and how they move and attack (they
 must be yeetable), wave pacing, downed/revive or respawns, scoring (waves survived), which
 maps, bots joining in.
+
+- **Team lift** (Tomek, for later): a really heavy object (a huge iron ball, a siege
+  boulder) that one Yeet's gravity gun can't lift, but several together can: their guns'
+  strength adds up, and together they hurl it. A weapon of mass destruction for huge waves
+  or a boss fight. To design: how many guns it takes, how the throw is aimed and timed when
+  several hold it (whoever charges last? the average aim?), how the HUD shows "2 of 3 pulling".
 
 ## Set dressing with features (done: the Map Kit's **Fixture**; see MAPPING.md)
 

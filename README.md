@@ -241,6 +241,22 @@ outs get the commentator going. Bots read where the ball will come down, the nea
 under it, catches it and lobs it deep into the other half; the rest spread over their half.
 Map: **Volley Beach**.
 
+**MegaYeet (co-op)** (a first playable step). Endless waves of monsters come for the
+fortress and everyone defends it together, bots included; friends can't hurt each other.
+The **Fortress meter** at the top is the team's life: every monster inside the fortress
+drains it each second, more the deeper it gets (the outer walls, the courtyard, the keep),
+and one that reaches the glowing **Heart** in the middle takes a big bite. Kills put points
+back, more for style (thrown off a wall, crushed by a crate, drowned, into lava, bowled over
+by a flying friend), and a burst of kills is a combo (TRIPLE SPLAT, MONSTER MASH,
+MEGAYEET). Holding a wave tops the meter up; there's a short break before the next, bigger
+one. Monsters (shamblers, for now) walk the ways to the Heart, batter wooden gates down,
+and hit any Yeet they reach; a gravity-gun push and blasts send them flying, flung props
+crush them, and they die from falls, lava, acid and deep water. At zero the fortress falls:
+how many waves you held, then everything starts again (walls rebuilt). Hundreds at once
+stay cheap (they aren't physics bodies; drawn in one batch). Map: **The Fortress**; any
+other map works too (the game puts a Heart amid its spawns, zones round it and rifts far
+out).
+
 **Pickups and power-ups.** Maps have first aid kits (+50, or +100 for the big one) and
 power-ups floating over glowing pads; walk through one to take it, and it comes back after
 a while. **Speed** (40% faster, 12 s), **Super Yeet** (throws, punts and launches 1.8x
@@ -295,6 +311,9 @@ menu, or in Pumpkin Smash, every map gets:
   with two team towers. Launch shafts lead to a sniper floor with a breakable window
   and to the roof (which has anvils for dropping on people). There is a central hill
   and breakable bridges over chasms. Falling off is death.
+- **The Fortress** (MegaYeet): three rings of walls round the Heart, wooden gates in the
+  outer two and metal ones in the low keep wall (hop over it; monsters can't), jump pads up
+  onto the walls, blast barrels up there to drop on them, six rifts outside.
 - **Courtyard**: the Map Kit example map, an island in the sea. Team decks, a breakable
   gate, an acid trench with a wooden bridge, a catwalk with a lift and an updraft.
 - **High Seas**: the container ship MV *Bad Decisions* on the open ocean. The whole ship
@@ -418,7 +437,9 @@ scripts/world/    arena.gd (+ Prime layout), map_facing.gd, destructible.gd, mat
                   ssr.gdshaderinc (screen-space reflections for water and glass),
                   map_high_seas.gd + ship.gd + container.gdshader (High Seas), ship_crane.gd
 scripts/mapkit/   the Map Kit's pieces (fixture.gd: set dressing that hums, turns, breaks)
-scripts/modes/    mode_base.gd (sandbox), mode_ctf.gd, mode_dodgeball.gd
+scripts/modes/    mode_base.gd (sandbox), mode_ctf.gd, mode_dodgeball.gd, mode_megayeet.gd...
+scripts/horde/    horde.gd (MegaYeet's monsters: server walkers, snapshots, one MultiMesh),
+                  flow_field.gd (the ways to the Heart), monster_look.gd + monster.gdshader
 scripts/fx/       effects.gd (blood, decals, explosions, debris), sfx.gd (synthesized sounds),
                   ambience.gd (the fixtures' looping hums), yeetish.gd (the Yeets' voices),
                   music.gd (assets/music/ tracks by name, the Music bus)
@@ -508,6 +529,12 @@ godot --headless --path . -- --host --map highseas --bots 0 --tour x --tour-mode
 # High Seas weather: a hurricane's roll and washes; a wash, a rogue wave, a wet deck (calm sea)
 godot --headless --path . -- --host --map highseas_extreme --bots 1 --tour x --tour-mode shipweather
 godot --headless --path . -- --host --map highseas_dusk --bots 1 --tour x --tour-mode shipweather
+# MegaYeet: waves, the ways to the Heart, a gate battered down, the meter, kills, bots, the
+# time 200 monsters take a tick, the fall and a fresh start (screenshots with a folder)
+godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --tour /tmp/shots --tour-mode megayeet
+# ... and over the network: a client joining a MegaYeet host sees the monsters and the meter
+godot --headless --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 2 --port 24781
+godot --headless --path . -- --join 127.0.0.1 --port 24781 --tour x --tour-mode megayeetclient
 # Fixtures: the Pump House's machines run, the wired pump waits, breaking and mending, a zap
 godot --path . -- --host --map pump_house --mode puzzle --bots 0 --tour /tmp/shots --tour-mode fixtures
 

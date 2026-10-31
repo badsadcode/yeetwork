@@ -363,6 +363,28 @@ Everything is optional: a fixture can just be a model.
 - `maps/pump_house.tscn` has six (a pump that starts with the valves' button, steam pipes, a
   fan, a radio, a breakable generator, an engine); High Seas' engine room is built from them.
 
+### MegaYeet pieces (co-op survival)
+A MegaYeet map is a fortress: put a **FortressHeart** at its centre, **DefenseZones** over its
+rings, **MonsterSpawns** outside it, and the players' **SpawnPoints** (Any) inside, near the
+Heart. Gates are **BreakableSlabs** (wood, metal...) across gaps in the walls: monsters
+batter them down when there's no open way round. Monsters walk on the ground and climb
+nothing taller than a step (about half a metre): walls stop them, a low wall players hop
+over still does; anything a monster fits under (a gate under a lintel) is a way through.
+- **FortressHeart**: what's defended. **Radius**: how close a monster gets before it bites.
+  **Color**; **Model** (or the theme's `heart` slot) replaces the crystal: a throne, a
+  reactor, a giant cake.
+- **DefenseZone**: a box (**Size**, its bottom on the node). **Level** 1 the outer walls, 2 the
+  courtyard, 3 the keep: each monster inside drains the Fortress meter 1, 3 or 6 points a
+  second (**Drain** sets your own); where zones overlap the deepest counts, so nest them.
+  **Zone Name** for the HUD's alert ("Monsters in the stables!"); **Show Edge** draws a faint
+  line round it on the ground.
+- **MonsterSpawn**: a rift monsters come out of (**Radius**). Several round the outside;
+  **From Wave** keeps one shut until then (a surprise later on).
+- No Heart, zones or rifts on a map: the game makes them (a Heart amid the spawn points,
+  rings of zones round it, rifts at the farthest ground monsters can walk from).
+- `maps/fortress.tscn` is the example (built by `tools/make_fortress.py`, plain Map Kit
+  afterwards). A track named `fortress.ogg` in `assets/music/` plays there.
+
 ### Themes (a look for a whole map)
 A **MapTheme** gives every piece and prop on a map the look of its theme (haunted, foundry,
 beach...) in one place. Make one: right-click a folder in the FileSystem > **Create New >

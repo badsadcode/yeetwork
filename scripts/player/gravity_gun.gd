@@ -884,6 +884,8 @@ func _punt(origin: Vector3, dir: Vector3) -> void:
 			if pl.is_alive():
 				w.server_launch_player(pl, dir * 17.0 * falloff + Vector3.UP * 5.0, false, 0.9, player.player_id)
 				affected += 1
+	if w.horde: # (MegaYeet: monsters go flying too)
+		affected += w.horde.server_punt(origin, dir, PUNT_RANGE, PUNT_COS, Pickups.SUPER_MULT if player.has_buff("super") else 1.0, player.player_id)
 	# Chip at breakable walls directly ahead.
 	var q := PhysicsRayQueryParameters3D.create(origin, origin + dir * 4.5, Game.L_WORLD, [player.get_rid()])
 	var hit := space.intersect_ray(q)

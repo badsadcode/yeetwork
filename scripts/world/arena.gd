@@ -39,6 +39,9 @@ var ladders: Array[Node3D] = [] # ladders out of the sea (bots overboard swim to
 var lashed: Array = []
 var fire_areas: Array = [] # [Transform3D, size]: burning places (World sets things alight in them)
 var pickups: Array[PickupSpawn] = [] # first aid kits and power-ups, in scene order
+var heart: FortressHeart # MegaYeet: what's defended
+var defense_zones: Array[DefenseZone] = []
+var monster_spawns: Array[MonsterSpawn] = []
 var puzzle: Array[PuzzleNode] = [] # puzzle pieces of a Map Kit map, in scene order (same on every peer)
 var map_settings: MapSettings # a Map Kit map's settings (null for code-built maps)
 var dark := false # a dark sky (haunted): flashlights on by default
@@ -345,6 +348,12 @@ func _collect(n: Node) -> void:
 		ball_spot = (n as Node3D).global_position
 	elif n is PickupSpawn:
 		pickups.append(n)
+	elif n is FortressHeart:
+		heart = n
+	elif n is DefenseZone:
+		defense_zones.append(n)
+	elif n is MonsterSpawn:
+		monster_spawns.append(n)
 	elif n is CSGShape3D:
 		var csg := n as CSGShape3D
 		if csg.is_root_shape() and csg.use_collision:

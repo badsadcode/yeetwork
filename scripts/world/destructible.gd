@@ -63,23 +63,39 @@ func setup(id: int, p_size: Vector2, p_thickness: float, p_color: Color, p_ancho
 		_hp[i] = max_hp
 		_alive[i] = 1
 		_anchored[i] = 1 if _touches_anchor(poly) else 0
-		var body := StaticBody3D.new()
-		body.collision_layer = Game.L_WORLD
-		body.collision_mask = 0
-		body.set_meta("destructible", self)
-		if material == "ice":
-			body.set_meta("ice", true) # slippery while it holds
-		body.set_meta("cell", i)
-		var cs3 := CollisionShape3D.new()
-		var shape := ConvexPolygonShape3D.new()
-		shape.points = Fracture.prism_points(poly, thickness)
-		cs3.shape = shape
-		body.add_child(cs3)
-		add_child(body)
-		_bodies.append(body)
+		_bodies.append(_make_body(i))
 	_mesh = MeshInstance3D.new()
 	add_child(_mesh)
 	_rebuild_mesh()
+
+
+func _make_body(i: int) -> StaticBody3D:
+	var body := StaticBody3D.new()
+	body.collision_layer = Game.L_WORLD
+	body.collision_mask = 0
+	body.set_meta("destructible", self)
+	if material == "ice":
+		body.set_meta("ice", true) # slippery while it holds
+	body.set_meta("cell", i)
+	var cs3 := CollisionShape3D.new()
+	var shape := ConvexPolygonShape3D.new()
+	shape.points = Fracture.prism_points(cells[i], thickness)
+	cs3.shape = shape
+	body.add_child(cs3)
+	add_child(body)
+	return body
+
+
+## Whole again: every broken cell back, no damage (MegaYeet's fresh start).
+func restore_all() -> void:
+	for i in broken_cells:
+		_alive[i] = 1
+		_bodies[i] = _make_body(i)
+	broken_cells = PackedInt32Array()
+	for i in cells.size():
+		_hp[i] = max_hp
+		damage[i] = 0.0
+	_dirty = true
 
 
 func _touches_anchor(poly: PackedVector2Array) -> bool:

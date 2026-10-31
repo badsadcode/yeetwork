@@ -1,0 +1,52 @@
+shader_type spatial;
+// Monsters (Horde's MultiMesh): the parts tagged in UV.x swing as they shamble.
+// INSTANCE_CUSTOM: x its own phase, y how much it's walking (0..1), z a hit flash (0..1),
+// w flailing (flying through the air).
+
+varying float v_flash;
+varying float v_glow;
+
+vec3 rot_x(vec3 p, vec3 pivot, float a) {
+	vec3 q = p - pivot;
+	float c = cos(a);
+	float s = sin(a);
+	return pivot + vec3(q.x, q.y * c - q.z * s, q.y * s + q.z * c);
+}
+
+void vertex() {
+	float part = UV.x;
+	float phase = INSTANCE_CUSTOM.x * 6.2832;
+	float walk = INSTANCE_CUSTOM.y;
+	float flail = INSTANCE_CUSTOM.w;
+	float cyc = TIME * 4.2 + phase;
+	vec3 v = VERTEX;
+	vec3 n = NORMAL;
+	if (part > 0.5 && part < 2.5) { // legs: a stiff, lurching stride
+		float side = part < 1.5 ? 0.0 : 3.1416;
+		float a = sin(cyc + side) * 0.55 * walk + flail * sin(TIME * 17.0 + side + phase) * 0.7;
+		v = rot_x(v, vec3(0.0, 0.8, 0.0), a);
+		n = rot_x(n, vec3(0.0), a);
+	} else if (part > 2.5 && part < 4.5) { // arms: reaching, bobbing, flailing in the air
+		float side = part < 3.5 ? 0.0 : 1.7;
+		float a = sin(cyc * 0.5 + side) * 0.18 * walk - 0.1 + flail * sin(TIME * 21.0 + side + phase) * 1.3;
+		v = rot_x(v, vec3(0.0, 1.35, 0.0), a);
+		n = rot_x(n, vec3(0.0), a);
+	}
+	// The whole body sways side to side and bobs with the stride; the head lolls.
+	float sway = sin(cyc) * 0.05 * walk * (v.y / 1.8);
+	v.x += sway;
+	v.y += abs(sin(cyc)) * 0.04 * walk;
+	if (part > 4.5) {
+		v.x += sin(cyc * 0.5 + phase) * 0.05;
+	}
+	VERTEX = v;
+	NORMAL = normalize(n);
+	v_flash = INSTANCE_CUSTOM.z;
+	v_glow = UV.y;
+}
+
+void fragment() {
+	ALBEDO = mix(COLOR.rgb, vec3(1.0, 0.25, 0.2), v_flash * 0.7);
+	EMISSION = COLOR.rgb * v_glow * 3.0 + vec3(1.0, 0.2, 0.1) * v_flash * 0.6;
+	ROUGHNESS = 0.85;
+}

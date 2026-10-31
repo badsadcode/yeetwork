@@ -24,7 +24,7 @@ jobs:
         run: godot --headless -- --host --map prime --mode ctf --bots 0 --spooky off --test
       - name: Validate maps
         run: |
-          for m in prime facing courtyard lagoon highseas moving_day test_chambers warehouse pump_house scrapyard yeetball_stadium res://custom/example_garden/example_garden.tscn; do
+          for m in prime facing courtyard lagoon highseas moving_day test_chambers warehouse pump_house scrapyard yeetball_stadium res://maps/fortress.tscn res://custom/example_garden/example_garden.tscn; do
             godot --headless -- --map "$m" --validate
           done
       - name: Ship check (High Seas rides the swell, players and cargo stay aboard)
@@ -67,6 +67,13 @@ jobs:
       - name: Fixture check (machines humming, spinning, wired, breaking and mending, an electric one)
         timeout-minutes: 3
         run: timeout 100 godot --headless -- --host --map pump_house --mode puzzle --bots 0 --spooky off --tour x --tour-mode fixtures
+      - name: MegaYeet check (waves, the ways to the Heart, gates, the meter, kills, bots, 200 monsters, the fall; a client sees them)
+        timeout-minutes: 6
+        run: |
+          timeout 200 godot --headless -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --spooky off --tour x --tour-mode megayeet
+          (timeout 70 godot --headless -- --host --map res://maps/fortress.tscn --mode megayeet --bots 2 --port 24781 --spooky off > /dev/null 2>&1 &)
+          sleep 5
+          timeout 90 godot --headless -- --join 127.0.0.1 --port 24781 --tour x --tour-mode megayeetclient
       - name: Theme check (a map theme on pieces and props, own models first, moving parts)
         timeout-minutes: 3
         run: timeout 120 godot --headless -- --host --map res://custom/example_garden/example_garden.tscn --mode sandbox --bots 0 --spooky off --tour x --tour-mode themes
