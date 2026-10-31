@@ -106,6 +106,12 @@ Waves grow bigger and nastier. To design: monster kinds and how they move and at
 must be yeetable), wave pacing, downed/revive or respawns, scoring (waves survived), which
 maps, bots joining in.
 
+- **Next, planned with Tomek** (the match setup is done): a proper **shop window** in the
+  breaks (tabs and thumbnails: traps, personal power-ups, team upgrades, repairs, healing the
+  Heart); an **economy** option in the match setup: *Shared* (the meter is life and money,
+  as now: the challenge) or *Personal Y$* (each Yeet earns Y$ from kills, style and the boss,
+  and buys for themselves; the meter is only life; Y$ can heal the Heart, dearly); **traps
+  placed anywhere** (bought, then put down where you aim, with a preview).
 - **Team lift** (done: the iron ball, two guns lift it, either throws it along their shared
   aim; possible later: heavier ones needing three or four, a boss to throw them at). Tomek's
   note: a really heavy object (a huge iron ball, a siege

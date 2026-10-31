@@ -404,6 +404,11 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
   up to about 1.3 m, dropping off walls, and riding **jump pads** (aimed with Target; not
   ones set by Velocity Override). Give the inner rings a way out (a low wall, a pad up onto
   a wall) or the bots stay inside until a gate falls.
+- In the match setup the host can play the map's own rules or set custom ones for the match.
+  The setup lists a map for a mode only if it has what the mode needs (two flag stands for
+  CTF, two GoalZones for Yeetball, two Hoops, a VolleyNet, MapSettings Puzzle); played in
+  another mode, pieces that mode doesn't use stay out of sight (no Heart or rifts in a
+  deathmatch on a fortress, no flag stands but in CTF).
 - No Heart, zones or rifts on a map: the game makes them (a Heart amid the spawn points,
   rings of zones round it, rifts at the farthest ground monsters can walk from).
 - `maps/fortress.tscn` is the example (built by `tools/make_fortress.py`, plain Map Kit

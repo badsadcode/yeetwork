@@ -13,16 +13,8 @@ var _bg: TextureRect
 var _name: LineEdit
 var _address: LineEdit
 var _port: SpinBox
-var _mode: OptionButton
-var _map: OptionButton
-var _spooky: OptionButton
-var _water: OptionButton
-var _sky: OptionButton
-var _bots: SpinBox
-var _rules: OptionButton
-var _minutes: OptionButton
-var _knock: OptionButton
-var _pickups: OptionButton
+var _summary: Label # (the play page: the last match)
+var _setup: MatchSetup
 var _pages := {}
 var _page_title: Label
 var _preview: CharacterPreview
@@ -107,7 +99,7 @@ func _ready() -> void:
 	_anchor(_status, 0.34, 0.94, 0.97, 1.0)
 	add_child(_status)
 
-	play.pressed.connect(_show_page.bind("play", true))
+	play.pressed.connect(_open_setup)
 	join.pressed.connect(_show_page.bind("join", true))
 	chara.pressed.connect(_show_page.bind("character", true))
 	opts.pressed.connect(_show_page.bind("options", true))
@@ -120,6 +112,8 @@ func _ready() -> void:
 		_set_pick.call_deferred("character", CharacterModel.NOOR)
 	var i := args.find("--menu-page")
 	_show_page(args[i + 1] if i >= 0 and i + 1 < args.size() and _pages.has(args[i + 1]) else "play", false)
+	if i >= 0 and i + 1 < args.size() and args[i + 1] == "setup":
+		_open_setup.call_deferred() # (--menu-page setup: the match setup, for screenshots)
 
 
 func _page_of(b: Button) -> String:
@@ -149,105 +143,53 @@ func _first_focusable(n: Node) -> Control:
 
 func _page_play(stack: Control) -> Control:
 	var v := _page(stack)
-	# The options scroll if they don't fit (Yeetball adds two); START MATCH stays in view.
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
-	v.add_child(scroll)
-	var grid := _grid(scroll)
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_mode = OptionButton.new()
-	for m in Game.MODE_NAMES:
-		_mode.add_item(m)
-	_mode.selected = Game.mode
-	_field(grid, "Mode", _mode)
-	_map = OptionButton.new()
-	_fill_maps()
-	_field(grid, "Map", _map)
-	_bots = SpinBox.new()
-	_bots.min_value = 0
-	_bots.max_value = 11
-	_bots.value = Game.bot_count
-	_field(grid, "Bots", _bots)
-	_pickups = OptionButton.new()
-	for item in ["First aid + power-ups", "First aid only", "None"]:
-		_pickups.add_item(item)
-	_pickups.selected = clampi(Game.pickups, 0, 2)
-	_pickups.tooltip_text = "The pickups a map has: first aid kits, and power-ups (speed, Super Yeet, feather, Iron Yeet)."
-	_field(grid, "Pickups", _pickups)
-	_rules = OptionButton.new()
-	for item in ["Classic Chaos", "TOTAL YEET"]:
-		_rules.add_item(item)
-	_rules.selected = clampi(Game.yeetball_rules, 0, 1)
-	_rules.tooltip_text = "Classic Chaos: recognisable football with gravity guns.
-TOTAL YEET: longer holds, a faster ball, multi-ball and barrels from the sky."
-	_field(grid, "Sport rules", _rules)
-	_minutes = OptionButton.new()
-	for m: int in Game.MATCH_LENGTHS:
-		_minutes.add_item("First to 5 goals" if m == 0 else "%d minutes" % m)
-	_minutes.selected = maxi(Game.MATCH_LENGTHS.find(Game.match_minutes), 0)
-	_field(grid, "Match length", _minutes)
-	_knock = OptionButton.new()
-	for item in ["A harmless bonk", "Knocks them over"]:
-		_knock.add_item(item)
-	_knock.selected = 1 if Game.ball_knockdown else 0
-	_knock.tooltip_text = "Never hurts. Knocked over, you tumble for a moment.
-TOTAL YEET always knocks players over."
-	_field(grid, "Ball hits players", _knock)
-	var sport_only := func(i: int) -> void:
-		var on := Game.is_sport(i)
-		for c: Control in [_rules, _minutes, _knock]:
-			c.visible = on
-			grid.get_child(c.get_index() - 1).visible = on # its label
-	_mode.item_selected.connect(sport_only)
-	sport_only.call(_mode.selected)
-	_spooky = OptionButton.new()
-	for item in ["Off", "Auto (Halloween season)", "Always"]:
-		_spooky.add_item(item)
-	_spooky.selected = Game.halloween
-	_field(grid, "Spooky mode", _spooky)
-	_water = OptionButton.new()
-	for item in ["Classic", "Sculpted (new)"]:
-		_water.add_item(item)
-	_water.selected = 1 if Game.water_style == "sculpted" else 0
-	_field(grid, "Water style", _water)
-	_sky = OptionButton.new()
-	_sky.add_item("Map's own")
-	for i in MapEnvironment.PRESETS.size():
-		_sky.add_item(String(MapEnvironment.PRESETS[i]).capitalize())
-		if MapEnvironment.PRESETS[i] == Game.sky_override:
-			_sky.selected = i + 1
-	if Game.sky_override == "":
-		_sky.selected = 0
-	_field(grid, "Environment", _sky)
+	_summary = Label.new()
+	_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_summary.add_theme_font_size_override("font_size", 22 if _compact else 26)
+	v.add_child(_summary)
+	_show_summary()
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 18)
 	v.add_child(row)
-	var host := _action_button(row, "START MATCH", "YellowButton")
-	host.pressed.connect(func():
+	var setup := _action_button(row, "MATCH SETUP", "YellowButton")
+	setup.pressed.connect(_open_setup)
+	var quick := _action_button(row, "QUICK START", "GreyButton")
+	quick.tooltip_text = "The same match as last time."
+	quick.pressed.connect(func():
 		_store()
 		host_pressed.emit())
 	var hint := Label.new()
-	hint.text = "Friends on your network join you with the address shown in the pause menu."
+	hint.text = "Match setup: the mode, then the maps that suit it, then its options. Friends on your network join you with the address shown in the pause menu."
 	hint.add_theme_font_size_override("font_size", 16)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hint.custom_minimum_size.x = 160
-	row.add_child(hint)
+	v.add_child(hint)
+	_spacer(v)
 	_pack_notices(v)
 	return v
 
 
-func _fill_maps() -> void:
-	_map.clear()
-	var maps := Game.list_maps()
-	for i in maps.size():
-		_map.add_item(maps[i].name)
-		_map.set_item_metadata(i, maps[i].key)
-		if maps[i].key == Game.map:
-			_map.selected = i
+## What the last match was (QUICK START plays it again).
+func _show_summary() -> void:
+	if _summary:
+		var bots := " · %d bot%s" % [Game.bot_count, "" if Game.bot_count == 1 else "s"] if Game.bot_count > 0 else ""
+		_summary.text = "Last time: %s on %s%s" % [Game.MODE_NAMES[clampi(Game.mode, 0, Game.MODE_NAMES.size() - 1)], Game.map_display_name(Game.map), bots]
+
+
+## The match setup, over the menu (MatchSetup): Back closes it, START MATCH hosts.
+func _open_setup() -> void:
+	if _setup and is_instance_valid(_setup):
+		return
+	_setup = MatchSetup.new()
+	add_child(_setup)
+	_setup.back_pressed.connect(func():
+		_setup.queue_free()
+		_setup = null
+		_show_summary())
+	_setup.start_pressed.connect(func():
+		_store()
+		_setup.queue_free()
+		_setup = null
+		host_pressed.emit())
 
 
 ## Map packs with scripts of their own wait for the player's OK (one button each).
@@ -268,7 +210,7 @@ func _pack_notices(v: Control) -> void:
 			if Game.allow_pack(info):
 				b.text = "%s allowed" % info.name
 				b.disabled = true
-				_fill_maps()
+				_show_summary()
 			else:
 				b.text = "%s could not be loaded" % info.name)
 		v.add_child(b)
@@ -511,16 +453,6 @@ func _action_button(parent: Control, text: String, variation: String) -> Button:
 
 func _store() -> void:
 	Game.player_name = _name.text.strip_edges() if not _name.text.strip_edges().is_empty() else "Yeeter"
-	Game.mode = _mode.selected
-	Game.halloween = _spooky.selected
-	Game.water_style = "sculpted" if _water.selected == 1 else "classic"
-	Game.sky_override = "" if _sky.selected <= 0 else MapEnvironment.PRESETS[_sky.selected - 1]
-	Game.map = _map.get_item_metadata(_map.selected) if _map.selected >= 0 else "facing"
-	Game.bot_count = int(_bots.value)
-	Game.pickups = _pickups.selected
-	Game.yeetball_rules = _rules.selected
-	Game.match_minutes = Game.MATCH_LENGTHS[maxi(_minutes.selected, 0)]
-	Game.ball_knockdown = _knock.selected == 1
 	Game.port = int(_port.value)
 	Game.join_address = _address.text.strip_edges()
 	Game.save_settings()

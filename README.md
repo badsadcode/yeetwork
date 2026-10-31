@@ -28,7 +28,14 @@ The step-by-step install and multiplayer guide is in **[docs/STEAM_DECK.md](docs
 
 1. Install **Godot 4.7** (standard build, no .NET needed).
 2. Open `project.godot` and press **F5** (or run `godot --path .`).
-3. In the menu: **PLAY** (pick mode, map, bots and water style, then *Start match*),
+3. In the menu: **PLAY** opens the **match setup**: the mode first, then only the maps that
+   suit it (Capture the Flag: maps with two flag stands; Yeetball, YeetHoops, YeetVolley:
+   their goals, hoops or net; Puzzle: puzzle levels; the rest any map), then that mode's
+   options (bots, pickups; the sports' rules and length; MegaYeet's rules, the map's own or
+   custom: the Heart's health, bites, waves, the boss, the breaks) and the world (spooky,
+   water, sky); *Start match*. A map played in a mode it isn't made for leaves the other
+   pieces out (a deathmatch on a CTF map has no flags; a fortress, no Heart or monsters).
+   *Quick start* on the Play page plays the last match again.
    **JOIN** (a friend's address), **CHARACTER** (name, hat, head extra, skin, shirt) and
    **OPTIONS** (display: windowed / borderless / fullscreen, window size, monitor, brightness,
    camera shake, FPS counter; controls, sound and graphics). Friends on your network (or with the port
@@ -551,6 +558,9 @@ godot --headless --path . -- --host --map highseas --bots 0 --tour x --tour-mode
 # High Seas weather: a hurricane's roll and washes; a wash, a rogue wave, a wet deck (calm sea)
 godot --headless --path . -- --host --map highseas_extreme --bots 1 --tour x --tour-mode shipweather
 godot --headless --path . -- --host --map highseas_dusk --bots 1 --tour x --tour-mode shipweather
+# The match setup's rules: which maps suit which modes, the host's MegaYeet rules, unused
+# pieces left out (the Fortress as a deathmatch)
+godot --headless --path . -- --host --map res://maps/fortress.tscn --bots 0 --tour x --tour-mode setup
 # MegaYeet: waves, the ways to the Heart, a gate battered down, the meter, kills, bots, the
 # time 200 monsters take a tick, the fall and a fresh start (screenshots with a folder)
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --tour /tmp/shots --tour-mode megayeet

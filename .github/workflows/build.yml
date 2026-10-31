@@ -75,6 +75,9 @@ jobs:
           (timeout 70 godot --headless -- --host --map res://maps/fortress.tscn --mode megayeet --bots 2 --port 24781 --spooky off > /dev/null 2>&1 &)
           sleep 5
           timeout 90 godot --headless -- --join 127.0.0.1 --port 24781 --tour x --tour-mode megayeetclient
+      - name: Match setup check (maps that suit each mode, the host's MegaYeet rules, unused pieces left out)
+        timeout-minutes: 3
+        run: timeout 90 godot --headless -- --host --map res://maps/fortress.tscn --bots 0 --spooky off --tour x --tour-mode setup
       - name: Theme check (a map theme on pieces and props, own models first, moving parts)
         timeout-minutes: 3
         run: timeout 120 godot --headless -- --host --map res://custom/example_garden/example_garden.tscn --mode sandbox --bots 0 --spooky off --tour x --tour-mode themes

@@ -82,10 +82,25 @@ func setup(p_world: Node) -> void:
 	super(p_world)
 	horde = world.horde
 	heart = world.arena.heart
+	if heart:
+		apply_rules(heart, Game.megayeet_rules)
 	max_meter = heart.health if heart else METER
 	meter = max_meter
 	started = world.now()
 	phase_end = world.now() + (heart.first_break if heart else FIRST_BREAK)
+
+
+## The host's own rules for this match (the match setup's Custom): onto the Heart, in place of
+## the map's MegaYeet Rules. Nothing when they're the map's own.
+static func apply_rules(h: FortressHeart, rules: Dictionary) -> void:
+	if not rules.get("custom", false):
+		return
+	for k in ["health", "bite", "kill_refill", "wave_bonus", "first_break", "break_time", "wave_size", "boss_health", "boss_reward"]:
+		if rules.has(k):
+			h.set(k, float(rules[k]))
+	for k in ["max_monsters", "boss_every"]:
+		if rules.has(k):
+			h.set(k, int(rules[k]))
 
 
 ## Every peer: a Heart and zones if the map has none (the same everywhere: from its spawns).

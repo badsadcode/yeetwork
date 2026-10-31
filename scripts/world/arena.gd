@@ -221,7 +221,9 @@ func flag_stand(team: int, stand: Vector3, model: PackedScene = null) -> void:
 		inst.position = stand
 		add_child(inst)
 		inst.set_meta("mk", {"type": "flag", "team": team, "stand": stand})
-		light(stand + Vector3(0, 3, 0), tc, 10.0, 2.5).set_meta("mk_part", true)
+		var tl := light(stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
+		tl.set_meta("mk_part", true)
+		tl.set_meta("flag_light", true)
 		return
 	var ped := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
@@ -235,6 +237,7 @@ func flag_stand(team: int, stand: Vector3, model: PackedScene = null) -> void:
 	var l := light(stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
 	ped.set_meta("mk", {"type": "flag", "team": team, "stand": stand})
 	l.set_meta("mk_part", true)
+	l.set_meta("flag_light", true)
 
 
 ## Liquid pool (acid, lava or water), kill volume, wind volume or a burning place (fire).
@@ -365,6 +368,28 @@ func _collect(n: Node) -> void:
 		if csg.is_root_shape() and csg.use_collision:
 			csg.collision_layer = Game.L_WORLD
 			csg.collision_mask = 0
+
+
+## Pieces the match's mode doesn't use stay out of sight (and out of the way): the flag stands
+## but in CTF, MegaYeet's Heart, zones, rifts and trap spots but in MegaYeet. (A deathmatch on a
+## CTF map has no flags; a fortress played as a deathmatch is just its walls.) Every peer.
+func hide_unused(mode: int) -> void:
+	_hide_in(self, mode)
+
+
+func _hide_in(n: Node, mode: int) -> void:
+	for c in n.get_children():
+		var off := false
+		if mode != Game.Mode.MEGAYEET and (c is FortressHeart or c is DefenseZone or c is MonsterSpawn or c is TrapSpot):
+			off = true
+		elif mode != Game.Mode.CTF and c is Node3D and ((c.has_meta("mk") and (c.get_meta("mk") as Dictionary).get("type", "") == "flag") or c.has_meta("flag_light")):
+			off = true
+		if off:
+			(c as Node3D).visible = false
+			for body: CollisionObject3D in c.find_children("*", "CollisionObject3D", true, false):
+				body.collision_layer = 0
+		else:
+			_hide_in(c, mode)
 
 
 ## Problems a map author should fix. Needs a physics frame to have run.

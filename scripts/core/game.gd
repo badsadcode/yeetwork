@@ -16,13 +16,29 @@ const L_TRIGGERS := 16
 
 enum Mode { SANDBOX, CTF, DODGEBALL, PUMPKIN, PUZZLE, YEETBALL, HOOPS, VOLLEY, MEGAYEET }
 const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash", "Puzzle (co-op)", "Yeetball", "YeetHoops", "YeetVolley", "MegaYeet (co-op)"]
+## The code-built maps (the High Seas variants); Prime and Facing are Map Kit scenes now, read
+## like the others (their features and descriptions from their pieces and MapSettings).
 const BUILTIN_MAPS := [
 	{"key": "facing", "name": "Facing Yeets"},
 	{"key": "prime", "name": "Yeetwork Prime"},
-	{"key": "highseas", "name": "High Seas"},
-	{"key": "highseas_dusk", "name": "High Seas: Golden Hour"},
-	{"key": "highseas_storm", "name": "High Seas: Storm"},
-	{"key": "highseas_extreme", "name": "High Seas: Hurricane"},
+	{"key": "highseas", "name": "High Seas", "features": {"ctf": true}, "description": "The container ship MV Bad Decisions on the open ocean: she rolls with the swell, cargo slides, the sea is swimmable."},
+	{"key": "highseas_dusk", "name": "High Seas: Golden Hour", "features": {"ctf": true}, "description": "The container ship MV Bad Decisions on the open ocean: she rolls with the swell, cargo slides, the sea is swimmable."},
+	{"key": "highseas_storm", "name": "High Seas: Storm", "features": {"ctf": true}, "description": "The container ship MV Bad Decisions on the open ocean: she rolls with the swell, cargo slides, the sea is swimmable."},
+	{"key": "highseas_extreme", "name": "High Seas: Hurricane", "features": {"ctf": true}, "description": "The container ship MV Bad Decisions on the open ocean: she rolls with the swell, cargo slides, the sea is swimmable."},
+]
+## What a mode needs of a map (a map's features: Game.map_info): "" any map.
+const MODE_NEEDS := ["", "ctf", "", "", "puzzle", "yeetball", "hoops", "volley", ""]
+## A line for each mode in the match setup.
+const MODE_ABOUT := [
+	"Free-for-all: yeet everyone, build with props. Any map.",
+	"Red against Blue: carry their flag home to yours. Maps with two flag stands.",
+	"A live ball knocks out whoever it hits; catch one and its thrower is out. Any map.",
+	"Smash pumpkins, grab the candy, yeet whoever's leading. Any map.",
+	"Get through a puzzle level together, against the clock. Puzzle maps.",
+	"Football with gravity guns: two teams, two goals. Maps with goals.",
+	"Basketball with gravity guns. Maps with two hoops.",
+	"Volleyball with gravity guns, over a net that can rise. Maps with a net.",
+	"Co-op survival: hold the fortress against waves of monsters. Any map (fortresses are best).",
 ]
 const MAPS_DIR := "res://maps"
 
@@ -112,6 +128,10 @@ const WINDOW_SIZES := [Vector2i(1280, 720), Vector2i(1600, 900), Vector2i(1920, 
 # Session config (set by the menu before a match starts).
 var mode: int = Mode.SANDBOX
 var map := "facing" # built-in key or a map scene path under res://maps
+## MegaYeet's rules for a match (the host's; custom: these instead of the map's FortressHeart's).
+var megayeet_rules := {"custom": false, "health": 1000.0, "bite": 40.0, "kill_refill": 3.0, "wave_bonus": 60.0,
+	"first_break": 12.0, "break_time": 25.0, "wave_size": 1.0, "max_monsters": 220, "boss_every": 5,
+	"boss_health": 3000.0, "boss_reward": 300.0}
 var autostart := false
 var spooky := false # Halloween theme active for the current match (decided by the server) # set by a map scene run with F6 (playtest)
 var _map_cache: Array = []
@@ -283,6 +303,8 @@ func save_settings() -> void:
 	cfg.set_value("match", "mode", mode)
 	cfg.set_value("match", "bots", bot_count)
 	cfg.set_value("match", "yeetball_rules", yeetball_rules)
+	for k in megayeet_rules:
+		cfg.set_value("megayeet", k, megayeet_rules[k])
 	cfg.set_value("match", "match_minutes", match_minutes)
 	cfg.set_value("match", "ball_knockdown", ball_knockdown)
 	cfg.set_value("match", "pickups", pickups)
@@ -344,6 +366,8 @@ func load_settings() -> void:
 	mode = cfg.get_value("match", "mode", mode)
 	bot_count = cfg.get_value("match", "bots", bot_count)
 	yeetball_rules = cfg.get_value("match", "yeetball_rules", yeetball_rules)
+	for k in megayeet_rules:
+		megayeet_rules[k] = cfg.get_value("megayeet", k, megayeet_rules[k])
 	match_minutes = cfg.get_value("match", "match_minutes", match_minutes)
 	ball_knockdown = cfg.get_value("match", "ball_knockdown", ball_knockdown)
 	pickups = cfg.get_value("match", "pickups", pickups)
@@ -371,12 +395,18 @@ func list_maps() -> Array:
 			var path: String = MAPS_DIR + "/" + f
 			if Arena.MAPKIT_SCENES.values().has(path):
 				continue # a built-in map (listed above)
-			out.append({"key": path, "name": _scene_map_name(path)})
+			var info := _scene_info(path)
+			out.append({"key": path, "name": info.name, "features": info.features, "description": info.description})
 	# Custom maps (map packs, and the Map Kit's work in progress): scenes with MapSettings.
 	for path in MapPacks.custom_maps():
-		var n := _scene_map_name(path, true)
-		if n != "":
-			out.append({"key": path, "name": n + "  (custom)", "custom": true})
+		var info := _scene_info(path, true)
+		if info.name != "":
+			out.append({"key": path, "name": info.name + "  (custom)", "custom": true, "features": info.features, "description": info.description})
+	for m: Dictionary in out: # (Prime and Facing: listed as built-ins, read from their scenes)
+		if not m.has("features") and Arena.MAPKIT_SCENES.has(m.key):
+			var info := _scene_info(Arena.MAPKIT_SCENES[m.key])
+			m.features = info.features
+			m.description = info.description
 	_map_cache = out
 	return out
 
@@ -400,14 +430,62 @@ func map_display_name(key: String) -> String:
 ## The map's name from its MapSettings (or the file name). only_maps: "" when it has none
 ## (a model scene in a custom map's folder is not a map).
 func _scene_map_name(path: String, only_maps := false) -> String:
+	return _scene_info(path, only_maps).name
+
+
+## A map scene's name (as _scene_map_name), its description, and what's in it for the modes
+## (features: ctf, yeetball, hoops, volley, puzzle, fortress).
+func _scene_info(path: String, only_maps := false) -> Dictionary:
+	var out := {"name": "" if only_maps else path.get_file().get_basename().capitalize(), "features": {}, "description": ""}
 	var packed := load(path) as PackedScene
-	if packed:
-		var root := packed.instantiate()
-		var n := _find_map_name(root)
-		root.free()
-		if n != "":
-			return n
-	return "" if only_maps else path.get_file().get_basename().capitalize()
+	if packed == null:
+		return out
+	var root := packed.instantiate()
+	var n := _find_map_name(root)
+	if n != "":
+		out.name = n
+	var found := {"flags": {}, "goals": {}, "hoops": {}}
+	_scan_features(root, found, out)
+	var f: Dictionary = out.features
+	f.ctf = found.flags.size() == 2
+	f.yeetball = found.goals.size() == 2
+	f.hoops = found.hoops.size() == 2
+	root.free()
+	return out
+
+
+func _scan_features(n: Node, found: Dictionary, out: Dictionary) -> void:
+	if n is FlagStand:
+		found.flags[(n as FlagStand).team_id()] = true
+	elif n is Hoop: # (before GoalZone: a hoop is one too)
+		found.hoops[n.get("team")] = true
+	elif n is GoalZone:
+		found.goals[n.get("team")] = true
+	elif n is VolleyNet:
+		out.features.volley = true
+	elif n is FortressHeart:
+		out.features.fortress = true
+	elif n is MapSettings:
+		out.features.puzzle = (n as MapSettings).puzzle
+		out.description = (n as MapSettings).description
+	for c in n.get_children():
+		_scan_features(c, found, out)
+
+
+## Does this map suit this mode (MODE_NEEDS)? m: an entry of list_maps().
+static func mode_fits(m: int, map_entry: Dictionary) -> bool:
+	var need: String = MODE_NEEDS[m] if m < MODE_NEEDS.size() else ""
+	if need == "":
+		return not map_entry.get("features", {}).get("puzzle", false) or m == Mode.SANDBOX
+	return map_entry.get("features", {}).get(need, false)
+
+
+## A map's entry in list_maps() by key ({} if none).
+func map_info(key: String) -> Dictionary:
+	for m in list_maps():
+		if m.key == key:
+			return m
+	return {}
 
 
 func _find_map_name(n: Node) -> String:

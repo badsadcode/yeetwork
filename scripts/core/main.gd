@@ -140,6 +140,8 @@ func _handle_cmdline(execute := true) -> bool:
 	# player last saved: MegaYeet's bots, say, would hunt monsters instead of fetching first aid).
 	if (_test or _validate or _tour_dir != "") and not args.has("--mode"):
 		Game.mode = Game.Mode.SANDBOX
+	if _test or _validate or _tour_dir != "":
+		Game.megayeet_rules.custom = false # (a map's own MegaYeet rules, whatever the host saved)
 	if not execute:
 		return false
 	match action:

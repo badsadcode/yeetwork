@@ -191,6 +191,7 @@ func _spot_free(pos: Vector3, half: Vector3) -> bool:
 func _build_arena(key: String) -> void:
 	Music.play_match(key)
 	_build_arena_now(key)
+	arena.hide_unused(mode)
 	if mode == Game.Mode.MEGAYEET:
 		# (every peer: the Heart and zones if the map has none, and the monsters' node)
 		ModeMegaYeet.prepare_arena(arena)
