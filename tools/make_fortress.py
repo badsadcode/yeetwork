@@ -130,6 +130,9 @@ for (x, z) in ((28, 28), (-28, 28), (28, -28), (-28, -28)):
     props.append(("anvil", x, 0.3, z))
     props.append(("crate_big", x + 2, 0.9, z))
     props.append(("boom_barrel", x - 2, 0.7, z))
+# Two iron balls in the courtyard by the keep's side gates: too heavy for one gun (team lift).
+props.append(("iron_ball", 13.5, 1.2, 0))
+props.append(("iron_ball", -13.5, 1.2, 0))
 for k, (kind, x, y, z) in enumerate(props):
     node("Props", "Prop%d" % k, "prop", x, y, z, 'kind = "%s"\n' % kind)
 

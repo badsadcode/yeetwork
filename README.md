@@ -253,7 +253,10 @@ one, and the break is for spending the meter (it's money as well as life): look 
 gate and Use to rebuild it, Use a trap spot to build its trap (spikes that hurt and slow,
 a fire grate that sets them alight, a mine that blows up under them), or Use the Heart
 for a team upgrade (stronger pushes and throws for everyone, softer bites, quicker
-respawns). Monsters walk the ways to the Heart, batter gates down and hit any Yeet they reach; a
+respawns). The **iron ball** is too heavy for one gun: grab it alone and it only strains
+toward you ("1 of 2 pulling"); with two guns on it, it lifts and floats where you aim
+together, and either of you charges and throws it along your shared aim (harder with more
+of you): it flattens whatever it hits, brutes included. The Fortress has two. Monsters walk the ways to the Heart, batter gates down and hit any Yeet they reach; a
 gravity-gun push and blasts send them flying, flung props crush them, they die from falls,
 lava, acid and deep water, and fire spreads through a crowd. Grab one with the gun and
 throw it, or swing it into the others. Waves mix the kinds as they go on, each announced

@@ -33,6 +33,8 @@ const DEFS := {
 	"fuse": {"shape": "fuse", "size": Vector3(0.22, 0.62, 0.22), "mass": 5.0, "color": Color(1.0, 0.82, 0.2), "bounce": 0.3, "label": "Fuse", "metal": true},
 	# Structural Engineering: a heavy stone ball that rolls, and a long wooden platform.
 	"boulder": {"shape": "sphere", "size": Vector3(0.55, 0.55, 0.55), "mass": 120.0, "color": Color(0.58, 0.55, 0.52), "bounce": 0.05, "label": "Boulder"},
+	# A team lift: too heavy for one gun; "team" guns together lift it and hurl it.
+	"iron_ball": {"shape": "sphere", "size": Vector3(1.1, 1.1, 1.1), "mass": 1500.0, "color": Color(0.2, 0.21, 0.24), "bounce": 0.05, "label": "Iron Ball", "metal": true, "team": 2},
 	"platform": {"shape": "box", "size": Vector3(7.0, 0.3, 2.6), "mass": 90.0, "color": Color(0.72, 0.52, 0.32), "bounce": 0.05, "label": "Platform"},
 	# A Pulley's platforms, and a battery for power sockets (Receptacle kind battery).
 	"lift": {"shape": "box", "size": Vector3(2.2, 0.25, 2.2), "mass": 30.0, "color": Color(0.55, 0.6, 0.68), "bounce": 0.05, "label": "Lift", "metal": true},
@@ -63,7 +65,11 @@ var _flicker: OmniLight3D
 var extra := {} # kind-specific data (fragment polygons, thickness, material)
 
 # Server-side gameplay state.
-var held_by := 0 # player id or 0
+var held_by := 0 # player id or 0 (a team lift: 0; its lifters are in `lifters`)
+## A team lift (DEFS "team"): the guns pulling on it, player id -> [where they want it, when
+## they last said so, their aim] (server), and how many there are (every peer: World syncs).
+var lifters := {}
+var lift_count := 0
 var last_thrower := 0
 var last_thrown_time := -100.0
 var live := false # dodgeball: thrown and hasn't touched the world yet
@@ -188,6 +194,8 @@ func _build(def: Dictionary) -> void:
 				_build_basketball(mesh)
 			elif kind == "volleyball":
 				_build_volleyball(mesh)
+			elif kind == "iron_ball":
+				_add_iron_bands(mesh)
 		"cyl":
 			var s := CylinderShape3D.new()
 			s.radius = size.x
@@ -450,6 +458,31 @@ func _add_barrel_bands(parent: MeshInstance3D) -> void:
 		band.position.y = y * size.y
 		band.material_override = Mats.plastic(band_color, 0.4, 1.5 if explosive else 0.0)
 		parent.add_child(band)
+
+
+## The iron ball: two riveted bands round it, a ring on top (it looks too heavy to lift).
+func _add_iron_bands(parent: MeshInstance3D) -> void:
+	var r := size.x
+	var band := Mats.plastic(Color(0.32, 0.33, 0.36), 0.3)
+	for b in [Basis.IDENTITY, Basis(Vector3.RIGHT, PI * 0.5)]:
+		var t := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = r * 0.97
+		tm.outer_radius = r * 1.05
+		tm.rings = 32
+		t.mesh = tm
+		t.basis = b
+		t.material_override = band
+		parent.add_child(t)
+	var ring := MeshInstance3D.new()
+	var rm := TorusMesh.new()
+	rm.inner_radius = r * 0.18
+	rm.outer_radius = r * 0.28
+	ring.mesh = rm
+	ring.position.y = r * 1.12
+	ring.rotation.x = PI * 0.5
+	ring.material_override = band
+	parent.add_child(ring)
 
 
 func _add_beachball_stripes(parent: MeshInstance3D) -> void:
@@ -802,6 +835,8 @@ func setup_role(server: bool) -> void:
 func _physics_process(delta: float) -> void:
 	if is_server:
 		_prev_velocity = linear_velocity
+		if not lifters.is_empty() or lift_count > 0:
+			_team_lift()
 		if kind == "lost_yeet" and held_by == 0 and not freeze and linear_velocity.length() < 3.0:
 			# A Yeet gets back on its feet.
 			angular_velocity += global_transform.basis.y.cross(Vector3.UP) * 10.0 * delta
@@ -821,6 +856,75 @@ func _physics_process(delta: float) -> void:
 			xf.origin = xf.origin.lerp(_target_xform.origin, t)
 		xf.basis = Basis(xf.basis.get_rotation_quaternion().slerp(_target_xform.basis.get_rotation_quaternion(), t))
 		global_transform = xf
+
+
+## A team lift (too heavy for one gun: DEFS "team" guns lift it together).
+func is_team() -> bool:
+	return DEFS.get(kind, {}).has("team")
+
+
+func team_needed() -> int:
+	return int(DEFS[kind].get("team", 1))
+
+
+## Server: a lifter's gun says where it wants it this tick (and where it's aiming).
+func server_lift(pid: int, target: Vector3, aim: Vector3) -> void:
+	lifters[pid] = [target, Time.get_ticks_msec() / 1000.0, aim]
+	last_thrower = pid # (a friend's lift, not an attack, if it rolls into a friend)
+	last_thrown_time = Time.get_ticks_msec() / 1000.0
+
+
+func server_unlift(pid: int) -> void:
+	lifters.erase(pid)
+	_team_lift()
+
+
+## Enough guns on it: it floats where they want it (the middle of their aims); too few: it
+## strains and drags along toward them, still on the ground.
+func _team_lift() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	for pid in lifters.keys():
+		if now - float(lifters[pid][1]) > 0.3:
+			lifters.erase(pid)
+	var n := lifters.size()
+	if n != lift_count:
+		lift_count = n
+		world.server_lift_count(prop_id, n)
+	if n == 0:
+		gravity_scale = base_gravity
+		return
+	var avg := Vector3.ZERO
+	for v: Array in lifters.values():
+		avg += v[0]
+	avg /= n
+	sleeping = false
+	if n >= team_needed():
+		gravity_scale = 0.0
+		var desired := ((avg - global_position) * 5.0).limit_length(14.0)
+		linear_velocity = linear_velocity.lerp(desired, 0.12)
+		angular_velocity *= 0.95
+	else:
+		gravity_scale = base_gravity
+		var pull := avg - global_position
+		pull.y = 0.0
+		if pull.length() > 0.5:
+			apply_central_force(pull.normalized() * mass * 2.5 * float(n) / team_needed())
+
+
+## Server: thrown by the team along their aims together, harder the more of them (power: the
+## thrower's charge and boosts). False when too few are on it.
+func team_throw(power: float) -> bool:
+	if lifters.size() < team_needed():
+		return false
+	var aim := Vector3.ZERO
+	for v: Array in lifters.values():
+		aim += v[2]
+	aim = aim.normalized()
+	linear_velocity = aim * (16.0 + 4.0 * (lifters.size() - team_needed())) * power + Vector3.UP * 2.0
+	angular_velocity = Vector3(randf_range(-3, 3), randf_range(-3, 3), randf_range(-3, 3))
+	gravity_scale = base_gravity
+	live = true
+	return true
 
 
 ## How fast the prop is moving on this peer (clients only know the streamed velocity).

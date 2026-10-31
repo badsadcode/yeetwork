@@ -830,3 +830,13 @@ kind = "crate_big"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0.7, -28)
 script = ExtResource("prop")
 kind = "boom_barrel"
+
+[node name="Prop40" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 1.2, 0)
+script = ExtResource("prop")
+kind = "iron_ball"
+
+[node name="Prop41" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5, 1.2, 0)
+script = ExtResource("prop")
+kind = "iron_ball"

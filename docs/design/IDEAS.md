@@ -105,7 +105,9 @@ Waves grow bigger and nastier. To design: monster kinds and how they move and at
 must be yeetable), wave pacing, downed/revive or respawns, scoring (waves survived), which
 maps, bots joining in.
 
-- **Team lift** (Tomek, for later): a really heavy object (a huge iron ball, a siege
+- **Team lift** (done: the iron ball, two guns lift it, either throws it along their shared
+  aim; possible later: heavier ones needing three or four, a boss to throw them at). Tomek's
+  note: a really heavy object (a huge iron ball, a siege
   boulder) that one Yeet's gravity gun can't lift, but several together can: their guns'
   strength adds up, and together they hurl it. A weapon of mass destruction for huge waves
   or a boss fight. To design: how many guns it takes, how the throw is aimed and timed when

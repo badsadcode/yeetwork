@@ -1393,6 +1393,21 @@ func server_clear_buffs(pl: Player) -> void:
 		_bc_all("_s_buffs", [pl.player_id, {}])
 
 
+## A team lift's count of guns pulling on it (every peer: the HUD shows it).
+func server_lift_count(prop_id: int, n: int) -> void:
+	_bc_all("_s_lift_count", [prop_id, n])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_lift_count(prop_id: int, n: int) -> void:
+	var p := get_prop(prop_id)
+	if p:
+		var was := p.lift_count
+		p.lift_count = n
+		if n >= p.team_needed() and was < p.team_needed():
+			Sfx.play3d("metal", p.global_position, 4.0, 0.5) # (up it comes)
+
+
 # --- MegaYeet ----------------------------------------------------------------------------
 
 func server_horde_snapshot(buf: PackedByteArray) -> void:

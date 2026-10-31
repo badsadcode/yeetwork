@@ -621,6 +621,10 @@ func _try_grab(origin: Vector3, dir: Vector3) -> void:
 	if target is Prop:
 		var p := target as Prop
 		var d := origin.distance_to(p.global_position)
+		if p.is_team(): # (too heavy for one: join the lift)
+			if d <= GRAB_RANGE + p.size.length() * 0.5:
+				_join_lift(p)
+			return
 		if d <= GRAB_RANGE + p.size.length() * 0.5:
 			_grab_prop(p)
 		elif p.mass <= MAX_PULL_MASS:
@@ -708,6 +712,33 @@ func _grab_prop(p: Prop) -> void:
 	w.server_fx("zap", p.global_position, Vector3.UP, 0.5)
 
 
+## A team lift: this gun pulls on it with the others (Prop.lifters); it lifts once enough do.
+func _join_lift(p: Prop) -> void:
+	held_kind = Kind.PROP
+	held_id = p.prop_id
+	hold_extra = 0.0
+	_held_time = 0.0
+	_stuck_time = 0.0
+	if p.freeze:
+		player.world.server_unfreeze_prop(p)
+	p.server_lift(player.player_id, p.global_position, player.aim_direction())
+	player.world.server_gun_state_changed(self)
+	player.world.server_fx("zap", p.global_position, Vector3.UP, 0.8)
+
+
+func _hold_team(p: Prop, delta: float, origin: Vector3, dir: Vector3) -> void:
+	var c := charge_level()
+	var dist := clampf(_hold_distance(p) + hold_extra, 1.0 + p.size.length() * 0.4, MAX_HOLD_DISTANCE)
+	var target := origin + dir * dist * (1.0 - 0.2 * c)
+	p.server_lift(player.player_id, target, dir)
+	if origin.distance_to(p.global_position) > dist + 6.0:
+		_stuck_time += delta
+		if _stuck_time > 0.6:
+			release(false) # (it's too far off: let go)
+	else:
+		_stuck_time = 0.0
+
+
 func _hold_distance(p: Prop) -> float:
 	return 1.6 + maxf(p.size.x, maxf(p.size.y, p.size.z)) * 0.7
 
@@ -716,6 +747,9 @@ func _hold_prop(delta: float, origin: Vector3, dir: Vector3) -> void:
 	var p := player.world.get_prop(held_id) as Prop
 	if p == null or not is_instance_valid(p):
 		release(false)
+		return
+	if p.is_team():
+		_hold_team(p, delta, origin, dir)
 		return
 	var c := charge_level()
 	var shake := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * 0.08 * c
@@ -822,7 +856,9 @@ func release(throw_ragdoll: bool) -> void:
 	match held_kind:
 		Kind.PROP:
 			var p := w.get_prop(held_id) as Prop
-			if p and is_instance_valid(p):
+			if p and is_instance_valid(p) and p.is_team():
+				p.server_unlift(player.player_id)
+			elif p and is_instance_valid(p):
 				p.held_by = 0
 				p.gravity_scale = p.base_gravity
 		Kind.PLAYER:
@@ -847,6 +883,9 @@ func _throw(dir: Vector3, charge := 0.0) -> void:
 	match held_kind:
 		Kind.PROP:
 			var p := w.get_prop(held_id) as Prop
+			if p and p.is_team():
+				_team_throw(p, power)
+				return
 			release(false)
 			if p:
 				var speed := clampf(48.0 / pow(p.mass / 8.0, 0.33), 9.0, 48.0) * power
@@ -877,6 +916,30 @@ func _throw(dir: Vector3, charge := 0.0) -> void:
 				w.horde.server_let_go(m, dir * 26.0 * power + player.velocity + Vector3.UP * 3.0)
 				w.server_fx("throw", m.pos + Vector3.UP, dir, 1.5 * power)
 	w.server_gun_kick(player, power)
+
+
+## A team lift thrown: along everyone's aim, and everyone lets go. Too few on it: nothing.
+func _team_throw(p: Prop, power: float) -> void:
+	var w := player.world
+	var lifters := p.lifters.keys()
+	if not p.team_throw(power):
+		w.server_message("Too heavy: get %d more on it!" % (p.team_needed() - p.lifters.size()), Color(1.0, 0.7, 0.3))
+		return
+	for pid in lifters:
+		var q := w.get_player(pid) as Player
+		if q and q.gun.held_kind == Kind.PROP and q.gun.held_id == p.prop_id:
+			q.gun._cancel_charge()
+			q.gun.held_kind = Kind.NONE
+			q.gun.held_id = 0
+			q.gun._regrab_block = 0.6
+			w.server_gun_state_changed(q.gun)
+	p.lifters.clear()
+	p.last_thrower = player.player_id
+	p.last_thrown_time = Time.get_ticks_msec() / 1000.0
+	w.server_lift_count(p.prop_id, 0)
+	p.lift_count = 0
+	w.server_fx("throw", p.global_position, p.linear_velocity.normalized(), 3.0)
+	w.server_gun_kick(player, 1.5)
 
 
 func _punt(origin: Vector3, dir: Vector3) -> void:
@@ -953,6 +1016,8 @@ func _freeze_held() -> void:
 	if held_kind != Kind.PROP or not player.world.allow_freeze():
 		return
 	var p := player.world.get_prop(held_id) as Prop
+	if p and p.is_team():
+		return # (not a team lift: it'd hang there for good)
 	release(false)
 	if p and p.kind != "flag":
 		player.world.server_freeze_prop(p)

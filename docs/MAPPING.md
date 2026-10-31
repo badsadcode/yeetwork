@@ -387,6 +387,8 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
 - Between waves players also **repair gates** (Use on a broken one; the more is gone, the
   more it costs) and buy **team upgrades** at the Heart (Use on it: Mighty pushes, Thick
   skin, Quick return, in that order). Spending never takes the meter below a tenth of it.
+- **Iron ball** (PropSpawn kind `iron_ball`): a team lift, too heavy for one gun; two
+  lift it together and throw it (any mode, not just MegaYeet).
 - **Gates**: any BreakableSlab. Its **material** and **Hp Scale** (toughness: 0.5 half as
   tough, 10 ten times) set how long it holds against monsters battering it; brutes hit
   hardest, bombers blow holes in it.

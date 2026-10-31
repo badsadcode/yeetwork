@@ -129,6 +129,7 @@ func _ready() -> void:
 	await _kinds()
 	await _way_out(brains)
 	await _shop()
+	await _team_lift(brains)
 	# Bots fight.
 	for q: Player in brains:
 		q.bot_brain = brains[q]
@@ -456,6 +457,62 @@ func _shop() -> void:
 	await _wait(0.2)
 	_check("nothing for sale during a wave, nor below what's kept back", in_wave == 1 and mode.ups == 1, "during the wave %d, kept back %d" % [in_wave, mode.ups])
 	mode.meter = mode.max_meter
+	horde.server_clear()
+
+
+## The iron ball: one gun alone only strains at it; a second lifts it; they throw it together
+## (both guns let go) and it flattens a brute in its way.
+func _team_lift(brains: Dictionary) -> void:
+	horde.server_clear()
+	var helper: Player = brains.keys()[0] if not brains.is_empty() else null
+	if helper == null:
+		return
+	var ball: Prop = world.server_spawn_prop("iron_ball", Transform3D(Basis.IDENTITY, Vector3(-9.0, 1.2, 30.0)))
+	await _wait(1.0)
+	pl.respawn(Vector3(-12.5, 0, 30.0), 0.0)
+	helper.respawn(Vector3(-11.5, 0, 33.0), 0.0)
+	await _wait(0.4)
+	_face(pl, ball.global_position)
+	world.gun_action(pl, GravityGun.Action.GRAB_START)
+	await _wait(0.8)
+	var alone := pl.gun.held_kind == GravityGun.Kind.PROP and ball.lift_count == 1 and ball.global_position.y < 1.6
+	_check("an iron ball: one gun alone only strains at it", alone, "holding %s, %d pulling, y %.1f" % [pl.gun.held_kind == GravityGun.Kind.PROP, ball.lift_count, ball.global_position.y])
+	_face(helper, ball.global_position)
+	world.gun_action(helper, GravityGun.Action.GRAB_START)
+	var lifted := false
+	for k in 20:
+		await _wait(0.1)
+		_face(pl, ball.global_position + Vector3.UP * 0.5)
+		_face(helper, ball.global_position + Vector3.UP * 0.5)
+		if ball.lift_count == 2 and ball.global_position.y > 1.8:
+			lifted = true
+			break
+	_cam(Vector3(-6, 3, 37), ball.global_position)
+	await _shot("m15_team_lift")
+	_check("... two together lift it", lifted, "%d pulling, y %.1f" % [ball.lift_count, ball.global_position.y])
+	var brute := horde.server_spawn(Vector3(5.0, 0, 30.0), "brute")
+	brute.speed = 0.0
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	_face(pl, brute.pos + Vector3.UP * 4.0)
+	_face(helper, brute.pos + Vector3.UP * 4.0)
+	await _wait(0.4)
+	world.gun_action(pl, GravityGun.Action.THROW)
+	await _wait(0.4)
+	world.gun_action(pl, GravityGun.Action.THROW_RELEASE)
+	await get_tree().physics_frame
+	var speed := ball.linear_velocity.length()
+	var let_go := pl.gun.held_kind == GravityGun.Kind.NONE and helper.gun.held_kind == GravityGun.Kind.NONE
+	_check("... and throw it together (both let go)", speed > 12.0 and let_go, "%.1f m/s, let go %s" % [speed, let_go])
+	for k in 30:
+		await _wait(0.1)
+		if brute.hp <= 0.0:
+			break
+	_check("the iron ball flattens a brute", brute.hp <= 0.0, "hp %.0f" % brute.hp)
+	world.gun_action(pl, GravityGun.Action.GRAB_END)
+	world.gun_action(helper, GravityGun.Action.GRAB_END)
+	if is_instance_valid(ball):
+		world.server_despawn_prop(ball)
 	horde.server_clear()
 
 

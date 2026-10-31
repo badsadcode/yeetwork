@@ -694,7 +694,14 @@ func _process(delta: float) -> void:
 	_death_label.visible = not pl.is_alive()
 	var holding := pl.gun.vis_kind != GravityGun.Kind.NONE and pl.is_alive()
 	_hold_hint.visible = holding
-	if holding:
+	var team: Prop = world.get_prop(pl.gun.vis_id) as Prop if holding and pl.gun.vis_kind == GravityGun.Kind.PROP else null
+	if team and team.is_team():
+		var need := team.team_needed()
+		if team.lift_count < need:
+			_hold_hint.text = "TEAM LIFT: %d of %d pulling  ·  get help!" % [team.lift_count, need]
+		else:
+			_hold_hint.text = "LIFTED by %d!  %s hold: charge, let go: throw it together" % [team.lift_count, Controls.pad_of("gun_throw") if _pad_used else Controls.key_of("gun_throw")]
+	elif holding:
 		if _pad_used:
 			_hold_hint.text = "%s hold: charge throw  ·  %s / %s: push / pull  ·  %s + stick: rotate  ·  %s: freeze" % [Controls.pad_of("gun_throw"), Controls.pad_of("hold_farther"), Controls.pad_of("hold_closer"), Controls.pad_of("rotate_held"), Controls.pad_of("freeze_prop")]
 		else:
