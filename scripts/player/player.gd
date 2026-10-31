@@ -1202,7 +1202,7 @@ func _update_underwater() -> void:
 			var u := liq.wave_uniforms()
 			for key in u:
 				_underwater_mat.set_shader_parameter(key, u[key])
-			_underwater_mat.set_shader_parameter("fog_color", liq.params.fog)
+			_underwater_mat.set_shader_parameter("fog_color", liq.view_fog())
 			_underwater_mat.set_shader_parameter("visibility", liq.params.visibility)
 			_underwater_mat.set_shader_parameter("shafts", liq.params.shafts)
 			_underwater_mat.set_shader_parameter("glow_color", liq.params.glow_color)

@@ -88,6 +88,7 @@ var look_character := 0
 ## Faces that blink and react (false: the classic, unchanging faces). Only changes what you see.
 var expressive_faces := true
 var character_detail := 0 # 0 optimised character models, 1 the original (heavier) build
+var water_look := 1 # water: 1 depth (clear when shallow, deeper colour and less see-through with depth), 0 classic
 var fire_look := 1 # burning things: 1 new (charred glowing surface, volumetric flames, embers), 0 classic (soft flame mass)
 # Display (persisted). Window mode: 0 windowed, 1 borderless fullscreen, 2 exclusive fullscreen
 # (-1 = pick automatically: fullscreen on the Steam Deck, a window elsewhere).
@@ -263,6 +264,7 @@ func save_settings() -> void:
 	cfg.set_value("look", "expressive", expressive_faces)
 	cfg.set_value("video", "character_detail", character_detail)
 	cfg.set_value("video", "fire_look", fire_look)
+	cfg.set_value("video", "water_look", water_look)
 	cfg.set_value("net", "address", join_address)
 	cfg.set_value("net", "port", port)
 	cfg.set_value("match", "mode", mode)
@@ -317,6 +319,7 @@ func load_settings() -> void:
 	expressive_faces = cfg.get_value("look", "expressive", expressive_faces)
 	character_detail = cfg.get_value("video", "character_detail", character_detail)
 	fire_look = cfg.get_value("video", "fire_look", fire_look)
+	water_look = cfg.get_value("video", "water_look", water_look)
 	join_address = cfg.get_value("net", "address", join_address)
 	port = cfg.get_value("net", "port", port)
 	mode = cfg.get_value("match", "mode", mode)

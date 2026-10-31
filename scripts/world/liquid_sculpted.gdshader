@@ -51,6 +51,7 @@ uniform sampler2D normal_b : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D foam_noise : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
 uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
+#include "res://scripts/world/liquid_depth.gdshaderinc"
 
 #include "res://scripts/world/ssr.gdshaderinc"
 
@@ -248,7 +249,7 @@ void fragment() {
 		cst = caustic(cp, t) * 0.6 + caustic(cp * 1.6 + 3.1, t * 1.3) * 0.4;
 		cst *= caustics * exp(-floor_depth * 0.15) * smoothstep(0.0, 0.5, floor_depth);
 	}
-	vec3 transmit = under ? vec3(1.0) : exp(-thick_r / max(clarity, 0.01) * absorption);
+	vec3 transmit = under ? vec3(1.0) : (depth_look ? depth_transmit(floor_depth, thick_r) : exp(-thick_r / max(clarity, 0.01) * absorption));
 	float transmit_avg = (transmit.r + transmit.g + transmit.b) / 3.0;
 	refr *= transmit * (1.0 + cst * 1.4);
 
@@ -258,7 +259,7 @@ void fragment() {
 
 	// Water colour: shallow to deep, and lit from inside where crests are thin.
 	float deep = 1.0 - exp(-floor_depth / max(depth_fade, 0.01));
-	vec3 body = mix(shallow_color.rgb, deep_color.rgb, deep);
+	vec3 body = depth_look ? depth_body(floor_depth) : mix(shallow_color.rgb, deep_color.rgb, deep);
 	// Far out, where the waves fade flat, use the average so the sea keeps one colour.
 	float thin = mix(0.3, pow(max(crest, 0.0), 2.5), wave_fade(world_pos.xz)) * clamp(wave_height * 1.5, 0.0, 1.0);
 	body = mix(body, scatter_color.rgb, clamp(thin * scatter_strength * 0.45, 0.0, 1.0));
@@ -272,6 +273,9 @@ void fragment() {
 	// Lace: webs of bubbles that thin out toward the edge of a patch.
 	float lace = clamp(n1 * 0.55 + n2 * 0.6, 0.0, 1.0);
 	float foam = smoothstep(1.0 - foam_src, 1.0 - foam_src + 0.12, lace) * (0.35 + 0.55 * foam_src);
+	if (depth_look && !under) {
+		foam = max(foam, depth_foam(thick, rest_xz, t));
+	}
 	if (foam_streaks > 0.0) {
 		// Spindrift: foam stretched into long lines along the wind, drifting downwind.
 		vec2 wd = vec2(cos(wind_angle), sin(wind_angle));
@@ -306,7 +310,7 @@ void fragment() {
 		ALBEDO = body * (1.0 - transmit_avg) * (1.0 - fres);
 		// A little glossier than real water (F0 0.07 instead of 0.02), for a stylized sheen.
 		EMISSION = refr * (1.0 - fres) + glow_color.rgb * glow + refl.rgb * mix(0.07, 1.0, fres) * refl.a;
-		ALPHA = clamp(thick * 3.0, 0.0, 1.0);
+		ALPHA = depth_look ? depth_edge(thick) : clamp(thick * 3.0, 0.0, 1.0);
 	} else {
 		// From below. Inside Snell's window (about 49 degrees around straight up) the world
 		// above shows through; outside it the surface mirrors the dark water below.

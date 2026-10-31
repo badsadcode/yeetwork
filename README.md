@@ -102,6 +102,13 @@ where crests fold over and along shores, sun glints, light glowing through thin 
 refraction with depth absorption (red fades first), caustics, and screen-space
 reflections. With your eyes at the surface the view splits above and below the
 waterline. Underwater there is fog, light shafts and Snell's window, and sound is muffled.
+**Water look** (Options): *Depth* (the default) fades whatever is under the surface by how
+far down it is, clear and pale blue just under, gone into a rich blue a metre or two down,
+so the top of a sunken box shows and its bottom doesn't; white foam rings whatever comes up
+through the water (walls, floating crates, swimmers), with a ragged edge and loose bits
+drifting further off; and the surface reflects what's on screen, players too (screen-space
+reflections; off-screen things show the sky instead). *Classic* is the turquoise look
+with see-through by how much water the view crosses.
 In pools and flood water you float with your head out (deep enough, the water lifts you off
 the bottom; hold crouch to stay down there), hold jump to swim up and crouch to dive. Wood,
 rubber and soft props float and bob on the waves; metal and stone sink. Big splashes

@@ -179,6 +179,12 @@ Original: the first build, for comparison."
 	fire.selected = clampi(Game.fire_look, 0, 1)
 	fire.item_selected.connect(func(i): Game.fire_look = i)
 	_row(g, "Fire look", fire)
+	var water := OptionButton.new()
+	for item in ["Classic", "Depth (clear when shallow, deeper colour with depth)"]:
+		water.add_item(item)
+	water.selected = clampi(Game.water_look, 0, 1)
+	water.item_selected.connect(func(i): Game.water_look = i)
+	_row(g, "Water look", water)
 	check.call("VSync", "vsync", "Sync to the display (no tearing)")
 	var caps := ["Unlimited"]
 	for v in FPS_CAPS.slice(1):
