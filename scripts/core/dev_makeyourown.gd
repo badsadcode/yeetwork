@@ -205,10 +205,11 @@ func _phase3(pl: Player) -> void:
 	var a0 := turret.rotation.y if turret else 0.0
 	var p0: Vector3 = sc._load.global_position if sc else Vector3.ZERO
 	_cam(crane.global_position + Vector3(14, 10, 14), crane.global_position + Vector3(4, 5, 0))
-	# The most it turns and moves in 1.5 s (it slews to and fro: two moments alone can straddle a turn).
+	# The most it turns and moves in 3 s: it slews to and fro (a sine of the clock), so a short
+	# window round a turnaround sees almost nothing (1.5 s: 0.01 rad at worst; 3 s: 0.04).
 	var turned := 0.0
 	var moved := 0.0
-	for k in 15:
+	for k in 30:
 		await _wait(0.1)
 		if turret:
 			turned = maxf(turned, absf(turret.rotation.y - a0))
