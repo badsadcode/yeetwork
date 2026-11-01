@@ -31,6 +31,10 @@ var _alive := PackedByteArray()
 var _anchored := PackedByteArray()
 var _bodies: Array[StaticBody3D] = []
 var _mesh: MeshInstance3D
+## Its own material on the faces (BreakableSlab's Custom Material; the broken edges keep the
+## Material's look), by file so fragments find it on every peer; "" none.
+var face_path := ""
+var texture_size := 2.0
 var _dirty := false
 var _radius := 0.6
 
@@ -142,7 +146,8 @@ func _rebuild_mesh() -> void:
 			poly = shrunk
 		var dent := d * d * 0.12 * thickness
 		mb.add_prism(poly, t - dent, -t + dent * 0.6, Color(d, 0, 0, 1))
-	_mesh.mesh = mb.commit(Mats.slab(color, material), Mats.slab(color, material, true))
+	var face := Mats.slab_face_at(face_path, texture_size)
+	_mesh.mesh = mb.commit(face if face else Mats.slab(color, material), Mats.slab(color, material, true))
 
 
 # --- Queries ------------------------------------------------------------------------

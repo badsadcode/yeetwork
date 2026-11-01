@@ -28,6 +28,8 @@ var flag_stands := {} # team -> Vector3 (base of the flag)
 var goals: Array = [] # Yeetball GoalZones (YeetHoops' Hoops, YeetVolley's court halves)
 var nets: Array[VolleyNet] = [] # YeetVolley
 var ball_spot := Vector3(0, 1.2, 0) # Yeetball kickoff spot (a BallSpot)
+var model_notes: Array[String] = [] # (the map check's notes on pieces' models: Looks.notes)
+static var collect_notes := false # (only for the map check: it opens every model)
 var initial_props: Array = [] # [kind, Transform3D, key prop?, extra ({"type": a PropType's path})]
 var kill_y := -45.0
 ## A storm over the map (Weather): lightning can strike the map itself (World._server_storm).
@@ -321,17 +323,22 @@ func _has_class(n: Node, cls: String) -> bool:
 ## Converts Map Kit nodes into gameplay objects. Tree order is deterministic, so every
 ## peer assigns the same destructible ids.
 func _collect(n: Node) -> void:
+	_note_models(n)
 	for c in n.get_children():
 		_collect(c)
 	if n is BreakableSlab:
 		var b := n as BreakableSlab
 		var d := breakable(b.global_position, b.slab_basis(), b.size, b.thickness, b.anchors(), b.material, b.color, b.hp_scale)
+		if b.custom_material:
+			d.face_path = b.custom_material.resource_path
+			d.texture_size = b.texture_size
+			d._rebuild_mesh()
 		b.set_meta("built", d) # (a BreakSensor finds the Destructible through the slab it names)
 		b.queue_free()
 	elif n is SpawnPoint:
 		spawn_points[(n as SpawnPoint).team].append((n as Node3D).global_position + Vector3.UP * 0.2)
 	elif n is FlagStand:
-		flag_stand((n as FlagStand).team_id(), (n as Node3D).global_position, MapTheme.pick(n, "flag_stand"))
+		flag_stand((n as FlagStand).team_id(), (n as Node3D).global_position, MapTheme.pick(n, "flag_stand", (n as FlagStand).model))
 	elif n is PropSpawn:
 		var ps := n as PropSpawn
 		initial_props.append([ps.type.behaves_like if ps.type else ps.kind, Transform3D(ps.global_transform.basis.orthonormalized(), ps.global_position), ps.key_prop, {"type": ps.type.resource_path} if ps.type else {}])
@@ -772,3 +779,20 @@ func xf_local(xf: Transform3D) -> Transform3D:
 ## Where a team's flag stand is now (world space).
 func flag_pos(team: int) -> Vector3:
 	return to_world(flag_stands.get(team, Vector3.ZERO))
+
+
+## Notes for the map check on a piece's own model (or a PropSpawn's type's): missing markers
+## and near misses (Looks.notes). Every piece, before it's turned into the game's own nodes.
+func _note_models(n: Node) -> void:
+	if not collect_notes:
+		return
+	var who := String(n.name)
+	var cls := String(n.get_script().get_global_name()) if n.get_script() else ""
+	var m = n.get("model")
+	if m is PackedScene:
+		model_notes.append_array(Looks.notes(who, m, cls))
+	var t = n.get("type")
+	if t is PropType and (t as PropType).model:
+		model_notes.append_array(Looks.notes(who, (t as PropType).model, "PropType"))
+	elif t is PickupType and (t as PickupType).model:
+		model_notes.append_array(Looks.notes(who, (t as PickupType).model, "PickupType"))

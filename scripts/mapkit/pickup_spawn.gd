@@ -5,6 +5,7 @@ extends Node3D
 ## after a while. First aid kits heal; power-ups give a boost for a few seconds (see
 ## Pickups for what each one does). Put the node on the floor: the item floats a metre up.
 ## The host can turn power-ups (or all pickups) off; the Puzzle mode has none.
+## Type: a pickup of your own (a PickupType: your model, name and numbers) in place of Kind.
 
 @export_enum("health", "health_big", "speed", "super", "feather", "iron", "random") var kind := "health":
 	set(v):
@@ -12,6 +13,10 @@ extends Node3D
 		_rebuild()
 ## Seconds until it's back after someone takes it (0: the usual for its kind).
 @export_range(0.0, 300.0, 1.0) var respawn := 0.0
+@export var type: PickupType:
+	set(v):
+		type = v
+		_rebuild()
 
 var shown_kind := "" # what it is right now (a random one changes each time)
 var _item: Node3D
@@ -63,14 +68,17 @@ func _rebuild() -> void:
 		var pad := MapTheme.pick(self, "pickup_pad")
 		if pad:
 			add_child(pad.instantiate(), false, Node.INTERNAL_MODE_FRONT) # (the glowing ring stays: it shows what's there)
-	shown_kind = Pickups.RANDOM_PREVIEW if kind == "random" else kind
+	if type:
+		shown_kind = "type:" + type.resource_path
+	else:
+		shown_kind = Pickups.RANDOM_PREVIEW if kind == "random" else kind
 	_build_item()
 
 
 func _build_item() -> void:
 	if _item:
 		_item.queue_free()
-	var themed := MapTheme.pick(self, "pickup_" + shown_kind)
+	var themed := MapTheme.pick(self, "pickup_" + shown_kind) if Pickups.type_of(shown_kind) == null else null
 	_item = themed.instantiate() as Node3D if themed else Pickups.build_model(shown_kind)
 	_item.position.y = 1.0
 	_item.visible = _available

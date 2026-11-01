@@ -9,6 +9,11 @@ extends SceneTree
 ##   ground).
 ## - drum.glb: an oil drum (origin in its middle) and its "Collision" mesh: a plain
 ##   8-sided cylinder, what it bumps with.
+## - fan.glb: a big fan for a PuzzleFan (origin in its middle, blowing toward -Z): "Rotor", the
+##   blades, turns about its own Z.
+## - flag_stand.glb: a stone plinth for a FlagStand (origin on the floor; the flag sits 0.4 m up).
+## - can.glb: an energy drink for a PickupSpawn's own pickup (origin in its middle).
+## And ../textures/bricks.png, a brick texture for a breakable wall's Custom Material.
 ## Usage: godot --headless --path . --script res://tools/make_templates.gd
 
 const OUT := "res://custom/make_your_own/models/"
@@ -20,6 +25,10 @@ func _init() -> void:
 	_save(_drain(), "drain")
 	_save(_thorns(), "thorns")
 	_save(_drum(), "drum")
+	_save(_fan(), "fan")
+	_save(_flag_stand(), "flag_stand")
+	_save(_can(), "can")
+	_bricks()
 	quit()
 
 
@@ -165,3 +174,85 @@ func _drum() -> Node3D:
 	# What it bumps with (hidden in the game): keep it simple.
 	_mesh(root, "Collision", _cyl(0.43, 1.15, 8), _mat(Color(1, 0, 1)))
 	return root
+
+
+func _fan() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Fan"
+	var wood := _mat(Color(0.55, 0.38, 0.22), 0.8)
+	var brass := _mat(Color(0.85, 0.65, 0.3), 0.35, 0.8)
+	var base := BoxMesh.new()
+	base.size = Vector3(1.2, 0.14, 0.8)
+	_mesh(root, "Base", base, wood, Transform3D(Basis.IDENTITY, Vector3(0, -0.78, 0)))
+	_mesh(root, "Post", _cyl(0.07, 0.75, 8), wood, Transform3D(Basis.IDENTITY, Vector3(0, -0.35, 0)))
+	var ring := TorusMesh.new()
+	ring.inner_radius = 0.66
+	ring.outer_radius = 0.74
+	_mesh(root, "Cage", ring, brass, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0.2, 0)))
+	# The blades: in the fan's face, turning about the Rotor's own Z (the way it blows).
+	var rotor := Node3D.new()
+	rotor.name = "Rotor"
+	rotor.position = Vector3(0, 0.2, 0)
+	root.add_child(rotor)
+	_mesh(rotor, "Hub", _cyl(0.1, 0.12), brass, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO))
+	for i in 4:
+		var blade := BoxMesh.new()
+		blade.size = Vector3(0.18, 0.62, 0.03)
+		var b := Basis(Vector3.BACK, TAU * i / 4.0) * Basis(Vector3.UP, 0.4)
+		_mesh(rotor, "Blade%d" % i, blade, wood, Transform3D(b, Basis(Vector3.BACK, TAU * i / 4.0) * Vector3(0, 0.36, 0)))
+	return root
+
+
+func _flag_stand() -> Node3D:
+	var root := Node3D.new()
+	root.name = "FlagStand"
+	var stone := _mat(Color(0.62, 0.6, 0.56), 0.9)
+	var moss := _mat(Color(0.3, 0.45, 0.22), 0.95)
+	var plinth := CylinderMesh.new()
+	plinth.top_radius = 1.2
+	plinth.bottom_radius = 1.45
+	plinth.height = 0.4
+	plinth.radial_segments = 8
+	_mesh(root, "Plinth", plinth, stone, Transform3D(Basis.IDENTITY, Vector3(0, 0.2, 0)))
+	_mesh(root, "Moss", _cyl(1.0, 0.04, 8), moss, Transform3D(Basis.IDENTITY, Vector3(0, 0.41, 0)))
+	for i in 4:
+		var a := TAU * i / 4.0 + PI * 0.25
+		var post := BoxMesh.new()
+		post.size = Vector3(0.22, 0.9, 0.22)
+		_mesh(root, "Post%d" % i, post, stone, Transform3D(Basis.IDENTITY, Vector3(cos(a) * 1.15, 0.45, sin(a) * 1.15)))
+	return root
+
+
+func _can() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Can"
+	var blue := _mat(Color(0.15, 0.55, 1.0), 0.3, 0.6)
+	var silver := _mat(Color(0.8, 0.82, 0.86), 0.25, 0.9)
+	var bolt := _mat(Color(1.0, 0.9, 0.2), 0.4)
+	_mesh(root, "Body", _cyl(0.16, 0.42, 20), blue)
+	_mesh(root, "Top", _cyl(0.15, 0.04, 20), silver, Transform3D(Basis.IDENTITY, Vector3(0, 0.23, 0)))
+	_mesh(root, "Bottom", _cyl(0.15, 0.04, 20), silver, Transform3D(Basis.IDENTITY, Vector3(0, -0.23, 0)))
+	var flash := BoxMesh.new()
+	flash.size = Vector3(0.06, 0.22, 0.02)
+	_mesh(root, "Bolt", flash, bolt, Transform3D(Basis(Vector3.BACK, 0.4), Vector3(0, 0, 0.16)))
+	return root
+
+
+## A brick texture (256 px: four courses of bricks, mortar between), for a wall's material.
+func _bricks() -> void:
+	var img := Image.create(256, 256, false, Image.FORMAT_RGB8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var mortar := Color(0.78, 0.75, 0.68)
+	img.fill(mortar)
+	for row in 4:
+		for col in 3:
+			var x0 := col * 96 - (48 if row % 2 == 1 else 0)
+			var tint := Color(0.62, 0.27, 0.18).lerp(Color(0.72, 0.36, 0.22), rng.randf())
+			for y in range(row * 64 + 4, row * 64 + 60):
+				for x in range(x0 + 4, x0 + 92):
+					var n := rng.randf_range(-0.05, 0.05)
+					img.set_pixel(posmod(x, 256), y, Color(tint.r + n, tint.g + n, tint.b + n))
+	DirAccess.make_dir_recursive_absolute("res://custom/make_your_own/textures/")
+	var err := img.save_png("res://custom/make_your_own/textures/bricks.png")
+	print("bricks.png: %s" % ("ok" if err == OK else error_string(err)))

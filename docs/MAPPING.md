@@ -499,6 +499,21 @@ Workshop), and starter models with their markers (`models/`, made by
   has one, else the built-in shape; or box, ball, cylinder), **Mass**, **Bounce**,
   **Toughness** (impact energy that breaks it; props that break only), **Unbreakable**,
   **Color** (what it breaks into). It travels to every player like any prop.
+- **A pickup**: a **PickupType** resource on a PickupSpawn's **Type** slot: **Display Name**,
+  **Gives** (health, speed, super, feather, iron), **Heal** (health; 0: 50), **Lasts**
+  (boost seconds; 0: the boost's), **Respawn**, **Model** (floats over the pad), **Color**
+  (the ring).
+- **More Model slots**: FlagStand (the flag sits 0.4 m up; the team light stays), PuzzleFan
+  (`Rotor` spins; the fan keeps the built-in size and weight), Hoop and GoalZone.
+- **A breakable wall's look**: BreakableSlab **Custom Material** (any material; a standard
+  one is laid on by position, a repeat every **Texture Size** metres) on its faces; the
+  broken edges keep **Material**'s look, and Material still sets how it breaks. Save the
+  material as a `.tres` so the flying pieces match for every player.
+- PropTypes and PickupTypes must be saved as files (`.tres`), not kept inside a scene: the
+  game sends their path to the other players.
+- **The map check's notes** (`--validate` prints them as NOTE, they don't fail the check):
+  a model missing the markers its piece looks for, and what happens without them; a name
+  that's nearly a marker's ("spout" for "Spout").
 
 **Markers** (found by name, any depth; a Blender empty keeps its name and place; "points"
 is its Y axis: a Single Arrow empty's arrow): `Spout` (FloodValve: where the water comes out

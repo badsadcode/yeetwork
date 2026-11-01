@@ -274,6 +274,22 @@ sockets), your **Model**, its **Size** (the box it fills; 0: the built-in one's)
 a hit breaks it) or **Unbreakable**. Then place PropSpawns and drag the file onto their
 **Type** slot. (`oil_drum.tres`: heavier and tougher than a barrel, with a Collision mesh.)
 
+**4d. A new pickup.** Like a prop, a file: **Create New > Resource... > PickupType**
+(`energy_drink.tres`): **Display Name**, **Gives** (health heals; speed, super, feather, iron
+give that boost), **Heal** or **Lasts** (seconds), **Respawn**, your **Model** (it floats over
+the pad, about half a metre across) and the ring's **Color**. Put it on a PickupSpawn's
+**Type** slot.
+
+**4e. More slots.** A **FlagStand**, a **PuzzleFan** (name its blades `Rotor`: they spin) and
+a Hoop take a **Model** too. A **BreakableSlab** takes your **Custom Material** (a brick
+texture: `bricks.tres`), laid on every **Texture Size** metres; its broken edges and the
+pieces that fly off match, and its **Material** still says how it breaks.
+
+**Did I name it right?** Run the map check (the `--validate` line in step 10):
+it lists each model's missing markers and what that means ("its model has no Spout: the
+water falls straight down"), and catches a near miss ("spout": the name must be "Spout"
+exactly). These are notes: the map still works.
+
 The full list of what each object takes is in [MAPPING.md](MAPPING.md), "Make your own
 versions"; what comes next (every object in the game, High Seas' ship and crane among them)
 is in [design/MAKE_YOUR_OWN.md](design/MAKE_YOUR_OWN.md).

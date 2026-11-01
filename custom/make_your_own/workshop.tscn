@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/mapkit/map_settings.gd" id="settings"]
 [ext_resource type="Script" path="res://scripts/mapkit/arena_block.gd" id="block"]
@@ -12,6 +12,14 @@
 [ext_resource type="PackedScene" path="res://custom/make_your_own/my_drain.tscn" id="drain"]
 [ext_resource type="PackedScene" path="res://custom/make_your_own/thorn_trap.tscn" id="thorns"]
 [ext_resource type="Resource" path="res://custom/make_your_own/oil_drum.tres" id="drum"]
+[ext_resource type="Script" path="res://scripts/mapkit/pickup_spawn.gd" id="pickup"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_fan.gd" id="fan"]
+[ext_resource type="Script" path="res://scripts/mapkit/flag_stand.gd" id="flag"]
+[ext_resource type="Script" path="res://scripts/mapkit/breakable_slab.gd" id="slab"]
+[ext_resource type="Resource" path="res://custom/make_your_own/energy_drink.tres" id="drink"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/fan.glb" id="fanmodel"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/flag_stand.glb" id="flagmodel"]
+[ext_resource type="Material" path="res://custom/make_your_own/bricks.tres" id="bricks"]
 
 [node name="MakeYourOwnWorkshop" type="Node3D"]
 
@@ -30,6 +38,8 @@ kill_height = -20.0
 [node name="Props" type="Node3D" parent="."]
 
 [node name="MegaYeet" type="Node3D" parent="."]
+
+[node name="More" type="Node3D" parent="."]
 
 [node name="Floor" type="StaticBody3D" parent="Blocks"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
@@ -120,6 +130,40 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, 4)
 script = ExtResource("trap")
 kind = "fire"
 size = Vector3(4, 1, 4)
+
+[node name="EnergyDrink" type="Node3D" parent="More"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
+script = ExtResource("pickup")
+type = ExtResource("drink")
+
+[node name="WoodenFan" type="Node3D" parent="More"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0, -4)
+script = ExtResource("fan")
+model = ExtResource("fanmodel")
+strength = 20.0
+reach = 9.0
+
+[node name="BrickWall" type="Node3D" parent="More"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 12)
+script = ExtResource("slab")
+size = Vector2(6, 3)
+thickness = 0.4
+material = "brick"
+custom_material = ExtResource("bricks")
+texture_size = 1.5
+hp_scale = 0.6
+
+[node name="FlagRed" type="Node3D" parent="More"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 16)
+script = ExtResource("flag")
+team = 0
+model = ExtResource("flagmodel")
+
+[node name="FlagBlue" type="Node3D" parent="More"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -16)
+script = ExtResource("flag")
+team = 1
+model = ExtResource("flagmodel")
 
 [node name="Spawn0" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 16)

@@ -18,6 +18,19 @@ const INTAKE := "Intake"
 const EMITTER := "Emitter"
 const LIGHT := "Light"
 const COLLISION := "Collision"
+## Every marker and moving part's name (the map check spots a near miss: "spout").
+const NAMES := ["Spout", "Intake", "Emitter", "Light", "Collision", "Spin", "Wheel", "Cap", "Plate", "Float", "Plank", "Net", "Rotor"]
+## What each piece looks for in your model, and what happens without it.
+const WANTS := {
+	"FloodValve": [["Spout", "the water falls straight down from the piece's origin"]],
+	"FloodDrain": [["Intake", "the water goes in at the piece's origin"]],
+	"PuzzleButton": [["Cap", "nothing moves when it's pressed"]],
+	"PressurePlate": [["Plate", "nothing sinks when it's weighed down"]],
+	"FloatSwitch": [["Float", "nothing rides on the water"]],
+	"Seesaw": [["Plank", "the whole model stays put while the plank tips"]],
+	"VolleyNet": [["Net", "nothing rises with the net"]],
+	"PuzzleFan": [["Rotor", "nothing spins"]],
+}
 
 
 ## Shows `scene` instead of the built-in look under `parts`. Returns the model, or null when
@@ -44,6 +57,35 @@ static func _hide(n: Node, kept: Dictionary) -> void:
 		if c is MeshInstance3D or c is MultiMeshInstance3D or c is CSGShape3D or c is Label3D:
 			(c as Node3D).visible = false
 		_hide(c, kept)
+
+
+## The map check's notes on a model: the markers its piece looks for that aren't there (and
+## what happens without them), and names that are nearly a marker's ("spout": it must be
+## "Spout" exactly). `who`: the piece, for the note; `piece_class`: its class (WANTS).
+static func notes(who: String, scene: PackedScene, piece_class: String) -> Array[String]:
+	var out: Array[String] = []
+	if scene == null:
+		return out
+	var root := scene.instantiate()
+	if root == null:
+		return out
+	var names := {}
+	_names(root, names)
+	root.free()
+	for w: Array in WANTS.get(piece_class, []):
+		if not names.has(w[0]):
+			out.append("%s: its model has no \"%s\" (%s)." % [who, w[0], w[1]])
+	for n: String in names:
+		for m: String in NAMES:
+			if n != m and n.to_lower() == m.to_lower():
+				out.append("%s: its model has \"%s\"; a marker's name must be \"%s\" exactly." % [who, n, m])
+	return out
+
+
+static func _names(n: Node, out: Dictionary) -> void:
+	out[String(n.name)] = true
+	for c in n.get_children():
+		_names(c, out)
 
 
 ## A named part of the model (a button's "Cap"...), or null.

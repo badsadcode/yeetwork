@@ -1,8 +1,10 @@
 """Writes custom/make_your_own/workshop.tscn: the "Make Your Own Workshop", a small map that
 shows the examples of docs/MAPPING.md's "Make your own versions" at work: a pipe of your own
 pouring sideways out of a wall into a pool (its Spout), a drain with its Intake off to one
-side, oil drums (a PropType) next to the built-in barrels, and, for MegaYeet, a thorn bed
-(your own trap) and a built-in fire grate on the monsters' way to the Heart.
+side, oil drums (a PropType) next to the built-in barrels, an energy drink (a PickupType), a
+wooden fan (a PuzzleFan's Model) blowing at them, a brick wall to break (a BreakableSlab's
+Custom Material), stone flag stands (CTF), and, for MegaYeet, a thorn bed (your own trap)
+and a built-in fire grate on the monsters' way to the Heart.
 
 Usage: python tools/make_workshop.py
 """
@@ -22,6 +24,14 @@ ext = [
     ('PackedScene', 'res://custom/make_your_own/my_drain.tscn', 'drain'),
     ('PackedScene', 'res://custom/make_your_own/thorn_trap.tscn', 'thorns'),
     ('Resource', 'res://custom/make_your_own/oil_drum.tres', 'drum'),
+    ('Script', 'res://scripts/mapkit/pickup_spawn.gd', 'pickup'),
+    ('Script', 'res://scripts/mapkit/puzzle_fan.gd', 'fan'),
+    ('Script', 'res://scripts/mapkit/flag_stand.gd', 'flag'),
+    ('Script', 'res://scripts/mapkit/breakable_slab.gd', 'slab'),
+    ('Resource', 'res://custom/make_your_own/energy_drink.tres', 'drink'),
+    ('PackedScene', 'res://custom/make_your_own/models/fan.glb', 'fanmodel'),
+    ('PackedScene', 'res://custom/make_your_own/models/flag_stand.glb', 'flagmodel'),
+    ('Material', 'res://custom/make_your_own/bricks.tres', 'bricks'),
 ]
 
 nodes = []
@@ -63,7 +73,7 @@ nodes.append('\n'.join([
     'sky = "day"',
     'kill_height = -20.0',
 ]))
-for n in ['Blocks', 'Water', 'Props', 'MegaYeet']:
+for n in ['Blocks', 'Water', 'Props', 'MegaYeet', 'More']:
     nodes.append('[node name="%s" type="Node3D" parent="."]' % n)
 
 # The ground.
@@ -87,6 +97,13 @@ node('Heart', 'heart', 'MegaYeet', at=(10, 0, 14), radius='2.5')
 node('Rift', 'rift', 'MegaYeet', at=(10, 0, -18), radius='3.0')
 node('ThornTrap', parent='MegaYeet', instance='thorns', at=(10, 0, -4))
 node('FireGrate', 'trap', 'MegaYeet', at=(10, 0, 4), kind='"fire"', size=vec(4, 1, 4))
+# A pickup of your own, a fan of your own (blowing at the drums), a brick wall, flag stands.
+node('EnergyDrink', 'pickup', 'More', at=(0, 0, 8), type='ExtResource("drink")')
+node('WoodenFan', 'fan', 'More', at=(4.5, 0, -4), model='ExtResource("fanmodel")', strength='20.0', reach='9.0')
+node('BrickWall', 'slab', 'More', at=(-8, 0, 12), size='Vector2(6, 3)', thickness='0.4', material='"brick"',
+     custom_material='ExtResource("bricks")', texture_size='1.5', hp_scale='0.6')
+node('FlagRed', 'flag', 'More', at=(-16, 0, 16), team='0', model='ExtResource("flagmodel")')
+node('FlagBlue', 'flag', 'More', at=(16, 0, -16), team='1', model='ExtResource("flagmodel")')
 # Where the Yeets start.
 for i, x in enumerate([-3, 0, 3, 6]):
     node('Spawn%d' % i, 'spawn', '.', at=(x, 0, 16))

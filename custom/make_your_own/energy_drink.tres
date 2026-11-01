@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PickupType" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/pickup_type.gd" id="type"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/can.glb" id="model"]
+
+[resource]
+script = ExtResource("type")
+display_name = "Energy drink"
+gives = "speed"
+lasts = 20.0
+respawn = 25.0
+model = ExtResource("model")
+color = Color(0.15, 0.55, 1, 1)

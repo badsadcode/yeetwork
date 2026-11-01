@@ -8,6 +8,12 @@ extends PuzzleNode
 ## Yeets get pushed too (someone will fly into a wall). It comes back home if lost, and a
 ## PuzzleReset puts it back.
 
+## Your own model for the fan (it's a prop: it keeps the built-in fan's size and weight); a part
+## named "Rotor" spins. Or the map theme's fan.
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
 ## Wind acceleration near the fan (m/s^2). Players: this times Player Push; props: more for
 ## light things (a beach ball ~2x), less for heavy ones (an anvil ~5%). Gravity is 24.
 @export_range(1.0, 120.0, 1.0) var strength := 32.0
@@ -52,7 +58,7 @@ func _rebuild() -> void:
 	stream.rotation_degrees = Vector3(90, 0, 0)
 	stream.position = Vector3(0, 0.2, -reach * 0.5)
 	_preview.add_child(stream)
-	Looks.apply(_preview, MapTheme.pick(self, "fan"), [stream])
+	Looks.apply(_preview, MapTheme.pick(self, "fan", model), [stream])
 
 
 func evaluate() -> bool:
@@ -61,7 +67,10 @@ func evaluate() -> bool:
 
 func server_spawn_props() -> void:
 	var xf := Transform3D(global_transform.basis.orthonormalized(), global_position + Vector3(0, 0.85, 0))
-	var p: Prop = world.server_spawn_prop("fan", xf, Vector3.ZERO, Color(0, 0, 0, 0), 0, Vector3.ZERO, {"fan_piece": puzzle_index})
+	var extra := {"fan_piece": puzzle_index}
+	if model:
+		extra.look = model.resource_path
+	var p: Prop = world.server_spawn_prop("fan", xf, Vector3.ZERO, Color(0, 0, 0, 0), 0, Vector3.ZERO, extra)
 	p.set_meta("map_prop", true)
 	p.set_meta("key_prop", true)
 

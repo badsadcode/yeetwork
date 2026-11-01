@@ -58,6 +58,33 @@ static func ice(box_half := Vector3.ZERO, inner := false, damage := false, maps 
 
 
 ## Destructible slab outer faces (cracks from vertex damage) and fracture faces.
+## A breakable wall's own material (BreakableSlab's Custom Material) on its faces: a standard
+## material is laid on by its position (triplanar, Texture Size metres a repeat), so fragments
+## keep their bit of the texture; any other material as it is. `path` finds it again (a
+## fragment's material reaches the other players by its file).
+static func slab_face(m: Material, texture_size: float) -> Material:
+	if m == null:
+		return null
+	var key := "face%d_%.2f" % [m.get_instance_id(), texture_size]
+	if _cache.has(key):
+		return _cache[key]
+	var out := m
+	if m is BaseMaterial3D:
+		var b := (m as BaseMaterial3D).duplicate() as BaseMaterial3D
+		b.uv1_triplanar = true
+		b.uv1_scale = Vector3.ONE / maxf(texture_size, 0.05)
+		out = b
+	_cache[key] = out
+	return out
+
+
+## A slab material by its file (a fragment's: Destructible.face_path), or null.
+static func slab_face_at(path: String, texture_size: float) -> Material:
+	if path == "" or not ResourceLoader.exists(path):
+		return null
+	return slab_face(load(path) as Material, texture_size)
+
+
 static func slab(color: Color, material: String, inner := false) -> Material:
 	if material == "ice":
 		return Mats.ice(Vector3.ZERO, inner, not inner)

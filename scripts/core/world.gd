@@ -1121,7 +1121,7 @@ func _shatter_cells(d: Destructible, list: PackedInt32Array, point: Vector3, imp
 				if is_server:
 					_spawn_fragment(d, [local_poly], Transform3D(basis, pos), vel, spin)
 			else:
-				fx.shard(local_poly, d.thickness, Transform3D(basis, pos), vel, spin, d.color, d.material)
+				fx.shard(local_poly, d.thickness, Transform3D(basis, pos), vel, spin, d.color, d.material, Mats.slab_face_at(d.face_path, d.texture_size))
 
 
 ## An unsupported group of cells falls as one rigid chunk.
@@ -1139,6 +1139,9 @@ func _drop_chunk(d: Destructible, list: PackedInt32Array, _point: Vector3) -> vo
 
 func _spawn_fragment(d: Destructible, polys: Array, xf: Transform3D, vel: Vector3, spin: Vector3) -> void:
 	var extra := {"polys": polys, "t": d.thickness, "mat": d.material}
+	if d.face_path != "":
+		extra.face = d.face_path
+		extra.tex = d.texture_size
 	var piece := server_spawn_prop("shard", xf, Vector3.ZERO, d.color, 0, vel, extra)
 	piece.angular_velocity = spin
 	_track_debris(piece)
@@ -1302,10 +1305,12 @@ func _server_setup_pickups() -> void:
 
 func _roll_pickup(ps: PickupSpawn) -> String:
 	var kind := ps.kind
-	if kind == "random":
+	if ps.type:
+		kind = "type:" + ps.type.resource_path
+	elif kind == "random":
 		kind = Pickups.POWERUPS[rng.randi() % Pickups.POWERUPS.size()]
 	var power := Pickups.is_powerup(kind)
-	if Game.pickups == 2 or (Game.pickups == 1 and power) or not mode_logic.allows_pickup(kind):
+	if Game.pickups == 2 or (Game.pickups == 1 and power) or not mode_logic.allows_pickup(Pickups.boost_of(kind)):
 		return ""
 	return kind
 
@@ -1371,11 +1376,11 @@ func _server_take_pickup(pl: Player, kind: String, at: Vector3) -> bool:
 	if not Pickups.is_powerup(kind):
 		if pl.hp >= 100.0:
 			return false
-		pl.hp = minf(pl.hp + Pickups.INFO[kind].heal, 100.0)
+		pl.hp = minf(pl.hp + Pickups.heal_of(kind), 100.0)
 		_bc_all("_s_hp", [pl.player_id, pl.hp])
 		server_fx("heal", at, Vector3.UP, 1.0)
 		return true
-	pl.buffs[kind] = net_time() + Pickups.duration(kind)
+	pl.buffs[Pickups.boost_of(kind)] = net_time() + Pickups.duration(kind)
 	_bc_all("_s_buffs", [pl.player_id, pl.buffs])
 	server_fx("powerup", at, Vector3.UP, 1.0)
 	return true
@@ -2529,7 +2534,7 @@ func _server_shop_buy(pl: Player, id: String) -> void:
 ## A power-up from the shop: a boost until `until` (net time), or first aid now.
 func server_shop_power(pl: Player, kind: String, until: float) -> void:
 	if not Pickups.is_powerup(kind):
-		pl.hp = minf(pl.hp + Pickups.INFO[kind].heal, 100.0)
+		pl.hp = minf(pl.hp + Pickups.heal_of(kind), 100.0)
 		_bc_all("_s_hp", [pl.player_id, pl.hp])
 		server_fx("heal", pl.global_position, Vector3.UP, 1.0)
 		return

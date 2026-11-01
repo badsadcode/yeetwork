@@ -310,12 +310,16 @@ func _apply_type(mesh: MeshInstance3D, shape_node: CollisionShape3D) -> void:
 		_rotor = Looks.part(model, "Rotor")
 
 
-## The map theme's model for this kind (MapTheme), in place of the built-in look: only the
-## look changes, the collision and weight stay. A fan's "Rotor" keeps turning.
+## A piece's own model for its prop (extra "look": a PuzzleFan's Model), or the map theme's
+## model for this kind (MapTheme), in place of the built-in look: only the look changes, the
+## collision and weight stay. A fan's "Rotor" keeps turning.
 func _apply_theme(arena, mesh: MeshInstance3D) -> void:
 	var settings = arena.get("map_settings") if arena else null
 	var theme: MapTheme = settings.theme if settings else null
 	var look := theme.prop_model(kind) if theme else null
+	var own: String = extra.get("look", "")
+	if own != "" and ResourceLoader.exists(own):
+		look = load(own) as PackedScene
 	if look == null:
 		return
 	var model := look.instantiate() as Node3D
@@ -453,7 +457,8 @@ func _build_shard() -> void:
 	physics_material_override = pm
 	angular_damp = 0.4
 	var mi := MeshInstance3D.new()
-	mi.mesh = Fracture.fragment_mesh(polys, t, Mats.slab(color, mat_name), Mats.slab(color, mat_name, true))
+	var face := Mats.slab_face_at(extra.get("face", ""), extra.get("tex", 2.0))
+	mi.mesh = Fracture.fragment_mesh(polys, t, face if face else Mats.slab(color, mat_name), Mats.slab(color, mat_name, true))
 	add_child(mi)
 
 

@@ -7,7 +7,9 @@ to it. Every map can be rebuilt (and new ones made) from these pieces, and a gui
 This is the plan. When each part is built, its recipe moves into `docs/MAPPING.md` (the
 reference) and `docs/CUSTOM_MAPS_GUIDE.md` (step by step). **Phase 1 is done** (2026-11-01):
 markers, your own pipes, drains, traps and props, starter models, the Make Your Own
-Workshop.
+Workshop. **Phase 2 is done** (2026-11-01): your own pickups (PickupType), Model slots on
+flag stands and the big fan, breakable walls in your material, the map check's notes on
+markers.
 
 ## The idea in one paragraph
 
@@ -85,11 +87,12 @@ contacts, goal, volley net, the Heart, lights, machines (Fixture), trap spots: *
 | Object | Today | Needs |
 |---|---|---|
 | Trap spots (spikes, fire, mine) | done (Phase 1): Model, name, damage, slowing, burn, blast | |
-| Pickups (first aid, power-ups) | built-in looks; theme per kind | type files (your own power-up: which boost, how long, model) |
+| Pickups (first aid, power-ups) | done (Phase 2): PickupType files | |
 | Props (crate, barrel, ball... 31 kinds) | done (Phase 1): PropType files | (later: in the sandbox's spawn list) |
-| Flag stand, hoop | theme slot only | slot |
-| Fans, spinners, fuse lines, ball spots | built-in looks | slot, markers |
-| Walls, floors (ArenaBlock) | Custom Material (textures): OK | breakable slabs: the same |
+| Flag stand, hoop, big fan | done (Phase 2): Model slots (fan: `Rotor`) | |
+| Spinners, ball spots | spinner: put your model under it; ball spot: invisible | nothing |
+| Fuse lines | the cord is drawn by the game | (a cord material, if wanted) |
+| Walls, floors (ArenaBlock), breakable walls (BreakableSlab) | Custom Material (textures): OK | |
 | Ship (rolls on the swell), the sea | High Seas code | piece |
 | Crane, ship's horn, ladders, cargo containers | High Seas code | piece, slot, markers (`Turret`, `Boom`, `Hook`, `Seat`) |
 | Monsters (7 kinds, the boss) | built-in looks | type files; models with animations (Phase 5) |

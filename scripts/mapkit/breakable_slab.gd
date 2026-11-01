@@ -34,6 +34,18 @@ enum Layout { WALL, FLOOR }
 @export var anchor_top := false
 @export var anchor_left := false
 @export var anchor_right := false
+## Your own material on its faces (a brick texture...): laid on by position, a repeat every
+## Texture Size metres; the broken edges keep Material's look, and Material still says how it
+## breaks (how tough, the size of its pieces, glass shatters, wood burns). Save it as a file
+## (.tres) so its pieces look right for every player.
+@export var custom_material: Material:
+	set(v):
+		custom_material = v
+		_rebuild()
+@export_range(0.1, 20.0, 0.1) var texture_size := 2.0:
+	set(v):
+		texture_size = v
+		_rebuild()
 ## Toughness: multiplies the material's (0.5 half as tough, 10 ten times). MegaYeet's gates:
 ## how long they hold against the monsters battering them.
 @export_range(0.1, 50.0, 0.05, "or_greater") var hp_scale := 1.0
@@ -80,5 +92,6 @@ func _rebuild() -> void:
 	var mb := Fracture.MeshBuilder.new()
 	for poly in v.polys:
 		mb.add_prism(Fracture.jagged(poly, size.x, size.y, md.jag), thickness * 0.5, -thickness * 0.5)
-	_preview.mesh = mb.commit(Mats.slab(color, material), Mats.slab(color, material, true))
+	var face := Mats.slab_face(custom_material, texture_size)
+	_preview.mesh = mb.commit(face if face else Mats.slab(color, material), Mats.slab(color, material, true))
 	_preview.transform = Transform3D.IDENTITY if orientation == Layout.WALL else Transform3D(Basis(Vector3(1, 0, 0), Vector3(0, 0, -1), Vector3(0, 1, 0)), Vector3.ZERO)

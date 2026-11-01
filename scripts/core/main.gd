@@ -106,6 +106,7 @@ func _handle_cmdline(execute := true) -> bool:
 				return false
 			"--validate":
 				_validate = true
+				Arena.collect_notes = true
 				action = "host"
 			"--tour":
 				_tour_dir = next
@@ -204,6 +205,8 @@ func _run_validation() -> void:
 		print("  OK - no problems found")
 	for i in issues:
 		print("  WARNING: " + i)
+	for n in world.arena.model_notes:
+		print("  NOTE: " + n)
 	get_tree().quit(1 if not issues.is_empty() else 0)
 
 

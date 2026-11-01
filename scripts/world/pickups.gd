@@ -28,28 +28,68 @@ const IRON_DAMAGE := 0.5
 const IRON_KNOCKBACK := 0.2
 
 
+## A kind is a built-in one ("speed"...) or a pickup of your own: "type:" and its PickupType's
+## path (what the server sends; everyone loads the same file).
+static func type_of(kind: String) -> PickupType:
+	if not kind.begins_with("type:"):
+		return null
+	var path := kind.substr(5)
+	return load(path) as PickupType if ResourceLoader.exists(path) else null
+
+
+## What it gives: health or a boost (a pickup of your own: its Gives).
+static func boost_of(kind: String) -> String:
+	var t := type_of(kind)
+	return t.gives if t else kind
+
+
 static func is_powerup(kind: String) -> bool:
-	return kind in POWERUPS
+	return boost_of(kind) in POWERUPS
 
 
 static func color_of(kind: String) -> Color:
-	return INFO.get(kind, INFO.health).color
+	var t := type_of(kind)
+	if t and t.color.a > 0.0:
+		return t.color
+	return INFO.get(boost_of(kind), INFO.health).color
 
 
 static func name_of(kind: String) -> String:
-	return INFO.get(kind, INFO.health).name
+	var t := type_of(kind)
+	if t and t.display_name != "":
+		return t.display_name
+	return INFO.get(boost_of(kind), INFO.health).name
 
 
 static func duration(kind: String) -> float:
-	return INFO.get(kind, {}).get("time", 0.0)
+	var t := type_of(kind)
+	if t and t.lasts > 0.0:
+		return t.lasts
+	return INFO.get(boost_of(kind), {}).get("time", 0.0)
 
 
 static func respawn_time(kind: String) -> float:
-	return INFO.get(kind, INFO.health).respawn
+	var t := type_of(kind)
+	if t and t.respawn > 0.0:
+		return t.respawn
+	return INFO.get(boost_of(kind), INFO.health).respawn
 
 
-## The floating item for a kind (spun and bobbed by its PickupSpawn).
+## Health a first aid kind gives back.
+static func heal_of(kind: String) -> float:
+	var t := type_of(kind)
+	if t and t.heal > 0.0:
+		return t.heal
+	return INFO.get(boost_of(kind), INFO.health).get("heal", 50.0)
+
+
+## The floating item for a kind (spun and bobbed by its PickupSpawn): a pickup of your own
+## shows its model.
 static func build_model(kind: String) -> Node3D:
+	var t := type_of(kind)
+	if t:
+		var m := t.model.instantiate() as Node3D if t.model else null
+		return m if m else build_model(t.gives)
 	var root := Node3D.new()
 	var col := color_of(kind)
 	match kind:
