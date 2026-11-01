@@ -13,9 +13,10 @@ markers. **Phase 3, first part done** (2026-11-01): Ladder, Crane and Horn as Ma
 pieces with Model slots (`Turret`, `Hook`, `Lever`), a swimmable ocean (MapSettings). Next:
 the ship itself (a moving deck as a piece) and High Seas rebuilt as a scene.
 **The ship as a piece done** (2026-11-01): the Vessel (everything under it rides the swell;
-its blocks' collision becomes the ship's), Make Your Own Boat. Next: High Seas rebuilt as a
-scene; maps with a ship and dry land both (per-item frames); High Seas' washes and rogue
-waves for any Vessel.
+its blocks' collision becomes the ship's), Make Your Own Boat. **Ship plus dry land done**
+(2026-11-01): spawn points, props and flags on land or aboard (each knows which), the ship
+carries everything aboard when it jumps. Next: High Seas rebuilt as a scene; High Seas'
+washes and rogue waves for any Vessel.
 **Breakable models done** (2026-11-01, Tomek's ask): BreakableModel, a model breaking part by
 part (parts named for their material, `Fixed` parts that never break, procedural shards cut
 from each part's own shape, loose parts falling whole). Later: props that break into their

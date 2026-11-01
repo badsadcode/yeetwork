@@ -342,14 +342,18 @@ props on it ride along; loose cargo slides when it tilts. Needs MapSettings > **
   size): the hull the swell lifts. **Roll** (how hard it answers the swell), **Max Roll
   Degrees**, **Max Pitch Degrees**, **Heave** (1: as much as the water), **Lag** (seconds
   behind the water: more for a big heavy ship).
-- On a map with a Vessel, its spawn points, props and flag stands go on it (under the node):
-  they're kept in the ship's frame. The map check names any left off. One Vessel a map.
+- Dry land beside it works too (an island, a dock, a harbour): pieces not under the Vessel stay
+  put. Spawn points, props and flag stands can be on either: on the ship they move with it
+  (a flag comes home to where the ship is now), ashore they stay where they are. A jump pad
+  on a pier can throw players aboard. One Vessel a map.
+- When the ship has to jump rather than glide (its first moment, or catching up after a
+  stall), everything aboard jumps with it.
 - Its blocks' collision becomes the ship's own, so you stand on a moving deck, not slide off
   it; pieces that move by themselves (doors, plates, seesaws) keep their own.
 - High Seas' green water, rogue waves and hull spray are its own for now (laid out for its
   size); a Vessel in a stormy sea just rolls harder.
-- `custom/make_your_own/boat.tscn` (**Make Your Own Boat**) is one, built by
-  `tools/make_boat.py`.
+- `custom/make_your_own/boat.tscn` (**Make Your Own Boat**: a boat beside an island with a
+  pier, Red ashore and Blue aboard) is one, built by `tools/make_boat.py`.
 
 ### BreakableModel (your own model, breaking part by part)
 A door, a window, a fence you modelled: each separate part (each mesh) breaks on its own.

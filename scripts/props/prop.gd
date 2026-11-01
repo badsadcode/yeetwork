@@ -117,9 +117,10 @@ static func create(p_world: Node, id: int, p_kind: String, xform: Transform3D, p
 		p.color = Game.team_color(p_team)
 	p.explosive = def.get("explosive", false)
 	p.transform = xform
-	# Where it came from, in map space (ship-local on a moving map): see Arena.xf_world().
+	# Where it came from, in map space (ship-local on a moving map, the world's on dry land
+	# beside one): see Arena.home_world().
 	var arena = p_world.get("arena") if p_world else null
-	p.home_transform = arena.xf_local(xform) if arena else xform
+	p.home_transform = arena.xf_local(xform) if arena and not p_extra.get("land", false) else xform
 	p._target_xform = xform
 	p._build(def)
 	return p

@@ -454,7 +454,8 @@ toughness), a new pickup (a PickupType), your own flag stands and fans, breakabl
 your own textures, ladders, cranes and horns (High Seas' pieces, on any map; the sea can be
 made swimmable), and doors, windows and fences you model that break part by part (each
 part named for its material: glass shatters, wood splinters, "Fixed" parts stay, loose parts
-fall), and ships: a Vessel node makes everything under it ride the swell (Make Your Own Boat);
+fall), and ships: a Vessel node makes everything under it ride the swell, beside dry land
+that stays put (Make Your Own Boat: a boat, an island, a pier to jump aboard from);
 the map check names any marker your model is missing.
 `custom/make_your_own/` has one of each, starter models with their markers, and
 a map using them all (*Make Your Own Workshop*).
@@ -595,9 +596,10 @@ godot --path . -- --host --map res://custom/make_your_own/workshop.tscn --mode m
 # ... and over the network: a client sees the oil drums and the thorn bed as they are
 godot --headless --path . -- --host --map res://custom/make_your_own/workshop.tscn --bots 0 --port 24812
 godot --headless --path . -- --join 127.0.0.1 --port 24812 --tour x --tour-mode makeyourownclient
-# A Vessel (Make Your Own Boat): it rides the swell, Yeets and cargo stay aboard, its flags,
-# ladder, crane and fence ride along, the ladder takes you back up from the sea
-godot --path . -- --host --map res://custom/make_your_own/boat.tscn --mode sandbox --bots 0 --tour /tmp/shots --tour-mode vessel
+# A Vessel (Make Your Own Boat, in CTF): it rides the swell, Yeets and cargo stay aboard, its
+# flag, ladder, crane and fence ride along, the ladder takes you back up from the sea; the
+# island beside it stays put (spawns, crates, Red's flag), the pier's pad throws you aboard
+godot --path . -- --host --map res://custom/make_your_own/boat.tscn --mode ctf --bots 0 --tour /tmp/shots --tour-mode vessel
 # ... the shop window, every tab (screenshots at 1600 x 900 and the Steam Deck's 1280 x 800)
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 0 --tour /tmp/shots --tour-mode shop
 # ... with a full house of bots (11) and a big wave: how long the server's frames take

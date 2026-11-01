@@ -64,7 +64,9 @@ var carrier: Node3D
 ## pieces are collected; the Vessel, its spot at rest, and the pieces left off it.
 var _host: Node3D
 var _vessel: Vessel
-var _off_ship: Array[String] = []
+## Map points on dry land on a map with a ship (spawn points and flag stands off the Vessel):
+## they stay put in the world, where the rest move with the ship (to_world, flag_pos).
+var land_points := {} # Vector3 -> true
 var _spinners: Array[Node3D] = []
 ## Built-in maps that are loaded from Map Kit scenes.
 const MAPKIT_SCENES := {"prime": "res://maps/prime.tscn", "facing": "res://maps/facing.tscn"}
@@ -357,8 +359,6 @@ func _collect(n: Node) -> void:
 	for c in n.get_children():
 		_collect(c)
 	_host = outer
-	if _vessel and n != _vessel and (n is SpawnPoint or n is PropSpawn or n is FlagStand) and not _vessel.is_ancestor_of(n):
-		_off_ship.append(String(n.name))
 	if n is BreakableSlab:
 		var b := n as BreakableSlab
 		var d := breakable(b.global_position, b.slab_basis(), b.size, b.thickness, b.anchors(), b.material, b.color, b.hp_scale)
@@ -369,12 +369,20 @@ func _collect(n: Node) -> void:
 		b.set_meta("built", d) # (a BreakSensor finds the Destructible through the slab it names)
 		b.queue_free()
 	elif n is SpawnPoint:
-		spawn_points[(n as SpawnPoint).team].append((n as Node3D).global_position + Vector3.UP * 0.2)
+		var sp := (n as Node3D).global_position + Vector3.UP * 0.2
+		spawn_points[(n as SpawnPoint).team].append(sp)
+		if _on_land():
+			land_points[sp] = true
 	elif n is FlagStand:
 		flag_stand((n as FlagStand).team_id(), (n as Node3D).global_position, MapTheme.pick(n, "flag_stand", (n as FlagStand).model))
+		if _on_land():
+			land_points[flag_stands[(n as FlagStand).team_id()]] = true
 	elif n is PropSpawn:
 		var ps := n as PropSpawn
-		initial_props.append([ps.type.behaves_like if ps.type else ps.kind, Transform3D(ps.global_transform.basis.orthonormalized(), ps.global_position), ps.key_prop, {"type": ps.type.resource_path} if ps.type else {}])
+		var extra := {"type": ps.type.resource_path} if ps.type else {}
+		if _on_land():
+			extra.land = true # (it stays in the world: its home doesn't ride the ship)
+		initial_props.append([ps.type.behaves_like if ps.type else ps.kind, Transform3D(ps.global_transform.basis.orthonormalized(), ps.global_position), ps.key_prop, extra])
 	elif n is BreakableModel:
 		var bm := n as BreakableModel
 		var inst := bm.model.instantiate() as Node3D if bm.model else null
@@ -451,8 +459,6 @@ func validate() -> Array[String]:
 	var out: Array[String] = []
 	if spawn_points[0].size() < 4:
 		out.append("Only %d 'Any' spawn points (want 4+ for free-for-all)." % spawn_points[0].size())
-	for n in _off_ship:
-		out.append("%s is off the Vessel: on a map with a ship, spawn points, props and flag stands go on it (under the Vessel)." % n)
 	var puzzle_level := map_settings != null and map_settings.puzzle
 	var co_op := puzzle_level or heart != null # (puzzle levels and MegaYeet fortresses: no teams)
 	for t in [1, 2]:
@@ -811,9 +817,25 @@ func random_spawn(team: int, rng: RandomNumberGenerator) -> Vector3:
 	return to_world(list[rng.randi() % list.size()])
 
 
-## A map position (carrier-local on a ship) in world space, right now.
+## A map position (carrier-local on a ship; on dry land beside one, the world's) in world
+## space, right now.
 func to_world(p: Vector3) -> Vector3:
-	return carrier.global_transform * p if carrier else p
+	return carrier.global_transform * p if carrier and not land_points.has(p) else p
+
+
+## On a map with a ship, a piece off it (dry land) being collected.
+func _on_land() -> bool:
+	return carrier != null and _host_node() != carrier
+
+
+## Where a map prop's home is in the world right now (on the ship it moves with it).
+func home_world(p: Prop) -> Transform3D:
+	return p.home_transform if p.extra.get("land", false) else xf_world(p.home_transform)
+
+
+## A flag stand on dry land (its flag stays there).
+func flag_on_land(team: int) -> bool:
+	return land_points.has(flag_stands.get(team, Vector3.INF))
 
 
 func xf_world(xf: Transform3D) -> Transform3D:

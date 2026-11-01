@@ -117,7 +117,8 @@ func start(server: bool) -> void:
 		if Game.spooky:
 			_server_spooky_props()
 		for entry in arena.initial_props:
-			var p := server_spawn_prop(entry[0], arena.xf_world(entry[1]), Vector3.ZERO, Color(0, 0, 0, 0), 0, Vector3.ZERO, entry[3] if entry.size() > 3 else {})
+			var extra: Dictionary = entry[3] if entry.size() > 3 else {}
+			var p := server_spawn_prop(entry[0], entry[1] if extra.get("land", false) else arena.xf_world(entry[1]), Vector3.ZERO, Color(0, 0, 0, 0), 0, Vector3.ZERO, extra)
 			p.set_meta("map_prop", true)
 			if entry.size() > 2 and entry[2]:
 				p.set_meta("key_prop", true)
@@ -2458,7 +2459,8 @@ func _queue_restock(p: Prop, delay: float) -> void:
 func _restock_now(i: int) -> void:
 	var e: Array = _restock[i]
 	_restock.remove_at(i)
-	var p := server_spawn_prop(e[1], arena.xf_world(e[2]), Vector3.ZERO, Color(0, 0, 0, 0), 0, Vector3.ZERO, e[4] if e.size() > 4 else {})
+	var extra: Dictionary = e[4] if e.size() > 4 else {}
+	var p := server_spawn_prop(e[1], e[2] if extra.get("land", false) else arena.xf_world(e[2]), Vector3.ZERO, Color(0, 0, 0, 0), 0, Vector3.ZERO, extra)
 	p.set_meta("map_prop", true)
 	if e.size() > 3 and e[3]:
 		p.set_meta("key_prop", true)
@@ -2470,12 +2472,12 @@ func _restock_now(i: int) -> void:
 func server_reset_area(xf: Transform3D, size: Vector3) -> int:
 	var inv := xf.affine_inverse()
 	var half := size * 0.5
-	var inside := func(home: Transform3D) -> bool:
-		var l: Vector3 = inv * arena.xf_world(home).origin
+	var inside := func(home: Transform3D) -> bool: # (home: where it is in the world right now)
+		var l: Vector3 = inv * home.origin
 		return absf(l.x) <= half.x and absf(l.y) <= half.y and absf(l.z) <= half.z
 	var n := 0
 	for p: Prop in props.values():
-		if not is_instance_valid(p) or not p.has_meta("map_prop") or p.has_meta("delivered") or not inside.call(p.home_transform):
+		if not is_instance_valid(p) or not p.has_meta("map_prop") or p.has_meta("delivered") or not inside.call(arena.home_world(p)):
 			continue
 		if p.held_by != 0:
 			var holder := get_player(p.held_by)
@@ -2486,14 +2488,16 @@ func server_reset_area(xf: Transform3D, size: Vector3) -> int:
 		p.extra.erase("burnt") # (back as new)
 		server_fx("spawn", p.global_position, Vector3.UP, 0.6)
 		p.freeze = false
-		p.global_transform = arena.xf_world(p.home_transform)
+		p.global_transform = arena.home_world(p)
 		p.linear_velocity = Vector3.ZERO
 		p.angular_velocity = Vector3.ZERO
 		p.sleeping = false
 		server_fx("spawn", p.global_position, Vector3.UP, 1.0)
 		n += 1
 	for i in range(_restock.size() - 1, -1, -1):
-		if inside.call(_restock[i][2]):
+		var r: Array = _restock[i]
+		var land: bool = r.size() > 4 and (r[4] as Dictionary).get("land", false)
+		if inside.call(r[2] if land else arena.xf_world(r[2])):
 			_restock_now(i)
 			n += 1
 	for i in _broken_lights.keys():

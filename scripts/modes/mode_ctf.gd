@@ -31,7 +31,7 @@ func allow_build() -> bool:
 func spawn_mode_props() -> void:
 	for team in [Game.TEAM_RED, Game.TEAM_BLUE]:
 		var stand: Vector3 = world.arena.flag_pos(team)
-		var p: Prop = world.server_spawn_prop("flag", Transform3D(Basis.IDENTITY, stand + Vector3(0, 1.25, 0)), Vector3.ZERO, Color(0, 0, 0, 0), team)
+		var p: Prop = world.server_spawn_prop("flag", Transform3D(Basis.IDENTITY, stand + Vector3(0, 1.25, 0)), Vector3.ZERO, Color(0, 0, 0, 0), team, Vector3.ZERO, {"land": true} if world.arena.flag_on_land(team) else {})
 		flags[team] = p.prop_id
 		_idle[team] = 0.0
 
@@ -58,7 +58,7 @@ func return_flag(team: int, text := "") -> void:
 	f.freeze = false
 	f.linear_velocity = Vector3.ZERO
 	f.angular_velocity = Vector3.ZERO
-	f.global_transform = world.arena.xf_world(f.home_transform)
+	f.global_transform = world.arena.home_world(f)
 	_idle[team] = 0.0
 	if text != "":
 		world.server_message(text, Game.team_color(team))

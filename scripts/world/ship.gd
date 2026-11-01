@@ -144,12 +144,20 @@ func _physics_process(delta: float) -> void:
 	# back), so following it straight would move the deck in jerks and players standing on it
 	# would keep losing their footing.
 	var wt := Liquid.wave_time()
-	if _clock < 0.0 or absf(wt - _clock) > 0.5:
+	var jump := _clock < 0.0 or absf(wt - _clock) > 0.5
+	if jump:
 		_clock = wt # (start, a wrap of the clock, or far off)
 	else:
 		_clock += delta
 		_clock += (wt - _clock) * 0.05
-	global_transform = pose(_clock)
+	# (where it is: the last physics step's; synced to physics, it reads back the old
+	# transform until the next step, so the new one is the pose itself)
+	var was := global_transform
+	var to := pose(_clock)
+	global_transform = to
+	# (a jump: the clock's, or the pose's: the swell isn't up yet on the first tick)
+	if jump or was.origin.distance_to(to.origin) > 0.3 or was.basis.y.dot(to.basis.y) < 0.9985:
+		_carry(was, to)
 	if world == null:
 		return
 	var n := global_transform.basis.y
@@ -175,6 +183,23 @@ func _physics_process(delta: float) -> void:
 		for pl: Player in world.players.values():
 			if pl.is_controlled_here() and pl.is_alive() and pl.is_on_floor() and deck_box.has_point(inv * pl.global_position):
 				pl.velocity += dir * Player.GRAVITY * (slope - player_grip) * 1.5 * delta
+
+
+## The ship jumped instead of gliding (its first ticks: the map was built, and its props put
+## aboard, a moment before, the sea's swell not up yet; or catching up after a stall):
+## everything aboard jumps with it, or the deck would ram the cargo and fling it off.
+func _carry(was: Transform3D, now_xf: Transform3D) -> void:
+	if world == null:
+		return
+	var d := now_xf * was.affine_inverse()
+	var inv := was.affine_inverse()
+	if multiplayer.is_server():
+		for p: Prop in world.props.values():
+			if is_instance_valid(p) and not p.freeze and deck_box.has_point(inv * p.global_position):
+				p.global_transform = Transform3D(d.basis * p.global_transform.basis, d * p.global_position)
+	for pl: Player in world.players.values():
+		if pl.is_controlled_here() and deck_box.has_point(inv * pl.global_position):
+			pl.global_position = d * pl.global_position
 
 
 ## Below deck, in the engine room (a world position).

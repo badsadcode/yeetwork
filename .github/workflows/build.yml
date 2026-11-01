@@ -85,9 +85,9 @@ jobs:
           (timeout 50 godot --headless -- --host --map res://custom/make_your_own/workshop.tscn --mode megayeet --bots 0 --port 24812 --spooky off > /dev/null 2>&1 &)
           sleep 5
           timeout 70 godot --headless -- --join 127.0.0.1 --port 24812 --tour x --tour-mode makeyourownclient
-      - name: Vessel check (a boat of Map Kit pieces rides the swell; Yeets, cargo, flags, ladder, crane ride along)
+      - name: Vessel check (a boat of Map Kit pieces rides the swell, Yeets, cargo, ladder, crane and its flag ride along; the island beside it stays put)
         timeout-minutes: 2
-        run: timeout 100 godot --headless -- --host --map res://custom/make_your_own/boat.tscn --mode sandbox --bots 0 --spooky off --tour x --tour-mode vessel
+        run: timeout 100 godot --headless -- --host --map res://custom/make_your_own/boat.tscn --mode ctf --bots 0 --spooky off --tour x --tour-mode vessel
       - name: Match setup check (maps that suit each mode, the host's MegaYeet rules, unused pieces left out)
         timeout-minutes: 3
         run: timeout 90 godot --headless -- --host --map res://maps/fortress.tscn --bots 0 --spooky off --tour x --tour-mode setup
