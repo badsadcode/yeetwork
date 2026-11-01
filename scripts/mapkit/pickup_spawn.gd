@@ -7,12 +7,15 @@ extends Node3D
 ## The host can turn power-ups (or all pickups) off; the Puzzle mode has none.
 ## Type: a pickup of your own (a PickupType: your model, name and numbers) in place of Kind.
 
+## What it gives: health (+50), health_big (+100), speed, super, feather, iron, or random (a
+## different power-up each time).
 @export_enum("health", "health_big", "speed", "super", "feather", "iron", "random") var kind := "health":
 	set(v):
 		kind = v
 		_rebuild()
 ## Seconds until it's back after someone takes it (0: the usual for its kind).
 @export_range(0.0, 300.0, 1.0) var respawn := 0.0
+## Your own pickup (a PickupType file) in place of Kind.
 @export var type: PickupType:
 	set(v):
 		type = v

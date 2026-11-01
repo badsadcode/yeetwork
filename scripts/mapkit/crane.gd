@@ -11,31 +11,43 @@ extends Node3D
 ##   empty "Hook" on it is where the cable hangs. Load Model: what hangs (in a Load Size box,
 ##   its origin in the middle). The pedestal's collision is a Pedestal Size box either way.
 
+## How high its jib is, metres.
 @export_range(2.0, 60.0, 0.5) var height := 12.0:
 	set(v):
 		height = v
 		_rebuild()
+## How long its jib is, metres (the cable hangs from its end).
 @export_range(3.0, 60.0, 0.5) var jib := 14.0:
 	set(v):
 		jib = v
 		_rebuild()
+## How far the load hangs below the jib, metres.
 @export_range(0.5, 30.0, 0.5) var cable := 3.0
+## Where the jib points in the middle of its sweep: degrees round from the node's +X.
 @export_range(-180.0, 180.0, 1.0) var heading := 180.0:
 	set(v):
 		heading = v
 		_rebuild()
+## How far it slews either side of Heading, degrees.
 @export_range(0.0, 180.0, 1.0) var sweep := 69.0
+## Seconds to slew there and back.
 @export_range(4.0, 300.0, 1.0) var period := 48.0
+## The load's box, metres (it's solid: ride it).
 @export var load_size := Vector3(6.1, 2.6, 2.44):
 	set(v):
 		load_size = v
 		_rebuild()
+## The built-in load's colour.
 @export var load_color := Color(0.95, 0.55, 0.1)
-@export var pedestal_size := Vector3(2.0, 0.0, 2.0) # (height 0: the crane's Height)
+## The pedestal's box, metres (its collision; height 0: up to Height).
+@export var pedestal_size := Vector3(2.0, 0.0, 2.0)
+## Your own crane: a part named "Turret" slews (its jib along the Turret's +X), an empty "Hook"
+## is where the cable hangs.
 @export var model: PackedScene:
 	set(v):
 		model = v
 		_rebuild()
+## Your own load (its origin in its middle), in a Load Size box.
 @export var load_model: PackedScene:
 	set(v):
 		load_model = v

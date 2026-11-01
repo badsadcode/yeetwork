@@ -5,7 +5,9 @@ extends PuzzleNode
 ## on (always, with no inputs): open the drain to empty the room. Rate: m³ a second.
 ## (Water also pours out wherever the floor falls away below the zone: a pit.)
 
+## How fast it takes water out, cubic metres a second.
 @export_range(0.1, 40.0, 0.1) var rate := 3.0
+## How big its grate is, metres.
 @export_range(0.3, 3.0, 0.1) var radius := 0.8:
 	set(v):
 		radius = v

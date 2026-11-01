@@ -7,10 +7,12 @@ extends PuzzleNode
 ## light the Beacon there, set off a barrel). Water on the cord puts the spark out: light it
 ## again where it stopped.
 
+## Where the cord ends (from the node): drag it in the 3D view.
 @export var end := Vector3(0, 0, -6):
 	set(v):
 		end = v
 		_rebuild()
+## How fast the spark runs along it, metres a second.
 @export_range(0.2, 10.0, 0.1) var speed := 1.5
 
 var burned := 0.0 # 0..1 along the cord (synced)

@@ -9,6 +9,8 @@ extends Node3D
 ## Model: your own ladder (its origin at the foot, up along +Y, the wall behind it at -Z);
 ## climbing works the same whatever it looks like.
 
+## How tall, metres. Let it reach a little above what it climbs (a rail's top: about 40 cm
+## more).
 @export_range(1.0, 40.0, 0.1) var height := 4.0:
 	set(v):
 		height = v

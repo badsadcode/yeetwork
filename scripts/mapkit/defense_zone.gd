@@ -7,19 +7,24 @@ extends Node3D
 ## HUD names a zone when monsters get in (Zone Name). Shown in the editor as a tinted box; in
 ## the game a faint line on the ground marks its edge (Show Edge).
 
+## How deep in the fortress it is: 1 the outer walls, 2 the courtyard, 3 the inner keep. Deeper
+## zones drain the meter faster.
 @export_range(1, 3) var level := 1:
 	set(v):
 		level = v
 		_rebuild()
+## The zone's box, metres (its bottom on the node).
 @export var size := Vector3(40, 8, 40):
 	set(v):
 		size = v
 		_rebuild()
+## What the HUD calls it when monsters get in ("the gatehouse").
 @export var zone_name := "":
 	set(v):
 		zone_name = v
 ## Meter points a monster inside drains each second (0: the level's usual: 1, 3, 6).
 @export var drain := 0.0
+## A faint line on the ground marks its edge in the game.
 @export var show_edge := true:
 	set(v):
 		show_edge = v

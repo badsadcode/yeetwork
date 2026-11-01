@@ -12,9 +12,14 @@ extends Resource
 ##   made convex: keep it to a simple shape).
 ## - Everything at 0 (or -1) is the built-in one's.
 
+## Its name in the game (the shop, the HUD).
 @export var display_name := ""
+## The built-in prop it acts like: how it breaks, blows up, floats, powers sockets.
 @export_enum("crate", "crate_big", "barrel", "boom_barrel", "ball", "beachball", "anvil", "plank", "couch", "tire", "cone", "fuse", "boulder", "platform", "battery", "gravestone", "coffin", "pumpkin", "iron_ball") var behaves_like := "crate"
+## Your model (origin in its middle). A mesh named "Collision" in it is its shape (made convex,
+## hidden).
 @export var model: PackedScene
+## The box it fills, metres (0: the built-in one's).
 @export var size := Vector3.ZERO
 ## auto: the "Collision" mesh in your model if it has one, otherwise the built-in one's shape.
 @export_enum("auto", "box", "ball", "cylinder") var shape := "auto"
@@ -25,6 +30,7 @@ extends Resource
 ## How hard a hit it takes to break it (impact energy, joules: a crate 9000, a barrel 15000);
 ## only for props that break (crates, barrels, planks, pumpkins, gravestones, coffins).
 @export_range(0.0, 100000.0, 100.0) var toughness := 0.0
+## Nothing breaks it.
 @export var unbreakable := false
 ## When it breaks, it comes apart into its model's parts (each object in it: a plank, a pane,
 ## a hinge, named for what they're made of like a BreakableModel's: "Glass_", "Wood_",

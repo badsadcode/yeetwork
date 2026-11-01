@@ -8,13 +8,16 @@ extends Node3D
 ## MegaYeet Rules: how the game goes on this map (the Fortress meter's size, what a bite and
 ## a kill are worth, the breaks, how big the waves get): tune it to the fortress you built.
 
+## A monster this close (metres) has reached it.
 @export var radius := 2.5:
 	set(v):
 		radius = v
+## Your own Heart (a throne, a reactor, a giant cake) instead of the crystal.
 @export var model: PackedScene:
 	set(v):
 		model = v
 		_rebuild()
+## Its glow's colour (it flashes red when a monster bites).
 @export var color := Color(0.35, 0.9, 1.0):
 	set(v):
 		color = v
@@ -27,11 +30,13 @@ extends Node3D
 @export_range(0.0, 1000.0, 1.0) var bite := 40.0
 ## What a kill puts back, and the extra for a stylish one (a fall, a crush, fire, lava...).
 @export_range(0.0, 100.0, 0.5) var kill_refill := 3.0
+## The extra a stylish kill puts back (a fall, a crush, fire, lava...).
 @export_range(0.0, 100.0, 0.5) var style_refill := 2.0
 ## What holding a wave puts back.
 @export_range(0.0, 2000.0, 5.0) var wave_bonus := 60.0
 ## Seconds before the first wave, and between waves.
 @export_range(3.0, 120.0, 1.0) var first_break := 12.0
+## Seconds between waves.
 @export_range(3.0, 300.0, 1.0) var break_time := 25.0
 ## How many monsters a wave brings, times this (1: 24 in wave 1, ten more each wave).
 @export_range(0.2, 5.0, 0.05) var wave_size := 1.0
@@ -42,6 +47,7 @@ extends Node3D
 ## Its hit points (more with more Yeets playing, and each time it comes back), and what
 ## bringing it down puts back in the meter.
 @export_range(200.0, 50000.0, 50.0) var boss_health := 3000.0
+## What bringing the boss down puts back in the meter.
 @export_range(0.0, 5000.0, 10.0) var boss_reward := 300.0
 
 var _parts: Node3D

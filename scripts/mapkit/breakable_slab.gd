@@ -8,6 +8,8 @@ extends Node3D
 
 enum Layout { WALL, FLOOR }
 
+## WALL: upright (width X, height Y, thickness Z). FLOOR: flat (length X, width Z): a floor or
+## a bridge.
 @export var orientation: Layout = Layout.WALL:
 	set(v):
 		orientation = v
@@ -17,22 +19,29 @@ enum Layout { WALL, FLOOR }
 	set(v):
 		size = v.max(Vector2.ONE * 0.5)
 		_rebuild()
+## How thick it is, metres.
 @export_range(0.05, 3.0, 0.05) var thickness := 0.6:
 	set(v):
 		thickness = v
 		_rebuild()
+## What it's made of: how tough it is and how it breaks (brick into bricks, wood into splinters
+## along its length, glass into shards, ice cracks and melts; metal is very tough).
 @export_enum("plaster", "concrete", "brick", "wood", "glass", "metal", "ice") var material := "plaster":
 	set(v):
 		material = v
 		_rebuild()
+## Its colour (and its pieces' and dust's).
 @export var color := Color(0.95, 0.86, 0.66):
 	set(v):
 		color = v
 		_rebuild()
 ## Edges attached to the world. Pieces cut off from every anchored edge fall/crumble.
 @export var anchor_bottom := true
+## Its top edge is glued to the world (a window: all four; a bridge: Left and Right).
 @export var anchor_top := false
+## Its left edge is glued to the world.
 @export var anchor_left := false
+## Its right edge is glued to the world.
 @export var anchor_right := false
 ## Your own material on its faces (a brick texture...): laid on by position, a repeat every
 ## Texture Size metres; the broken edges keep Material's look, and Material still says how it
@@ -42,6 +51,7 @@ enum Layout { WALL, FLOOR }
 	set(v):
 		custom_material = v
 		_rebuild()
+## With a Custom Material: metres per repeat of its texture.
 @export_range(0.1, 20.0, 0.1) var texture_size := 2.0:
 	set(v):
 		texture_size = v

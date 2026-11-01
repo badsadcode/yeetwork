@@ -6,6 +6,7 @@ extends PuzzleNode
 ## (add a BreakableSlab next to it if you want a messy alternative). Lights above it show
 ## red (shut) and green (open).
 
+## The door's box, metres.
 @export var size := Vector3(4, 4, 0.5):
 	set(v):
 		size = v
@@ -15,7 +16,9 @@ extends PuzzleNode
 	set(v):
 		open_offset = v
 		_rebuild()
+## How fast it slides, metres a second.
 @export_range(0.5, 20.0, 0.1) var speed := 3.0
+## Its colour.
 @export var color := Color(0.55, 0.6, 0.72):
 	set(v):
 		color = v

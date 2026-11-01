@@ -5,16 +5,19 @@ extends PuzzleNode
 ## that turns the fan around). Whatever stands on it rides along: props, Yeets, a fan.
 ## The server turns it and streams the angle; everyone sees the same.
 
+## How big it is, metres.
 @export_range(0.5, 12.0, 0.1) var radius := 3.0:
 	set(v):
 		radius = v
 		_rebuild()
+## How thick the platform is, metres.
 @export_range(0.1, 2.0, 0.05) var thickness := 0.4:
 	set(v):
 		thickness = v
 		_rebuild()
 ## Degrees per second (negative: the other way).
 @export_range(-360.0, 360.0, 1.0) var speed := 30.0
+## Its colour.
 @export var color := Color(0.55, 0.6, 0.75):
 	set(v):
 		color = v

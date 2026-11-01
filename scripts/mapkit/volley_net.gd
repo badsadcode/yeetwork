@@ -7,10 +7,12 @@ extends Node3D
 ## Court: width (X) and length (Z, both halves together). The ball landing inside a half is
 ## a point for the other team; landing outside the lines is "out".
 
+## The court's size, metres: width (X) and length (Z, both halves).
 @export var court := Vector2(12, 22):
 	set(v):
 		court = v
 		_rebuild()
+## How high the net is, metres.
 @export_range(1.5, 5.0, 0.1) var net_height := 2.5:
 	set(v):
 		net_height = v

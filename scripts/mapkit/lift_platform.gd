@@ -1,18 +1,25 @@
 @tool
 class_name LiftPlatform
 extends Node3D
-## A platform moving between this position and `travel` (relative), on a clock shared by
-## every player. Pauses briefly at each end.
+## A platform moving to and fro between where it is and Travel (from there), a round trip
+## every Period seconds, pausing briefly at each end: a lift, a ferry over a gap. It runs off
+## a clock every player shares, so everyone sees it in the same place. Players and props ride
+## on it. Several lifts: offset them with Phase. Model: your own look (it still bumps as a
+## Size box).
 
+## The platform's box, metres.
 @export var size := Vector3(3, 0.5, 3):
 	set(v):
 		size = v
 		_rebuild()
+## Where it goes (from where it starts), metres: up 6 is (0, 6, 0).
 @export var travel := Vector3(0, 6, 0):
 	set(v):
 		travel = v
 		_rebuild()
+## Seconds for a round trip.
 @export_range(1.0, 60.0, 0.5) var period := 8.0
+## 0-1: where in its trip it starts (to offset several lifts).
 @export_range(0.0, 1.0, 0.05) var phase := 0.0
 ## Your own model for it (a scene: a mesh, an imported .glb...), instead of the built-in look.
 ## It works the same; only the look changes. (Its collision stays a box of Size.)

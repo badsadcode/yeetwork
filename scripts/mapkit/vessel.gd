@@ -25,7 +25,9 @@ extends Node3D
 		_rebuild()
 ## How hard it rolls with the swell, and the most it leans over (degrees), and pitches.
 @export_range(0.0, 8.0, 0.1) var roll := 3.2
+## The most she rolls side to side in the biggest seas, degrees.
 @export_range(0.0, 45.0, 0.5) var max_roll_degrees := 16.0
+## The most she pitches bow to stern, degrees.
 @export_range(0.0, 20.0, 0.5) var max_pitch_degrees := 6.0
 ## How much it rises and falls with the water (1: as much as the water).
 @export_range(0.0, 2.0, 0.05) var heave := 0.8

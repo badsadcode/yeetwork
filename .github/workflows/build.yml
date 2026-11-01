@@ -24,9 +24,14 @@ jobs:
         run: godot --headless -- --host --map prime --mode ctf --bots 0 --spooky off --test
       - name: Validate maps
         run: |
-          for m in prime facing courtyard lagoon highseas moving_day test_chambers warehouse pump_house scrapyard yeetball_stadium res://maps/fortress.tscn res://custom/example_garden/example_garden.tscn res://custom/make_your_own/workshop.tscn res://custom/make_your_own/boat.tscn; do
+          for m in prime facing courtyard lagoon highseas moving_day test_chambers warehouse pump_house scrapyard yeetball_stadium res://maps/fortress.tscn res://custom/example_garden/example_garden.tscn res://custom/make_your_own/workshop.tscn res://custom/make_your_own/boat.tscn res://custom/lighthouse_point/lighthouse_point.tscn; do
             godot --headless -- --map "$m" --validate
           done
+      - name: Piece pages up to date (docs/pieces/, every setting described; the walkthroughs' tables match their maps)
+        run: godot --headless --script res://tools/make_guide.gd -- --check
+      - name: Lighthouse Point check (the new-map walkthrough's map: its ladders, jump pads and door work as the guide says)
+        timeout-minutes: 2
+        run: timeout 100 godot --headless -- --host --map res://custom/lighthouse_point/lighthouse_point.tscn --mode ctf --bots 0 --spooky off --tour x --tour-mode lighthouse
       - name: Ship check (High Seas rides the swell, players and cargo stay aboard)
         timeout-minutes: 6
         run: |

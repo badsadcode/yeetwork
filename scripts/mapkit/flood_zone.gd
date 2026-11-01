@@ -12,6 +12,8 @@ extends PuzzleNode
 ## carries things along and fire goes out. The host runs it and sends the changes to everyone.
 ## Limits: one floor per column (no water on two levels of the same box), no water in the air.
 
+## The box the water can be in, metres (standing on the node; not rotated). Keep it under about
+## 25 x 25 m.
 @export var size := Vector3(16, 6, 16):
 	set(v):
 		size = v

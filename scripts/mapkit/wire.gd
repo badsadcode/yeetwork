@@ -6,10 +6,12 @@ extends PuzzleNode
 ## relay). Show where the power goes: from a battery socket to a magnet, from contacts to a
 ## door. Zap Water: a live wire whose end lies in water shocks the Yeets swimming near it.
 
+## Where the cable runs (from the node): add and drag points.
 @export var points: PackedVector3Array = PackedVector3Array([Vector3.ZERO, Vector3(0, 0, -4)]):
 	set(v):
 		points = v
 		_rebuild()
+## A live end in water shocks the Yeets swimming near it.
 @export var zap_water := false
 
 const OFF_COLOR := Color(0.12, 0.13, 0.16)

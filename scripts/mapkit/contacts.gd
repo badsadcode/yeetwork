@@ -7,6 +7,7 @@ extends PuzzleNode
 ## standing between them, who gets zapped for it (a jolt and a hop, again and again).
 ## The classic: close the circuit to open the door.
 
+## How far apart the two pads are, metres.
 @export_range(0.6, 6.0, 0.1) var gap := 1.4:
 	set(v):
 		gap = v

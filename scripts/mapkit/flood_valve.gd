@@ -6,8 +6,11 @@ extends PuzzleNode
 ## the water falls straight down from the node. Rate: m³ a second (a 4 x 4 m room rises
 ## ~6 cm a second at 1). Total: stops after pouring this much (0: never).
 
+## How fast it pours, cubic metres a second (a 10 x 12 m room rises 1 m per 120).
 @export_range(0.1, 20.0, 0.1) var rate := 2.0
+## Stops after pouring this much, cubic metres (0: never).
 @export_range(0.0, 2000.0, 1.0) var total := 0.0
+## How wide the water lands where it pours, metres.
 @export_range(0.2, 3.0, 0.1) var radius := 0.6
 
 ## Your own model for it (a scene: an imported .glb...), instead of the built-in look and

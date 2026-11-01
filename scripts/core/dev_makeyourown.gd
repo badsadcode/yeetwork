@@ -325,9 +325,11 @@ func _breaking_props(pl: Player) -> void:
 		pl.global_position += Vector3(0, 0, 0.25)
 		await _wait(0.05)
 	var door_id := held.prop_id if held else -1
-	pl.gun.server_action(GravityGun.Action.THROW, pl.eye_position(), Vector3(0, 0.2, -1))
+	pl.pitch = 0.35 # (lifted clear of the floor, then down at it: thrown level, it sails off the island)
+	await _wait(0.5)
+	pl.gun.server_action(GravityGun.Action.THROW, pl.eye_position(), Vector3(0, -0.6, -1))
 	await _wait(0.1)
-	pl.gun.server_action(GravityGun.Action.THROW_RELEASE, pl.eye_position(), Vector3(0, 0.2, -1))
+	pl.gun.server_action(GravityGun.Action.THROW_RELEASE, pl.eye_position(), Vector3(0, -0.6, -1))
 	pl.gun.server_action(GravityGun.Action.GRAB_END, pl.eye_position(), Vector3.FORWARD) # (or it rips the repaired one off again)
 	await _wait(1.5)
 	var parts := 0

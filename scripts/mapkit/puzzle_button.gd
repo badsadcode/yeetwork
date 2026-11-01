@@ -8,14 +8,18 @@ extends PuzzleNode
 ## Hold Time keeps it on for a while after it's released (use key: after the press; 0 makes
 ## each press switch it on or off).
 
+## The button's size, metres.
 @export var size := Vector2(1.2, 1.2):
 	set(v):
 		size = v
 		_rebuild()
+## touch: on while anything touches it. use key: players walk up and press Use (E).
 @export_enum("touch", "use key") var press := "touch"
+## Seconds it stays on after it's let go (use key with 0: each press switches it on or off).
 @export_range(0.0, 60.0, 0.5) var hold_time := 0.0
 ## Use key: what the prompt says, "[E] <label>".
 @export var label := "Press"
+## Its colour.
 @export var color := Color(0.45, 0.48, 0.6):
 	set(v):
 		color = v

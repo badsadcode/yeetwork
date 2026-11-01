@@ -6,6 +6,8 @@ extends Node3D
 ## down a hatch find their way out: up the Ladders whose foot is in it. Put it under the Vessel;
 ## one a ship.
 
+## The hold's box, metres (standing on the node): the sea stays out of it however far she
+## heels.
 @export var size := Vector3(12, 6, 10):
 	set(v):
 		size = v

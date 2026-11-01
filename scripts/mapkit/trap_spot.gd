@@ -16,10 +16,13 @@ extends PuzzleNode
 ## the numbers you leave at -1. Save the spot as a scene (right-click > Save Branch as Scene)
 ## and it's a new trap you can put anywhere; the shop lists it apart, with your model.
 
+## What it is once built: spikes, fire (a grate that sets monsters alight) or mine (goes off
+## once).
 @export_enum("spikes", "fire", "mine") var kind := "spikes":
 	set(v):
 		kind = v
 		_rebuild()
+## Its box, metres (on the ground).
 @export var size := Vector3(4, 1, 4):
 	set(v):
 		size = v

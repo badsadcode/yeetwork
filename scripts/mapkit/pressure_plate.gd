@@ -5,11 +5,15 @@ extends PuzzleNode
 ## friend (a player counts as 70). The rim glows amber, then green when pressed.
 ## Masses: crate 25, barrel 40, couch 60, big crate 70, anvil 300, player 70.
 
+## The plate's size, metres.
 @export var size := Vector2(2.4, 2.4):
 	set(v):
 		size = v
 		_rebuild()
+## On while this much weighs on it, kg: crate 25, barrel 40, couch 60, big crate 70, Yeet 70,
+## anvil 300.
 @export_range(1.0, 400.0, 1.0) var required_mass := 40.0
+## Its colour.
 @export var color := Color(0.5, 0.55, 0.68):
 	set(v):
 		color = v

@@ -434,8 +434,12 @@ cel shading and there are no outlines.
 Arenas are built in the Godot editor with the **Map Kit**: drop-in nodes for blocks,
 breakable slabs, spawns, flags, props, jump pads, lifts, hazards and lighting presets.
 Save a scene in `res://maps/` and it appears in the map list. Press **F6** on it to
-playtest with bots. The full guide is in **[docs/MAPPING.md](docs/MAPPING.md)**, and
-`maps/courtyard.tscn` is a complete example. The built-in Yeetwork Prime, Facing Yeets and
+playtest with bots. The full guide is in **[docs/MAPPING.md](docs/MAPPING.md)**; every
+piece has its own page with all its settings in **[docs/pieces/](docs/pieces/README.md)**
+(the same descriptions are the Inspector's tooltips), and
+**[docs/REBUILD_A_MAP.md](docs/REBUILD_A_MAP.md)** builds `maps/courtyard.tscn` again step
+by step, and **[docs/MAKE_A_NEW_MAP.md](docs/MAKE_A_NEW_MAP.md)** makes a new one from an idea
+(Lighthouse Point, `custom/lighthouse_point/`) through to a map pack. The built-in Yeetwork Prime, Facing Yeets and
 High Seas are Map Kit scenes too (`maps/prime.tscn`, `maps/facing.tscn`,
 `maps/high_seas.tscn`: the ship and its four variants), so you can tweak them in the editor:
 every map in the game is.
@@ -602,6 +606,16 @@ godot --headless --path . -- --host --map res://custom/make_your_own/workshop.ts
 godot --headless --path . -- --join 127.0.0.1 --port 24812 --tour x --tour-mode makeyourownclient
 # High Seas saved again as a Map Kit scene from its code builder (overwrites maps/high_seas.tscn)
 godot --headless --path . -- --host --map highseas --map-source code --bots 0 --tour x --tour-mode export_highseas
+# The piece pages (docs/pieces/) and the walkthrough's tables, made again from the scripts and
+# maps (after changing a piece's settings or comments; CI checks them with -- --check)
+godot --headless --path . --script res://tools/make_guide.gd
+# The walkthroughs' pictures (docs/images/rebuild_courtyard/, docs/images/new_map/)
+godot --path . -- --host --map res://maps/courtyard.tscn --mode sandbox --bots 0 --tour /tmp/shots --tour-mode guideshots
+godot --path . -- --host --map res://custom/lighthouse_point/lighthouse_point.tscn --mode sandbox --bots 0 --tour /tmp/shots --tour-mode guideshots
+# Lighthouse Point (the new-map walkthrough's map): written again by its builder, and checked
+# (its ladders, jump pads, door and crane work as the guide says)
+python tools/make_lighthouse.py
+godot --headless --path . -- --host --map res://custom/lighthouse_point/lighthouse_point.tscn --mode ctf --bots 0 --tour x --tour-mode lighthouse
 # A Vessel (Make Your Own Boat, in CTF): it rides the swell, Yeets and cargo stay aboard, its
 # flag, ladder, crane and fence ride along, the ladder takes you back up from the sea; the
 # island beside it stays put (spawns, crates, Red's flag), the pier's pad throws you aboard

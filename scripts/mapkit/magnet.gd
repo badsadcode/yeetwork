@@ -7,11 +7,14 @@ extends PuzzleNode
 ## they drop. A Yeet with the gun can still pull a light thing off it. Strength: pull at the
 ## face (m/s², gravity is 24); heavy things feel less of it (an anvil about a third).
 
+## How far below it pulls, metres.
 @export_range(1.0, 20.0, 0.5) var reach := 7.0:
 	set(v):
 		reach = v
 		_rebuild()
+## How hard it pulls (gravity is 24).
 @export_range(10.0, 200.0, 1.0) var strength := 70.0
+## How big its face is, metres.
 @export_range(0.3, 3.0, 0.05) var radius := 0.8:
 	set(v):
 		radius = v

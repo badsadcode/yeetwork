@@ -7,8 +7,11 @@ extends PuzzleNode
 ## Yeet) touches its flames, so one burning beacon can light the others. Start Lit: burning
 ## from the start (the level's source of fire). Burn Time: goes out after this long (0: never).
 
+## Burning from the start.
 @export var start_lit := false
+## Seconds it burns once lit, then goes out (0: for ever).
 @export_range(0.0, 300.0, 1.0) var burn_time := 0.0
+## The colour of its fire (magic fire: blue, green, gold, violet).
 @export_enum("orange", "blue", "green", "gold", "violet") var palette := "orange":
 	set(v):
 		palette = v

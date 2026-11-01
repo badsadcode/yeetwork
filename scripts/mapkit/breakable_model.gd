@@ -19,6 +19,8 @@ extends Node3D
 ## hinges): its loose parts (not the Fixed ones) come away together as one prop to carry and
 ## throw, and thrown hard it comes apart into its parts.
 
+## Your model (.glb, .blend, .tscn): every separate part breaks on its own, named for what it's
+## made of (see above).
 @export var model: PackedScene:
 	set(v):
 		model = v

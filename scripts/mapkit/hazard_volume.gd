@@ -1,14 +1,19 @@
 @tool
 class_name HazardVolume
 extends Node3D
-## Acid or lava (bouncy, damaging, glowing surface), water (swim; wood floats), Kill
-## (instant death, e.g. under a void), Wind (constant push, e.g. an updraft) or Fire (a
-## burning place: flames over the bottom of the box that set players and wood alight).
+## A box that does something to whatever is in it, by Kind: acid or lava (a glowing pool that
+## hurts and bounces you up), water (a pool to swim in; wood and rubber float), kill (instant
+## death: under a void), wind (a constant push: an updraft) or fire (a burning place: flames
+## over the bottom of the box that set players and wood alight).
 
+## acid and lava hurt and bounce up; water is a pool to swim in; kill is instant death (under-
+## map voids); wind pushes (updrafts); fire sets alight what's in it.
 @export_enum("acid", "kill", "wind", "water", "lava", "fire") var kind := "acid":
 	set(v):
 		kind = v
 		_rebuild()
+## Its box, metres. For a liquid the surface sits 80% of the way up (give it a floor and
+## walls).
 @export var size := Vector3(8, 2, 8):
 	set(v):
 		size = v

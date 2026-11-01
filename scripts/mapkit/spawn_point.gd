@@ -5,6 +5,7 @@ extends Node3D
 ## (they fall back to any spawn if a team has none). Place at floor level; facing is
 ## chosen toward the map center.
 
+## Who starts here: Any (free-for-all), Red or Blue. Want 6 or more Any, 4 or more per team.
 @export_enum("Any", "Red", "Blue") var team := 0:
 	set(v):
 		team = v

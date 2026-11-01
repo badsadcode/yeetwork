@@ -5,6 +5,7 @@ extends Node3D
 ## destroyed or fall out of the world. Type: your own prop (a PropType: your model and
 ## numbers on a built-in one's behaviour) in place of Kind.
 
+## Which built-in prop.
 @export_enum("crate", "crate_big", "barrel", "boom_barrel", "ball", "beachball", "anvil", "plank", "couch", "tire", "cone", "fuse", "lost_yeet", "boulder", "platform", "battery", "gravestone", "coffin", "pumpkin", "iron_ball") var kind := "crate":
 	set(v):
 		kind = v
@@ -14,6 +15,7 @@ extends Node3D
 ## level (other map props take 10-25 s), and a PuzzleReset puts it back home.
 @export var key_prop := false
 
+## Your own prop (a PropType file) in place of Kind.
 @export var type: PropType:
 	set(v):
 		type = v

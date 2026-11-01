@@ -739,7 +739,9 @@ func server_prop_impact(p: Prop, body: Node, rel: Vector3, speed: float) -> void
 		server_fx("impact:" + mat_name, contact, rel, clampf(energy / 6000.0, 0.03, 3.0), -dir)
 	if body is Player:
 		_prop_hits_player(p, body as Player, rel, speed)
-	if p.is_fragile() and 0.5 * p.mass * speed * speed > p.def.fragile:
+	# (A door just torn off isn't broken by the gun's first yank toward where its holder looks.)
+	var fresh: bool = p.extra.get("assembly", false) and t - p.spawn_time < 0.5
+	if p.is_fragile() and 0.5 * p.mass * speed * speed > p.def.fragile and not fresh:
 		server_break_prop(p, rel)
 		return
 	if body is Player:

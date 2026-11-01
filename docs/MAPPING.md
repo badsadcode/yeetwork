@@ -100,7 +100,12 @@ preset is skipped and yours is used.
 
 ## 4. Node reference
 
-All kit nodes preview themselves in the editor. In game they become the real thing.
+All kit nodes preview themselves in the editor. In game they become the real thing. Every
+piece also has its own page with all its settings, defaults and markers:
+[pieces/](pieces/README.md) (made from the pieces' scripts by `tools/make_guide.gd`; the
+same descriptions are the Inspector's tooltips). A walkthrough that rebuilds Courtyard from
+these pieces: [REBUILD_A_MAP.md](REBUILD_A_MAP.md); one that makes a new map from an idea
+(Lighthouse Point): [MAKE_A_NEW_MAP.md](MAKE_A_NEW_MAP.md).
 
 ### MapSettings (one per map)
 | Property | |

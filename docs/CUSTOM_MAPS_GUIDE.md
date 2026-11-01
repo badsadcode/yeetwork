@@ -6,8 +6,12 @@ their game. It takes about 15 minutes. You'll end up with this:
 
 ![My First Map in the game: grass, stone walls, a ramp and a mushroom jump pad](images/custom_maps/21_ingame.jpg)
 
-Every piece you'll use is described in more detail in [MAPPING.md](MAPPING.md); the short
-version of this guide is [custom/README.md](../custom/README.md).
+Every piece you'll use has its own page with all its settings in [the pieces](pieces/README.md)
+(hover over a setting in the Inspector for the same description), and the whole kit is in
+[MAPPING.md](MAPPING.md); the short version of this guide is
+[custom/README.md](../custom/README.md). Done here? [Rebuild a real map](REBUILD_A_MAP.md):
+Courtyard, piece by piece. Then [Make a new map](MAKE_A_NEW_MAP.md): Lighthouse Point, from an
+idea to a map pack.
 
 ---
 
@@ -405,5 +409,7 @@ a friend who doesn't have it is told which map pack to get.
 | F6 starts the wrong map | F6 runs the scene in the tab you're looking at: click your map's tab first. |
 | Errors about missing pieces after copying a map | Maps must be made in the Yeetwork project (step 0). |
 
-More: every node and setting is described in [MAPPING.md](MAPPING.md), and the example
-map is `custom/example_garden/`.
+More: every piece and setting has its page in [the pieces](pieces/README.md), the whole kit
+is in [MAPPING.md](MAPPING.md), [Rebuild a real map](REBUILD_A_MAP.md) builds Courtyard step
+by step, [Make a new map](MAKE_A_NEW_MAP.md) makes Lighthouse Point from an idea, and the
+example maps are `custom/example_garden/` and `custom/lighthouse_point/`.

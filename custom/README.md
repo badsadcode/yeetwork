@@ -20,12 +20,15 @@ that players drop into the game's `maps` folder. Nothing gets compiled into the 
    materials, models, sounds, scripts.
 2. Make a new 3D scene in that folder (e.g. `pirate_cove.tscn`) and build it from the Map Kit
    nodes: add a **MapSettings** node first (name, sky, ocean...), then blocks, spawn points,
-   jump pads and so on. Every piece is described in `docs/MAPPING.md`. Click a piece in the
+   jump pads and so on. Every piece has its page in `docs/pieces/` (all its settings; hover
+   over a setting in the Inspector for the same), and the whole kit is in `docs/MAPPING.md`. Click a piece in the
    3D view to select it; drag the handles on a block's faces (or use the Scale tool) to
    resize it.
 3. Press **F6** (Run Current Scene) to play it right away, with bots.
-4. Look at `custom/example_garden/` for a small example, and `custom/make_your_own/` for
-   your own versions of game objects (a pipe, a trap, a prop) and starter models.
+4. Look at `custom/example_garden/` for a small example, `custom/lighthouse_point/` for a
+   whole map made from an idea (`docs/MAKE_A_NEW_MAP.md` builds it step by step), and
+   `custom/make_your_own/` for your own versions of game objects (a pipe, a trap, a prop) and
+   starter models.
 
 ## Your own look
 

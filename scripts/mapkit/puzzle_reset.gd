@@ -11,6 +11,7 @@ extends PuzzleNode
 	set(v):
 		area = v
 		_rebuild()
+## The middle of Area, from the node.
 @export var area_center := Vector3.ZERO:
 	set(v):
 		area_center = v

@@ -17,14 +17,17 @@ extends PuzzleNode
 ## Wind acceleration near the fan (m/s^2). Players: this times Player Push; props: more for
 ## light things (a beach ball ~2x), less for heavy ones (an anvil ~5%). Gravity is 24.
 @export_range(1.0, 120.0, 1.0) var strength := 32.0
+## How far it blows, metres.
 @export_range(1.0, 40.0, 0.5) var reach := 12.0:
 	set(v):
 		reach = v
 		_rebuild()
+## How wide its stream is, metres.
 @export_range(0.3, 4.0, 0.05) var radius := 1.2:
 	set(v):
 		radius = v
 		_rebuild()
+## How hard it blows Yeets, times Strength.
 @export_range(0.0, 3.0, 0.05) var player_push := 1.0
 
 var _prop_id := -1

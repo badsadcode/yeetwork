@@ -7,10 +7,12 @@ extends PuzzleNode
 ## drop an anvil on the red end, fly off the yellow one. Launch Boost scales the yeet.
 ## The server simulates it and streams the angle; the node is the pivot.
 
+## How long the plank is, metres (along X).
 @export_range(2.0, 16.0, 0.1) var length := 7.0:
 	set(v):
 		length = v
 		_rebuild()
+## How wide the plank is, metres.
 @export_range(0.6, 6.0, 0.1) var width := 1.6:
 	set(v):
 		width = v
@@ -20,8 +22,11 @@ extends PuzzleNode
 	set(v):
 		pivot_height = v
 		_rebuild()
+## How far it tips each way, degrees.
 @export_range(5.0, 40.0, 0.5) var max_angle := 18.0
+## How hard the end that flies up launches what stands on it.
 @export_range(0.5, 4.0, 0.05) var launch_boost := 1.6
+## Its colour.
 @export var color := Color(0.85, 0.62, 0.35):
 	set(v):
 		color = v

@@ -5,6 +5,7 @@ extends PuzzleNode
 ## (and its Inputs are on, if it has any: e.g. the package must be delivered first). In the
 ## Puzzle mode, that finishes the level.
 
+## The exit's box, metres: every living player inside finishes the level.
 @export var size := Vector3(4, 3, 4):
 	set(v):
 		size = v

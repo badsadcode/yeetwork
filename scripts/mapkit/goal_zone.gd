@@ -6,10 +6,12 @@ extends Node3D
 ## counts once the whole ball is past the line (inside Size: width, height, depth behind
 ## the line). The frame and net are solid: the ball stays in.
 
+## Who defends it (the other team scores in it).
 @export_enum("Red:1", "Blue:2") var team := 1:
 	set(v):
 		team = v
 		_rebuild()
+## The goal's mouth and depth, metres: width X, height Y, depth behind the line Z.
 @export var size := Vector3(7, 3.5, 2.5):
 	set(v):
 		size = v

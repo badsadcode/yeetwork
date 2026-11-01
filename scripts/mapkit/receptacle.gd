@@ -7,14 +7,17 @@ extends PuzzleNode
 ## shows how many are in, and the objective can say it too: "Fuses: {count}/{required}".
 ## Zone: Size around this node, standing on its floor (local +Y is up).
 
+## What goes in it (a fuse, a Lost Yeet, a battery, any prop...).
 @export_enum("fuse", "lost_yeet", "any", "crate", "crate_big", "barrel", "ball", "beachball", "anvil", "couch", "tire", "cone", "boulder", "battery") var kind := "fuse":
 	set(v):
 		kind = v
 		_rebuild()
+## How many it needs to be on.
 @export_range(1, 12, 1) var required := 1:
 	set(v):
 		required = v
 		_rebuild()
+## Its box, metres: props set down inside lock into a slot.
 @export var size := Vector3(3.0, 2.5, 1.6):
 	set(v):
 		size = v

@@ -7,14 +7,17 @@ extends PuzzleNode
 ## (a lever, a plate) let go of it. It's on once cut: drop the anvil on the plate, the cage
 ## on the beacon, the crate into the water. Cut is cut (for good).
 
+## The prop it holds.
 @export_enum("crate", "crate_big", "barrel", "boom_barrel", "anvil", "couch", "tire", "battery", "boulder", "lost_yeet") var kind := "anvil":
 	set(v):
 		kind = v
 		_rebuild()
+## How long the rope is, metres.
 @export_range(0.5, 20.0, 0.1) var length := 3.0:
 	set(v):
 		length = v
 		_rebuild()
+## Fire burns through it (hold something burning to it).
 @export var burnable := true
 
 ## Your own model for it (a scene: an imported .glb...), instead of the built-in look and

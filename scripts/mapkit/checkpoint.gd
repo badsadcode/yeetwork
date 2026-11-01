@@ -4,6 +4,7 @@ extends PuzzleNode
 ## A flag on a ring. Once any player reaches it, it turns green and (in the Puzzle mode)
 ## everyone who dies respawns here. The last one reached counts.
 
+## How big its ring is, metres: reach inside it to take the checkpoint.
 @export_range(1.0, 10.0, 0.1) var radius := 3.0:
 	set(v):
 		radius = v

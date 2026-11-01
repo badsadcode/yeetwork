@@ -8,7 +8,9 @@ extends Resource
 ## - Model: what floats over the pad (its origin in its middle; about half a metre across).
 ## - Everything at 0 is the built-in one's.
 
+## Its name in the game.
 @export var display_name := ""
+## health heals; speed, super, feather and iron give that boost.
 @export_enum("health", "speed", "super", "feather", "iron") var gives := "health"
 ## Health it gives back (health only; 0: 50).
 @export_range(0.0, 100.0, 1.0) var heal := 0.0
@@ -16,6 +18,7 @@ extends Resource
 @export_range(0.0, 120.0, 0.5) var lasts := 0.0
 ## Seconds until it's back after someone takes it (0: the usual).
 @export_range(0.0, 300.0, 1.0) var respawn := 0.0
+## Your model: it floats over the pad (about half a metre across).
 @export var model: PackedScene
 ## The glowing ring under it (and the HUD's colour for it; clear: the boost's).
 @export var color := Color(0, 0, 0, 0)

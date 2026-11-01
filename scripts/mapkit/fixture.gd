@@ -25,6 +25,8 @@ const AUTO := {
 	"radio": ["radio", 0.0, "none", 0.0, 0.5, 0.0],
 }
 
+## The built-in look and its usual behaviour (what "auto" and -1 below mean): generator,
+## engine, fan, pump, pipes, radio, or box (a plain block).
 @export_enum("box", "generator", "engine", "fan", "pump", "pipes", "radio") var kind := "generator":
 	set(v):
 		kind = v
@@ -43,32 +45,40 @@ const AUTO := {
 @export_enum("auto", "none", "hum", "buzz", "engine", "fan", "steam", "radio") var sound := "auto"
 ## Your own looping sound instead (an .ogg or .wav: set it to loop in its import settings).
 @export var custom_sound: AudioStream
+## How loud, decibels (0: as recorded; -6 about half).
 @export_range(-30.0, 12.0, 0.5) var volume_db := 0.0
 ## How far it carries (metres).
 @export_range(2.0, 80.0, 0.5) var reach := 14.0
+## Higher (above 1) or lower.
 @export_range(0.3, 3.0, 0.05) var pitch := 1.0
 ## Now and then a one-off sound too: game sound names ("metal", "creak", "zap", "sizzle"...) or
 ## your own recordings, every few seconds (random within One Shot Every).
 @export var one_shot_sounds: Array[String] = []
+## Your own recordings for the one-off sounds.
 @export var one_shot_recordings: Array[AudioStream] = []
+## Seconds between one-off sounds: at random between x and y.
 @export var one_shot_every := Vector2(4.0, 10.0)
 
 @export_group("Motion")
 ## Turns per second of the part named "Spin" (-1: the kind's).
 @export_range(-1.0, 20.0, 0.05) var spin_speed := -1.0
+## The axis the "Spin" part turns about (its own).
 @export var spin_axis := Vector3(0, 0, 1)
 ## Shaking, metres (-1: the kind's).
 @export_range(-1.0, 0.1, 0.001) var vibrate := -1.0
 ## Swinging to and fro, degrees, and how fast (a hanging sign, a buoy).
 @export_range(0.0, 45.0, 0.5) var sway := 0.0
+## Swings per second.
 @export_range(0.05, 4.0, 0.05) var sway_speed := 0.5
 
 @export_group("Effect")
 ## From the part named "Emitter" (or its top): auto, none, steam, smoke, sparks, drips.
 @export_enum("auto", "none", "steam", "smoke", "sparks", "drips") var effect := "auto"
+## How much of the effect: 1 the usual, 2 twice as much.
 @export_range(0.1, 4.0, 0.05) var effect_rate := 1.0
 
 @export_group("Light")
+## Its glow's colour.
 @export var light_color := Color(0.5, 1.0, 0.6)
 ## A glow from the part named "Light" (-1: the kind's; 0: none).
 @export_range(-1.0, 8.0, 0.05) var light_energy := -1.0
@@ -79,12 +89,14 @@ const AUTO := {
 ## Breaks when something hits it hard (a flying prop, a blast, a push, lightning): sparks, it
 ## falls silent and smokes; back after Repair Time seconds (0: until a PuzzleReset over it).
 @export var breakable := false
+## Seconds until it's mended after breaking (0: until a PuzzleReset over it).
 @export_range(0.0, 600.0, 1.0) var repair_time := 40.0
 
 @export_group("Touch")
 ## Hurts whoever comes within Hazard Radius (of its Emitter, or its middle) while it runs:
 ## hot (burns, sets alight) or electric (a zap and a jolt).
 @export_enum("none", "hot", "electric") var hazard := "none"
+## How close is too close, metres.
 @export_range(0.3, 6.0, 0.1) var hazard_radius := 1.2
 ## Shakes the camera of anyone nearby while it runs (-1: the kind's).
 @export_range(-1.0, 1.0, 0.01) var shake := -1.0

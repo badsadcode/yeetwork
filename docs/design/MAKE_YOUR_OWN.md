@@ -26,6 +26,12 @@ from each part's own shape, loose parts falling whole). **Breakable props done**
 (2026-11-01): a PropType that Breaks Into Its Parts (each part flies off whole, glass
 shatters: the Workshop's glass cabinets), and a BreakableModel's Tear Off (the gravity gun
 rips its loose parts off together as one prop; thrown hard, it comes apart: the shed door).
+**Phase 4 done** (2026-11-01): a page per piece (`docs/pieces/`, made from the scripts by
+`tools/make_guide.gd`, every setting described: the Inspector's tooltips too; CI keeps them
+current), the walkthrough rebuilding Courtyard (`docs/REBUILD_A_MAP.md`) and the one making
+a new map from an idea, Lighthouse Point (`docs/MAKE_A_NEW_MAP.md`,
+`custom/lighthouse_point/`, checked in CI); the walkthroughs' tables are made from their maps.
+Next: Phase 5 (things that animate).
 
 ## The idea in one paragraph
 

@@ -5,10 +5,12 @@ extends Node3D
 ## Model: your own stand in place of the glowing pedestal (the flag sits 0.4 m up; the team's
 ## light stays), or the map theme's flag_stand.
 
+## Whose flag it holds. Capture the Flag needs one of each.
 @export_enum("Red", "Blue") var team := 0:
 	set(v):
 		team = v
 		_rebuild()
+## Your own stand (the flag sits 0.4 m up; the team light stays).
 @export var model: PackedScene:
 	set(v):
 		model = v

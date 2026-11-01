@@ -11,6 +11,7 @@ const RIM_HEIGHT := 3.6
 const RIM_RADIUS := 0.62 # (the basketball is 0.32: a little room for gravity-gun chaos)
 const BOARD := Vector3(2.2, 1.4, 0.1)
 
+## The three-point line, metres from the basket: a basket from beyond it is worth 3.
 @export var three_range := 8.5:
 	set(v):
 		three_range = v

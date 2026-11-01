@@ -12,22 +12,28 @@ extends Node3D
 
 const SIZE := Vector3(12.2, 2.6, 2.44)
 
+## Its paint.
 @export var color := Color(0.12, 0.38, 0.75):
 	set(v):
 		color = v
 		_rebuild()
+## On a ship: its lashings wear down under blasts, pushes, lightning and a storm's rolling
+## until it breaks loose as a heavy prop that slides about.
 @export var lashed := false:
 	set(v):
 		lashed = v
 		_rebuild()
+## Hollow, its doors swung wide at one end (go inside; a lamp hangs in it).
 @export var open := false:
 	set(v):
 		open = v
 		_rebuild()
+## Open: the doors are at its -X end (off: +X).
 @export var doors_aft := false:
 	set(v):
 		doors_aft = v
 		_rebuild()
+## Open: a random power-up waits inside.
 @export var pickup := false
 
 var mesh: MeshInstance3D # (closed: the box; World hides it when it breaks loose)

@@ -1,21 +1,34 @@
 @tool
 class_name ArenaBlock
 extends StaticBody3D
-## Solid box using the arena surface shader. Rotate/scale-free: set `size` instead of
-## scaling. Rotate it to make ramps (players walk up slopes up to ~46 degrees).
+## A solid box with the arena's look (soft panels, a warm to cool gradient): floors, walls,
+## platforms, ramps. Most of a map is made of these.
+## - Size it with Size, or drag the handles on its faces in the 3D view (Ctrl: whole metres).
+##   The Scale tool works too: when you let go, the scale becomes Size (a scaled block would
+##   collide wrong).
+## - Ramps: rotate it about X or Z. Players walk up slopes up to about 46 degrees; steeper are
+##   slides.
+## - Surface ice: clear, slippery ice that can't be broken. Custom Material: your own material
+##   (a PBR texture set) instead of the colour, laid on in the map's own metres.
+## - Solid off: only seen (a painted stripe, trim). Bounciness: a ricochet surface.
 
+## Its size in metres (width X, height Y, depth Z). Type it, or drag the handles on its faces
+## in the 3D view (Ctrl: whole metres). Don't scale a block: set its Size.
 @export var size := Vector3(4, 1, 4):
 	set(v):
 		size = v.max(Vector3.ONE * 0.05)
 		_rebuild()
+## Its colour (with the arena's soft panels on it).
 @export var color := Color(0.42, 0.47, 0.62):
 	set(v):
 		color = v
 		_rebuild()
+## 0: glossy, 1: matte.
 @export_range(0.0, 1.0, 0.01) var roughness := 0.7:
 	set(v):
 		roughness = v
 		_rebuild()
+## 0: paint or stone, 1: metal.
 @export_range(0.0, 1.0, 0.01) var metallic := 0.0:
 	set(v):
 		metallic = v
@@ -39,10 +52,12 @@ extends StaticBody3D
 	set(v):
 		ice_clarity_map = v
 		_rebuild()
+## Ice only: a normal map for the ice's surface bumps (empty: its own melted bumps).
 @export var ice_normal_map: Texture2D:
 	set(v):
 		ice_normal_map = v
 		_rebuild()
+## Ice only: how often the Ice Clarity Map and Ice Normal Map repeat per metre.
 @export_range(0.05, 4.0, 0.05) var ice_map_scale := 0.5:
 	set(v):
 		ice_map_scale = v
@@ -56,6 +71,8 @@ extends StaticBody3D
 	set(v):
 		custom_material = v
 		_rebuild()
+## With a Custom Material: metres per repeat of its texture (laid out in the map's own metres,
+## so neighbouring blocks line up).
 @export_range(0.1, 20.0, 0.1) var texture_size := 2.0:
 	set(v):
 		texture_size = v

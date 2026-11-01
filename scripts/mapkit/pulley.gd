@@ -8,14 +8,17 @@ extends PuzzleNode
 ## one platform, load the other until you rise to the ledge. Platforms stay level and
 ## under their wheels.
 
+## How far apart its two wheels are, metres.
 @export_range(1.0, 20.0, 0.1) var width := 5.0:
 	set(v):
 		width = v
 		_rebuild()
+## How far below its wheel platform A hangs at the start, metres.
 @export_range(1.0, 30.0, 0.1) var drop_a := 8.0:
 	set(v):
 		drop_a = v
 		_rebuild()
+## How far below its wheel platform B hangs at the start, metres.
 @export_range(1.0, 30.0, 0.1) var drop_b := 3.0:
 	set(v):
 		drop_b = v

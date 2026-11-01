@@ -5,6 +5,7 @@ extends PuzzleNode
 ## node (the float rides up the post and its lamp turns green). Fill the room to open the
 ## hatch; use a PuzzleLogic with Invert for "until the water's drained".
 
+## On while the water stands this many metres above the node.
 @export_range(0.1, 10.0, 0.1) var level := 1.0:
 	set(v):
 		level = v

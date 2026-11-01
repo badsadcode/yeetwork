@@ -5,10 +5,12 @@ extends Node3D
 ## the fortress, outside its walls; each wave's monsters share them out. From Wave: this one
 ## opens from that wave on (a surprise rift later in the game).
 
+## How big the rift is, metres.
 @export var radius := 3.0:
 	set(v):
 		radius = v
 		_rebuild()
+## It opens from this wave on (a surprise rift later in the game).
 @export_range(1, 50) var from_wave := 1
 
 var _parts: Node3D

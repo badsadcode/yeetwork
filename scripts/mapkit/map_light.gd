@@ -10,10 +10,13 @@ extends PuzzleNode
 ## - A Model (or the map theme's light_<kind>) replaces the look; a child named "Light" in it
 ##   is where the light shines from.
 
+## Its look and its light: bulb, lamp_post (on the ground), wall_lamp (on a wall, facing +Z),
+## candle, torch, spotlight (shines along -Z), neon (a 1.2 m tube along X).
 @export_enum("bulb", "lamp_post", "wall_lamp", "candle", "torch", "spotlight", "neon") var kind := "bulb":
 	set(v):
 		kind = v
 		_rebuild()
+## The light's colour.
 @export var color := Color(1.0, 0.82, 0.55):
 	set(v):
 		color = v
@@ -45,6 +48,7 @@ extends PuzzleNode
 ## dark with a burst of glass (a candle or a torch is blown out), and comes back on after
 ## Repair Time seconds (0: stays broken until a Puzzle Reset over it).
 @export var breakable := true
+## Seconds until it flickers back on after it's smashed (0: until a PuzzleReset over it).
 @export_range(0.0, 600.0, 1.0) var repair_time := 40.0
 
 var broken := false

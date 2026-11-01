@@ -5,13 +5,16 @@ extends PuzzleNode
 ## (rotate it to aim; lay it flat for a floor target). Kind: only that kind of prop counts
 ## ("any": anything). Stay On: seconds it stays on after a hit (0: for good).
 
+## How big the bullseye is, metres.
 @export_range(0.3, 4.0, 0.05) var radius := 0.8:
 	set(v):
 		radius = v
 		_rebuild()
+## Which props count when they hit it (any: all of them).
 @export_enum("any", "ball", "beachball", "crate", "crate_big", "barrel", "boom_barrel", "anvil", "plank", "couch", "tire", "cone") var kind := "any"
 ## How fast the thing must hit (m/s): ~5 is a gentle throw, ~15 a hard one.
 @export_range(0.0, 40.0, 0.5) var min_speed := 5.0
+## Seconds it stays on after a hit (0: for good).
 @export_range(0.0, 120.0, 0.5) var stay_on := 4.0
 
 ## Your own model for it (a scene: an imported .glb...), instead of the built-in look and

@@ -9,9 +9,14 @@ extends PuzzleNode
 ## Invert flips the result; Hold Time keeps it on for a while after it would go off (a door
 ## that closes again 5 s after you step off the plate: race through!).
 
+## gate: all or any of its inputs (Combine). window: every input on within the last Window
+## seconds. sequence: its inputs switched on in list order (a wrong one starts over).
 @export_enum("gate", "window", "sequence") var mode := "gate"
+## Window mode: seconds.
 @export_range(0.5, 60.0, 0.5) var window := 3.0
+## On when it would be off, and off when on.
 @export var invert := false
+## Seconds it stays on after it would go off (a timed door).
 @export_range(0.0, 60.0, 0.5) var hold_time := 0.0
 
 var _held_until := -1.0

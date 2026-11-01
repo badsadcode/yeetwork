@@ -1,14 +1,17 @@
 @tool
 class_name JumpPadNode
 extends Node3D
-## Launches players and props. Aim it by moving `target` (relative to the pad); the
-## launch velocity is computed so the arc peaks `arc_height` above the higher end.
-## The editor draws the predicted arc.
+## A pad that throws players and props through the air to a spot: up to a ledge, across a
+## gap. Aim it by moving Target (from the pad: drag it in the 3D view); it throws just hard
+## enough for the arc to peak Arc Height above the higher end. The editor draws the arc in
+## green. Velocity Override: throw with exactly this instead.
 
+## Where it throws you to (from the pad): drag it in the 3D view, the arc shows in green.
 @export var target := Vector3(0, 6, -8):
 	set(v):
 		target = v
 		_rebuild()
+## How high the arc peaks above the higher end, metres.
 @export_range(0.5, 30.0, 0.1) var arc_height := 2.5:
 	set(v):
 		arc_height = v
