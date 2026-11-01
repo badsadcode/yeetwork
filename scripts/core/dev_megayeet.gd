@@ -418,13 +418,14 @@ func _shop() -> void:
 	horde.request_gate_refresh()
 	await _wait(0.8)
 	var open_before: bool = horde.field.walk[horde.field.cell_of(gate.global_position)] == 1
-	pl.respawn(Vector3(0, 0, -35.4), 0.0)
-	await _wait(0.3)
+	pl.respawn(Vector3(0, 0, -36.0), 0.0) # (well within Use's reach of the gate's middle)
+	await _wait(0.6) # (landed: slow machines settle a moment after a respawn)
 	_face(pl, gate.global_position)
+	var reach := pl.eye_position().distance_to(gate.global_position)
 	var m0 := mode.meter
 	world.use_pressed(pl)
 	await _wait(0.2)
-	_check("between waves: Use on a broken gate repairs it, out of the meter", broken > 0 and gate.broken_cells.is_empty() and mode.meter < m0, "%d cells broken, meter %.0f -> %.0f" % [broken, m0, mode.meter])
+	_check("between waves: Use on a broken gate repairs it, out of the meter", broken > 0 and gate.broken_cells.is_empty() and mode.meter < m0, "%d cells broken, meter %.0f -> %.0f, %.1f m from it" % [broken, m0, mode.meter, reach])
 	# ... and shuts the monsters' way through again (they go by the grid, not by bumping into it).
 	var gate_cell := horde.field.cell_of(gate.global_position)
 	await _wait(0.8)
