@@ -31,6 +31,9 @@ extends Node3D
 @export_range(0.0, 2.0, 0.05) var heave := 0.8
 ## Seconds it lags behind the water (a big heavy ship: more).
 @export_range(0.0, 3.0, 0.05) var lag := 0.8
+## High Seas' own weather on it in a stormy sea: green water washing over the rail, rogue
+## waves, spray off the hull (laid out for High Seas' ship: about 140 x 32 m, its deck 8 m up).
+@export var high_seas_weather := false
 
 var _preview: MeshInstance3D
 

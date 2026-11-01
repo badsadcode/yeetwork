@@ -12,9 +12,11 @@ The built-in arenas **Yeetwork Prime** (`maps/prime.tscn`) and **Facing Yeets**
 (`maps/facing.tscn`) are Map Kit scenes too: open them and tweak anything. They keep their
 built-in names in the map list. (They were generated from the old code builders; see
 *Converting the code-built maps* at the end. Regenerating overwrites your edits.)
-**High Seas** stays in code for now. Its parts are all Map Kit pieces too (the ship itself:
-**Vessel**; its ladders, crane and horn: Ladder, Crane, Horn), so a ship map can be built in the
-editor (see *Vessel*; `custom/make_your_own/boat.tscn`).
+**High Seas** is a Map Kit scene too (`maps/high_seas.tscn`): the ship is a **Vessel** with
+High Seas Weather on, its hull blocks and CSG ends, the engine room a **ShipHold** full of
+Fixtures, its containers **CargoContainers**, ladders, the crane, the horn, the bridge's glass.
+Its variants (Golden Hour, Storm, Hurricane) are the same scene on another sea under another
+sky. It was saved from the code builder (see *Converting the code-built maps*).
 
 ---
 
@@ -135,6 +137,9 @@ A solid box with the arena surface shader (soft panels, warm/cool gradient).
     onto every face; **Ice Normal Map** (optional): the surface's bumps; **Ice Map Scale**:
     repeats per metre. Without them the ice makes its own frost and melted bumps.
     `assets/textures/ice_clarity_noise.tres` and `ice_normal_noise.tres` are examples.
+- **Solid**: off, nothing bumps into it, it's only seen (a painted stripe, window bands,
+  trim). A hidden solid block (Visible off in the Scene dock) is felt, not seen (a machine's
+  bulk on a ship).
 - **Bounciness** (0-1): a ricochet surface for bank shots. Bouncy blocks are frictionless,
   so things leave at the angle they came in (Test Chambers' BOUNCE panel uses 0.85).
 - **Custom Material** (optional): your own material instead of the colour, e.g. a PBR
@@ -350,8 +355,19 @@ props on it ride along; loose cargo slides when it tilts. Needs MapSettings > **
   stall), everything aboard jumps with it.
 - Its blocks' collision becomes the ship's own, so you stand on a moving deck, not slide off
   it; pieces that move by themselves (doors, plates, seesaws) keep their own.
-- High Seas' green water, rogue waves and hull spray are its own for now (laid out for its
-  size); a Vessel in a stormy sea just rolls harder.
+- **High Seas Weather**: High Seas' own green water over the rail, rogue waves and hull spray
+  in a stormy sea (laid out for its ship: about 140 x 32 m, the deck 8 m up); off, a Vessel in a
+  stormy sea just rolls harder.
+- Shaped solids under it (a **CSG** shape with Use Collision: a hull's rounded stern, its bow)
+  are the ship's collision too.
+- **ShipHold** (under the Vessel): a box below deck (Size, standing on the node) the sea stays
+  out of however far she heels; bots knocked down a hatch climb out up the Ladders whose foot
+  is in it. High Seas' engine room is one.
+- **CargoContainer**: a 40 ft container (12.2 x 2.6 x 2.44 m, bottom on the node, length along
+  X) in its **Color**: closed (solid, stack them), **Lashed** (on a ship: its lashings wear down
+  under blasts, pushes, lightning and a storm's rolling until it breaks loose as a heavy prop
+  that slides about), or **Open** (hollow, doors swung wide at one end, **Doors Aft**: the -X
+  end, a lamp inside; **Pickup**: a random power-up waits in it).
 - `custom/make_your_own/boat.tscn` (**Make Your Own Boat**: a boat beside an island with a
   pier, Red ashore and Blue aboard) is one, built by `tools/make_boat.py`.
 
@@ -379,7 +395,9 @@ A door, a window, a fence you modelled: each separate part (each mesh) breaks on
   at the foot against the wall, its **+Z** (blue arrow) pointing away from the wall, toward the
   climber. **Height**; **Over The Top** (how hard the top throws you on over the edge, m/s:
   more for a rail or a wide ledge). Let it reach a little above what it climbs (a rail's top:
-  about 40 cm more), or climbers stick at the top. Face it and hold forward (or Jump) to climb, back to go
+  about 40 cm more), or climbers stick at the top. **Top Throw**: instead, exactly how the top
+  throws you (m/s in the ladder's frame: x along the wall, y up, z out), for a ladder that lets
+  you off sideways. Face it and hold forward (or Jump) to climb, back to go
   down. **Model**: your own ladder (origin at the foot, up +Y, wall behind at -Z). A ladder
   whose foot is in a swimmable sea is where bots in the water swim to.
 - **Crane**: slews to and fro on its own, a solid load swinging from its jib (ride it, or be
@@ -642,3 +660,10 @@ godot --headless --path . -- --host --map prime --map-source code --bots 0 --tou
 ```
 
 `--map-source code` also plays the code version, for comparing.
+
+High Seas' builder (`MapHighSeas`) notes everything it makes while it's exported; to save
+`maps/high_seas.tscn` from it again (this **overwrites** it):
+
+```bash
+godot --headless --path . -- --host --map highseas --map-source code --bots 0 --tour x --tour-mode export_highseas
+```

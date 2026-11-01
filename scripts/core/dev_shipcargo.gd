@@ -86,9 +86,8 @@ func _ready() -> void:
 	_check("cargo drifting far off goes (and map props come back)", world.get_prop(far_id) == null, "")
 	# The deck crane.
 	var crane: ShipCrane = null
-	for c in ship.get_children():
-		if c is ShipCrane:
-			crane = c
+	for c in ship.find_children("*", "ShipCrane", true, false): # (on the ship, or in its Crane piece)
+		crane = c
 	var load: AnimatableBody3D = crane._load
 	var h0: float = crane._slew.rotation.y
 	var p0 := load.global_position

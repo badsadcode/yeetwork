@@ -70,6 +70,10 @@ var land_points := {} # Vector3 -> true
 var _spinners: Array[Node3D] = []
 ## Built-in maps that are loaded from Map Kit scenes.
 const MAPKIT_SCENES := {"prime": "res://maps/prime.tscn", "facing": "res://maps/facing.tscn"}
+## High Seas is a Map Kit scene too; its variants are the same ship on another sea, under
+## another sky (MapHighSeas.VARIANTS: sea state, sky, sun), the hurricane rolling her harder.
+const HIGH_SEAS_SCENE := "res://maps/high_seas.tscn"
+var _variant := {} # (a variant's MapSettings and Vessel overrides)
 
 
 func build(p_world: Node, map_key: String) -> void:
@@ -84,6 +88,13 @@ func build(p_world: Node, map_key: String) -> void:
 		MapFacing.build(self)
 		return
 	if map_key.begins_with("highseas"):
+		if not Game.code_maps and ResourceLoader.exists(HIGH_SEAS_SCENE):
+			var v: Array = MapHighSeas.VARIANTS.get(map_key, MapHighSeas.VARIANTS.highseas)
+			_variant = {"ocean_preset": v[0], "sky": v[1], "sun_rotation_degrees": v[2]}
+			if map_key == "highseas_extreme":
+				_variant.max_roll_degrees = 20.0 # (a hurricane throws her about)
+			_build_scene_map(HIGH_SEAS_SCENE)
+			return
 		MapHighSeas.build(self, map_key)
 		return
 	if map_key.ends_with(".tscn") or map_key.ends_with(".scn"):
@@ -304,6 +315,10 @@ func _build_scene_map(path: String) -> void:
 	var settings := _find_settings(root)
 	map_settings = settings
 	if settings:
+		for k in _variant:
+			if k in settings:
+				settings.set(k, _variant[k])
+	if settings:
 		kill_y = settings.kill_height
 		avoid_rects.assign(settings.avoid_areas)
 		if settings.ocean:
@@ -419,6 +434,18 @@ func _collect(n: Node) -> void:
 		ball_spot = (n as Node3D).global_position
 	elif n is PickupSpawn:
 		pickups.append(n)
+		if n.get_parent() is CargoContainer: # (in an open container: bots go in by its doors)
+			var cc := n.get_parent() as CargoContainer
+			n.set_meta("doorway", cc.global_transform * cc.doorway())
+	elif n is CargoContainer:
+		var cc := n as CargoContainer
+		# Lashed down on a ship: its lashings can give (World: they wear, it breaks loose).
+		if cc.lashed and not cc.open and cc.mesh and carrier and _host_node() == carrier:
+			lashed.append([cc.mesh, cc.shape, cc.rods, cc.mesh.global_transform, cc.color])
+	elif n is ShipHold:
+		if carrier and _host_node() == carrier:
+			var sh := n as ShipHold
+			(carrier as Ship).hold = AABB(sh.global_position - Vector3(sh.size.x * 0.5, 0, sh.size.z * 0.5), sh.size)
 	elif n is FortressHeart:
 		heart = n
 	elif n is DefenseZone:
@@ -897,6 +924,9 @@ func _start_vessel(root: Node, settings: MapSettings) -> Transform3D:
 	if found.is_empty():
 		return Transform3D.IDENTITY
 	_vessel = found[0] as Vessel
+	for k in _variant:
+		if k in _vessel:
+			_vessel.set(k, _variant[k])
 	var home := _vessel.global_transform
 	_vessel.global_transform = Transform3D.IDENTITY
 	var ship := Ship.new()
@@ -924,9 +954,20 @@ func _launch_vessel(home: Transform3D) -> void:
 	var ship := carrier as Ship
 	var box := AABB()
 	var first := true
+	# Shaped solids (CSG: a hull's ends) are the ship's collision too.
+	for csg in _vessel.find_children("*", "CSGShape3D", true, false):
+		var c := csg as CSGShape3D
+		if c.is_root_shape() and c.use_collision:
+			var baked := c.bake_collision_shape()
+			if baked:
+				var cs := CollisionShape3D.new()
+				cs.shape = baked
+				ship.add_child(cs)
+				cs.transform = c.global_transform
+			c.use_collision = false
 	for body in _bodies_in(_vessel):
 		for cs in body.get_children(true):
-			if cs is CollisionShape3D and (cs as CollisionShape3D).shape:
+			if cs is CollisionShape3D and (cs as CollisionShape3D).shape and not (cs as CollisionShape3D).disabled:
 				var xf := (cs as CollisionShape3D).global_transform # (the Vessel is at the origin: its own frame)
 				body.remove_child(cs)
 				ship.add_child(cs)
@@ -941,6 +982,16 @@ func _launch_vessel(home: Transform3D) -> void:
 	for cr in ship.find_children("*", "Crane", true, false):
 		if (cr as Crane).crane:
 			(cr as Crane).crane.ship = ship
+	# Its hold: the sea stays out; its ladders are the way out for a bot down there.
+	if ship.hold.size != Vector3.ZERO:
+		if ship.ocean:
+			ship.ocean.dry_node = ship
+			ship.ocean.dry_box = ship.hold
+		for ld in ship.find_children("*", "Ladder", true, false):
+			var foot := (ld as Ladder).foot()
+			if foot and ship.hold.has_point(foot.global_position):
+				ship.hold_ladders.append(foot)
+	ship.high_seas = _vessel.high_seas_weather
 	ship.length = _vessel.length if _vessel.length > 0.0 else maxf(box.size.x, 4.0)
 	ship.beam = _vessel.beam if _vessel.beam > 0.0 else maxf(box.size.z, 2.0)
 	ship.deck_box = box.grow(1.0) if not first else ship.deck_box

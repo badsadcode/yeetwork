@@ -713,11 +713,14 @@ func _overboard(delta: float) -> bool:
 				_ladder = f
 	var foot := _ladder.global_position
 	var top := foot.y + float(_ladder.get_meta("height", 10.0))
-	if not in_sea and not below and (pl.is_on_floor() or pos.y > top + 0.5):
+	var into: Vector3 = _ladder.global_transform.basis * (_ladder.get_meta("into", Vector3.ZERO) as Vector3)
+	# (aboard: on a floor up there, and past the ladder into the ship, not perched on the
+	# rail's edge outside it: from there, keep going and hop down onto the deck)
+	var past := into == Vector3.ZERO or (pos - foot).slide(Vector3.UP).dot(into.slide(Vector3.UP).normalized()) > 0.8
+	if not in_sea and not below and past and (pl.is_on_floor() or pos.y > top + 0.5):
 		_ladder = null # (aboard again)
 		return false
 	var flat := Vector2(foot.x - pos.x, foot.z - pos.z)
-	var into: Vector3 = _ladder.global_transform.basis * (_ladder.get_meta("into", Vector3.ZERO) as Vector3)
 	if flat.length() <= 1.6 and into != Vector3.ZERO:
 		_aim(pos + Vector3(0, 1.6, 0) + into * 3.0, delta) # (at it: face the ladder itself)
 	else:

@@ -16,6 +16,9 @@ extends Node3D
 ## How hard the top throws you on over the edge (m/s; 0: just up). A rail or a wide ledge at
 ## the top wants more.
 @export_range(0.0, 12.0, 0.5) var over_the_top := 6.0
+## Instead of that, exactly how the top throws you (m/s, the ladder's own frame: x along the
+## wall, y up, z out from it; zero: Over The Top). For a ladder that lets you off sideways.
+@export var top_throw := Vector3.ZERO
 ## Your own model for it (instead of the built-in yellow rails, and the map theme's).
 @export var model: PackedScene:
 	set(v):
@@ -36,7 +39,7 @@ func _ready() -> void:
 	var t := TriggerVolume.new()
 	t.position = Vector3(0, height * 0.5, 0.5)
 	add_child(t)
-	t.setup(TriggerVolume.Kind.LADDER, Vector3(1.5, height, 1.0), Vector3(0, 3.0, -over_the_top))
+	t.setup(TriggerVolume.Kind.LADDER, Vector3(1.5, height, 1.0), top_throw if top_throw != Vector3.ZERO else Vector3(0, 3.0, -over_the_top))
 	# Where a swimming bot heads for (just off its foot), how tall it is, which way to face.
 	_foot = Node3D.new()
 	_foot.position = Vector3(0, 0, 0.8)

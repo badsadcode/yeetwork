@@ -1,0 +1,1984 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/mapkit/map_settings.gd" id="1_6ycq1"]
+[ext_resource type="Script" path="res://scripts/mapkit/vessel.gd" id="2_goyvt"]
+[ext_resource type="Script" path="res://scripts/mapkit/arena_block.gd" id="3_uoyjr"]
+[ext_resource type="Shader" path="res://scripts/world/world_surface.gdshader" id="4_up7k0"]
+[ext_resource type="Script" path="res://scripts/mapkit/jump_pad.gd" id="5_8kic3"]
+[ext_resource type="Script" path="res://scripts/mapkit/breakable_slab.gd" id="6_p8bgw"]
+[ext_resource type="Script" path="res://scripts/mapkit/horn.gd" id="7_e2l58"]
+[ext_resource type="Script" path="res://scripts/mapkit/ladder.gd" id="8_60euv"]
+[ext_resource type="Script" path="res://scripts/mapkit/flag_stand.gd" id="9_sdlkw"]
+[ext_resource type="Script" path="res://scripts/mapkit/ship_hold.gd" id="10_dmw0o"]
+[ext_resource type="Script" path="res://scripts/mapkit/fixture.gd" id="11_1cs1m"]
+[ext_resource type="Script" path="res://scripts/mapkit/cargo_container.gd" id="12_b4v17"]
+[ext_resource type="Script" path="res://scripts/mapkit/crane.gd" id="13_sm1rt"]
+[ext_resource type="Script" path="res://scripts/mapkit/spawn_point.gd" id="14_lhilh"]
+[ext_resource type="Script" path="res://scripts/mapkit/prop_spawn.gd" id="15_g5h8s"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_6ycq1"]
+render_priority = 0
+shader = ExtResource("4_up7k0")
+shader_parameter/base_color = Color(0.12, 0.17, 0.3, 1)
+shader_parameter/roughness_value = 0.7
+shader_parameter/metallic_value = 0.0
+shader_parameter/emission_energy = 0.0
+shader_parameter/panel_size = null
+shader_parameter/seam_width = null
+shader_parameter/warm_tint = null
+shader_parameter/cool_tint = null
+shader_parameter/use_vertex_damage = null
+shader_parameter/inner = null
+
+[node name="HighSeas" type="Node3D" unique_id=735006596]
+
+[node name="MapSettings" type="Node" parent="." unique_id=25443049]
+script = ExtResource("1_6ycq1")
+map_name = "High Seas"
+author = "Yeetwork"
+description = "The container ship MV Bad Decisions on the open ocean: she rolls with the swell, cargo slides, the sea is swimmable."
+sky = "tropical"
+sun_rotation_degrees = Vector3(-38, -60, 0)
+ocean = true
+ocean_level = 0.0
+ocean_swimmable = true
+kill_height = -25.0
+avoid_areas = Array[Rect2]([Rect2(59, -7.5, 2, 15), Rect2(-45.6, 5.7, 1.6, 1.6), Rect2(-45.6, -7.3, 1.6, 1.6)])
+playtest_mode = 1
+
+[node name="MVBadDecisions" type="Node3D" parent="." unique_id=1818470083]
+script = ExtResource("2_goyvt")
+length = 140.0
+beam = 32.0
+high_seas_weather = true
+
+[node name="Hull" type="Node3D" parent="MVBadDecisions" unique_id=516712544]
+
+[node name="Block1" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1119707826]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, -4.5, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(126, 9, 32)
+color = Color(0.62, 0.12, 0.1, 1)
+
+[node name="Block2" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=123802309]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.75, 3.95, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(2.5, 7.9, 32)
+color = Color(0.12, 0.17, 0.3, 1)
+
+[node name="Block3" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1178520674]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 3.95, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(104, 7.9, 32)
+color = Color(0.12, 0.17, 0.3, 1)
+
+[node name="Block4" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1053320118]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.75, 0.75, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(19.5, 1.5, 32)
+color = Color(0.12, 0.17, 0.3, 1)
+
+[node name="Block5" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=2061931815]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.75, 4.7, -12.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(19.5, 6.4, 7)
+color = Color(0.12, 0.17, 0.3, 1)
+
+[node name="Block6" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=987026111]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.75, 4.7, 12.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(19.5, 6.4, 7)
+color = Color(0.12, 0.17, 0.3, 1)
+
+[node name="Block7" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=404968439]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.55, 7.65, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(17.900002, 0.5, 18)
+color = Color(0.12, 0.17, 0.3, 1)
+
+[node name="Block8" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1502514752]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.8, 7.65, -8.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.5999985, 0.5, 1.6999998)
+color = Color(0.12, 0.17, 0.3, 1)
+
+[node name="Block9" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1054310210]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.8, 7.65, -2.3841858e-07)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.5999985, 0.5, 11.4)
+color = Color(0.12, 0.17, 0.3, 1)
+
+[node name="Block10" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1191017690]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.8, 7.65, 8.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.5999985, 0.5, 1.7000003)
+color = Color(0.12, 0.17, 0.3, 1)
+
+[node name="Trim1" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1340711319]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.6, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(126.1, 0.35, 32.1)
+color = Color(0.92, 0.93, 0.95, 1)
+solid = false
+
+[node name="Block11" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1887125179]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.8, 7.95, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(20.400002, 0.1, 31.2)
+color = Color(0.36, 0.48, 0.44, 1)
+
+[node name="Block12" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1857411482]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.8, 7.95, -11.45)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.5999985, 0.1, 8.3)
+color = Color(0.36, 0.48, 0.44, 1)
+
+[node name="Block13" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1771899252]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.8, 7.95, -2.3841858e-07)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.5999985, 0.1, 11.4)
+color = Color(0.36, 0.48, 0.44, 1)
+
+[node name="Block14" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1638638480]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.8, 7.95, 11.45)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.5999985, 0.1, 8.3)
+color = Color(0.36, 0.48, 0.44, 1)
+
+[node name="Block15" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1242252981]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 7.95, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(104, 0.1, 31.2)
+color = Color(0.36, 0.48, 0.44, 1)
+
+[node name="HullEnd1" type="CSGPolygon3D" parent="MVBadDecisions/Hull" unique_id=789035787]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, -6, 0)
+use_collision = true
+polygon = PackedVector2Array(-66, -16, -70, -14, -72, -9, -72, 9, -70, 14, -66, 16)
+depth = 13.9
+material = SubResource("ShaderMaterial_6ycq1")
+
+[node name="Block16" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=841363526]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69, 7.95, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(5.9, 0.1, 17.5)
+color = Color(0.36, 0.48, 0.44, 1)
+
+[node name="Block17" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1618380512]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 8.55, -15.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(126, 1.1, 0.4)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Trim2" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=810948687]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 9.15, -15.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(126, 0.12, 0.6)
+color = Color(0.92, 0.93, 0.95, 1)
+solid = false
+
+[node name="Block18" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=2113218706]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 8.55, 15.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(126, 1.1, 0.4)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Trim3" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=1069615877]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 9.15, 15.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(126, 0.12, 0.6)
+color = Color(0.92, 0.93, 0.95, 1)
+solid = false
+
+[node name="Block19" type="StaticBody3D" parent="MVBadDecisions/Hull" unique_id=504692178]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -71.8, 8.55, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.4, 1.1, 18)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Superstructure" type="Node3D" parent="MVBadDecisions" unique_id=518148609]
+
+[node name="Block1" type="StaticBody3D" parent="MVBadDecisions/Superstructure" unique_id=259101246]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -57, 17, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(14, 18, 22)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Trim1" type="StaticBody3D" parent="MVBadDecisions/Superstructure" unique_id=799310604]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49.96, 10, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.1, 1, 19)
+color = Color(0.15, 0.22, 0.32, 1)
+solid = false
+
+[node name="Trim2" type="StaticBody3D" parent="MVBadDecisions/Superstructure" unique_id=858581929]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49.96, 13.4, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.1, 1, 19)
+color = Color(0.15, 0.22, 0.32, 1)
+solid = false
+
+[node name="Trim3" type="StaticBody3D" parent="MVBadDecisions/Superstructure" unique_id=547486585]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49.96, 16.8, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.1, 1, 19)
+color = Color(0.15, 0.22, 0.32, 1)
+solid = false
+
+[node name="Trim4" type="StaticBody3D" parent="MVBadDecisions/Superstructure" unique_id=459512136]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49.96, 20.2, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.1, 1, 19)
+color = Color(0.15, 0.22, 0.32, 1)
+solid = false
+
+[node name="Trim5" type="StaticBody3D" parent="MVBadDecisions/Superstructure" unique_id=362997943]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49.96, 23.6, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.1, 1, 19)
+color = Color(0.15, 0.22, 0.32, 1)
+solid = false
+
+[node name="Block2" type="StaticBody3D" parent="MVBadDecisions/Superstructure" unique_id=1580247555]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62, 32, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(4, 10, 6)
+color = Color(0.15, 0.15, 0.18, 1)
+
+[node name="Trim6" type="StaticBody3D" parent="MVBadDecisions/Superstructure" unique_id=433921870]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62, 33, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(4.05, 2, 6.05)
+color = Color(0.95, 0.55, 0.1, 1)
+solid = false
+
+[node name="Block3" type="StaticBody3D" parent="MVBadDecisions/Superstructure" unique_id=876166443]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.75, 13.8, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(4.5, 0.4, 30)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Block4" type="StaticBody3D" parent="MVBadDecisions/Superstructure" unique_id=792566159]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.6, 14.55, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.2, 1.1, 24)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block5" type="StaticBody3D" parent="MVBadDecisions/Superstructure" unique_id=612787282]
+transform = Transform3D(-0.8454889, 0.533993, 0, 0.533993, 0.8454889, 0, 0, 0, -1, -40.8835, 10.788628, 13.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(11.236102, 0.5, 3)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="JumpPad1" type="Node3D" parent="MVBadDecisions/Superstructure" unique_id=709993371]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.75, 14, -6)
+script = ExtResource("5_8kic3")
+velocity_override = Vector3(-5.5, 15.5, 0)
+
+[node name="JumpPad2" type="Node3D" parent="MVBadDecisions/Superstructure" unique_id=1451380453]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44, 8, -12)
+script = ExtResource("5_8kic3")
+velocity_override = Vector3(-2.2, 12.5, 5)
+
+[node name="Light1" type="OmniLight3D" parent="MVBadDecisions/Superstructure" unique_id=519342477]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47, 12, 0)
+light_color = Color(1, 0.85, 0.6, 1)
+light_energy = 1.5
+omni_range = 14.0
+
+[node name="Light2" type="OmniLight3D" parent="MVBadDecisions/Superstructure" unique_id=399917571]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 31, 0)
+light_color = Color(0.6, 0.85, 1, 1)
+omni_range = 12.0
+
+[node name="Bridge" type="Node3D" parent="MVBadDecisions" unique_id=1898934986]
+
+[node name="Block1" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=1029096986]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 25.9, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(10, 0.3, 27.2)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block2" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=387847706]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58, 25.9, -14.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(4, 0.3, 2.4)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block3" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=1422803443]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.3, 25.9, -14.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(4.6, 0.3, 2.4)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block4" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=1958019132]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.3, 25.9, -15.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.4, 0.3, 0.4)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block5" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=1318673943]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58, 25.9, 14.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(4, 0.3, 2.4)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block6" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=1848054616]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.3, 25.9, 14.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(4.6, 0.3, 2.4)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block7" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=2041797149]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.3, 25.9, 15.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.4, 0.3, 0.4)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block8" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=1820866779]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -59.8, 27.5, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.4, 3, 32)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block9" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=2016596762]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 27.5, -15.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(10, 3, 0.4)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block10" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=1191534578]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.2, 27.75, -14.6)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.4, 1.5, 2)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block11" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=1714004952]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 27.5, 15.8)
+script = ExtResource("3_uoyjr")
+size = Vector3(10, 3, 0.4)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block12" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=98808505]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.2, 27.75, 14.6)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.4, 1.5, 2)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block13" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=875599487]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.2, 26.5, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.4, 1, 32)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block14" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=1617111001]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.2, 28.75, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.4, 0.5, 32)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Block15" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=481932343]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 29.1, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(10.6, 0.2, 32.6)
+color = Color(0.25, 0.28, 0.32, 1)
+
+[node name="Window1" type="Node3D" parent="MVBadDecisions/Bridge" unique_id=1450540479]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -50.2, 27.75, -10.2)
+script = ExtResource("6_p8bgw")
+size = Vector2(6.8, 1.5)
+thickness = 0.08
+material = "glass"
+color = Color(0.72, 0.86, 0.95, 1)
+anchor_top = true
+
+[node name="Window2" type="Node3D" parent="MVBadDecisions/Bridge" unique_id=2084077725]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -50.2, 27.75, -3.4)
+script = ExtResource("6_p8bgw")
+size = Vector2(6.8, 1.5)
+thickness = 0.08
+material = "glass"
+color = Color(0.72, 0.86, 0.95, 1)
+anchor_top = true
+
+[node name="Window3" type="Node3D" parent="MVBadDecisions/Bridge" unique_id=1608997857]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -50.2, 27.75, 3.4)
+script = ExtResource("6_p8bgw")
+size = Vector2(6.8, 1.5)
+thickness = 0.08
+material = "glass"
+color = Color(0.72, 0.86, 0.95, 1)
+anchor_top = true
+
+[node name="Window4" type="Node3D" parent="MVBadDecisions/Bridge" unique_id=1920590546]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -50.2, 27.75, 10.2)
+script = ExtResource("6_p8bgw")
+size = Vector2(6.8, 1.5)
+thickness = 0.08
+material = "glass"
+color = Color(0.72, 0.86, 0.95, 1)
+anchor_top = true
+
+[node name="Block16" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=664629818]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.2, 26.45, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.2, 0.9, 6)
+color = Color(0.22, 0.24, 0.28, 1)
+
+[node name="Trim1" type="StaticBody3D" parent="MVBadDecisions/Bridge" unique_id=1725625420]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.25, 26.92, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(1, 0.05, 5.6)
+color = Color(0.1, 0.45, 0.4, 1)
+solid = false
+
+[node name="Horn1" type="Node3D" parent="MVBadDecisions/Bridge" unique_id=294628727]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.4, 26.9, 2)
+script = ExtResource("7_e2l58")
+
+[node name="Light1" type="OmniLight3D" parent="MVBadDecisions/Bridge" unique_id=1637040306]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 28.6, 0)
+light_color = Color(1, 0.92, 0.75, 1)
+light_energy = 1.2
+omni_range = 12.0
+
+[node name="Ladder1" type="Node3D" parent="MVBadDecisions/Bridge" unique_id=1459647645]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.3, 8, -15.3)
+script = ExtResource("8_60euv")
+height = 19.2
+top_throw = Vector3(-5, 2, 0)
+
+[node name="Ladder2" type="Node3D" parent="MVBadDecisions/Bridge" unique_id=1973366446]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -55.3, 8, 15.3)
+script = ExtResource("8_60euv")
+height = 19.2
+top_throw = Vector3(-5, 2, 0)
+
+[node name="Gameplay" type="Node3D" parent="MVBadDecisions" unique_id=1280668667]
+
+[node name="FlagBlue1" type="Node3D" parent="MVBadDecisions/Gameplay" unique_id=329804527]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.5, 8, 0)
+script = ExtResource("9_sdlkw")
+team = 1
+
+[node name="FlagRed1" type="Node3D" parent="MVBadDecisions/Gameplay" unique_id=1700830600]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 10.5, 0)
+script = ExtResource("9_sdlkw")
+
+[node name="EngineRoom" type="Node3D" parent="MVBadDecisions" unique_id=2067603880]
+
+[node name="Hold1" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=1280773061]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.75, 0.5, 0)
+script = ExtResource("10_dmw0o")
+size = Vector3(19.5, 7.5, 18)
+
+[node name="Trim1" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=220922754]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.75, 1.53, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(19.5, 0.06, 18)
+color = Color(0.46, 0.48, 0.48, 1)
+solid = false
+
+[node name="Trim2" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=197678935]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.75, 4.45, -8.97)
+script = ExtResource("3_uoyjr")
+size = Vector3(19.5, 5.9, 0.06)
+color = Color(0.55, 0.62, 0.58, 1)
+solid = false
+
+[node name="Trim3" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1788011126]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.75, 1.9, -8.94)
+script = ExtResource("3_uoyjr")
+size = Vector3(19.5, 0.8, 0.05)
+color = Color(0.2, 0.3, 0.26, 1)
+solid = false
+
+[node name="Trim4" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=597447783]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.75, 4.45, 8.97)
+script = ExtResource("3_uoyjr")
+size = Vector3(19.5, 5.9, 0.06)
+color = Color(0.55, 0.62, 0.58, 1)
+solid = false
+
+[node name="Trim5" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1221120567]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.75, 1.9, 8.94)
+script = ExtResource("3_uoyjr")
+size = Vector3(19.5, 0.8, 0.05)
+color = Color(0.2, 0.3, 0.26, 1)
+solid = false
+
+[node name="Trim6" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=767096331]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.47, 4.45, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 5.9, 18)
+color = Color(0.55, 0.62, 0.58, 1)
+solid = false
+
+[node name="Trim7" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1041610303]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.03, 4.45, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 5.9, 18)
+color = Color(0.55, 0.62, 0.58, 1)
+solid = false
+
+[node name="Trim8" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=468089193]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.8, 8.01, 5.7)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.9, 0.05, 0.15)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim9" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1100553421]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.8, 8.01, 7.2999997)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.9, 0.05, 0.15)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim10" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=236643616]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.6, 8.01, 6.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.15, 0.05, 1.6)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Ladder1" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=919757520]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -44, 1.5, 6.5)
+script = ExtResource("8_60euv")
+height = 7.699999999999999
+top_throw = Vector3(0, 3, -3)
+
+[node name="Trim11" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1281849581]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.8, 8.01, -7.3)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.9, 0.05, 0.15)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim12" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1529603053]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.8, 8.01, -5.7000003)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.9, 0.05, 0.15)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim13" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1104257296]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.6, 8.01, -6.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.15, 0.05, 1.6)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Ladder2" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=584816060]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -44, 1.5, -6.5)
+script = ExtResource("8_60euv")
+height = 7.699999999999999
+top_throw = Vector3(0, 3, -3)
+
+[node name="Trim14" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1005622034]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 7.28, -4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.2, 0.16, 0.3)
+color = Color(0.2, 0.2, 0.22, 1)
+solid = false
+
+[node name="Trim15" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=515929993]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 7.16, -4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(1, 0.1, 0.18)
+color = Color(1, 1, 1, 1)
+emission = 3.0
+solid = false
+
+[node name="Trim16" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1435387740]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 7.28, 4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.2, 0.16, 0.3)
+color = Color(0.2, 0.2, 0.22, 1)
+solid = false
+
+[node name="Trim17" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1413266863]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 7.16, 4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(1, 0.1, 0.18)
+color = Color(1, 1, 1, 1)
+emission = 3.0
+solid = false
+
+[node name="Light1" type="OmniLight3D" parent="MVBadDecisions/EngineRoom" unique_id=1406551181]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 6.9, 0)
+light_color = Color(1, 0.88, 0.68, 1)
+light_energy = 5.0
+omni_range = 8.0
+omni_attenuation = 0.6
+
+[node name="Trim18" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=675706175]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 7.28, -4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.2, 0.16, 0.3)
+color = Color(0.2, 0.2, 0.22, 1)
+solid = false
+
+[node name="Trim19" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=630451492]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 7.16, -4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(1, 0.1, 0.18)
+color = Color(1, 1, 1, 1)
+emission = 3.0
+solid = false
+
+[node name="Trim20" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=656236159]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 7.28, 4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.2, 0.16, 0.3)
+color = Color(0.2, 0.2, 0.22, 1)
+solid = false
+
+[node name="Trim21" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=762149793]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 7.16, 4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(1, 0.1, 0.18)
+color = Color(1, 1, 1, 1)
+emission = 3.0
+solid = false
+
+[node name="Light2" type="OmniLight3D" parent="MVBadDecisions/EngineRoom" unique_id=1606818585]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 6.9, 0)
+light_color = Color(1, 0.88, 0.68, 1)
+light_energy = 5.0
+omni_range = 8.0
+omni_attenuation = 0.6
+
+[node name="Trim22" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=385740624]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 7.28, -4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.2, 0.16, 0.3)
+color = Color(0.2, 0.2, 0.22, 1)
+solid = false
+
+[node name="Trim23" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1680206451]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 7.16, -4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(1, 0.1, 0.18)
+color = Color(1, 1, 1, 1)
+emission = 3.0
+solid = false
+
+[node name="Trim24" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1062308860]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 7.28, 4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.2, 0.16, 0.3)
+color = Color(0.2, 0.2, 0.22, 1)
+solid = false
+
+[node name="Trim25" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1196808001]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 7.16, 4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(1, 0.1, 0.18)
+color = Color(1, 1, 1, 1)
+emission = 3.0
+solid = false
+
+[node name="Light3" type="OmniLight3D" parent="MVBadDecisions/EngineRoom" unique_id=1586256187]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 6.9, 0)
+light_color = Color(1, 0.88, 0.68, 1)
+light_energy = 5.0
+omni_range = 8.0
+omni_attenuation = 0.6
+
+[node name="Machine1" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=122868355]
+transform = Transform3D(1.8, 0, 0, 0, 1.8, 0, 0, 0, 1.8, -54.5, 1.5, 0)
+script = ExtResource("11_1cs1m")
+kind = "engine"
+solid = false
+volume_db = 6.0
+reach = 34.0
+breakable = true
+repair_time = 30.0
+
+[node name="Bulk1" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=175916468]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.5, 2.8, 0)
+visible = false
+script = ExtResource("3_uoyjr")
+size = Vector3(5.8, 2.6, 2.9)
+
+[node name="Machine2" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=955872418]
+transform = Transform3D(-5.2453668e-08, 0, 1.2, 0, 1.2, 0, -1.2, 0, -5.2453668e-08, -61, 1.5, -5)
+script = ExtResource("11_1cs1m")
+solid = false
+pitch = 0.85
+breakable = true
+
+[node name="Bulk2" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1603685173]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61, 2.16, -5)
+visible = false
+script = ExtResource("3_uoyjr")
+size = Vector3(1.25, 1.32, 2.1)
+
+[node name="Machine3" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=675870481]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.5, 1.5, -8)
+script = ExtResource("11_1cs1m")
+kind = "pump"
+solid = false
+pitch = 0.8
+one_shot_sounds = Array[String](["creak"])
+
+[node name="Bulk3" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=72715228]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.5, 2.25, -8)
+visible = false
+script = ExtResource("3_uoyjr")
+size = Vector3(1, 1.5, 1)
+
+[node name="Machine4" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=712986647]
+transform = Transform3D(-6.9938224e-08, 0, 1.6, 0, 1.6, 0, -1.6, 0, -6.9938224e-08, -57, 1.5, -8.5)
+script = ExtResource("11_1cs1m")
+kind = "pipes"
+solid = false
+volume_db = -8.0
+reach = 10.0
+
+[node name="Machine5" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=484004965]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.5, 5.5, -8.7)
+script = ExtResource("11_1cs1m")
+kind = "fan"
+solid = false
+volume_db = -6.0
+reach = 12.0
+
+[node name="Machine6" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=885604430]
+transform = Transform3D(-5.2453668e-08, 0, 1.2, 0, 1.2, 0, -1.2, 0, -5.2453668e-08, -61, 1.5, 5)
+script = ExtResource("11_1cs1m")
+solid = false
+pitch = 0.9500000000000001
+breakable = true
+
+[node name="Bulk4" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1812926618]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61, 2.16, 5)
+visible = false
+script = ExtResource("3_uoyjr")
+size = Vector3(1.25, 1.32, 2.1)
+
+[node name="Machine7" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=1351090407]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.5, 1.5, 8)
+script = ExtResource("11_1cs1m")
+kind = "pump"
+solid = false
+pitch = 0.8
+one_shot_sounds = Array[String](["creak"])
+
+[node name="Bulk5" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=1552999531]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.5, 2.25, 8)
+visible = false
+script = ExtResource("3_uoyjr")
+size = Vector3(1, 1.5, 1)
+
+[node name="Machine8" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=351125569]
+transform = Transform3D(-6.9938224e-08, 0, 1.6, 0, 1.6, 0, -1.6, 0, -6.9938224e-08, -57, 1.5, 8.5)
+script = ExtResource("11_1cs1m")
+kind = "pipes"
+solid = false
+volume_db = -8.0
+reach = 10.0
+
+[node name="Machine9" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=856134626]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -51.5, 5.5, 8.7)
+script = ExtResource("11_1cs1m")
+kind = "fan"
+solid = false
+volume_db = -6.0
+reach = 12.0
+
+[node name="Machine10" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=2079538440]
+transform = Transform3D(0.6, 0, 0, 0, 2, 0, 0, 0, 3.2, -63.2, 1.5, 0)
+script = ExtResource("11_1cs1m")
+kind = "box"
+solid = false
+sound = "buzz"
+volume_db = -4.0
+reach = 10.0
+effect = "sparks"
+effect_rate = 0.5
+light_color = Color(1, 0.3, 0.2, 1)
+light_energy = 0.8
+light_pulse = 1.2
+breakable = true
+hazard = "electric"
+hazard_radius = 0.9
+
+[node name="Bulk6" type="StaticBody3D" parent="MVBadDecisions/EngineRoom" unique_id=462388118]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.2, 2.5, 0)
+visible = false
+script = ExtResource("3_uoyjr")
+size = Vector3(0.6, 2, 3.2)
+
+[node name="Machine11" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=2117855401]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -63.2, 3.5, 1)
+script = ExtResource("11_1cs1m")
+kind = "radio"
+solid = false
+volume_db = -8.0
+reach = 8.0
+
+[node name="Machine12" type="Node3D" parent="MVBadDecisions/EngineRoom" unique_id=571947964]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -46.5, 1.5, -8.6)
+script = ExtResource("11_1cs1m")
+kind = "pipes"
+solid = false
+volume_db = -4.0
+reach = 9.0
+effect_rate = 1.6
+hazard = "hot"
+hazard_radius = 0.7
+
+[node name="Containers" type="Node3D" parent="MVBadDecisions" unique_id=524039605]
+
+[node name="Container1" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1553450684]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -35.9, 8, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.78, 0.16, 0.12, 1)
+
+[node name="Container2" type="Node3D" parent="MVBadDecisions/Containers" unique_id=140154551]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -35.9, 10.599999, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.1, 0.55, 0.6, 1)
+
+[node name="Container3" type="Node3D" parent="MVBadDecisions/Containers" unique_id=938946748]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.9, 13.2, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container4" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1512918362]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -35.9, 8, -8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container5" type="Node3D" parent="MVBadDecisions/Containers" unique_id=475840874]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -35.9, 8, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container6" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1531437176]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -35.9, 10.599999, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container7" type="Node3D" parent="MVBadDecisions/Containers" unique_id=2085296002]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.9, 13.2, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container8" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1560419551]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.9, 8, -3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container9" type="Node3D" parent="MVBadDecisions/Containers" unique_id=33134479]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.9, 8, 3.75)
+script = ExtResource("12_b4v17")
+
+[node name="Container10" type="Node3D" parent="MVBadDecisions/Containers" unique_id=83684394]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -35.9, 10.599999, 3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container11" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1391208842]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -35.9, 8, 6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container12" type="Node3D" parent="MVBadDecisions/Containers" unique_id=516140464]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.9, 10.599999, 6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+lashed = true
+
+[node name="OpenContainer1" type="Node3D" parent="MVBadDecisions/Containers" unique_id=850649093]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.9, 8, 8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.1, 0.55, 0.6, 1)
+open = true
+doors_aft = true
+pickup = true
+
+[node name="Container13" type="Node3D" parent="MVBadDecisions/Containers" unique_id=194813550]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.9, 8, 11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.55, 0.1, 1)
+
+[node name="Container14" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1062045548]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -20.7, 8, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container15" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1333146120]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -20.7, 10.599999, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.55, 0.1, 1)
+
+[node name="Container16" type="Node3D" parent="MVBadDecisions/Containers" unique_id=78367617]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.7, 8, -8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container17" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1400068765]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.7, 10.599999, -8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container18" type="Node3D" parent="MVBadDecisions/Containers" unique_id=2100867009]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -20.7, 8, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container19" type="Node3D" parent="MVBadDecisions/Containers" unique_id=360749956]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.7, 8, -3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.1, 0.55, 0.6, 1)
+
+[node name="Container20" type="Node3D" parent="MVBadDecisions/Containers" unique_id=632430055]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -20.7, 10.599999, -3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.1, 0.55, 0.6, 1)
+lashed = true
+
+[node name="Container21" type="Node3D" parent="MVBadDecisions/Containers" unique_id=158218861]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.7, 8, 1.25)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container22" type="Node3D" parent="MVBadDecisions/Containers" unique_id=992159710]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -20.7, 10.599999, 1.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.55, 0.1, 1)
+lashed = true
+
+[node name="Container23" type="Node3D" parent="MVBadDecisions/Containers" unique_id=562204846]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.7, 8, 3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container24" type="Node3D" parent="MVBadDecisions/Containers" unique_id=987023034]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.7, 10.599999, 3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.55, 0.1, 1)
+
+[node name="Container25" type="Node3D" parent="MVBadDecisions/Containers" unique_id=525529560]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -20.7, 8, 6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.1, 0.55, 0.6, 1)
+
+[node name="Container26" type="Node3D" parent="MVBadDecisions/Containers" unique_id=541794856]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -20.7, 10.599999, 6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+lashed = true
+
+[node name="Container27" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1772809188]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -20.7, 8, 8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container28" type="Node3D" parent="MVBadDecisions/Containers" unique_id=2079631280]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.7, 10.599999, 8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container29" type="Node3D" parent="MVBadDecisions/Containers" unique_id=363299106]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.7, 8, 11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.78, 0.16, 0.12, 1)
+
+[node name="Container30" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1131097055]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -20.7, 10.599999, 11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+lashed = true
+
+[node name="Block1" type="StaticBody3D" parent="MVBadDecisions/Containers" unique_id=1822924697]
+transform = Transform3D(0.77611405, -0.6305926, 0, 0.6305926, 0.77611405, 0, 0, 0, 1, -27.842352, 9.105971, 13)
+script = ExtResource("3_uoyjr")
+size = Vector3(4.1231065, 0.5, 2.6)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Container31" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1149765095]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 8, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="OpenContainer2" type="Node3D" parent="MVBadDecisions/Containers" unique_id=757096501]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 8, -8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.62, 0.22, 0.45, 1)
+open = true
+doors_aft = true
+pickup = true
+
+[node name="Container32" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1237681257]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 8, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.62, 0.22, 0.45, 1)
+
+[node name="Container33" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1391623775]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 10.599999, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container34" type="Node3D" parent="MVBadDecisions/Containers" unique_id=2075102007]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 13.2, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.62, 0.22, 0.45, 1)
+
+[node name="Container35" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1314506]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -5.5, 8, -3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.62, 0.22, 0.45, 1)
+
+[node name="Container36" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1673954416]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 10.599999, -3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container37" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1295016667]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -5.5, 13.2, -3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container38" type="Node3D" parent="MVBadDecisions/Containers" unique_id=961410938]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -5.5, 8, 3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container39" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1573360682]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -5.5, 8, 6.25)
+script = ExtResource("12_b4v17")
+
+[node name="Container40" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1179425331]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 10.599999, 6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container41" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1483926240]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -5.5, 13.2, 6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container42" type="Node3D" parent="MVBadDecisions/Containers" unique_id=961888771]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -5.5, 8, 8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.1, 0.55, 0.6, 1)
+
+[node name="Container43" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1395628467]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 8, 11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container44" type="Node3D" parent="MVBadDecisions/Containers" unique_id=139111169]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -5.5, 10.599999, 11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container45" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1645756745]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 8, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.78, 0.16, 0.12, 1)
+
+[node name="Container46" type="Node3D" parent="MVBadDecisions/Containers" unique_id=124194436]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 9.7, 10.599999, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+lashed = true
+
+[node name="Container47" type="Node3D" parent="MVBadDecisions/Containers" unique_id=3859561]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 8, -8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.78, 0.16, 0.12, 1)
+
+[node name="Container48" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1814186342]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 10.599999, -8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.78, 0.16, 0.12, 1)
+
+[node name="Container49" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1992115434]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 13.2, -8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container50" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1887595987]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 8, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.1, 0.55, 0.6, 1)
+
+[node name="Container51" type="Node3D" parent="MVBadDecisions/Containers" unique_id=639086917]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 9.7, 10.599999, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container52" type="Node3D" parent="MVBadDecisions/Containers" unique_id=790967837]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 13.2, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.62, 0.22, 0.45, 1)
+lashed = true
+
+[node name="OpenContainer3" type="Node3D" parent="MVBadDecisions/Containers" unique_id=81053881]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 8, -3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.55, 0.1, 1)
+open = true
+
+[node name="Container53" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1508142007]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 8, -1.25)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container54" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1531751044]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 9.7, 8, 1.25)
+script = ExtResource("12_b4v17")
+color = Color(0.78, 0.16, 0.12, 1)
+
+[node name="OpenContainer4" type="Node3D" parent="MVBadDecisions/Containers" unique_id=396064509]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 8, 3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.1, 0.55, 0.6, 1)
+open = true
+
+[node name="Container55" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1233578573]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 8, 6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.62, 0.22, 0.45, 1)
+
+[node name="Container56" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1679295421]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 8, 8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container57" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1486641127]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 9.7, 10.599999, 8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.1, 0.55, 0.6, 1)
+
+[node name="Container58" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1108552775]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 9.7, 13.2, 8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.62, 0.22, 0.45, 1)
+
+[node name="Container59" type="Node3D" parent="MVBadDecisions/Containers" unique_id=865692329]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 9.7, 8, 11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container60" type="Node3D" parent="MVBadDecisions/Containers" unique_id=440054122]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 10.599999, 11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Block2" type="StaticBody3D" parent="MVBadDecisions/Containers" unique_id=1656981670]
+transform = Transform3D(0.7761139, -0.6305927, 0, 0.63059264, 0.776114, 0, 0, 0, 1, 2.5576482, 9.105971, 13)
+script = ExtResource("3_uoyjr")
+size = Vector3(4.123106, 0.5, 2.6)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Container61" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1135299145]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.9, 8, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.1, 0.55, 0.6, 1)
+
+[node name="Container62" type="Node3D" parent="MVBadDecisions/Containers" unique_id=298390721]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 24.9, 10.599999, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+lashed = true
+
+[node name="Container63" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1225288427]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 24.9, 8, -8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.1, 0.55, 0.6, 1)
+
+[node name="Container64" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1528371768]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.9, 10.599999, -8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container65" type="Node3D" parent="MVBadDecisions/Containers" unique_id=298079300]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.9, 8, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container66" type="Node3D" parent="MVBadDecisions/Containers" unique_id=59286379]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 24.9, 10.599999, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.78, 0.16, 0.12, 1)
+
+[node name="Container67" type="Node3D" parent="MVBadDecisions/Containers" unique_id=889595225]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.9, 8, -3.75)
+script = ExtResource("12_b4v17")
+
+[node name="Container68" type="Node3D" parent="MVBadDecisions/Containers" unique_id=735948152]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.9, 8, 6.25)
+script = ExtResource("12_b4v17")
+
+[node name="Container69" type="Node3D" parent="MVBadDecisions/Containers" unique_id=729094490]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 24.9, 10.599999, 6.25)
+script = ExtResource("12_b4v17")
+
+[node name="Container70" type="Node3D" parent="MVBadDecisions/Containers" unique_id=938872678]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 24.9, 8, 8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container71" type="Node3D" parent="MVBadDecisions/Containers" unique_id=397730562]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 24.9, 8, 11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container72" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1593181081]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 24.9, 10.599999, 11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container73" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1427217699]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.1, 8, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container74" type="Node3D" parent="MVBadDecisions/Containers" unique_id=580028014]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 40.1, 10.599999, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.55, 0.1, 1)
+
+[node name="Container75" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1567360400]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.1, 13.2, -11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container76" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1616600719]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 40.1, 8, -8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.1, 0.55, 0.6, 1)
+
+[node name="Container77" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1593267723]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.1, 10.599999, -8.75)
+script = ExtResource("12_b4v17")
+
+[node name="Container78" type="Node3D" parent="MVBadDecisions/Containers" unique_id=835919873]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.1, 8, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.62, 0.22, 0.45, 1)
+
+[node name="Container79" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1128921628]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.1, 10.599999, -6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.62, 0.22, 0.45, 1)
+
+[node name="Container80" type="Node3D" parent="MVBadDecisions/Containers" unique_id=319175398]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 40.1, 8, -3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container81" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1015415826]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 40.1, 8, -1.25)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.8, 0.15, 1)
+
+[node name="Container82" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1297586738]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 40.1, 10.599999, -1.25)
+script = ExtResource("12_b4v17")
+color = Color(0.62, 0.22, 0.45, 1)
+
+[node name="Container83" type="Node3D" parent="MVBadDecisions/Containers" unique_id=950781658]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 40.1, 8, 1.25)
+script = ExtResource("12_b4v17")
+color = Color(0.78, 0.16, 0.12, 1)
+
+[node name="Container84" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1284267361]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.1, 8, 3.75)
+script = ExtResource("12_b4v17")
+color = Color(0.62, 0.22, 0.45, 1)
+
+[node name="Container85" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1045162671]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.1, 8, 6.25)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container86" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1947917763]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.1, 8, 8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.62, 0.22, 0.45, 1)
+
+[node name="Container87" type="Node3D" parent="MVBadDecisions/Containers" unique_id=139964601]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 40.1, 10.599999, 8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.55, 0.58, 0.62, 1)
+
+[node name="Container88" type="Node3D" parent="MVBadDecisions/Containers" unique_id=96102346]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.1, 13.2, 8.75)
+script = ExtResource("12_b4v17")
+color = Color(0.95, 0.55, 0.1, 1)
+
+[node name="Container89" type="Node3D" parent="MVBadDecisions/Containers" unique_id=57701205]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 40.1, 8, 11.25)
+script = ExtResource("12_b4v17")
+color = Color(0.2, 0.58, 0.3, 1)
+
+[node name="Container90" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1791893598]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.1, 10.599999, 11.25)
+script = ExtResource("12_b4v17")
+
+[node name="Block3" type="StaticBody3D" parent="MVBadDecisions/Containers" unique_id=2033188203]
+transform = Transform3D(0.77611405, -0.6305926, 0, 0.6305926, 0.77611405, 0, 0, 0, 1, 32.957653, 9.105971, 13)
+script = ExtResource("3_uoyjr")
+size = Vector3(4.1231065, 0.5, 2.6)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="JumpPad1" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1045098908]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.3, 8, 6)
+script = ExtResource("5_8kic3")
+velocity_override = Vector3(0, 14, -1.2)
+
+[node name="JumpPad2" type="Node3D" parent="MVBadDecisions/Containers" unique_id=941933558]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.1, 8, -6)
+script = ExtResource("5_8kic3")
+velocity_override = Vector3(0, 14, 1.2)
+
+[node name="JumpPad3" type="Node3D" parent="MVBadDecisions/Containers" unique_id=958192076]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 8, 6)
+script = ExtResource("5_8kic3")
+velocity_override = Vector3(0, 14, -1.2)
+
+[node name="JumpPad4" type="Node3D" parent="MVBadDecisions/Containers" unique_id=100779859]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.3, 8, -6)
+script = ExtResource("5_8kic3")
+velocity_override = Vector3(0, 14, 1.2)
+
+[node name="JumpPad5" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1281728434]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.5, 8, 6)
+script = ExtResource("5_8kic3")
+velocity_override = Vector3(0, 14, -1.2)
+
+[node name="JumpPad6" type="Node3D" parent="MVBadDecisions/Containers" unique_id=1032890380]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.7, 8, -6)
+script = ExtResource("5_8kic3")
+velocity_override = Vector3(0, 14, 1.2)
+
+[node name="LashingBridges" type="Node3D" parent="MVBadDecisions" unique_id=1796270758]
+
+[node name="Block1" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1713467169]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.3, 13.05, -4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.8, 0.3, 16.9)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Trim1" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=308232428]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.15, 13.7, -4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 16.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim2" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1688672289]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.45, 13.7, -4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 16.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Block2" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1977847509]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.3, 13.05, 10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.8, 0.3, 4.9)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Trim3" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=870134823]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.15, 13.7, 10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 4.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim4" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1370994667]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.45, 13.7, 10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 4.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Ladder1" type="Node3D" parent="MVBadDecisions/LashingBridges" unique_id=1867557985]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -28.3, 8, -13.1)
+script = ExtResource("8_60euv")
+height = 6.399999809265136
+top_throw = Vector3(0, 2, -5)
+
+[node name="Block3" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1249768395]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.1, 13.05, -10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.8, 0.3, 4.9)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Trim5" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=843742780]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.95, 13.7, -10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 4.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim6" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1560727707]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.25, 13.7, -10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 4.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Block4" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=105891536]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.1, 13.05, 4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.8, 0.3, 16.9)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Trim7" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=383634722]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.95, 13.7, 4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 16.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim8" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1862991620]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.25, 13.7, 4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 16.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Ladder2" type="Node3D" parent="MVBadDecisions/LashingBridges" unique_id=890390071]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -13.1, 8, -13.1)
+script = ExtResource("8_60euv")
+height = 6.399999809265136
+top_throw = Vector3(0, 2, -5)
+
+[node name="Ladder3" type="Node3D" parent="MVBadDecisions/LashingBridges" unique_id=197988536]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.1, 8, 13.1)
+script = ExtResource("8_60euv")
+height = 6.399999809265136
+top_throw = Vector3(0, 2, -5)
+
+[node name="Block5" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1974779438]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 13.05, -4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.8, 0.3, 16.9)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Trim9" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1006243585]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.25, 13.7, -4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 16.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim10" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1208261589]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.95, 13.7, -4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 16.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Block6" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=643435591]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 13.05, 10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.8, 0.3, 4.9)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Trim11" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1324756174]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.25, 13.7, 10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 4.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim12" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1001872809]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.95, 13.7, 10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 4.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Ladder4" type="Node3D" parent="MVBadDecisions/LashingBridges" unique_id=455197376]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 2.1, 8, -13.1)
+script = ExtResource("8_60euv")
+height = 6.399999809265136
+top_throw = Vector3(0, 2, -5)
+
+[node name="Block7" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=2035354887]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.3, 13.05, -10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.8, 0.3, 4.9)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Trim13" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1882948076]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.45, 13.7, -10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 4.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim14" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=475451201]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.15, 13.7, -10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 4.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Block8" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=393770145]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.3, 13.05, 4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.8, 0.3, 16.9)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Trim15" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=257846567]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.45, 13.7, 4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 16.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim16" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1310864591]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.15, 13.7, 4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 16.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Ladder5" type="Node3D" parent="MVBadDecisions/LashingBridges" unique_id=498869073]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 17.3, 8, -13.1)
+script = ExtResource("8_60euv")
+height = 6.399999809265136
+top_throw = Vector3(0, 2, -5)
+
+[node name="Ladder6" type="Node3D" parent="MVBadDecisions/LashingBridges" unique_id=1034869015]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.3, 8, 13.1)
+script = ExtResource("8_60euv")
+height = 6.399999809265136
+top_throw = Vector3(0, 2, -5)
+
+[node name="Block9" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=190860991]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.5, 13.05, -4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.8, 0.3, 16.9)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Trim17" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=817304676]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.65, 13.7, -4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 16.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim18" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1831250605]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 13.7, -4.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 16.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Block10" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=789850687]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.5, 13.05, 10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(1.8, 0.3, 4.9)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Trim19" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=2121831631]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.65, 13.7, 10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 4.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Trim20" type="StaticBody3D" parent="MVBadDecisions/LashingBridges" unique_id=1276995374]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 13.7, 10.15)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.06, 1, 4.9)
+color = Color(0.95, 0.75, 0.15, 1)
+solid = false
+
+[node name="Ladder7" type="Node3D" parent="MVBadDecisions/LashingBridges" unique_id=2138612071]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 32.5, 8, -13.1)
+script = ExtResource("8_60euv")
+height = 6.399999809265136
+top_throw = Vector3(0, 2, -5)
+
+[node name="Crane" type="Node3D" parent="MVBadDecisions" unique_id=1079153968]
+
+[node name="Crane1" type="Node3D" parent="MVBadDecisions/Crane" unique_id=1023766891]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.5, 8, 0)
+script = ExtResource("13_sm1rt")
+sweep = 68.75493541569878
+
+[node name="Machine1" type="Node3D" parent="MVBadDecisions/Crane" unique_id=1413213331]
+transform = Transform3D(2.6, 0, 0, 0, 1.6, 0, 0, 0, 2.4, 49.3, 18.4, 0)
+script = ExtResource("11_1cs1m")
+kind = "box"
+solid = false
+sound = "engine"
+volume_db = -6.0
+reach = 24.0
+pitch = 1.6
+one_shot_sounds = Array[String](["creak", "metal"])
+one_shot_every = Vector2(3, 8)
+
+[node name="Bow" type="Node3D" parent="MVBadDecisions" unique_id=230704209]
+
+[node name="HullEnd1" type="CSGPolygon3D" parent="MVBadDecisions/Bow" unique_id=946947008]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, -9, 0)
+use_collision = true
+polygon = PackedVector2Array(60, -16, 68, -13, 75, -7, 78, 0, 75, 7, 68, 13, 60, 16)
+depth = 19.4
+material = SubResource("ShaderMaterial_6ycq1")
+
+[node name="Block1" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=1131232098]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69, 10.45, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(16, 0.1, 22)
+color = Color(0.36, 0.48, 0.44, 1)
+
+[node name="Block2" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=493351616]
+transform = Transform3D(0.9363292, 0, -0.35112345, 0, 1, 0, 0.35112345, 0, 0.9363292, 64, 11.05, -14.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(8.5440035, 1.1, 0.4)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Block3" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=1875026081]
+transform = Transform3D(0.7592566, 0, -0.65079135, 0, 1, 0, 0.65079135, 0, 0.7592566, 71.5, 11.05, -10)
+script = ExtResource("3_uoyjr")
+size = Vector3(9.219544, 1.1, 0.4)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Block4" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=543685760]
+transform = Transform3D(0.39391932, 0, -0.91914505, 0, 1, 0, 0.91914505, 0, 0.39391932, 76.5, 11.05, -3.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(7.615773, 1.1, 0.4)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Block5" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=1958022856]
+transform = Transform3D(-0.3939193, 0, -0.91914505, 0, 1, 0, 0.91914505, 0, -0.3939193, 76.5, 11.05, 3.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(7.615773, 1.1, 0.4)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Block6" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=1546851396]
+transform = Transform3D(-0.75925666, 0, -0.6507913, 0, 1, 0, 0.6507913, 0, -0.75925666, 71.5, 11.05, 10)
+script = ExtResource("3_uoyjr")
+size = Vector3(9.219544, 1.1, 0.4)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Block7" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=1866563853]
+transform = Transform3D(-0.9363291, 0, -0.3511235, 0, 1, 0, 0.3511235, 0, -0.9363291, 64, 11.05, 14.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(8.5440035, 1.1, 0.4)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Block8" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=610919659]
+transform = Transform3D(0.95448, -0.298275, 0, 0.298275, 0.95448, 0, 0, 0, 1, 56.07457, 9.01138, -9.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(8.381527, 0.5, 4)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Block9" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=1848533719]
+transform = Transform3D(0.95448, -0.298275, 0, 0.298275, 0.95448, 0, 0, 0, 1, 56.07457, 9.01138, 9.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(8.381527, 0.5, 4)
+color = Color(0.5, 0.56, 0.64, 1)
+
+[node name="Block10" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=1494984035]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 11.3, -4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(2.4, 1.6, 1.8)
+color = Color(0.3, 0.32, 0.36, 1)
+
+[node name="Block11" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=78231406]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 11.5, -3.2)
+script = ExtResource("3_uoyjr")
+size = Vector3(1, 1, 1)
+color = Color(0.62, 0.12, 0.1, 1)
+
+[node name="Block12" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=637919775]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 11.3, 4.5)
+script = ExtResource("3_uoyjr")
+size = Vector3(2.4, 1.6, 1.8)
+color = Color(0.3, 0.32, 0.36, 1)
+
+[node name="Block13" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=1225586271]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 11.5, 3.2)
+script = ExtResource("3_uoyjr")
+size = Vector3(1, 1, 1)
+color = Color(0.62, 0.12, 0.1, 1)
+
+[node name="Block14" type="StaticBody3D" parent="MVBadDecisions/Bow" unique_id=1632483939]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 16.5, 0)
+script = ExtResource("3_uoyjr")
+size = Vector3(0.6, 12, 0.6)
+color = Color(0.92, 0.93, 0.95, 1)
+
+[node name="Light1" type="OmniLight3D" parent="MVBadDecisions/Bow" unique_id=2113604786]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64, 22.7, 0)
+light_color = Color(1, 0.95, 0.8, 1)
+light_energy = 1.5
+omni_range = 18.0
+
+[node name="HullLadders" type="Node3D" parent="MVBadDecisions" unique_id=45091467]
+
+[node name="Ladder1" type="Node3D" parent="MVBadDecisions/HullLadders" unique_id=430821128]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -40, -1.8, -16.02)
+script = ExtResource("8_60euv")
+height = 11.599999952316285
+top_throw = Vector3(0, 3, -6)
+
+[node name="Ladder2" type="Node3D" parent="MVBadDecisions/HullLadders" unique_id=1551279121]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, -1.8, 16.02)
+script = ExtResource("8_60euv")
+height = 11.599999952316285
+top_throw = Vector3(0, 3, -6)
+
+[node name="Ladder3" type="Node3D" parent="MVBadDecisions/HullLadders" unique_id=1120156486]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -10, -1.8, -16.02)
+script = ExtResource("8_60euv")
+height = 11.599999952316285
+top_throw = Vector3(0, 3, -6)
+
+[node name="Ladder4" type="Node3D" parent="MVBadDecisions/HullLadders" unique_id=801379435]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, -1.8, 16.02)
+script = ExtResource("8_60euv")
+height = 11.599999952316285
+top_throw = Vector3(0, 3, -6)
+
+[node name="Ladder5" type="Node3D" parent="MVBadDecisions/HullLadders" unique_id=1260352632]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 20, -1.8, -16.02)
+script = ExtResource("8_60euv")
+height = 11.599999952316285
+top_throw = Vector3(0, 3, -6)
+
+[node name="Ladder6" type="Node3D" parent="MVBadDecisions/HullLadders" unique_id=503696381]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, -1.8, 16.02)
+script = ExtResource("8_60euv")
+height = 11.599999952316285
+top_throw = Vector3(0, 3, -6)
+
+[node name="Ladder7" type="Node3D" parent="MVBadDecisions/HullLadders" unique_id=826495286]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 46, -1.8, -16.02)
+script = ExtResource("8_60euv")
+height = 11.599999952316285
+top_throw = Vector3(0, 3, -6)
+
+[node name="Ladder8" type="Node3D" parent="MVBadDecisions/HullLadders" unique_id=183614987]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, -1.8, 16.02)
+script = ExtResource("8_60euv")
+height = 11.599999952316285
+top_throw = Vector3(0, 3, -6)
+
+[node name="Ladder9" type="Node3D" parent="MVBadDecisions/HullLadders" unique_id=513612624]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -72.02, -1.8, 0)
+script = ExtResource("8_60euv")
+height = 11.599999952316285
+top_throw = Vector3(0, 3, -6)
+
+[node name="Spawns" type="Node3D" parent="MVBadDecisions" unique_id=1578574549]
+
+[node name="Spawn1" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=1793333306]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33, 8, -14)
+script = ExtResource("14_lhilh")
+
+[node name="Spawn2" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=968971431]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33, 8, 14)
+script = ExtResource("14_lhilh")
+
+[node name="Spawn3" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=627224224]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 8, -14)
+script = ExtResource("14_lhilh")
+
+[node name="Spawn4" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=1199140900]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 8, 14)
+script = ExtResource("14_lhilh")
+
+[node name="Spawn5" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=1773426560]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 8, -14)
+script = ExtResource("14_lhilh")
+
+[node name="Spawn6" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=1662429456]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 8, 14)
+script = ExtResource("14_lhilh")
+
+[node name="Spawn7" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=260212109]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 8, -14)
+script = ExtResource("14_lhilh")
+
+[node name="Spawn8" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=1480933129]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 8, 14)
+script = ExtResource("14_lhilh")
+
+[node name="Spawn9" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=574570761]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.5, 8, -14)
+script = ExtResource("14_lhilh")
+
+[node name="Spawn10" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=1083614432]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.5, 8, 14)
+script = ExtResource("14_lhilh")
+
+[node name="Spawn11" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=695994626]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 8, -14)
+script = ExtResource("14_lhilh")
+
+[node name="Spawn12" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=1724660949]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 8, 14)
+script = ExtResource("14_lhilh")
+
+[node name="SpawnRed1" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=895427197]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, 10.5, -6)
+script = ExtResource("14_lhilh")
+team = 1
+
+[node name="SpawnRed2" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=1044242214]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, 10.5, -2)
+script = ExtResource("14_lhilh")
+team = 1
+
+[node name="SpawnRed3" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=1121257557]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, 10.5, 2)
+script = ExtResource("14_lhilh")
+team = 1
+
+[node name="SpawnRed4" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=1153716774]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66, 10.5, 6)
+script = ExtResource("14_lhilh")
+team = 1
+
+[node name="SpawnRed5" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=382533633]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72, 10.5, 0)
+script = ExtResource("14_lhilh")
+team = 1
+
+[node name="SpawnBlue1" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=117533404]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 8, -9)
+script = ExtResource("14_lhilh")
+team = 2
+
+[node name="SpawnBlue2" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=87395988]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 8, -4)
+script = ExtResource("14_lhilh")
+team = 2
+
+[node name="SpawnBlue3" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=636489250]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 8, 4)
+script = ExtResource("14_lhilh")
+team = 2
+
+[node name="SpawnBlue4" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=1132090219]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.5, 8, 9)
+script = ExtResource("14_lhilh")
+team = 2
+
+[node name="SpawnBlue5" type="Node3D" parent="MVBadDecisions/Spawns" unique_id=1579611851]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.75, 14, 4)
+script = ExtResource("14_lhilh")
+team = 2
+
+[node name="Cargo" type="Node3D" parent="MVBadDecisions" unique_id=8540332]
+
+[node name="Cargo1" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=809962338]
+transform = Transform3D(0.9884354, -0.15164258, 6.6285075e-09, 0, -4.371139e-08, -1, 0.15164258, 0.9884354, -4.3205883e-08, -26, 8.5, -13.5)
+script = ExtResource("15_g5h8s")
+kind = "barrel"
+
+[node name="Cargo2" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=236730033]
+transform = Transform3D(0.9900999, -0.14036447, 6.135526e-09, 0, -4.371139e-08, -1, 0.14036447, 0.9900999, -4.3278643e-08, -24.5, 8.5, -13.5)
+script = ExtResource("15_g5h8s")
+kind = "barrel"
+
+[node name="Cargo3" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=1652187902]
+transform = Transform3D(0.9985863, 0.05315493, -2.3234759e-09, 0, -4.371139e-08, -1, -0.05315493, 0.9985863, -4.3649592e-08, 6, 8.5, 13.5)
+script = ExtResource("15_g5h8s")
+kind = "barrel"
+
+[node name="Cargo4" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=1047828507]
+transform = Transform3D(0.9937538, 0, 0.11159497, 0, 1, 0, -0.11159497, 0, 0.9937538, 20, 8.7, -14)
+script = ExtResource("15_g5h8s")
+kind = "boom_barrel"
+
+[node name="Cargo5" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=853385092]
+transform = Transform3D(0.9945028, 0, -0.10471008, 0, 1, 0, 0.10471008, 0, 0.9945028, -12, 8.7, 14)
+script = ExtResource("15_g5h8s")
+kind = "boom_barrel"
+
+[node name="Cargo6" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=2075399612]
+transform = Transform3D(0.9990346, -0.043930367, 1.9202573e-09, 0, -4.371139e-08, -1, 0.043930367, 0.9990346, -4.366919e-08, 32, 8.5, 0)
+script = ExtResource("15_g5h8s")
+kind = "barrel"
+
+[node name="Cargo7" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=1112805607]
+transform = Transform3D(0.9852172, 0, -0.17130966, 0, 1, 0, 0.17130966, 0, 0.9852172, -30, 8.6, 14)
+script = ExtResource("15_g5h8s")
+
+[node name="Cargo8" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=1645617796]
+transform = Transform3D(0.9999984, 0, -0.0017913273, 0, 1, 0, 0.0017913273, 0, 0.9999984, -30, 9.6, 14)
+script = ExtResource("15_g5h8s")
+
+[node name="Cargo9" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=264543625]
+transform = Transform3D(0.9882317, 0, -0.1529644, 0, 1, 0, 0.1529644, 0, 0.9882317, 13, 8.6, -14.2)
+script = ExtResource("15_g5h8s")
+
+[node name="Cargo10" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=2070291226]
+transform = Transform3D(0.9998724, 0, 0.015976151, 0, 1, 0, -0.015976151, 0, 0.9998724, 46, 8.9, 13)
+script = ExtResource("15_g5h8s")
+kind = "crate_big"
+
+[node name="Cargo11" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=1961792660]
+transform = Transform3D(0.999053, 0, 0.04350941, 0, 1, 0, -0.04350941, 0, 0.999053, -6, 8.6, 0)
+script = ExtResource("15_g5h8s")
+
+[node name="Cargo12" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=815364748]
+transform = Transform3D(0.9865396, 0, 0.16352259, 0, 1, 0, -0.16352259, 0, 0.9865396, 25, 8.6, 0)
+script = ExtResource("15_g5h8s")
+
+[node name="Cargo13" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=2145704986]
+transform = Transform3D(0.9958966, 0, 0.090498574, 0, 1, 0, -0.090498574, 0, 0.9958966, 0, 8.5, -14)
+script = ExtResource("15_g5h8s")
+kind = "ball"
+
+[node name="Cargo14" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=1925929416]
+transform = Transform3D(0.9923507, 0, -0.123451, 0, 1, 0, 0.123451, 0, 0.9923507, 28, 8.5, 14)
+script = ExtResource("15_g5h8s")
+kind = "ball"
+
+[node name="Cargo15" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=1035798216]
+transform = Transform3D(0.9947643, 0, -0.10219547, 0, 1, 0, 0.10219547, 0, 0.9947643, -38, 8.6, 0)
+script = ExtResource("15_g5h8s")
+kind = "beachball"
+
+[node name="Cargo16" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=481662293]
+transform = Transform3D(0.98451906, 0, -0.1752775, 0, 1, 0, 0.1752775, 0, 0.98451906, 40, 8.4, -13.5)
+script = ExtResource("15_g5h8s")
+kind = "tire"
+
+[node name="Cargo17" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=206664947]
+transform = Transform3D(0.99167204, 0, 0.12878871, 0, 1, 0, -0.12878871, 0, 0.99167204, -18, 8.3, 13.8)
+script = ExtResource("15_g5h8s")
+kind = "plank"
+
+[node name="Cargo18" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=760846067]
+transform = Transform3D(0.99916935, 0, 0.04075054, 0, 1, 0, -0.04075054, 0, 0.99916935, 55, 8.3, -12)
+script = ExtResource("15_g5h8s")
+kind = "anvil"
+
+[node name="Cargo19" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=476393097]
+transform = Transform3D(0.9878004, 0, -0.15572529, 0, 1, 0, 0.15572529, 0, 0.9878004, -46, 14.6, -10)
+script = ExtResource("15_g5h8s")
+kind = "couch"
+
+[node name="Cargo20" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=1110218359]
+transform = Transform3D(0.9957162, 0, 0.09246191, 0, 1, 0, -0.09246191, 0, 0.9957162, 55, 8.4, 12)
+script = ExtResource("15_g5h8s")
+kind = "cone"
+
+[node name="Cargo21" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=1577537471]
+transform = Transform3D(0.9889904, 0, -0.14797942, 0, 1, 0, 0.14797942, 0, 0.9889904, 68, 11.1, 9)
+script = ExtResource("15_g5h8s")
+
+[node name="Cargo22" type="Node3D" parent="MVBadDecisions/Cargo" unique_id=789545306]
+transform = Transform3D(0.9982341, -0.059403118, 2.5965927e-09, 0, -4.371139e-08, -1, 0.059403118, 0.9982341, -4.36342e-08, 66, 11, -9)
+script = ExtResource("15_g5h8s")
+kind = "barrel"

@@ -15,8 +15,11 @@ the ship itself (a moving deck as a piece) and High Seas rebuilt as a scene.
 **The ship as a piece done** (2026-11-01): the Vessel (everything under it rides the swell;
 its blocks' collision becomes the ship's), Make Your Own Boat. **Ship plus dry land done**
 (2026-11-01): spawn points, props and flags on land or aboard (each knows which), the ship
-carries everything aboard when it jumps. Next: High Seas rebuilt as a scene; High Seas'
-washes and rogue waves for any Vessel.
+carries everything aboard when it jumps. **High Seas as a scene done** (2026-11-01):
+`maps/high_seas.tscn`, saved from its builder (which notes what it makes), with new pieces
+for it: ShipHold, CargoContainer, a block's Solid switch, a ladder's Top Throw, the Vessel's
+High Seas Weather, CSG solids on a ship. Every map is now a Map Kit scene. Next: High Seas'
+washes and rogue waves sized for any Vessel; breakable props.
 **Breakable models done** (2026-11-01, Tomek's ask): BreakableModel, a model breaking part by
 part (parts named for their material, `Fixed` parts that never break, procedural shards cut
 from each part's own shape, loose parts falling whole). Later: props that break into their
@@ -104,9 +107,9 @@ contacts, goal, volley net, the Heart, lights, machines (Fixture), trap spots: *
 | Spinners, ball spots | spinner: put your model under it; ball spot: invisible | nothing |
 | Fuse lines | the cord is drawn by the game | (a cord material, if wanted) |
 | Walls, floors (ArenaBlock), breakable walls (BreakableSlab) | Custom Material (textures): OK | |
-| Ship (rolls on the swell), the sea | done: Vessel, MapSettings Ocean (+ Swimmable) | High Seas itself as a scene |
+| Ship (rolls on the swell), the sea | done: Vessel, MapSettings Ocean (+ Swimmable); High Seas is a scene | |
 | Crane, horn, ladders | done (Phase 3): Crane, Horn, Ladder pieces | |
-| Cargo containers | High Seas code (the container prop is there) | stacks as pieces |
+| Cargo containers | done: CargoContainer (closed, lashed, open) | |
 | Monsters (7 kinds, the boss) | built-in looks | type files; models with animations (Phase 5) |
 | Yeets, the gravity gun | built-in | Phase 5 (animations) |
 | Shop pictures | rendered from the object's model | OK: your model shows up by itself |

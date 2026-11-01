@@ -60,6 +60,11 @@ extends StaticBody3D
 	set(v):
 		texture_size = v
 		_rebuild()
+## Off: nothing bumps into it, it's only seen (a painted stripe, window bands, a trim).
+@export var solid := true:
+	set(v):
+		solid = v
+		_rebuild()
 ## Ricochet surfaces: how much bounce things keep off it (0 = like any wall; 0.8 = a lot).
 ## A bouncy block is also frictionless, so things leave it at the angle they came in.
 @export_range(0.0, 1.0, 0.05) var bounciness := 0.0
@@ -119,6 +124,7 @@ func _rebuild() -> void:
 	var bs := BoxShape3D.new()
 	bs.size = size
 	_shape.shape = bs
+	_shape.disabled = not solid
 
 
 ## The box for a custom material: texture coordinates (UV and UV2) are the face's position in

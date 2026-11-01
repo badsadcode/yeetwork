@@ -435,9 +435,10 @@ Arenas are built in the Godot editor with the **Map Kit**: drop-in nodes for blo
 breakable slabs, spawns, flags, props, jump pads, lifts, hazards and lighting presets.
 Save a scene in `res://maps/` and it appears in the map list. Press **F6** on it to
 playtest with bots. The full guide is in **[docs/MAPPING.md](docs/MAPPING.md)**, and
-`maps/courtyard.tscn` is a complete example. The built-in Yeetwork Prime and Facing Yeets
-are Map Kit scenes too (`maps/prime.tscn`, `maps/facing.tscn`), so you can tweak them in
-the editor.
+`maps/courtyard.tscn` is a complete example. The built-in Yeetwork Prime, Facing Yeets and
+High Seas are Map Kit scenes too (`maps/prime.tscn`, `maps/facing.tscn`,
+`maps/high_seas.tscn`: the ship and its four variants), so you can tweak them in the editor:
+every map in the game is.
 
 **Custom maps (map packs).** Maps can also live outside the game: make one in
 `custom/<your_map>/` with its own textures (PBR materials on blocks), models (as scenery or as
@@ -487,7 +488,8 @@ scripts/world/    arena.gd (+ Prime layout), map_facing.gd, destructible.gd, mat
                   ssr.gdshaderinc (screen-space reflections for water and glass),
                   map_high_seas.gd + ship.gd + container.gdshader (High Seas), ship_crane.gd
 scripts/mapkit/   the Map Kit's pieces (fixture.gd: set dressing that hums, turns, breaks;
-                  ladder.gd, crane.gd, horn.gd; vessel.gd; breakable_model.gd; looks.gd: models, markers)
+                  ladder.gd, crane.gd, horn.gd; vessel.gd, ship_hold.gd, cargo_container.gd;
+                  breakable_model.gd; looks.gd: models, markers)
 scripts/modes/    mode_base.gd (sandbox), mode_ctf.gd, mode_dodgeball.gd, mode_megayeet.gd...
 scripts/horde/    horde.gd (MegaYeet's monsters: server walkers, snapshots, one MultiMesh),
                   flow_field.gd (the ways to the Heart), monster_look.gd + monster.gdshader
@@ -596,6 +598,8 @@ godot --path . -- --host --map res://custom/make_your_own/workshop.tscn --mode m
 # ... and over the network: a client sees the oil drums and the thorn bed as they are
 godot --headless --path . -- --host --map res://custom/make_your_own/workshop.tscn --bots 0 --port 24812
 godot --headless --path . -- --join 127.0.0.1 --port 24812 --tour x --tour-mode makeyourownclient
+# High Seas saved again as a Map Kit scene from its code builder (overwrites maps/high_seas.tscn)
+godot --headless --path . -- --host --map highseas --map-source code --bots 0 --tour x --tour-mode export_highseas
 # A Vessel (Make Your Own Boat, in CTF): it rides the swell, Yeets and cargo stay aboard, its
 # flag, ladder, crane and fence ride along, the ladder takes you back up from the sea; the
 # island beside it stays put (spawns, crates, Red's flag), the pier's pad throws you aboard

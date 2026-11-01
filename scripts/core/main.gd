@@ -116,6 +116,7 @@ func _handle_cmdline(execute := true) -> bool:
 				i += 1
 			"--tour-mode":
 				_tour_mode = next
+				MapHighSeas.recording = next == "export_highseas" # (the builder notes what it makes)
 				i += 1
 			"--water-style":
 				Game.water_style = "sculpted" if next == "sculpted" else "classic"

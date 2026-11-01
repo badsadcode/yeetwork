@@ -33,6 +33,20 @@ const ROOM_TOP := 7.4
 const HATCHES := [Rect2(-45.6, 5.7, 1.6, 1.6), Rect2(-45.6, -7.3, 1.6, 1.6)]
 
 static var _cont_mats := {}
+## Exporting it as a Map Kit scene (dev_export_highseas): every helper notes what it made, in
+## the ship's frame, under the part of the ship being built (`section`), so the scene can be
+## made of the same things. `_quiet`: a helper building something noted as a whole (an open
+## container's walls, the crane's pedestal).
+static var recording := false
+static var rec: Array = []
+static var section := ""
+static var _quiet := 0
+
+
+static func _note(entry: Dictionary) -> void:
+	if recording and _quiet == 0:
+		entry.section = section
+		rec.append(entry)
 
 
 ## Variants (map keys): the sea state and the sky.
@@ -69,12 +83,20 @@ static func build(a: Arena, key := "highseas") -> void:
 	a.carrier = ship
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4242
+	rec.clear()
+	section = "Hull"
 	_hull(ship)
+	section = "Superstructure"
 	_superstructure(a, ship)
+	section = "EngineRoom"
 	_engine_room(a, ship)
+	section = "Containers"
 	_containers(ship, rng)
+	section = "Crane"
 	_crane(a, ship)
+	section = "Bow"
 	_bow(a, ship)
+	section = "HullLadders"
 	_hull_ladders(a, ship)
 	_gameplay(a, ship)
 	_cargo(a, rng)
@@ -87,6 +109,8 @@ static func build(a: Arena, key := "highseas") -> void:
 # --- Helpers (everything is a child of the ship) --------------------------------------
 
 static func _box(ship: Ship, center: Vector3, size: Vector3, color: Color, basis := Basis.IDENTITY, solid := true, mat: Material = null) -> MeshInstance3D:
+	_note({"t": "box", "center": center, "size": size, "color": color, "basis": basis, "solid": solid,
+		"emission": (mat as BaseMaterial3D).emission_energy_multiplier if mat is BaseMaterial3D and (mat as BaseMaterial3D).emission_enabled else 0.0})
 	var mi := MeshInstance3D.new()
 	var bm := BoxMesh.new()
 	bm.size = size
@@ -147,6 +171,7 @@ static func _ramp(ship: Ship, from: Vector3, to: Vector3, width: float, color: C
 
 ## A vertical prism from an XZ outline (convex), y0..y1: bow and stern ends of the hull.
 static func _prism(ship: Ship, outline: PackedVector2Array, y0: float, y1: float, color: Color) -> void:
+	_note({"t": "prism", "outline": outline, "y0": y0, "y1": y1, "color": color})
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var pts := PackedVector3Array()
@@ -180,6 +205,7 @@ static func _prism(ship: Ship, outline: PackedVector2Array, y0: float, y1: float
 
 
 static func _pad(ship: Ship, pos: Vector3, velocity: Vector3) -> void:
+	_note({"t": "pad", "pos": pos, "velocity": velocity})
 	var t := TriggerVolume.new()
 	t.position = pos + Vector3(0, 0.6, 0)
 	ship.add_child(t)
@@ -210,6 +236,7 @@ static func _ladder(a: Arena, ship: Ship, bottom: Vector3, top_y: float, out: Ve
 	var h := top_y - bottom.y
 	var side := Vector3.UP.cross(out).normalized()
 	var basis := Basis(side, Vector3.UP, out)
+	_note({"t": "ladder", "bottom": bottom, "height": h, "basis": basis, "over": over})
 	var yellow := Mats.plastic(Color(0.95, 0.75, 0.15), 0.4)
 	for s in [-1, 1]:
 		var rail := MeshInstance3D.new()
@@ -247,17 +274,19 @@ static func _ladder(a: Arena, ship: Ship, bottom: Vector3, top_y: float, out: Ve
 		ship.hold_ladders.append(foot)
 
 
-## Ladders up the hull out of the sea, on both sides and at the stern (over the rail at the top).
+## Ladders up the hull out of the sea, on both sides and at the stern (over the rail at the top:
+## their tops half a metre over the bulwark's, or a climber can end up perched on its edge).
 static func _hull_ladders(a: Arena, ship: Ship) -> void:
 	for x in [-40.0, -10.0, 20.0, 46.0]:
 		for s in [-1, 1]:
-			_ladder(a, ship, Vector3(x, -1.8, s * 16.02), DECK + 1.5, Vector3(0, 0, s), Vector3(0, 3.0, -6.0))
-	_ladder(a, ship, Vector3(-72.02, -1.8, 0.0), DECK + 1.5, Vector3(-1, 0, 0), Vector3(0, 3.0, -6.0))
+			_ladder(a, ship, Vector3(x, -1.8, s * 16.02), DECK + 1.8, Vector3(0, 0, s), Vector3(0, 3.0, -6.0))
+	_ladder(a, ship, Vector3(-72.02, -1.8, 0.0), DECK + 1.8, Vector3(-1, 0, 0), Vector3(0, 3.0, -6.0))
 
 
 ## A breakable glass pane (ship-local), `size` across (local x) by high, facing `normal`.
 static func _glass(a: Arena, ship: Ship, center: Vector3, normal: Vector3, size: Vector2) -> void:
 	var along := Vector3.UP.cross(normal).normalized()
+	_note({"t": "glass", "center": center, "basis": Basis(along, Vector3.UP, normal), "size": size})
 	var d := Destructible.new()
 	d.transform = Transform3D(Basis(along, Vector3.UP, normal), center)
 	ship.add_child(d)
@@ -266,6 +295,7 @@ static func _glass(a: Arena, ship: Ship, center: Vector3, normal: Vector3, size:
 
 
 static func _light(ship: Ship, pos: Vector3, color: Color, range_m: float, energy := 2.0, attenuation := 1.0) -> void:
+	_note({"t": "light", "pos": pos, "color": color, "range": range_m, "energy": energy, "attenuation": attenuation})
 	var l := OmniLight3D.new()
 	l.position = pos
 	l.light_color = color
@@ -279,6 +309,10 @@ static func _light(ship: Ship, pos: Vector3, color: Color, range_m: float, energ
 static func _flag_stand(a: Arena, ship: Ship, team: int, stand: Vector3) -> void:
 	var tc := Game.team_color(team)
 	a.flag_stands[team] = stand + Vector3(0, 0.4, 0)
+	_note({"t": "flag", "team": team, "stand": stand})
+	_quiet += 1 # (its light comes with the FlagStand)
+	_light(ship, stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
+	_quiet -= 1
 	var ped := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
 	cm.top_radius = 1.4
@@ -288,7 +322,6 @@ static func _flag_stand(a: Arena, ship: Ship, team: int, stand: Vector3) -> void
 	ped.position = stand + Vector3(0, 0.2, 0)
 	ped.material_override = Mats.glow(tc, 2.0)
 	ship.add_child(ped)
-	_light(ship, stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
 
 
 static func container_material(color: Color) -> ShaderMaterial:
@@ -364,7 +397,9 @@ static func _superstructure(a: Arena, ship: Ship) -> void:
 	for lvl in 5:
 		var y := DECK + 2.0 + lvl * 3.4
 		_box(ship, Vector3(-49.96, y, 0), Vector3(0.1, 1.0, 19), Color(0.15, 0.22, 0.32), Basis.IDENTITY, false)
+	section = "Bridge"
 	_bridge(a, ship)
+	section = "Superstructure"
 	# Funnel with the company stripe.
 	_box(ship, Vector3(-62, DECK + 24, 0), Vector3(4, 10, 6), Color(0.15, 0.15, 0.18))
 	_box(ship, Vector3(-62, DECK + 25, 0), Vector3(4.05, 2.0, 6.05), Color(0.95, 0.55, 0.1), Basis.IDENTITY, false)
@@ -409,6 +444,7 @@ static func _bridge(a: Arena, ship: Ship) -> void:
 	_box(ship, Vector3(-51.25, floor_y + 0.92, 0), Vector3(1.0, 0.04, 5.6), Color(0.1, 0.45, 0.4), Basis.IDENTITY, false)
 	var horn := Horn.new()
 	horn.position = Vector3(-51.4, floor_y + 0.9, 2.0)
+	_note({"t": "horn", "pos": horn.position})
 	ship.add_child(horn)
 	horn.world = a.world
 	horn.puzzle_index = a.puzzle.size()
@@ -432,6 +468,7 @@ static func _engine_room(a: Arena, ship: Ship) -> void:
 	var rl := rx1 - rx0
 	var h := ROOM_TOP - f
 	ship.hold = AABB(Vector3(rx0, f - 1.0, -ROOM_Z), Vector3(rl, DECK - f + 1.0, ROOM_Z * 2.0))
+	_note({"t": "hold", "box": ship.hold})
 	ship.ocean.dry_node = ship
 	ship.ocean.dry_box = ship.hold
 	# Inside: steel plating on the floor, pale green-grey walls (just in front of the hull's).
@@ -490,7 +527,11 @@ static func _crane(a: Arena, ship: Ship) -> void:
 	crane.ship = ship
 	crane.position = at
 	ship.add_child(crane)
+	_note({"t": "crane", "pos": at, "height": crane.height, "jib": crane.jib, "cable": crane.cable, "heading": crane.slew_center,
+		"sweep": crane.slew_amp, "period": crane.period, "load_size": crane.load_size, "load_color": crane.load_color})
+	_quiet += 1 # (the Crane piece has its own pedestal)
 	_solid(ship, at + Vector3(0, crane.height * 0.5, 0), Vector3(2.0, crane.height, 2.0))
+	_quiet -= 1
 	var creak: Array[String] = ["creak", "metal"]
 	_fixture(a, ship, "box", at + Vector3(-0.2, crane.height - 1.6, 0), 0.0, Vector3(2.6, 1.6, 2.4), {"sound": "engine",
 		"pitch": 1.6, "volume_db": -6.0, "reach": 24.0, "one_shot_sounds": creak, "one_shot_every": Vector2(3.0, 8.0)})
@@ -498,6 +539,7 @@ static func _crane(a: Arena, ship: Ship) -> void:
 
 ## A Fixture on the ship (ship-local), registered with the map's puzzle pieces.
 static func _fixture(a: Arena, ship: Ship, kind: String, pos: Vector3, yaw: float, scale: Vector3, props: Dictionary) -> Fixture:
+	_note({"t": "fixture", "kind": kind, "xf": Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(scale), pos), "props": props})
 	var fx := Fixture.new()
 	fx.kind = kind
 	fx.solid = false # (a StaticBody wouldn't ride the ship: _solid gives it the ship's collision)
@@ -513,6 +555,7 @@ static func _fixture(a: Arena, ship: Ship, kind: String, pos: Vector3, yaw: floa
 
 ## Collision on the ship (ship-local box) with nothing drawn: a fixture's bulk.
 static func _solid(ship: Ship, center: Vector3, size: Vector3) -> void:
+	_note({"t": "solid", "center": center, "size": size})
 	var cs := CollisionShape3D.new()
 	var sh := BoxShape3D.new()
 	sh.size = size
@@ -562,6 +605,7 @@ static func _containers(ship: Ship, rng: RandomNumberGenerator) -> void:
 					mi.rotation.y = PI # doors at the other end
 				mi.material_override = container_material(c)
 				ship.add_child(mi)
+				_note({"t": "container", "pos": mi.position - Vector3(0, CONT.y * 0.5, 0), "flip": mi.rotation.y != 0.0, "color": c, "lashed": k == h - 1 and lashed})
 				if k == h - 1 and lashed:
 					_lash(a, ship, mi, c)
 			# One collision box per stack (a lashed top container has its own).
@@ -612,6 +656,13 @@ static func _lash(a: Arena, ship: Ship, mi: MeshInstance3D, color: Color) -> voi
 ## A container standing open on the deck: hollow, doors swung wide at one end (toward the
 ## bay gap), a warm lamp inside; `pickup`: a pickup waits in it.
 static func _open_container(a: Arena, ship: Ship, at: Vector3, color: Color, door_aft: bool, pickup: bool) -> void:
+	_note({"t": "open_container", "pos": at, "color": color, "door_aft": door_aft, "pickup": pickup})
+	_quiet += 1
+	_open_container_parts(a, ship, at, color, door_aft, pickup)
+	_quiet -= 1
+
+
+static func _open_container_parts(a: Arena, ship: Ship, at: Vector3, color: Color, door_aft: bool, pickup: bool) -> void:
 	var paint := Mats.world(color, 0.6)
 	var inner := Mats.world(color.darkened(0.2), 0.8)
 	var hx := CONT.x * 0.5
@@ -644,6 +695,7 @@ static func _open_container(a: Arena, ship: Ship, at: Vector3, color: Color, doo
 ## gap's jump pad clear.
 static func _lashing_bridges(ship: Ship, bay_x: Array, pads_at: Array) -> void:
 	var a := ship.get_parent() as Arena
+	section = "LashingBridges"
 	var y := DECK + CONT.y * 2.0
 	for g in bay_x.size() - 1:
 		var gx: float = (float(bay_x[g]) + float(bay_x[g + 1])) * 0.5

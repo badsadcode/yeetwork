@@ -317,7 +317,9 @@ deck, rails, a cabin, a Ladder down the side, props, spawn points, the flags. Pr
 everything under it heaves and rolls with the swell, and players and cargo ride on it.
 Anything not under it (an island, a pier) stays put: spawn points, props and flags can be on
 either. `custom/make_your_own/boat.tscn` is a small one to copy: a boat beside an island,
-with a jump pad at the end of the pier to leap aboard.
+with a jump pad at the end of the pier to leap aboard. For a big ship, open
+`maps/high_seas.tscn`: High Seas is built the same way (a **ShipHold** for its engine room,
+**CargoContainers** for its cargo, CSG shapes for its rounded ends).
 
 **Did I name it right?** Run the map check (the `--validate` line in step 10):
 it lists each model's missing markers and what that means ("its model has no Spout: the
