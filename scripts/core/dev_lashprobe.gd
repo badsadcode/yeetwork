@@ -1,8 +1,9 @@
 extends Node
 ## TEMPORARY (an experiment on CI, to be removed): why Ship routes' climber sometimes walks
-## past the lashing-bridge ladder on CI and never here. The climb at 24 points of the ship's
-## roll, every physics tick of the approach logged: whether the ladder's trigger lists the
-## player, the player's state, facing, on the floor, the ladder holding them.
+## past the lashing-bridge ladder on CI and never here. Round 1 caught a miss: the ladder held
+## the climber all the way up; it goes wrong at the top. Round 2: the ladder's top throw as it
+## is, (0, 2, -5), against a stronger one, (0, 4, -4.5), 32 climbs each; a miss logs the top
+## of its climb, tick by tick.
 ## Usage: godot --headless -- --host --map highseas --bots 1 --tour x --tour-mode lashprobe
 
 var world: Node
@@ -20,6 +21,10 @@ func _ready() -> void:
 	pl = world.local_player
 	pl.is_bot = true
 	pl.bot_brain = null
+	for q: Player in world.players.values(): # (the bot parked, brainless, as the real check has it)
+		if q != pl and q.is_bot:
+			q.bot_brain = null
+			q.respawn(ship.global_transform * Vector3(30, MapHighSeas.DECK + 0.2, -14), 0.0)
 	var deck := MapHighSeas.DECK
 	var gx := (-20.7 + -5.5) * 0.5
 	var best := INF
@@ -31,9 +36,19 @@ func _ready() -> void:
 				best = d
 				_trig = t
 	print("PROBE trigger %s at local %s (%.2f from the spot)" % [_trig, (ship.global_transform.affine_inverse() * _trig.global_position).snapped(Vector3.ONE * 0.01) if _trig else null, best])
+	for throw in [Vector3(0, 2, -5), Vector3(0, 4, -4.5)]:
+		_trig.launch_velocity = throw
+		var m := await _round(gx, deck, 32)
+		print("PROBE THROW %s: %d misses of 32" % [throw, m])
+	get_tree().quit(0)
+
+
+func _round(gx: float, deck: float, n: int) -> int:
 	var misses := 0
-	for k in 24:
-		world._time_offset = k * 2.5
+	for k in n:
+		world._time_offset = k * 1.9
+		await get_tree().physics_frame # (the ship at its new pose first, then the player on it)
+		await get_tree().physics_frame
 		pl.respawn(ship.global_transform * Vector3(gx, deck + 0.2, -13.6), 0.0)
 		pl.cmd.move = Vector2.ZERO
 		_lines.clear()
@@ -53,18 +68,17 @@ func _ready() -> void:
 		_log = false
 		pl.cmd.move = Vector2.ZERO
 		var end := (ship.global_transform.affine_inverse() * pl.global_position).snapped(Vector3.ONE * 0.01)
-		print("PROBE %d %s, ended %s" % [k, "ok" if ok else "MISS", end])
 		if not ok:
 			misses += 1
+			print("PROBE %d MISS (throw %s), ended %s" % [k, _trig.launch_velocity, end])
 			for s in _lines:
 				print("  " + s)
-	print("PROBE DONE: %d misses of 24" % misses)
-	get_tree().quit(0)
+	return misses
 
 
 func _physics_process(_delta: float) -> void:
-	if not _log or _trig == null or _lines.size() > 40:
-		return
+	if not _log or _trig == null or _lines.size() > 140 or Engine.get_physics_frames() % 4 != 0:
+		return # (every 4th tick of the whole attempt)
 	var l := ship.global_transform.affine_inverse() * pl.global_position
 	var tl := _trig.global_transform.affine_inverse() * pl.global_position
 	var facing := pl.aim_direction().slide(Vector3.UP).normalized().dot(-_trig.global_transform.basis.z.normalized())
