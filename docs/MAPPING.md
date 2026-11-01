@@ -374,7 +374,8 @@ A door, a window, a fence you modelled: each separate part (each mesh) breaks on
 - **Ladder**: climb a wall (a building, a ship's side, out of a pool or the sea). Put the node
   at the foot against the wall, its **+Z** (blue arrow) pointing away from the wall, toward the
   climber. **Height**; **Over The Top** (how hard the top throws you on over the edge, m/s:
-  more for a rail or a wide ledge). Face it and hold forward (or Jump) to climb, back to go
+  more for a rail or a wide ledge). Let it reach a little above what it climbs (a rail's top:
+  about 40 cm more), or climbers stick at the top. Face it and hold forward (or Jump) to climb, back to go
   down. **Model**: your own ladder (origin at the foot, up +Y, wall behind at -Z). A ladder
   whose foot is in a swimmable sea is where bots in the water swim to.
 - **Crane**: slews to and fro on its own, a solid load swinging from its jib (ride it, or be

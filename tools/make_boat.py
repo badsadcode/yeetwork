@@ -84,7 +84,7 @@ node('Cabin', 'block', B, at=(-3, 3.1, 0), size=vec(5, 3, 5), color=WHITE)
 node('CabinRoof', 'block', B, at=(-3, 4.75, 0), size=vec(5.6, 0.3, 5.6), color=HULL)
 node('Mast', 'block', B, at=(3, 5.6, 0), size=vec(0.35, 8, 0.35), color=DECK)
 # Up out of the sea: a ladder on the starboard side (its +Z out from the hull).
-node('Ladder', 'ladder', B, at=(1.5, -1.6, 4.15), height='4.0', over_the_top='4.0')
+node('Ladder', 'ladder', B, at=(1.5, -1.6, 4.15), height='4.4', over_the_top='5.0')  # (its top clears the rail)
 node('Bell', 'horn', B, at=(0.8, 1.6, 2.9), model='ExtResource("bellmodel")')
 node('Crane', 'crane', B, at=(9, 1.6, -2), height='8.0', jib='10.0', cable='2.5', heading='0.0', sweep='60.0',
      period='26.0', load_size='Vector3(3, 1.5, 1.5)', pedestal_size='Vector3(1.4, 0, 1.4)',

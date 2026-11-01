@@ -90,8 +90,8 @@ color = Color(0.62, 0.45, 0.28, 1)
 [node name="Ladder" type="Node3D" parent="Boat"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.5, -1.6, 4.15)
 script = ExtResource("ladder")
-height = 4.0
-over_the_top = 4.0
+height = 4.4
+over_the_top = 5.0
 
 [node name="Bell" type="Node3D" parent="Boat"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.8, 1.6, 2.9)
