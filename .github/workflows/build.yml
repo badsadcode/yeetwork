@@ -29,7 +29,7 @@ jobs:
           done
       - name: Piece pages up to date (docs/pieces/, every setting described; the walkthroughs' tables match their maps)
         run: godot --headless --script res://tools/make_guide.gd -- --check
-      - name: Lighthouse Point check (the new-map walkthrough's map: its ladders, jump pads and door work as the guide says)
+      - name: Lighthouse Point check (the new-map walkthrough's map; its ladders, jump pads and door work as the guide says)
         timeout-minutes: 2
         run: timeout 100 godot --headless -- --host --map res://custom/lighthouse_point/lighthouse_point.tscn --mode ctf --bots 0 --spooky off --tour x --tour-mode lighthouse
       - name: Ship check (High Seas rides the swell, players and cargo stay aboard)
