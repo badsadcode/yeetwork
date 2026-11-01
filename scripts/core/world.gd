@@ -2391,7 +2391,7 @@ var _next_rogue := -1.0
 func _server_sea(delta: float) -> void:
 	var ship := arena.carrier as Ship
 	var rough: float = {"stormy": 1.0, "extreme": 1.6}.get(ship.sea, 0.0)
-	if rough == 0.0:
+	if rough == 0.0 or not ship.high_seas:
 		return
 	_wash_cd -= delta
 	var roll := absf(ship.global_transform.basis.get_euler().x)

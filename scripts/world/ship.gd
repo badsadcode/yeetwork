@@ -12,6 +12,12 @@ var length := 140.0
 var beam := 32.0
 ## Ocean surface height at rest; the ship's origin sits on the waterline.
 var sea_level := 0.0
+## Where it lies at rest (a Map Kit Vessel: where it was put, its bow along its +X); the swell
+## is sampled under its hull there.
+var home := Transform3D.IDENTITY
+## High Seas' own ship: green water over the rail, rogue waves, spray off its hull (they're
+## laid out for its size). A Vessel just rides the swell.
+var high_seas := true
 var ocean: Liquid
 var world: Node
 ## How strongly it answers the swell (roll is amplified: ships roll more than they pitch).
@@ -65,15 +71,15 @@ func _ready() -> void:
 ## Where the ship is at wave time t.
 func pose(t: float) -> Transform3D:
 	if ocean == null:
-		return Transform3D(Basis.IDENTITY, Vector3(0, sea_level, 0))
+		return Transform3D(home.basis, home.origin + Vector3(0, sea_level, 0))
 	var ts := t - lag
 	var hl := length * 0.42
 	var hb := beam * 0.5
-	var bow := ocean.swell_at(Vector2(hl, 0), ts)
-	var stern := ocean.swell_at(Vector2(-hl, 0), ts)
-	var port := ocean.swell_at(Vector2(0, -hb), ts)
-	var star := ocean.swell_at(Vector2(0, hb), ts)
-	var mid := ocean.swell_at(Vector2.ZERO, ts)
+	var bow := ocean.swell_at(_flat(Vector3(hl, 0, 0)), ts)
+	var stern := ocean.swell_at(_flat(Vector3(-hl, 0, 0)), ts)
+	var port := ocean.swell_at(_flat(Vector3(0, 0, -hb)), ts)
+	var star := ocean.swell_at(_flat(Vector3(0, 0, hb)), ts)
+	var mid := ocean.swell_at(_flat(Vector3.ZERO), ts)
 	var heave := (bow + stern + port + star + mid * 2.0) / 6.0 * heave_gain
 	# Soft limits: big swells ease into the maximum instead of hitting a hard stop.
 	var pitch := max_pitch * tanh(atan2(bow - stern, hl * 2.0) * pitch_gain / max_pitch)
@@ -83,7 +89,13 @@ func pose(t: float) -> Transform3D:
 		roll += rogue_side * ROGUE_ROLL * exp(-since * 0.4) * sin(since * 1.7)
 		heave += 1.6 * exp(-since * 1.1) * sin(since * 2.4)
 	var basis := Basis.from_euler(Vector3(roll, 0.0, pitch))
-	return Transform3D(basis, Vector3(0, sea_level + heave, 0))
+	return Transform3D(home.basis * basis, home.origin + Vector3(0, sea_level + heave, 0))
+
+
+## A point of the hull at rest (ship-local), on the water's map (x, z).
+func _flat(local: Vector3) -> Vector2:
+	var p := home * local
+	return Vector2(p.x, p.z)
 
 
 ## Wet deck: slippery (a storm's rain, green water a while ago).

@@ -12,8 +12,9 @@ The built-in arenas **Yeetwork Prime** (`maps/prime.tscn`) and **Facing Yeets**
 (`maps/facing.tscn`) are Map Kit scenes too: open them and tweak anything. They keep their
 built-in names in the map list. (They were generated from the old code builders; see
 *Converting the code-built maps* at the end. Regenerating overwrites your edits.)
-**High Seas** stays in code: the whole map rides a moving ship, which the Map Kit can't
-express yet (its ladders, crane and horn are Map Kit pieces now: Ladder, Crane, Horn).
+**High Seas** stays in code for now. Its parts are all Map Kit pieces too (the ship itself:
+**Vessel**; its ladders, crane and horn: Ladder, Crane, Horn), so a ship map can be built in the
+editor (see *Vessel*; `custom/make_your_own/boat.tscn`).
 
 ---
 
@@ -329,6 +330,26 @@ along local -Z) or `neon` (a 1.2 m tube along X).
   Untick Breakable for lights a puzzle needs.
 - `maps/haunted_yard.tscn` is an example: lamp posts (one failing), candles on the graves,
   torches at the crypt and a power switch for the crypt's lights.
+
+### Vessel (a ship, a boat, a raft riding the swell)
+Everything under a **Vessel** node rides the sea's swell together, heaving, pitching and
+rolling like High Seas' ship (the same for every player, nothing sent). Build the ship from
+ordinary pieces as its children: blocks for the hull and deck, breakable walls and models,
+ladders, a crane, a horn, machines, pickups, props, spawn points, flag stands. Players and
+props on it ride along; loose cargo slides when it tilts. Needs MapSettings > **Ocean**
+(with **Ocean Swimmable**, whoever falls overboard swims to its ladder).
+- Put the node on the waterline, bow along its **+X**. **Length** and **Beam** (0: its blocks'
+  size): the hull the swell lifts. **Roll** (how hard it answers the swell), **Max Roll
+  Degrees**, **Max Pitch Degrees**, **Heave** (1: as much as the water), **Lag** (seconds
+  behind the water: more for a big heavy ship).
+- On a map with a Vessel, its spawn points, props and flag stands go on it (under the node):
+  they're kept in the ship's frame. The map check names any left off. One Vessel a map.
+- Its blocks' collision becomes the ship's own, so you stand on a moving deck, not slide off
+  it; pieces that move by themselves (doors, plates, seesaws) keep their own.
+- High Seas' green water, rogue waves and hull spray are its own for now (laid out for its
+  size); a Vessel in a stormy sea just rolls harder.
+- `custom/make_your_own/boat.tscn` (**Make Your Own Boat**) is one, built by
+  `tools/make_boat.py`.
 
 ### BreakableModel (your own model, breaking part by part)
 A door, a window, a fence you modelled: each separate part (each mesh) breaks on its own.

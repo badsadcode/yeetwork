@@ -12,6 +12,10 @@ flag stands and the big fan, breakable walls in your material, the map check's n
 markers. **Phase 3, first part done** (2026-11-01): Ladder, Crane and Horn as Map Kit
 pieces with Model slots (`Turret`, `Hook`, `Lever`), a swimmable ocean (MapSettings). Next:
 the ship itself (a moving deck as a piece) and High Seas rebuilt as a scene.
+**The ship as a piece done** (2026-11-01): the Vessel (everything under it rides the swell;
+its blocks' collision becomes the ship's), Make Your Own Boat. Next: High Seas rebuilt as a
+scene; maps with a ship and dry land both (per-item frames); High Seas' washes and rogue
+waves for any Vessel.
 **Breakable models done** (2026-11-01, Tomek's ask): BreakableModel, a model breaking part by
 part (parts named for their material, `Fixed` parts that never break, procedural shards cut
 from each part's own shape, loose parts falling whole). Later: props that break into their
@@ -99,7 +103,7 @@ contacts, goal, volley net, the Heart, lights, machines (Fixture), trap spots: *
 | Spinners, ball spots | spinner: put your model under it; ball spot: invisible | nothing |
 | Fuse lines | the cord is drawn by the game | (a cord material, if wanted) |
 | Walls, floors (ArenaBlock), breakable walls (BreakableSlab) | Custom Material (textures): OK | |
-| Ship (rolls on the swell), the sea | High Seas code | piece |
+| Ship (rolls on the swell), the sea | done: Vessel, MapSettings Ocean (+ Swimmable) | High Seas itself as a scene |
 | Crane, horn, ladders | done (Phase 3): Crane, Horn, Ladder pieces | |
 | Cargo containers | High Seas code (the container prop is there) | stacks as pieces |
 | Monsters (7 kinds, the boss) | built-in looks | type files; models with animations (Phase 5) |

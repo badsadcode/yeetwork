@@ -60,6 +60,11 @@ var all_flashlights := false # (the mode says so: MegaYeet, where light burns gh
 ## flag stands, initial props and props' home transforms are in its local space; use
 ## to_world() / xf_world() / flag_pos() to read them.
 var carrier: Node3D
+## (building a Map Kit map) where built things go: the arena, or a Vessel's ship while its
+## pieces are collected; the Vessel, its spot at rest, and the pieces left off it.
+var _host: Node3D
+var _vessel: Vessel
+var _off_ship: Array[String] = []
 var _spinners: Array[Node3D] = []
 ## Built-in maps that are loaded from Map Kit scenes.
 const MAPKIT_SCENES := {"prime": "res://maps/prime.tscn", "facing": "res://maps/facing.tscn"}
@@ -148,6 +153,11 @@ func glow_strip(center: Vector3, size: Vector3, color: Color, energy := 2.5) -> 
 	mi.set_meta("mk", {"type": "glow"})
 
 
+## Where built things go (a Vessel's ship while its pieces are collected; else the arena).
+func _host_node() -> Node3D:
+	return _host if _host else self
+
+
 func light(pos: Vector3, color: Color, range_m: float, energy := 2.0, shadows := false) -> OmniLight3D:
 	var l := OmniLight3D.new()
 	l.position = pos
@@ -155,7 +165,7 @@ func light(pos: Vector3, color: Color, range_m: float, energy := 2.0, shadows :=
 	l.omni_range = range_m
 	l.light_energy = energy
 	l.shadow_enabled = shadows
-	add_child(l)
+	_host_node().add_child(l)
 	return l
 
 
@@ -163,7 +173,7 @@ func light(pos: Vector3, color: Color, range_m: float, energy := 2.0, shadows :=
 func breakable(center: Vector3, basis: Basis, slab_size: Vector2, thickness: float, anchors: Array, material := "plaster", color := C_BREAK, hp_scale := 1.0) -> Destructible:
 	var d := Destructible.new()
 	d.transform = Transform3D(basis, center)
-	add_child(d)
+	_host_node().add_child(d)
 	d.setup(destructibles.size(), slab_size, thickness, color, anchors, material, hp_scale)
 	destructibles.append(d)
 	d.set_meta("mk", {"type": "slab", "size": slab_size, "thickness": thickness, "anchors": anchors, "material": material, "color": color, "hp_scale": hp_scale})
@@ -174,7 +184,7 @@ func breakable(center: Vector3, basis: Basis, slab_size: Vector2, thickness: flo
 func breakable_model(xf: Transform3D, model: Node3D, material := "wood", color := C_BREAK, hp_scale := 1.0, ground := true) -> ModelDestructible:
 	var d := ModelDestructible.new()
 	d.transform = xf
-	add_child(d)
+	_host_node().add_child(d)
 	d.setup_model(destructibles.size(), model, material, color, hp_scale, ground)
 	destructibles.append(d)
 	return d
@@ -183,7 +193,7 @@ func breakable_model(xf: Transform3D, model: Node3D, material := "wood", color :
 func jump_pad(pos: Vector3, velocity: Vector3, model: PackedScene = null, basis := Basis.IDENTITY) -> void:
 	var t := TriggerVolume.new()
 	t.position = pos + Vector3(0, 0.6, 0)
-	add_child(t)
+	_host_node().add_child(t)
 	t.setup(TriggerVolume.Kind.JUMP_PAD, Vector3(2.4, 1.2, 2.4), velocity)
 	t.set_meta("mk", {"type": "pad", "pos": pos, "velocity": velocity})
 	if model:
@@ -191,7 +201,7 @@ func jump_pad(pos: Vector3, velocity: Vector3, model: PackedScene = null, basis 
 		var inst := model.instantiate() as Node3D
 		if inst:
 			inst.transform = Transform3D(basis, pos)
-			add_child(inst)
+			_host_node().add_child(inst)
 			return
 	var mi := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
@@ -201,7 +211,7 @@ func jump_pad(pos: Vector3, velocity: Vector3, model: PackedScene = null, basis 
 	mi.mesh = cm
 	mi.position = pos + Vector3(0, 0.1, 0)
 	mi.material_override = Mats.glow(C_PAD, 2.5)
-	add_child(mi)
+	_host_node().add_child(mi)
 	var arrow := MeshInstance3D.new()
 	var am := CylinderMesh.new()
 	am.top_radius = 0.0
@@ -210,7 +220,7 @@ func jump_pad(pos: Vector3, velocity: Vector3, model: PackedScene = null, basis 
 	arrow.mesh = am
 	arrow.position = pos + Vector3(0, 0.6, 0)
 	arrow.material_override = Mats.glow(C_PAD.lightened(0.4), 3.0)
-	add_child(arrow)
+	_host_node().add_child(arrow)
 	var l := light(pos + Vector3(0, 1.5, 0), C_PAD, 6.0, 1.5)
 	for n: Node in [mi, arrow, l]:
 		n.set_meta("mk_part", true) # (the Map Kit pad makes these itself)
@@ -218,7 +228,7 @@ func jump_pad(pos: Vector3, velocity: Vector3, model: PackedScene = null, basis 
 
 func lift(a: Vector3, b: Vector3, period: float, phase: float, size := Vector3(3, 0.5, 3), model: PackedScene = null) -> void:
 	var l := Lift.new()
-	add_child(l)
+	_host_node().add_child(l)
 	l.setup(world, a, b, size, period, phase, C_STEEL, model)
 	l.set_meta("mk", {"type": "lift", "a": a, "b": b, "period": period, "phase": phase, "size": size})
 
@@ -231,7 +241,7 @@ func flag_stand(team: int, stand: Vector3, model: PackedScene = null) -> void:
 		# A themed stand: the model at the spot (the flag sits 0.4 m up), the team light.
 		var inst := model.instantiate() as Node3D
 		inst.position = stand
-		add_child(inst)
+		_host_node().add_child(inst)
 		inst.set_meta("mk", {"type": "flag", "team": team, "stand": stand})
 		var tl := light(stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
 		tl.set_meta("mk_part", true)
@@ -245,7 +255,7 @@ func flag_stand(team: int, stand: Vector3, model: PackedScene = null) -> void:
 	ped.mesh = cm
 	ped.position = stand + Vector3(0, 0.2, 0)
 	ped.material_override = Mats.glow(tc, 2.0)
-	add_child(ped)
+	_host_node().add_child(ped)
 	var l := light(stand + Vector3(0, 3, 0), tc, 10.0, 2.5)
 	ped.set_meta("mk", {"type": "flag", "team": team, "stand": stand})
 	l.set_meta("mk_part", true)
@@ -256,7 +266,7 @@ func flag_stand(team: int, stand: Vector3, model: PackedScene = null) -> void:
 func hazard(kind: String, xf: Transform3D, size: Vector3, damage := 22.0, wind := Vector3.ZERO, fire_color := "orange") -> void:
 	var t := TriggerVolume.new()
 	t.transform = xf
-	add_child(t)
+	_host_node().add_child(t)
 	var mk := {"type": "hazard", "kind": kind, "xf": xf, "size": size, "damage": damage, "wind": wind, "fire_color": fire_color}
 	t.set_meta("mk", mk)
 	match kind:
@@ -267,14 +277,14 @@ func hazard(kind: String, xf: Transform3D, size: Vector3, damage := 22.0, wind :
 		"fire":
 			# A burning place: World sets alight whoever and whatever stands in it.
 			t.queue_free()
-			Burning.area(self, xf, size, fire_color).set_meta("mk", mk)
+			Burning.area(_host_node(), xf, size, fire_color).set_meta("mk", mk)
 			fire_areas.append([xf, size])
 		_:
 			# Liquids: the surface sits 30% of the way up the box; the Liquid makes its own volume.
 			t.queue_free()
 			var liq := Liquid.create(kind, xf.origin + Vector3(0, size.y * 0.3, 0), Vector3(size.x, size.y * 0.8, size.z), damage)
 			liq.set_meta("mk", mk)
-			add_child(liq)
+			_host_node().add_child(liq)
 
 
 # --- Scene maps (made with the Map Kit) ---------------------------------------------
@@ -300,12 +310,15 @@ func _build_scene_map(path: String) -> void:
 			add_child(sea)
 	if not _has_class(root, "WorldEnvironment") and not _has_class(root, "DirectionalLight3D"):
 		environment_preset(settings.sky if settings else "sunset", settings)
+	var home := _start_vessel(root, settings)
 	if settings and settings.weather == "rain":
 		add_child(Rain.create(settings.rain_intensity, settings.rain_wind))
 	elif settings and settings.weather == "storm" and not get_children().any(func(c: Node) -> bool: return c is Weather):
 		add_child(Weather.new())
 		storm = true
 	_collect(root)
+	if _vessel:
+		_launch_vessel(home)
 	for i in puzzle.size():
 		puzzle[i].puzzle_index = i
 		puzzle[i].world = world
@@ -336,8 +349,14 @@ func _has_class(n: Node, cls: String) -> bool:
 ## peer assigns the same destructible ids.
 func _collect(n: Node) -> void:
 	_note_models(n)
+	var outer := _host
+	if n == _vessel:
+		_host = carrier
 	for c in n.get_children():
 		_collect(c)
+	_host = outer
+	if _vessel and n != _vessel and (n is SpawnPoint or n is PropSpawn or n is FlagStand) and not _vessel.is_ancestor_of(n):
+		_off_ship.append(String(n.name))
 	if n is BreakableSlab:
 		var b := n as BreakableSlab
 		var d := breakable(b.global_position, b.slab_basis(), b.size, b.thickness, b.anchors(), b.material, b.color, b.hp_scale)
@@ -365,7 +384,8 @@ func _collect(n: Node) -> void:
 	elif n is Ladder:
 		# Out of the sea: bots overboard swim to it.
 		var ld := n as Ladder
-		if map_settings and map_settings.ocean and ld.foot() and ld.global_position.y < map_settings.ocean_level + 0.5:
+		var sea_y: float = 0.0 if _host_node() == carrier and carrier else (map_settings.ocean_level if map_settings else 0.0)
+		if map_settings and map_settings.ocean and ld.foot() and ld.global_position.y < sea_y + 0.5:
 			ladders.append(ld.foot())
 	elif n is JumpPadNode:
 		var jp := n as JumpPadNode
@@ -429,6 +449,8 @@ func validate() -> Array[String]:
 	var out: Array[String] = []
 	if spawn_points[0].size() < 4:
 		out.append("Only %d 'Any' spawn points (want 4+ for free-for-all)." % spawn_points[0].size())
+	for n in _off_ship:
+		out.append("%s is off the Vessel: on a map with a ship, spawn points, props and flag stands go on it (under the Vessel)." % n)
 	var puzzle_level := map_settings != null and map_settings.puzzle
 	var co_op := puzzle_level or heart != null # (puzzle levels and MegaYeet fortresses: no teams)
 	for t in [1, 2]:
@@ -839,3 +861,79 @@ func _note_models(n: Node) -> void:
 		model_notes.append_array(Looks.notes(who, (t as PropType).model, "PropType"))
 	elif t is PickupType and (t as PickupType).model:
 		model_notes.append_array(Looks.notes(who, (t as PickupType).model, "PickupType"))
+
+
+# --- A Vessel (a Map Kit ship) ----------------------------------------------------------
+
+## Before its pieces are collected: the map's (first) Vessel moves to the map's origin, so
+## everything on it is built in its own frame, onto a Ship (the carrier). Returns where it
+## lay (its spot at rest).
+func _start_vessel(root: Node, settings: MapSettings) -> Transform3D:
+	var found := root.find_children("*", "Vessel", true, false)
+	if found.is_empty():
+		return Transform3D.IDENTITY
+	_vessel = found[0] as Vessel
+	var home := _vessel.global_transform
+	_vessel.global_transform = Transform3D.IDENTITY
+	var ship := Ship.new()
+	ship.name = "Ship"
+	ship.high_seas = false
+	ship.world = world
+	for c in get_children():
+		if c is Liquid and (c as Liquid).ocean:
+			ship.ocean = c
+	ship.sea = settings.ocean_preset if settings else "calm"
+	ship.roll_gain = _vessel.roll
+	ship.max_roll = deg_to_rad(_vessel.max_roll_degrees)
+	ship.max_pitch = deg_to_rad(_vessel.max_pitch_degrees)
+	ship.heave_gain = _vessel.heave
+	ship.lag = _vessel.lag
+	add_child(ship)
+	ship.global_transform = Transform3D.IDENTITY
+	carrier = ship
+	return home
+
+
+## After: its blocks' collision becomes the ship's (players on it are carried, not slid off),
+## everything on it moves under the ship, and the ship goes to sea where it was put.
+func _launch_vessel(home: Transform3D) -> void:
+	var ship := carrier as Ship
+	var box := AABB()
+	var first := true
+	for body in _bodies_in(_vessel):
+		for cs in body.get_children(true):
+			if cs is CollisionShape3D and (cs as CollisionShape3D).shape:
+				var xf := (cs as CollisionShape3D).global_transform # (the Vessel is at the origin: its own frame)
+				body.remove_child(cs)
+				ship.add_child(cs)
+				cs.transform = xf
+				var b: AABB = xf * (cs as CollisionShape3D).shape.get_debug_mesh().get_aabb()
+				box = b if first else box.merge(b)
+				first = false
+		body.collision_layer = 0
+		body.collision_mask = 0
+	for c in _vessel.get_children():
+		c.reparent(ship, false)
+	for cr in ship.find_children("*", "Crane", true, false):
+		if (cr as Crane).crane:
+			(cr as Crane).crane.ship = ship
+	ship.length = _vessel.length if _vessel.length > 0.0 else maxf(box.size.x, 4.0)
+	ship.beam = _vessel.beam if _vessel.beam > 0.0 else maxf(box.size.z, 2.0)
+	ship.deck_box = box.grow(1.0) if not first else ship.deck_box
+	ship.home = home
+	ship.global_transform = ship.pose(Liquid.wave_time())
+	_vessel.global_transform = home
+
+
+## The static bodies a Vessel is built of (its blocks, a crane's pedestal): plain static
+## bodies, not a moving one (an AnimatableBody) nor anything in a puzzle piece (doors, plates,
+## seesaws move their own).
+static func _bodies_in(n: Node) -> Array[StaticBody3D]:
+	var out: Array[StaticBody3D] = []
+	for c in n.get_children(true):
+		if c is PuzzleNode:
+			continue
+		if c is StaticBody3D and c.get_class() == "StaticBody3D":
+			out.append(c)
+		out.append_array(_bodies_in(c))
+	return out

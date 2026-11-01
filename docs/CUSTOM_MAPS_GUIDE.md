@@ -311,6 +311,13 @@ and drag the model onto its **Model** slot; **Material** is for parts named none
 `custom/make_your_own/models/` has a window, a door and a fence to start from; the Workshop
 has all three.
 
+**4h. A ship.** Add a **Vessel** node on the waterline (MapSettings: **Ocean** on), its red
+arrow (+X) toward the bow, and build the ship as its children: blocks for the hull and the
+deck, rails, a cabin, a Ladder down the side, props, spawn points, the flags. Press F6:
+everything under it heaves and rolls with the swell, and players and cargo ride on it. Keep
+the map's spawn points, props and flags on the ship (the map check tells you if one isn't).
+`custom/make_your_own/boat.tscn` is a small one to copy.
+
 **Did I name it right?** Run the map check (the `--validate` line in step 10):
 it lists each model's missing markers and what that means ("its model has no Spout: the
 water falls straight down"), and catches a near miss ("spout": the name must be "Spout"

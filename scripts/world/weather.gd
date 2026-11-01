@@ -237,7 +237,7 @@ func _bolt_material() -> StandardMaterial3D:
 ## on the windward side.
 func _hull_spray(delta: float) -> void:
 	var world := get_node_or_null("/root/Main/World")
-	if world == null or world.arena == null or world.arena.carrier == null or world.fx == null:
+	if world == null or world.arena == null or not world.arena.carrier is Ship or not (world.arena.carrier as Ship).high_seas or world.fx == null:
 		return
 	_spray_t -= delta
 	if _spray_t > 0.0:

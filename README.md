@@ -454,7 +454,8 @@ toughness), a new pickup (a PickupType), your own flag stands and fans, breakabl
 your own textures, ladders, cranes and horns (High Seas' pieces, on any map; the sea can be
 made swimmable), and doors, windows and fences you model that break part by part (each
 part named for its material: glass shatters, wood splinters, "Fixed" parts stay, loose parts
-fall); the map check names any marker your model is missing.
+fall), and ships: a Vessel node makes everything under it ride the swell (Make Your Own Boat);
+the map check names any marker your model is missing.
 `custom/make_your_own/` has one of each, starter models with their markers, and
 a map using them all (*Make Your Own Workshop*).
 
@@ -485,7 +486,7 @@ scripts/world/    arena.gd (+ Prime layout), map_facing.gd, destructible.gd, mat
                   ssr.gdshaderinc (screen-space reflections for water and glass),
                   map_high_seas.gd + ship.gd + container.gdshader (High Seas), ship_crane.gd
 scripts/mapkit/   the Map Kit's pieces (fixture.gd: set dressing that hums, turns, breaks;
-                  ladder.gd, crane.gd, horn.gd; breakable_model.gd; looks.gd: models, markers)
+                  ladder.gd, crane.gd, horn.gd; vessel.gd; breakable_model.gd; looks.gd: models, markers)
 scripts/modes/    mode_base.gd (sandbox), mode_ctf.gd, mode_dodgeball.gd, mode_megayeet.gd...
 scripts/horde/    horde.gd (MegaYeet's monsters: server walkers, snapshots, one MultiMesh),
                   flow_field.gd (the ways to the Heart), monster_look.gd + monster.gdshader
@@ -594,6 +595,9 @@ godot --path . -- --host --map res://custom/make_your_own/workshop.tscn --mode m
 # ... and over the network: a client sees the oil drums and the thorn bed as they are
 godot --headless --path . -- --host --map res://custom/make_your_own/workshop.tscn --bots 0 --port 24812
 godot --headless --path . -- --join 127.0.0.1 --port 24812 --tour x --tour-mode makeyourownclient
+# A Vessel (Make Your Own Boat): it rides the swell, Yeets and cargo stay aboard, its flags,
+# ladder, crane and fence ride along, the ladder takes you back up from the sea
+godot --path . -- --host --map res://custom/make_your_own/boat.tscn --mode sandbox --bots 0 --tour /tmp/shots --tour-mode vessel
 # ... the shop window, every tab (screenshots at 1600 x 900 and the Steam Deck's 1280 x 800)
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 0 --tour /tmp/shots --tour-mode shop
 # ... with a full house of bots (11) and a big wave: how long the server's frames take
