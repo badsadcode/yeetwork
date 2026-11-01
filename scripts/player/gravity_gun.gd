@@ -890,7 +890,7 @@ func _throw(dir: Vector3, charge := 0.0) -> void:
 			if p:
 				var speed := clampf(48.0 / pow(p.mass / 8.0, 0.33), 9.0, 48.0) * power
 				if Prop.DEFS.get(p.kind, {}).has("throw_speed"):
-					speed = Prop.DEFS[p.kind].throw_speed * power # (a basketball: gentle enough to lob)
+					speed = p.def.throw_speed * power # (a basketball: gentle enough to lob)
 				p.linear_velocity = dir * speed + player.velocity
 				p.angular_velocity = Vector3(randf_range(-8, 8), randf_range(-8, 8), randf_range(-8, 8))
 				p.last_thrower = player.player_id
@@ -978,7 +978,7 @@ func _punt(origin: Vector3, dir: Vector3) -> void:
 				w.server_unfreeze_prop(p)
 			var dv := minf(1600.0 / p.mass, 36.0) * falloff
 			if Prop.DEFS.get(p.kind, {}).has("punt_speed"):
-				dv = Prop.DEFS[p.kind].punt_speed * falloff # (a volleyball: over the net, not out of the map)
+				dv = p.def.punt_speed * falloff # (a volleyball: over the net, not out of the map)
 			p.linear_velocity += dir * dv + Vector3.UP * 2.0 + player.velocity * 0.5
 			p.angular_velocity += Vector3(randf_range(-6, 6), randf_range(-6, 6), randf_range(-6, 6))
 			p.last_thrower = player.player_id

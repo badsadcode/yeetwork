@@ -10,6 +10,11 @@ extends PuzzleNode
 ## - mine: blows up under the first monsters to step on it (then it's gone: build it again).
 ## Put them where monsters will come: behind a gate, in a passage. Not built, it shows as a
 ## faint outline. (On or off like any puzzle piece: on while built.)
+## Your own trap (Your Own Trap): your model for it built, its name (the Use prompt, the
+## shop), and what it does to a monster in it: damage a second, how fast it lets one cross,
+## how long it sets one alight, how big a blast it goes off with (then it's gone). Kind gives
+## the numbers you leave at -1. Save the spot as a scene (right-click > Save Branch as Scene)
+## and it's a new trap you can put anywhere; the shop lists it apart, with your model.
 
 @export_enum("spikes", "fire", "mine") var kind := "spikes":
 	set(v):
@@ -22,8 +27,32 @@ extends PuzzleNode
 ## What it costs from the Fortress meter (0: the kind's usual: spikes 80, fire 120, mine 60).
 @export_range(0.0, 2000.0, 5.0) var cost := 0.0
 
+@export_group("Your own trap")
+## Its name (empty: the kind's).
+@export var trap_name := ""
+## Your model for it, built (its origin in the middle of the spot, on the ground).
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
+## Hurt a second (-1: the kind's: spikes 30).
+@export_range(-1.0, 1000.0, 1.0) var damage := -1.0
+## How fast a monster crosses it, 1 full speed (-1: the kind's: spikes 0.4).
+@export_range(-1.0, 1.0, 0.05) var slows_to := -1.0
+## Sets them alight for this many seconds (-1: the kind's: fire 4). Fire hurts ghosts too.
+@export_range(-1.0, 30.0, 0.5) var burn := -1.0
+## Goes off under the first one with a blast this big (metres; -1: the kind's: a mine 6),
+## then it's gone (build it again).
+@export_range(-1.0, 20.0, 0.5) var blast := -1.0
+
 const COSTS := {"spikes": 80.0, "fire": 120.0, "mine": 60.0}
 const NAMES := {"spikes": "Spikes", "fire": "Fire grate", "mine": "Mine"}
+## What each kind does (the numbers left at -1).
+const STATS := {
+	"spikes": {"damage": 30.0, "slows_to": 0.4, "burn": 0.0, "blast": 0.0},
+	"fire": {"damage": 0.0, "slows_to": 1.0, "burn": 4.0, "blast": 0.0},
+	"mine": {"damage": 0.0, "slows_to": 1.0, "burn": 0.0, "blast": 6.0},
+}
 
 var built := false # (server: what evaluate() says)
 var owner_id := 0 # (server: who built it, for the kills)
@@ -43,6 +72,22 @@ func price() -> float:
 	return cost if cost > 0.0 else COSTS[kind]
 
 
+## Its name: yours, or the kind's.
+func title() -> String:
+	return trap_name if trap_name != "" else NAMES[kind]
+
+
+## One of its numbers: damage, slows_to, burn, blast (yours, or the kind's).
+func stat(what: String) -> float:
+	var v: float = get(what)
+	return v if v >= 0.0 else float(STATS[kind][what])
+
+
+## What makes it a kind of trap for the shop (spots with the same name and model are one).
+func type_key() -> String:
+	return title() + "|" + (model.resource_path if model else kind)
+
+
 func evaluate() -> bool:
 	return built
 
@@ -54,7 +99,7 @@ func usable() -> bool:
 
 
 func use_label() -> String:
-	return "Build %s  (%s)" % [NAMES[kind], ModeMegaYeet.price_text(world, price())]
+	return "Build %s  (%s)" % [title(), ModeMegaYeet.price_text(world, price())]
 
 
 func use_point() -> Vector3:
@@ -63,7 +108,7 @@ func use_point() -> Vector3:
 
 func server_used(pl: Player) -> void:
 	var mode := world.mode_logic as ModeMegaYeet
-	if mode and not built and mode.buy(pl, price(), "built %s" % NAMES[kind].to_lower()):
+	if mode and not built and mode.buy(pl, price(), "built %s" % title().to_lower()):
 		built = true
 		owner_id = pl.player_id
 
@@ -191,6 +236,7 @@ func _rebuild() -> void:
 			_light.light_energy = 1.5 if kind == "fire" else 0.6
 			_light.position.y = 0.6
 			_real.add_child(_light)
+	Looks.apply(_real, MapTheme.pick(self, "trap_" + kind, model)) # (its lights and flames stay)
 	_show()
 
 

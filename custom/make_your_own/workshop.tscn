@@ -1,0 +1,138 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/mapkit/map_settings.gd" id="settings"]
+[ext_resource type="Script" path="res://scripts/mapkit/arena_block.gd" id="block"]
+[ext_resource type="Script" path="res://scripts/mapkit/spawn_point.gd" id="spawn"]
+[ext_resource type="Script" path="res://scripts/mapkit/prop_spawn.gd" id="prop"]
+[ext_resource type="Script" path="res://scripts/mapkit/flood_zone.gd" id="flood"]
+[ext_resource type="Script" path="res://scripts/mapkit/fortress_heart.gd" id="heart"]
+[ext_resource type="Script" path="res://scripts/mapkit/monster_spawn.gd" id="rift"]
+[ext_resource type="Script" path="res://scripts/mapkit/trap_spot.gd" id="trap"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/my_pipe.tscn" id="pipe"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/my_drain.tscn" id="drain"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/thorn_trap.tscn" id="thorns"]
+[ext_resource type="Resource" path="res://custom/make_your_own/oil_drum.tres" id="drum"]
+
+[node name="MakeYourOwnWorkshop" type="Node3D"]
+
+[node name="MapSettings" type="Node" parent="."]
+script = ExtResource("settings")
+map_name = "Make Your Own Workshop"
+author = "Yeetwork Map Kit"
+description = "The Make Your Own examples at work: a pipe of your own pouring out of a wall, a drain, oil drums next to the barrels, and (MegaYeet) a thorn bed trap."
+sky = "day"
+kill_height = -20.0
+
+[node name="Blocks" type="Node3D" parent="."]
+
+[node name="Water" type="Node3D" parent="."]
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="MegaYeet" type="Node3D" parent="."]
+
+[node name="Floor" type="StaticBody3D" parent="Blocks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+script = ExtResource("block")
+size = Vector3(44, 1, 44)
+color = Color(0.45, 0.5, 0.42, 1)
+
+[node name="BackWall" type="StaticBody3D" parent="Blocks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 2, -6.25)
+script = ExtResource("block")
+size = Vector3(12.5, 4, 0.5)
+color = Color(0.6, 0.55, 0.5, 1)
+
+[node name="FrontWall" type="StaticBody3D" parent="Blocks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.5, 6.25)
+script = ExtResource("block")
+size = Vector3(12.5, 1, 0.5)
+color = Color(0.6, 0.55, 0.5, 1)
+
+[node name="LeftWall" type="StaticBody3D" parent="Blocks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.25, 0.5, 0)
+script = ExtResource("block")
+size = Vector3(0.5, 1, 12)
+color = Color(0.6, 0.55, 0.5, 1)
+
+[node name="RightWall" type="StaticBody3D" parent="Blocks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.75, 0.5, 0)
+script = ExtResource("block")
+size = Vector3(0.5, 1, 12)
+color = Color(0.6, 0.55, 0.5, 1)
+
+[node name="Pool" type="Node3D" parent="Water"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 0)
+script = ExtResource("flood")
+size = Vector3(12, 4, 12)
+
+[node name="MyPipe" parent="Water" instance=ExtResource("pipe")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 2.6, -6)
+
+[node name="MyDrain" parent="Water" instance=ExtResource("drain")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, 3)
+
+[node name="OilDrum0" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.6, -10)
+script = ExtResource("prop")
+type = ExtResource("drum")
+
+[node name="OilDrum1" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.3, 0.6, -10)
+script = ExtResource("prop")
+type = ExtResource("drum")
+
+[node name="OilDrum2" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.6, 0.6, -10)
+script = ExtResource("prop")
+type = ExtResource("drum")
+
+[node name="OilDrum3" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.9, 0.6, -10)
+script = ExtResource("prop")
+type = ExtResource("drum")
+
+[node name="Barrel0" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.6, -12.5)
+script = ExtResource("prop")
+kind = "barrel"
+
+[node name="Barrel1" type="Node3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.3, 0.6, -12.5)
+script = ExtResource("prop")
+kind = "barrel"
+
+[node name="Heart" type="Node3D" parent="MegaYeet"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, 14)
+script = ExtResource("heart")
+radius = 2.5
+
+[node name="Rift" type="Node3D" parent="MegaYeet"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -18)
+script = ExtResource("rift")
+radius = 3.0
+
+[node name="ThornTrap" parent="MegaYeet" instance=ExtResource("thorns")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -4)
+
+[node name="FireGrate" type="Node3D" parent="MegaYeet"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, 4)
+script = ExtResource("trap")
+kind = "fire"
+size = Vector3(4, 1, 4)
+
+[node name="Spawn0" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 16)
+script = ExtResource("spawn")
+
+[node name="Spawn1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 16)
+script = ExtResource("spawn")
+
+[node name="Spawn2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 16)
+script = ExtResource("spawn")
+
+[node name="Spawn3" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 16)
+script = ExtResource("spawn")

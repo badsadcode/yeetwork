@@ -529,7 +529,7 @@ func shop_buy(pl: Player, id: String) -> void:
 			item = it
 	if item.is_empty() or not item.ok:
 		return
-	var parts := id.split(":")
+	var parts := id.split(":", true, 1)
 	match parts[0]:
 		"trap":
 			var spot := _free_spot(world, pl, parts[1])
@@ -564,20 +564,22 @@ static func shop_items(w: Node, pl: Player) -> Array:
 	var s: Dictionary = w.mode_state
 	var mine := is_personal(w)
 	var out := []
-	# Traps: by kind, the free spot nearest you.
-	for kind: String in TrapSpot.NAMES:
-		var free := 0
-		var all := 0
-		for n in w.arena.puzzle:
-			if n is TrapSpot and (n as TrapSpot).kind == kind:
-				all += 1
-				free += 0 if n.active else 1
-		if all == 0:
-			continue
-		var spot := _free_spot(w, pl, kind)
-		out.append({"id": "trap:" + kind, "tab": 0, "name": TrapSpot.NAMES[kind], "look": "trap:" + kind,
-			"cost": spot.price() if spot else TrapSpot.COSTS[kind],
-			"about": "Built on the free spot nearest you (%d of %d free)" % [free, all],
+	# Traps: by type (the built-in kinds, and the map's own: TrapSpot.type_key), the free spot
+	# nearest you.
+	var types := {} # key -> [a spot, free, all]
+	for n in w.arena.puzzle:
+		if n is TrapSpot:
+			var key := (n as TrapSpot).type_key()
+			if not types.has(key):
+				types[key] = [n, 0, 0]
+			types[key][1] += 0 if n.active else 1
+			types[key][2] += 1
+	for key: String in types:
+		var any: TrapSpot = types[key][0]
+		var spot := _free_spot(w, pl, key)
+		out.append({"id": "trap:" + key, "tab": 0, "name": any.title(), "look": "spot:%d" % any.puzzle_index,
+			"cost": (spot if spot else any).price(),
+			"about": "Built on the free spot nearest you (%d of %d free)" % [types[key][1], types[key][2]],
 			"why": "" if spot else "All built"})
 	for p: Array in POWERS:
 		var why := ""
@@ -638,10 +640,11 @@ static func price_text(w: Node, cost: float) -> String:
 	return ("%d Y$" % ceili(cost)) if is_personal(w) else ("-%d" % int(cost))
 
 
-static func _free_spot(w: Node, pl: Player, kind: String) -> TrapSpot:
+## The free trap spot of this type (TrapSpot.type_key) nearest this Yeet.
+static func _free_spot(w: Node, pl: Player, key: String) -> TrapSpot:
 	var best: TrapSpot = null
 	for n in w.arena.puzzle:
-		if n is TrapSpot and not n.active and (n as TrapSpot).kind == kind:
+		if n is TrapSpot and not n.active and (n as TrapSpot).type_key() == key:
 			if best == null or n.global_position.distance_to(pl.global_position) < best.global_position.distance_to(pl.global_position):
 				best = n
 	return best

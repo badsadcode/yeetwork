@@ -12,7 +12,8 @@ extends PuzzleNode
 		_rebuild()
 
 ## Your own model for it (a scene: an imported .glb...), instead of the built-in look and
-## the map theme's.
+## the map theme's. A child named "Intake" is where the water goes in (a grate off to one
+## side of the model, a plughole).
 @export var model: PackedScene:
 	set(v):
 		model = v
@@ -22,6 +23,7 @@ var _zone: FloodZone
 var _parts: Node3D
 var _swirl: CPUParticles3D
 var _grate_mat: StandardMaterial3D
+var _intake: Node3D # the model's "Intake"
 
 
 func _ready() -> void:
@@ -55,7 +57,7 @@ func _rebuild() -> void:
 		var bar := PuzzleNode.box_mesh(Vector3(radius * 1.7, 0.03, 0.06), dark, Vector3(0, 0.045, (k - 2) * radius * 0.32))
 		_parts.add_child(bar)
 	_tint()
-	Looks.apply(_parts, MapTheme.pick(self, "drain", model))
+	_intake = Looks.part(Looks.apply(_parts, MapTheme.pick(self, "drain", model)), Looks.INTAKE)
 	if Engine.is_editor_hint():
 		return
 	_swirl = CPUParticles3D.new()
@@ -92,7 +94,12 @@ func _tint() -> void:
 
 
 func link() -> void:
-	_zone = FloodZone.at(world, global_position)
+	_zone = FloodZone.at(world, intake())
+
+
+## Where the water goes in: the model's Intake, or the grate.
+func intake() -> Vector3:
+	return _intake.global_position if _intake and _intake.is_inside_tree() else global_position
 
 
 func evaluate() -> bool:
@@ -107,17 +114,18 @@ func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint() or world == null or not active or _zone == null:
 		return
 	if world.is_server:
-		_zone.pour(global_position, radius, -rate * delta)
+		_zone.pour(intake(), radius, -rate * delta)
 
 
 func _process(_delta: float) -> void:
 	if _swirl == null or _zone == null:
 		return
-	var s := _zone.surface_at(global_position)
-	var wet := active and s > global_position.y + 0.05
+	var at := intake()
+	var s := _zone.surface_at(at)
+	var wet := active and s > at.y + 0.05
 	_swirl.emitting = wet
 	if wet:
-		_swirl.global_position.y = s + 0.03
+		_swirl.global_position = Vector3(at.x, s + 0.03, at.z)
 
 
 func problems() -> Array[String]:

@@ -62,7 +62,11 @@ var is_server := true
 var spawned_by := 0
 var spawn_time := 0.0
 var _flicker: OmniLight3D
-var extra := {} # kind-specific data (fragment polygons, thickness, material)
+var extra := {} # kind-specific data (fragment polygons, thickness, material); "type": a PropType's path
+## Its numbers: DEFS[kind], or a PropType's (your own prop: the built-in one it behaves like,
+## with your model and numbers on top).
+var def: Dictionary
+var ptype: PropType
 
 # Server-side gameplay state.
 var held_by := 0 # player id or 0 (a team lift: 0; its lifters are in `lifters`)
@@ -100,6 +104,13 @@ static func create(p_world: Node, id: int, p_kind: String, xform: Transform3D, p
 	p.team = p_team
 	p.extra = p_extra
 	var def: Dictionary = DEFS[p.kind]
+	var tpath: String = p_extra.get("type", "")
+	if tpath != "" and ResourceLoader.exists(tpath):
+		p.ptype = load(tpath) as PropType
+		if p.ptype:
+			p.kind = p.ptype.behaves_like
+			def = p.ptype.def()
+	p.def = def
 	p.size = p_size if p_size != Vector3.ZERO else def.size
 	p.color = p_color if p_color.a > 0.0 else def.color
 	if p.kind == "flag":
@@ -130,7 +141,7 @@ static func outline_for(p_kind: String) -> PackedVector2Array:
 
 
 func is_fragile() -> bool:
-	return DEFS[kind].has("fragile")
+	return def.has("fragile")
 
 
 func _build(def: Dictionary) -> void:
@@ -270,7 +281,33 @@ func _build(def: Dictionary) -> void:
 		mesh.material_override = mat
 	add_child(shape_node)
 	add_child(mesh)
-	_apply_theme(arena, mesh)
+	if ptype and ptype.model:
+		_apply_type(mesh, shape_node)
+	else:
+		_apply_theme(arena, mesh)
+
+
+## Your own prop's model (PropType) in place of the built-in look. A mesh named "Collision"
+## in it is its shape (made convex; hidden), unless the type says box, ball or cylinder.
+func _apply_type(mesh: MeshInstance3D, shape_node: CollisionShape3D) -> void:
+	var model := ptype.model.instantiate() as Node3D
+	if model == null:
+		return
+	mesh.visible = false
+	add_child(model)
+	var col := Looks.part(model, Looks.COLLISION)
+	if col:
+		col.visible = false
+		if col is MeshInstance3D and (col as MeshInstance3D).mesh and ptype.shape == "auto":
+			var xf := Transform3D.IDENTITY
+			var n: Node = col
+			while n != self and n != null:
+				xf = (n as Node3D).transform * xf
+				n = n.get_parent()
+			shape_node.shape = (col as MeshInstance3D).mesh.create_convex_shape(true, true)
+			shape_node.transform = xf
+	if kind == "fan" and Looks.part(model, "Rotor"):
+		_rotor = Looks.part(model, "Rotor")
 
 
 ## The map theme's model for this kind (MapTheme), in place of the built-in look: only the
@@ -860,11 +897,11 @@ func _physics_process(delta: float) -> void:
 
 ## A team lift (too heavy for one gun: DEFS "team" guns lift it together).
 func is_team() -> bool:
-	return DEFS.get(kind, {}).has("team")
+	return def.has("team")
 
 
 func team_needed() -> int:
-	return int(DEFS[kind].get("team", 1))
+	return int(def.get("team", 1))
 
 
 ## Server: a lifter's gun says where it wants it this tick (and where it's aiming).

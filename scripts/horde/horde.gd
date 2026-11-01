@@ -54,7 +54,6 @@ const KINDS := {
 const KIND_IDS := ["shambler", "runner", "brute", "ghost", "climber", "bomber", "golem"]
 const BOSS_NAME := "THE SIEGE GOLEM"
 const CAUSES := ["", "punt", "blast", "crushed", "fall", "lava", "acid", "drowned", "bowled", "wall", "heart", "hit", "fire", "light", "bomb", "spikes"]
-const SPIKES := 30.0 # (a second, on spikes)
 
 enum State { WALK, FLY, STUN, CLIMB, HELD }
 
@@ -86,6 +85,7 @@ class Monster:
 	var climb_to := -1
 	var held_by := 0
 	var slow := 0.0
+	var slow_to := 0.4 # (how fast it goes while slowed)
 	var stomp_cd := 3.0 # (the boss's: stomp, throw, call)
 	var throw_cd := 5.0
 	var call_cd := 12.0
@@ -493,7 +493,7 @@ func _walk(m: Monster, delta: float, _now: float) -> void:
 		var to := m.chase.global_position - m.pos
 		var flat := Vector2(to.x, to.z)
 		dir = flat.normalized() if flat.length() > 0.8 else Vector2.ZERO
-	var step := Vector3(dir.x, 0, dir.y) * m.speed * (0.45 if m.wet > 0.0 else 1.0) * (0.4 if m.slow > 0.0 else 1.0)
+	var step := Vector3(dir.x, 0, dir.y) * m.speed * (0.45 if m.wet > 0.0 else 1.0) * (m.slow_to if m.slow > 0.0 else 1.0)
 	var push := _apart(m)
 	var move := (step + push) * delta
 	var to_pos := m.pos + move
@@ -825,35 +825,41 @@ func _spread_fire() -> void:
 				_ignite(o, 4.0, m.burn_by)
 
 
-## Built traps (TrapSpot) at work on the monsters in them: spikes hurt and slow, a fire grate
-## sets them alight, a mine goes off under the first to step on it (and is gone). Ghosts
-## float over spikes and mines; nothing flying or held is caught.
+## Built traps (TrapSpot) at work on the monsters in them, by their numbers (TrapSpot.stat):
+## spikes hurt and slow, a fire grate sets them alight, a mine goes off under the first to
+## step on it (and is gone); a trap of your own does what its numbers say. Ghosts float over
+## all but fire; nothing flying or held is caught.
 func _trap_tick(dt: float) -> void:
 	for t in _traps:
 		if not t.built:
 			continue
 		var c := t.global_position
+		var hurt := t.stat("damage")
+		var slows := t.stat("slows_to")
+		var burns := t.stat("burn")
+		var blast := t.stat("blast")
 		for m: Monster in _near(c, Vector2(t.size.x, t.size.z).length() * 0.5 + 1.0):
 			if m.hp <= 0.0 or m.state == State.FLY or m.state == State.HELD:
 				continue
-			if m.def.has("ghost") and t.kind != "fire":
+			if m.def.has("ghost") and burns <= 0.0:
 				continue
 			if not t.has_point(m.pos + Vector3.UP * 0.3):
 				continue
-			match t.kind:
-				"spikes":
-					if t.owner_id != 0:
-						m.attacker = t.owner_id
-						m.attacker_t = world.now()
-					m.slow = 0.3
-					m.flash = maxf(m.flash, 0.5)
-					_damage(m, SPIKES * dt, "spikes")
-				"fire":
-					_ignite(m, 4.0, t.owner_id)
-				"mine":
-					t.server_clear()
-					world.server_explode_at(c + Vector3.UP * 0.5, 6.0, t.owner_id)
-					break
+			if blast > 0.0:
+				t.server_clear()
+				world.server_explode_at(c + Vector3.UP * 0.5, blast, t.owner_id)
+				break
+			if t.owner_id != 0:
+				m.attacker = t.owner_id
+				m.attacker_t = world.now()
+			if slows < 1.0:
+				m.slow = 0.3
+				m.slow_to = slows
+			if hurt > 0.0:
+				m.flash = maxf(m.flash, 0.5)
+				_damage(m, hurt * dt, "spikes")
+			if burns > 0.0:
+				_ignite(m, burns, t.owner_id)
 
 
 ## Everyone's flashlight burns the ghosts in its beam.

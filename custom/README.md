@@ -24,7 +24,8 @@ that players drop into the game's `maps` folder. Nothing gets compiled into the 
    3D view to select it; drag the handles on a block's faces (or use the Scale tool) to
    resize it.
 3. Press **F6** (Run Current Scene) to play it right away, with bots.
-4. Look at `custom/example_garden/` for a small example.
+4. Look at `custom/example_garden/` for a small example, and `custom/make_your_own/` for
+   your own versions of game objects (a pipe, a trap, a prop) and starter models.
 
 ## Your own look
 

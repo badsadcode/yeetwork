@@ -212,6 +212,72 @@ by name (a button's `Cap`, a valve's `Wheel`...). The slots, sizes and names are
 [MAPPING.md](MAPPING.md), "Themes"; `custom/example_garden/garden_theme.tres` is an example
 (hay bales for crates, a tree stump flag stand).
 
+### Your own versions: a new pipe, a new trap, a new barrel
+
+A theme re-skins what's there. To **add** a new kind of thing next to the old ones (a rusty
+pipe as well as the steel one, a thorn bed as well as spikes, an oil drum as well as the
+barrel), make your own version. The old one stays as it is.
+
+Open **`custom/make_your_own/`** first: it has one of each, ready-made, and a little map
+that uses them all, **Make Your Own Workshop** (open `workshop.tscn` and press **F6**; pick
+MegaYeet in the game to see the trap at work). The starter models are in its `models/`
+folder: open them in Blender (**File > Import > glTF 2.0**) and make your own from them; the
+markers are already there.
+
+**1. Make the model.** In Blender, model it in metres (a Yeet is 1.8 m tall). Where the
+model's origin goes depends on the object: for a pipe, the point on the wall it hangs from;
+for a trap, the middle of the floor it covers; for a prop, its middle.
+
+**2. Add markers.** Some objects need to know where something happens in your model: where
+the water comes out of a pipe, where a drain swallows it. That's a **marker**: in Blender,
+**Add > Empty > Single Arrow**, move it there, turn its arrow the way things go, and rename
+it to the marker's name (exactly, capital letter too). Moving parts work the same way: name
+the part (a valve's handwheel `Wheel`). The names:
+
+| Name | In | Means |
+|---|---|---|
+| `Spout` | a pipe (FloodValve) | the water comes out here, the way the arrow points (out of a wall, down from a ceiling) |
+| `Intake` | a drain (FloodDrain) | the water goes in here |
+| `Wheel` | a pipe | turns while it pours |
+| `Collision` | a prop | a mesh: what it bumps into things with (keep it a simple shape; it's hidden in the game) |
+| `Emitter`, `Light`, `Spin` | a machine (Fixture) | where steam and smoke come from, where it glows, what turns |
+| `Cap`, `Plate`, `Float`, `Plank`, `Net`, `Rotor` | button, plate, float switch, seesaw, net, fan | the part that moves |
+
+No marker? The object uses its own spot (a pipe pours straight down from its origin).
+
+**3. Export it** into your map's folder: **File > Export > glTF 2.0**, format **glTF Binary
+(.glb)**, with **Include > Custom Properties** off and **Transform > +Y Up** on (the
+default). Godot imports it by itself when you switch back to the editor.
+
+**4a. A new pipe (or any piece: trap, drain, door, button, light, machine...).** Place the
+piece (e.g. a FloodValve), drag your `.glb` onto its **Model** slot, and set its numbers in
+the Inspector (Rate, Total...). Then right-click it in the Scene dock > **Save Branch as
+Scene** and save it in your folder as e.g. `rusty_pipe.tscn`. That file is your new pipe:
+drag it from the FileSystem into any map, as many times as you like; change the file and
+every copy changes. (`custom/make_your_own/my_pipe.tscn` is one: water pours sideways out
+of its Spout into the pool.)
+
+**4b. A new trap.** The same, with a TrapSpot: pick the **Kind** closest to what you want,
+then under **Your Own Trap** give it a **Trap Name** (shown in the Use prompt and the
+shop), your **Model**, and its numbers: **Damage** (a second), **Slows To** (1: full speed;
+0.25: a crawl), **Burn** (seconds alight; burning traps hurt ghosts), **Blast** (it goes off
+once with a blast this big). Leave a number at -1 to keep the kind's. Set its **Cost**.
+Save it as a scene. The shop shows it as its own card, with your model as its picture.
+(`thorn_trap.tscn`: a thorn bed that hurts harder and slows more than spikes.)
+
+**4c. A new prop (crate, barrel, ball...).** Props aren't placed pieces, so a new one is a
+**PropType** file: right-click your folder > **Create New > Resource... > PropType**, save it
+as e.g. `oil_drum.tres`, and fill it in: **Display Name**, **Behaves Like** (the built-in
+prop it acts like: a crate breaks into boards, a boom barrel blows up, a battery fits power
+sockets), your **Model**, its **Size** (the box it fills; 0: the built-in one's),
+**Shape**, **Mass** (kg; one gun lifts up to about 400), **Bounce**, **Toughness** (how hard
+a hit breaks it) or **Unbreakable**. Then place PropSpawns and drag the file onto their
+**Type** slot. (`oil_drum.tres`: heavier and tougher than a barrel, with a Collision mesh.)
+
+The full list of what each object takes is in [MAPPING.md](MAPPING.md), "Make your own
+versions"; what comes next (every object in the game, High Seas' ship and crane among them)
+is in [design/MAKE_YOUR_OWN.md](design/MAKE_YOUR_OWN.md).
+
 ## 13. Your own functionality (optional)
 
 You can attach your own scripts to nodes (right-click a node → **Attach Script**) for moving

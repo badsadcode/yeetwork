@@ -53,6 +53,12 @@ extends Resource
 @export var hoop: PackedScene
 @export var volley_net: PackedScene
 
+@export_group("MegaYeet")
+@export var heart: PackedScene
+@export var trap_spikes: PackedScene
+@export var trap_fire: PackedScene
+@export var trap_mine: PackedScene
+
 @export_group("Pickups")
 @export var pickup_pad: PackedScene
 @export var pickup_health: PackedScene

@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/mapkit/flood_drain.gd" id="drain"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/drain.glb" id="model"]
+
+[node name="MyDrain" type="Node3D"]
+script = ExtResource("drain")
+rate = 0.5
+radius = 0.6
+model = ExtResource("model")

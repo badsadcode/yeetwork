@@ -211,7 +211,7 @@ func _build_cards(items: Array) -> void:
 		v.add_theme_constant_override("separation", 2)
 		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(v)
-		var thumb := Thumb.new(build_look(String(it.look)))
+		var thumb := Thumb.new(build_look(String(it.look), world))
 		thumb.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		v.add_child(thumb)
 		var title := _text(21, Color.WHITE)
@@ -262,10 +262,21 @@ func _text(px: int, color: Color) -> Label:
 
 # --- Thumbnails ------------------------------------------------------------------------
 
-## The model a card shows: the trap, the pickup, or a little symbol (the upgrades, repairs).
-static func build_look(look: String) -> Node3D:
+## The model a card shows: the trap (as the map's spot has it: your own model too), the
+## pickup, or a little symbol (the upgrades, repairs).
+static func build_look(look: String, w: Node = null) -> Node3D:
 	var parts := look.split(":")
 	match parts[0]:
+		"spot":
+			var i := int(parts[1])
+			var src: TrapSpot = w.arena.puzzle[i] if w and i >= 0 and i < w.arena.puzzle.size() else null
+			if src:
+				var t := TrapSpot.new()
+				t.kind = src.kind
+				t.model = src.model
+				t.size = Vector3(minf(src.size.x, 3.0), src.size.y, minf(src.size.z, 3.0))
+				t.active = true
+				return t
 		"trap":
 			var t := TrapSpot.new()
 			t.kind = parts[1]

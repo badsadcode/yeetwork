@@ -447,6 +447,11 @@ It shows up in the map list as *(custom)*. Packs with scripts of their own load 
 the player allows them (Play page); a player who joins without the server's map pack is told
 which one to get. Your first custom map, step by step with pictures:
 **[docs/CUSTOM_MAPS_GUIDE.md](docs/CUSTOM_MAPS_GUIDE.md)** (the short version: `custom/README.md`).
+**Your own versions** of game objects, next to the built-in ones and without code: a new
+pipe (its model says where the water comes out), a new trap (its own model, name, damage,
+slowing; the shop sells it), a new crate or barrel (a PropType: your model, size, weight,
+toughness); `custom/make_your_own/` has one of each, starter models with their markers, and
+a map using them all (*Make Your Own Workshop*).
 
 ```bash
 godot --headless --path . -- --map courtyard --validate
@@ -573,6 +578,12 @@ godot --headless --path . -- --host --map res://maps/fortress.tscn --bots 0 --to
 # time 200 monsters take a tick, the fall and a fresh start, the shop window and personal Y$
 # (screenshots with a folder)
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --tour /tmp/shots --tour-mode megayeet
+# Make your own versions: a pipe pouring from its model's Spout, a drain's Intake, oil drums
+# (a PropType), a thorn bed trap of your own in the shop and at work (the Workshop map)
+godot --path . -- --host --map res://custom/make_your_own/workshop.tscn --mode megayeet --bots 0 --tour /tmp/shots --tour-mode makeyourown
+# ... and over the network: a client sees the oil drums and the thorn bed as they are
+godot --headless --path . -- --host --map res://custom/make_your_own/workshop.tscn --bots 0 --port 24812
+godot --headless --path . -- --join 127.0.0.1 --port 24812 --tour x --tour-mode makeyourownclient
 # ... the shop window, every tab (screenshots at 1600 x 900 and the Steam Deck's 1280 x 800)
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 0 --tour /tmp/shots --tour-mode shop
 # ... with a full house of bots (11) and a big wave: how long the server's frames take

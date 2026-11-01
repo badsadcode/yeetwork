@@ -539,8 +539,8 @@ func _shop_window() -> void:
 	var trap_cards := win._cards.size() if win else 0
 	_check("the shop key opens the window: the traps tab, a card for each kind", win != null and win.visible and trap_cards == 3, "%d cards" % trap_cards)
 	await _shot("m15_shop_traps")
-	var fire: TrapSpot = ModeMegaYeet._free_spot(world, pl, "fire")
-	win._buy("trap:fire")
+	var fire: TrapSpot = ModeMegaYeet._free_spot(world, pl, "Fire grate|fire")
+	win._buy("trap:Fire grate|fire")
 	await _wait(0.4)
 	_check("... a trap bought builds the free spot of its kind nearest you", fire and fire.name == "FireE" and fire.active and ModeMegaYeet.wallet(world, pl) == 1000 - int(fire.price()), "%s built %s, %d Y$" % [fire.name if fire else "none", fire.active if fire else false, ModeMegaYeet.wallet(world, pl)])
 	win._set_tab(1)

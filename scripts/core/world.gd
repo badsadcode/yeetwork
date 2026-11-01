@@ -117,7 +117,7 @@ func start(server: bool) -> void:
 		if Game.spooky:
 			_server_spooky_props()
 		for entry in arena.initial_props:
-			var p := server_spawn_prop(entry[0], arena.xf_world(entry[1]))
+			var p := server_spawn_prop(entry[0], arena.xf_world(entry[1]), Vector3.ZERO, Color(0, 0, 0, 0), 0, Vector3.ZERO, entry[3] if entry.size() > 3 else {})
 			p.set_meta("map_prop", true)
 			if entry.size() > 2 and entry[2]:
 				p.set_meta("key_prop", true)
@@ -152,7 +152,7 @@ func _server_spooky_props() -> void:
 	var srng := RandomNumberGenerator.new()
 	srng.seed = 31337
 	for entry in arena.initial_props:
-		if entry[0] == "crate" and srng.randf() < 0.4:
+		if entry[0] == "crate" and (entry.size() < 4 or entry[3].is_empty()) and srng.randf() < 0.4:
 			entry[0] = "pumpkin"
 	var spots: Array = arena.spawn_points[0].duplicate()
 	for t in [1, 2]:
@@ -738,7 +738,7 @@ func server_prop_impact(p: Prop, body: Node, rel: Vector3, speed: float) -> void
 		server_fx("impact:" + mat_name, contact, rel, clampf(energy / 6000.0, 0.03, 3.0), -dir)
 	if body is Player:
 		_prop_hits_player(p, body as Player, rel, speed)
-	if p.is_fragile() and 0.5 * p.mass * speed * speed > Prop.DEFS[p.kind].fragile:
+	if p.is_fragile() and 0.5 * p.mass * speed * speed > p.def.fragile:
 		server_break_prop(p, rel)
 		return
 	if body is Player:
@@ -823,7 +823,7 @@ func server_break_prop(p: Prop, rel: Vector3) -> void:
 	if not is_instance_valid(p) or p.is_queued_for_deletion() or not props.has(p.prop_id):
 		return
 	p.exploded = true
-	var def: Dictionary = Prop.DEFS[p.kind]
+	var def: Dictionary = p.def
 	var xf := p.global_transform
 	var vel := p.linear_velocity
 	var kind := p.kind

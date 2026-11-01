@@ -2,7 +2,8 @@
 class_name PropSpawn
 extends Node3D
 ## A physics prop placed in the map. Map props respawn at this spot after they are
-## destroyed or fall out of the world.
+## destroyed or fall out of the world. Type: your own prop (a PropType: your model and
+## numbers on a built-in one's behaviour) in place of Kind.
 
 @export_enum("crate", "crate_big", "barrel", "boom_barrel", "ball", "beachball", "anvil", "plank", "couch", "tire", "cone", "fuse", "lost_yeet", "boulder", "platform", "battery", "gravestone", "coffin", "pumpkin", "iron_ball") var kind := "crate":
 	set(v):
@@ -13,7 +14,13 @@ extends Node3D
 ## level (other map props take 10-25 s), and a PuzzleReset puts it back home.
 @export var key_prop := false
 
+@export var type: PropType:
+	set(v):
+		type = v
+		_rebuild()
+
 var _preview: MeshInstance3D
+var _model: Node3D # (the editor: your type's model)
 
 
 func _ready() -> void:
@@ -27,7 +34,19 @@ func _rebuild() -> void:
 	if _preview == null:
 		_preview = MeshInstance3D.new()
 		add_child(_preview, false, Node.INTERNAL_MODE_FRONT)
-	var def: Dictionary = Prop.DEFS[kind]
+	if _model:
+		_model.queue_free()
+		_model = null
+	_preview.visible = true
+	if type and type.model:
+		_model = type.model.instantiate() as Node3D
+		if _model:
+			add_child(_model, false, Node.INTERNAL_MODE_FRONT)
+			_preview.visible = false
+			var col := Looks.part(_model, Looks.COLLISION)
+			if col:
+				col.visible = false
+	var def: Dictionary = type.def() if type else Prop.DEFS[kind]
 	var s: Vector3 = def.size
 	match def.shape:
 		"sphere":

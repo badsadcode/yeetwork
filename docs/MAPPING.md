@@ -175,7 +175,8 @@ A destructible wall, floor or bridge. In game it fractures into irregular pieces
 
 ### PropSpawn
 - **Kind**: crate, crate_big, barrel, boom_barrel, ball, beachball, anvil, plank,
-  couch, tire, cone.
+  couch, tire, cone (and the rest of the props below).
+- **Type**: your own prop (a PropType, see *Make your own versions*) in place of Kind.
 - Map props come back at their spot a while after they are destroyed or fall out.
 
 ### PickupSpawn
@@ -254,8 +255,8 @@ Every piece is on or off; the server decides and everybody sees the same. Common
 | **PuzzleFan** | a big fan blowing along the node's forward (-Z; the editor shows its stream): it's a prop players can grab, carry and aim with the gun, block with crates, or turn on a turntable. Blows while its inputs are on (always without inputs). **Strength** (m/s², gravity is 24): light props fly, heavy ones barely move; Yeets get **Player Push**. **Reach**, **Radius**. Comes back home if lost |
 | **Receptacle** | somewhere to bring things: a fuse box, a rescue mat. Props of **Kind** (`fuse`, `lost_yeet`, any prop, or `any`) set down inside **Size** lock into a slot for good (no grabbing them back out); on once **Required** are in. A counter shows how many (**Title** over it), and the objective can count too: "Fuses: {count}/{required}". Make the props Key Props so lost ones come back |
 | **FloodZone** | flood water over a box (**Size**, standing on the node; not rotated): a 0.5 m grid of water columns that runs toward lower water, fills rooms, piles up behind doors, pours through holes in broken walls and out into pits below the box. The floor is whatever the level's collision says (rescanned all the time). **Start Level**: water already there, up to this height. Yeets swim in it, wood floats, the current carries things, fire goes out. Keep it under ~25 x 25 m (Steam Deck hosts); one floor per column |
-| **FloodValve** | a pipe pouring water into its FloodZone while its inputs are on (always, without inputs). **Rate** m³/s (a 10 x 12 m room rises 1 m per 120 m³), **Total** (stops after this much; 0 never) |
-| **FloodDrain** | a floor grate taking water out while its inputs are on. **Rate**, **Radius** |
+| **FloodValve** | a pipe pouring water into its FloodZone while its inputs are on (always, without inputs). **Rate** m³/s (a 10 x 12 m room rises 1 m per 120 m³), **Total** (stops after this much; 0 never). Its model's `Spout` marker: where the water comes out and which way (it can sit on a pool's wall) |
+| **FloodDrain** | a floor grate taking water out while its inputs are on. **Rate**, **Radius**. Its model's `Intake` marker: where the water goes in |
 | **FloatSwitch** | a float on a post: on while the water stands **Level** above the node. Invert it with a PuzzleLogic for "drained" |
 | **Beacon** | a brazier, on while it burns. Lit by fire (a burning prop or Yeet, a FuseLine's spark, another beacon's flames) or its inputs; water up to the bowl puts it out. Its flames set alight wood and Yeets that touch them. **Start Lit**, **Burn Time** (0 forever), **Palette** |
 | **FuseLine** | a cord along the floor to **End**: fire at its start lights a spark that runs along it at **Speed**; at the end it's on for good. Water puts the spark out (light it again where it stopped) |
@@ -386,7 +387,9 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
   **Kind**: `spikes` (monsters crossing are hurt and slowed), `fire` (a burning grate: they
   catch fire), `mine` (blows up under the first monsters, then it's gone: build it again).
   Built traps last until the fortress falls. Put them where monsters will come: behind a
-  gate, in a passage. Not built, a faint outline shows where it goes.
+  gate, in a passage. Not built, a faint outline shows where it goes. **Your Own Trap**:
+  its name, model and numbers (damage, slowing, burning, blast): see *Make your own
+  versions*.
 - Between waves players also **repair gates** (Use on a broken one; the more is gone, the
   more it costs) and buy **team upgrades** at the Heart (Use on it: Mighty pushes, Thick
   skin, Quick return, in that order). Spending never takes the meter below a tenth of it.
@@ -455,6 +458,7 @@ light_torch, light_spotlight, light_neon. *Movement* jump_pad, lift, grapple_poi
 pressure_plate, door, target, receptacle, exit, checkpoint, reset_post, seesaw, turntable,
 pulley, magnet. *Water, fire, power* valve, drain, float_switch, beacon, contacts. *Modes*
 flag_stand, goal (the frame; the net stays solid), hoop (the arc stays), volley_net.
+*MegaYeet* heart, trap_spikes, trap_fire, trap_mine (built; flames and lights stay).
 *Pickups* pickup_pad (added around the glowing ring) and one item per kind
 (pickup_health, pickup_health_big, pickup_speed, pickup_super, pickup_feather, pickup_iron).
 *Props* (sizes in metres; spheres and cylinders give the radius):
@@ -472,6 +476,35 @@ flag_stand, goal (the frame; the net stays solid), hoop (the arc stays), volley_
 | fan | 1.5 x 1.7 x 0.8 | flag | pole 2.4 tall |
 | yeetball | sphere r 0.7 | basketball | sphere r 0.32 |
 | volleyball | sphere r 0.5 | | |
+
+### Make your own versions (new kinds of pieces and props)
+A new kind of thing next to the built-in ones, with your model and numbers, no code. Step
+by step: [CUSTOM_MAPS_GUIDE.md](CUSTOM_MAPS_GUIDE.md), "Your own versions";
+`custom/make_your_own/` has an example of each and a map using them (Make Your Own
+Workshop), and starter models with their markers (`models/`, made by
+`tools/make_templates.gd`).
+
+- **A piece** (pipe, drain, trap, door, button, light, machine, any piece with a **Model**
+  slot): set its Model and numbers, then right-click > *Save Branch as Scene*; the saved
+  scene is your new piece.
+- **A trap** (TrapSpot > *Your Own Trap*): **Trap Name**, **Model**, **Damage** (a second),
+  **Slows To** (speed across it, 1 full), **Burn** (seconds alight; only burning traps catch
+  ghosts), **Blast** (goes off once, this big, then needs building again); -1 keeps the
+  Kind's (spikes 30 / 0.4 / 0 / 0, fire 0 / 1 / 4 / 0, mine 0 / 1 / 0 / 6). Traps with the
+  same name and model are one type in the shop; its picture is your model.
+- **A prop**: a **PropType** resource (Create New > Resource > PropType) on a PropSpawn's
+  **Type** slot: **Display Name**, **Behaves Like** (a built-in prop: how it breaks, blows
+  up, floats, powers sockets), **Model** (origin in its middle), **Size** (the box it fills,
+  metres; 0 the built-in one's), **Shape** (auto: its `Collision` mesh, made convex, if it
+  has one, else the built-in shape; or box, ball, cylinder), **Mass**, **Bounce**,
+  **Toughness** (impact energy that breaks it; props that break only), **Unbreakable**,
+  **Color** (what it breaks into). It travels to every player like any prop.
+
+**Markers** (found by name, any depth; a Blender empty keeps its name and place; "points"
+is its Y axis: a Single Arrow empty's arrow): `Spout` (FloodValve: where the water comes out
+and which way; it arcs out and lands where it falls), `Intake` (FloodDrain: where water goes
+in), `Collision` (props: a mesh, the shape; hidden), `Emitter` / `Light` / `Spin`
+(Fixture), and the moving parts in *Themes* above. Without one, the piece's origin is used.
 
 ### Selecting pieces in the 3D view
 The Map Kit's pieces draw themselves with internal meshes (not saved in the map), which

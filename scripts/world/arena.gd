@@ -28,7 +28,7 @@ var flag_stands := {} # team -> Vector3 (base of the flag)
 var goals: Array = [] # Yeetball GoalZones (YeetHoops' Hoops, YeetVolley's court halves)
 var nets: Array[VolleyNet] = [] # YeetVolley
 var ball_spot := Vector3(0, 1.2, 0) # Yeetball kickoff spot (a BallSpot)
-var initial_props: Array = [] # [kind, Transform3D, key prop?]
+var initial_props: Array = [] # [kind, Transform3D, key prop?, extra ({"type": a PropType's path})]
 var kill_y := -45.0
 ## A storm over the map (Weather): lightning can strike the map itself (World._server_storm).
 var storm := false
@@ -334,7 +334,7 @@ func _collect(n: Node) -> void:
 		flag_stand((n as FlagStand).team_id(), (n as Node3D).global_position, MapTheme.pick(n, "flag_stand"))
 	elif n is PropSpawn:
 		var ps := n as PropSpawn
-		initial_props.append([ps.kind, Transform3D(ps.global_transform.basis.orthonormalized(), ps.global_position), ps.key_prop])
+		initial_props.append([ps.type.behaves_like if ps.type else ps.kind, Transform3D(ps.global_transform.basis.orthonormalized(), ps.global_position), ps.key_prop, {"type": ps.type.resource_path} if ps.type else {}])
 	elif n is JumpPadNode:
 		var jp := n as JumpPadNode
 		jump_pad(jp.global_position, jp.launch_velocity(), MapTheme.pick(jp, "jump_pad", jp.model), jp.global_transform.basis.orthonormalized())

@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/mapkit/flood_valve.gd" id="valve"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/pipe.glb" id="model"]
+
+[node name="MyPipe" type="Node3D"]
+script = ExtResource("valve")
+rate = 4.0
+total = 110.0
+model = ExtResource("model")
