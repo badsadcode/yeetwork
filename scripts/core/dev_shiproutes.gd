@@ -93,14 +93,6 @@ func _ready() -> void:
 	await _wait(0.4)
 	var on_bridge := func(l: Vector3): return absf(l.y - (deck + MapHighSeas.CONT.y * 2.0)) < 0.7 and absf(l.z) < 12.7
 	var up := await _climb(pl, Vector3(0, 0, 1), 8.0, on_bridge)
-	if not up:
-		# Now and then on CI (never here, at any point of the ship's roll) the climber walks past
-		# the ladder, right across the deck. A player would try again: so does this, saying so,
-		# with the second try traced for the log.
-		print("NOTE: missed the lashing-bridge ladder once (ended at %s); again, traced" % _local(pl))
-		_put(pl, Vector3(gx, deck + 0.2, -13.6), Vector3(0, 0, 1))
-		await _wait(0.4)
-		up = await _climb(pl, Vector3(0, 0, 1), 8.0, on_bridge, true)
 	_check("up a ladder onto a lashing bridge", up, "at %s" % _local(pl))
 	_put(pl, Vector3(gx - 8.0, deck + 9.0, -15.0), Vector3(1, -0.5, 1.2))
 	await _wait(0.5)
@@ -174,18 +166,22 @@ func _ready() -> void:
 
 ## Holds forward (facing `face`, ship-local: it climbs a ladder, swims) until `arrived` says so
 ## and it's standing (or time's up). (Not jump: a bot-flagged player bunny-hops while it's held.)
-func _climb(q: Player, face: Vector3, seconds: float, arrived: Callable, trace := false) -> bool:
+## Climbs, holding forward, until it's arrived: looked at every physics tick (walking on the
+## rolling ship, "on the floor" flickers, true one tick in a dozen: a look every 0.1 s could
+## miss them all while it walked on past where it was going).
+func _climb(q: Player, face: Vector3, seconds: float, arrived: Callable) -> bool:
 	for k in int(seconds * 10.0):
 		_face(q, face)
 		q.cmd.move = Vector2(0, 1)
-		await _wait(0.1)
-		if trace or OS.get_cmdline_user_args().has("--trace"):
+		for t in 6:
+			await get_tree().physics_frame
+			if arrived.call(_local(q)) and q.is_on_floor():
+				q.cmd.move = Vector2.ZERO
+				q.cmd.jump = false
+				await _wait(0.3)
+				return true
+		if OS.get_cmdline_user_args().has("--trace"):
 			print("TRACE %s v %s floor %s" % [_local(q), q.velocity, q.is_on_floor()])
-		if arrived.call(_local(q)) and q.is_on_floor():
-			q.cmd.move = Vector2.ZERO
-			q.cmd.jump = false
-			await _wait(0.3)
-			return true
 	q.cmd.move = Vector2.ZERO
 	q.cmd.jump = false
 	return false

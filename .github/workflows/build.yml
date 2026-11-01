@@ -41,11 +41,6 @@ jobs:
       - name: Ship routes check (overboard and back up a ladder, a bot too; the bridge, its horn and windows; lashing bridges)
         timeout-minutes: 4
         run: timeout 170 godot --headless -- --host --map highseas --bots 1 --spooky off --tour x --tour-mode shiproutes
-      - name: TEMPORARY lashing-bridge ladder probe (an experiment, never fails the build)
-        continue-on-error: true
-        timeout-minutes: 12
-        run: |
-          timeout 500 godot --headless -- --host --map highseas --bots 1 --spooky off --tour x --tour-mode lashprobe 2>&1 | grep -E "PROBE|tick|SCRIPT ERROR" || true
       - name: Ship cargo check (lashed containers break loose to blasts and storms, open containers, floating cargo)
         timeout-minutes: 3
         run: timeout 140 godot --headless -- --host --map highseas --bots 0 --spooky off --tour x --tour-mode shipcargo
