@@ -42,6 +42,9 @@ extends Node
 @export var ocean_level := -4.0
 ## Sea state with the "sculpted" water style: calm, lake, ocean or stormy.
 @export_enum("calm", "lake", "ocean", "stormy", "extreme") var ocean_preset := "ocean"
+## Players swim in the ocean (and climb back out by a Ladder: bots swim to one whose foot is
+## in the water) instead of sinking and drowning.
+@export var ocean_swimmable := false
 ## Weather around the players: rain, or a full storm (rain, wind wisps and lightning).
 ## The "storm" sky brings the storm by itself.
 @export_enum("none", "rain", "storm") var weather := "none"

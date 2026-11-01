@@ -268,7 +268,7 @@ func clear_chunks_near(pos: Vector3, r: float) -> void:
 			_fade_body(c.get_instance_id())
 
 
-func shard(poly: PackedVector2Array, t: float, xf: Transform3D, vel: Vector3, spin: Vector3, color: Color, material: String, face: Material = null) -> void:
+func shard(poly: PackedVector2Array, t: float, xf: Transform3D, vel: Vector3, spin: Vector3, color: Color, material: String, face: Material = null, side: Material = null) -> void:
 	var rb := RigidBody3D.new()
 	rb.collision_layer = Game.L_LIMBS
 	rb.collision_mask = Game.L_WORLD | Game.L_LIMBS | Game.L_PROPS
@@ -280,7 +280,7 @@ func shard(poly: PackedVector2Array, t: float, xf: Transform3D, vel: Vector3, sp
 	cs.shape = shape
 	rb.add_child(cs)
 	var mi := MeshInstance3D.new()
-	mi.mesh = Fracture.fragment_mesh([poly], t, face if face else Mats.slab(color, material), Mats.slab(color, material, true))
+	mi.mesh = Fracture.fragment_mesh([poly], t, face if face else Mats.slab(color, material), side if side else Mats.slab(color, material, true))
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if a > 0.05 else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	rb.add_child(mi)
 	add_child(rb)

@@ -3,8 +3,11 @@ shows the examples of docs/MAPPING.md's "Make your own versions" at work: a pipe
 pouring sideways out of a wall into a pool (its Spout), a drain with its Intake off to one
 side, oil drums (a PropType) next to the built-in barrels, an energy drink (a PickupType), a
 wooden fan (a PuzzleFan's Model) blowing at them, a brick wall to break (a BreakableSlab's
-Custom Material), stone flag stands (CTF), and, for MegaYeet, a thorn bed (your own trap)
-and a built-in fire grate on the monsters' way to the Heart.
+Custom Material), stone flag stands (CTF), a crane of your own swinging a crate, a bell (a
+Horn), a swimmable sea round the island with a wooden ladder up out of it, the built-in ladder
+up the pool's back wall, a door, a window and a fence that break part by part (BreakableModel),
+and, for MegaYeet, a thorn bed (your own trap) and a built-in fire
+grate on the monsters' way to the Heart.
 
 Usage: python tools/make_workshop.py
 """
@@ -32,22 +35,35 @@ ext = [
     ('PackedScene', 'res://custom/make_your_own/models/fan.glb', 'fanmodel'),
     ('PackedScene', 'res://custom/make_your_own/models/flag_stand.glb', 'flagmodel'),
     ('Material', 'res://custom/make_your_own/bricks.tres', 'bricks'),
+    ('Script', 'res://scripts/mapkit/ladder.gd', 'ladder'),
+    ('Script', 'res://scripts/mapkit/crane.gd', 'crane'),
+    ('Script', 'res://scripts/mapkit/horn.gd', 'horn'),
+    ('PackedScene', 'res://custom/make_your_own/models/ladder.glb', 'laddermodel'),
+    ('PackedScene', 'res://custom/make_your_own/models/crane.glb', 'cranemodel'),
+    ('PackedScene', 'res://custom/make_your_own/models/crate_load.glb', 'loadmodel'),
+    ('PackedScene', 'res://custom/make_your_own/models/bell.glb', 'bellmodel'),
+    ('Script', 'res://scripts/mapkit/breakable_model.gd', 'bmodel'),
+    ('PackedScene', 'res://custom/make_your_own/models/door.glb', 'doormodel'),
+    ('PackedScene', 'res://custom/make_your_own/models/window.glb', 'windowmodel'),
+    ('PackedScene', 'res://custom/make_your_own/models/fence.glb', 'fencemodel'),
 ]
 
 nodes = []
 
 
-def xf(x, y, z):
-    return 'Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, %g, %g, %g)' % (x, y, z)
+def xf(x, y, z, yaw=0):
+    import math
+    c, s = round(math.cos(math.radians(yaw)), 6), round(math.sin(math.radians(yaw)), 6)
+    return 'Transform3D(%g, 0, %g, 0, 1, 0, %g, 0, %g, %g, %g, %g)' % (c, s, -s, c, x, y, z)  # (rows of the basis)
 
 
-def node(name, script=None, parent='.', instance=None, at=(0, 0, 0), **props):
+def node(name, script=None, parent='.', instance=None, at=(0, 0, 0), yaw=0, **props):
     head = '[node name="%s"' % name
     if instance:
         head += ' parent="%s" instance=ExtResource("%s")]' % (parent, instance)
     else:
         head += ' type="%s" parent="%s"]' % ('StaticBody3D' if script == 'block' else 'Node3D', parent)
-    lines = [head, 'transform = ' + xf(*at)]
+    lines = [head, 'transform = ' + xf(*at, yaw)]
     if script:
         lines.append('script = ExtResource("%s")' % script)
     for k, v in props.items():
@@ -72,12 +88,16 @@ nodes.append('\n'.join([
     'description = "The Make Your Own examples at work: a pipe of your own pouring out of a wall, a drain, oil drums next to the barrels, and (MegaYeet) a thorn bed trap."',
     'sky = "day"',
     'kill_height = -20.0',
+    'ocean = true',
+    'ocean_level = -1.5',
+    'ocean_preset = "calm"',
+    'ocean_swimmable = true',
 ]))
 for n in ['Blocks', 'Water', 'Props', 'MegaYeet', 'More']:
     nodes.append('[node name="%s" type="Node3D" parent="."]' % n)
 
 # The ground.
-node('Floor', 'block', 'Blocks', at=(0, -0.5, 0), size=vec(44, 1, 44), color=color(0.45, 0.5, 0.42))
+node('Floor', 'block', 'Blocks', at=(0, -3, 0), size=vec(44, 6, 44), color=color(0.45, 0.5, 0.42))
 # The pool: low walls round a 12 x 12 m basin (x -14..-2, z -6..6), a tall back wall with the
 # pipe on it.
 node('BackWall', 'block', 'Blocks', at=(-8, 2, -6.25), size=vec(12.5, 4, 0.5), color=color(0.6, 0.55, 0.5))
@@ -104,6 +124,18 @@ node('BrickWall', 'slab', 'More', at=(-8, 0, 12), size='Vector2(6, 3)', thicknes
      custom_material='ExtResource("bricks")', texture_size='1.5', hp_scale='0.6')
 node('FlagRed', 'flag', 'More', at=(-16, 0, 16), team='0', model='ExtResource("flagmodel")')
 node('FlagBlue', 'flag', 'More', at=(16, 0, -16), team='1', model='ExtResource("flagmodel")')
+# Ladders: a wooden one of your own up out of the sea (east side), the built-in one up the
+# outside of the pool's back wall. A crane of your own swinging a crate; a bell (a Horn).
+node('SeaLadder', 'ladder', 'More', at=(22, -3.9, 4), yaw=90, height='4.0', model='ExtResource("laddermodel")')
+node('WallLadder', 'ladder', 'More', at=(-12, 0, -6.5), yaw=180, height='4.0', over_the_top='2.0')
+node('Crane', 'crane', 'More', at=(-18, 0, -14), height='8.0', jib='10.0', cable='3.0', heading='60.0', sweep='50.0',
+     period='30.0', load_size='Vector3(3, 1.5, 1.5)', pedestal_size='Vector3(1.4, 0, 1.4)',
+     model='ExtResource("cranemodel")', load_model='ExtResource("loadmodel")')
+node('Bell', 'horn', 'More', at=(3, 0, 13), model='ExtResource("bellmodel")')
+# Breakable models: a door of planks, a window, a fence.
+node('Door', 'bmodel', 'More', at=(14, 0, 10), model='ExtResource("doormodel")', material='"wood"')
+node('Window', 'bmodel', 'More', at=(17.5, 0, 10), model='ExtResource("windowmodel")', material='"glass"')
+node('Fence', 'bmodel', 'More', at=(15, 0, 4), model='ExtResource("fencemodel")', material='"wood"')
 # Where the Yeets start.
 for i, x in enumerate([-3, 0, 3, 6]):
     node('Spawn%d' % i, 'spawn', '.', at=(x, 0, 16))

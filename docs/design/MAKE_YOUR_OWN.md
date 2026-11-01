@@ -9,7 +9,13 @@ reference) and `docs/CUSTOM_MAPS_GUIDE.md` (step by step). **Phase 1 is done** (
 markers, your own pipes, drains, traps and props, starter models, the Make Your Own
 Workshop. **Phase 2 is done** (2026-11-01): your own pickups (PickupType), Model slots on
 flag stands and the big fan, breakable walls in your material, the map check's notes on
-markers.
+markers. **Phase 3, first part done** (2026-11-01): Ladder, Crane and Horn as Map Kit
+pieces with Model slots (`Turret`, `Hook`, `Lever`), a swimmable ocean (MapSettings). Next:
+the ship itself (a moving deck as a piece) and High Seas rebuilt as a scene.
+**Breakable models done** (2026-11-01, Tomek's ask): BreakableModel, a model breaking part by
+part (parts named for their material, `Fixed` parts that never break, procedural shards cut
+from each part's own shape, loose parts falling whole). Later: props that break into their
+model's parts (a door you rip off and throw).
 
 ## The idea in one paragraph
 
@@ -94,7 +100,8 @@ contacts, goal, volley net, the Heart, lights, machines (Fixture), trap spots: *
 | Fuse lines | the cord is drawn by the game | (a cord material, if wanted) |
 | Walls, floors (ArenaBlock), breakable walls (BreakableSlab) | Custom Material (textures): OK | |
 | Ship (rolls on the swell), the sea | High Seas code | piece |
-| Crane, ship's horn, ladders, cargo containers | High Seas code | piece, slot, markers (`Turret`, `Boom`, `Hook`, `Seat`) |
+| Crane, horn, ladders | done (Phase 3): Crane, Horn, Ladder pieces | |
+| Cargo containers | High Seas code (the container prop is there) | stacks as pieces |
 | Monsters (7 kinds, the boss) | built-in looks | type files; models with animations (Phase 5) |
 | Yeets, the gravity gun | built-in | Phase 5 (animations) |
 | Shop pictures | rendered from the object's model | OK: your model shows up by itself |

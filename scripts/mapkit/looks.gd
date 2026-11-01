@@ -19,7 +19,7 @@ const EMITTER := "Emitter"
 const LIGHT := "Light"
 const COLLISION := "Collision"
 ## Every marker and moving part's name (the map check spots a near miss: "spout").
-const NAMES := ["Spout", "Intake", "Emitter", "Light", "Collision", "Spin", "Wheel", "Cap", "Plate", "Float", "Plank", "Net", "Rotor"]
+const NAMES := ["Spout", "Intake", "Emitter", "Light", "Collision", "Spin", "Wheel", "Cap", "Plate", "Float", "Plank", "Net", "Rotor", "Turret", "Hook", "Lever"]
 ## What each piece looks for in your model, and what happens without it.
 const WANTS := {
 	"FloodValve": [["Spout", "the water falls straight down from the piece's origin"]],
@@ -30,6 +30,8 @@ const WANTS := {
 	"Seesaw": [["Plank", "the whole model stays put while the plank tips"]],
 	"VolleyNet": [["Net", "nothing rises with the net"]],
 	"PuzzleFan": [["Rotor", "nothing spins"]],
+	"Crane": [["Turret", "the crane stands still (only its cable sways)"], ["Hook", "the cable hangs from where the built-in jib would end"]],
+	"Horn": [["Lever", "nothing is pulled when it sounds"]],
 }
 
 

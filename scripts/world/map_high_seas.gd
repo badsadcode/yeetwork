@@ -407,7 +407,7 @@ static func _bridge(a: Arena, ship: Ship) -> void:
 	# The console under the windows, the horn's lever on it, a light.
 	_box(ship, Vector3(-51.2, floor_y + 0.45, 0), Vector3(1.2, 0.9, 6.0), Color(0.22, 0.24, 0.28))
 	_box(ship, Vector3(-51.25, floor_y + 0.92, 0), Vector3(1.0, 0.04, 5.6), Color(0.1, 0.45, 0.4), Basis.IDENTITY, false)
-	var horn := ShipHorn.new()
+	var horn := Horn.new()
 	horn.position = Vector3(-51.4, floor_y + 0.9, 2.0)
 	ship.add_child(horn)
 	horn.world = a.world

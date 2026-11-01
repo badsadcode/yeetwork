@@ -430,6 +430,17 @@ func _build_candy(parent: MeshInstance3D) -> void:
 
 ## Irregular fragment of a destructible: one or more extruded polygons.
 func _build_shard() -> void:
+	# A model's part (ModelDestructible): its material, or the whole part come off.
+	var walls: Array = world.arena.destructibles if world and world.get("arena") else []
+	var mw: ModelDestructible = null
+	var part: int = extra.get("part", -1)
+	if extra.has("mwall") and int(extra.mwall) < walls.size():
+		mw = walls[int(extra.mwall)] as ModelDestructible
+	if mw and (part < 0 or part >= mw.part_meshes.size()):
+		mw = null
+	if mw and extra.get("whole", false):
+		_build_whole_part(mw, part)
+		return
 	var polys: Array = extra.get("polys", [])
 	var t: float = extra.get("t", 0.5)
 	var mat_name: String = extra.get("mat", "plaster")
@@ -458,8 +469,44 @@ func _build_shard() -> void:
 	angular_damp = 0.4
 	var mi := MeshInstance3D.new()
 	var face := Mats.slab_face_at(extra.get("face", ""), extra.get("tex", 2.0))
-	mi.mesh = Fracture.fragment_mesh(polys, t, face if face else Mats.slab(color, mat_name), Mats.slab(color, mat_name, true))
+	var side: Material = null
+	if mw:
+		face = mw.cell_face(part)
+		side = face
+	mi.mesh = Fracture.fragment_mesh(polys, t, face if face else Mats.slab(color, mat_name), side if side else Mats.slab(color, mat_name, true))
 	add_child(mi)
+
+
+## A part of a breakable model come off whole: its own mesh (and its scale), a convex shape
+## round it, its weight from its size and material.
+func _build_whole_part(mw: ModelDestructible, part: int) -> void:
+	var src := mw.part_meshes[part]
+	var basis := src.global_transform.basis
+	var scale_basis := basis.orthonormalized().inverse() * basis
+	var mi := MeshInstance3D.new()
+	mi.mesh = src.mesh
+	mi.material_override = src.material_override
+	for k in src.get_surface_override_material_count():
+		mi.set_surface_override_material(k, src.get_surface_override_material(k))
+	mi.transform = Transform3D(scale_basis, Vector3.ZERO)
+	add_child(mi)
+	var hull := src.mesh.create_convex_shape(true, true) as ConvexPolygonShape3D
+	var pts := PackedVector3Array()
+	for v in hull.points:
+		pts.append(scale_basis * v)
+	hull.points = pts
+	var cs := CollisionShape3D.new()
+	cs.shape = hull
+	add_child(cs)
+	var box := Transform3D(scale_basis, Vector3.ZERO) * src.get_aabb()
+	size = box.size.max(Vector3.ONE * 0.05)
+	mass = clampf(size.x * size.y * size.z * 0.6 * Fracture.mat(mw.cell_material(part)).density, 1.0, 300.0)
+	continuous_cd = mass < 10.0
+	var pm := PhysicsMaterial.new()
+	pm.bounce = 0.1
+	pm.friction = 0.8
+	physics_material_override = pm
+	angular_damp = 0.4
 
 
 func _add_crate_trim(parent: MeshInstance3D) -> void:

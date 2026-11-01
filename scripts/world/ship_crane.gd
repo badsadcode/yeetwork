@@ -5,9 +5,16 @@ extends Node3D
 ## sees the same crane with nothing sent. The load is solid: ride it, or get swept off a
 ## container stack when it comes round (a knock, harder the faster it's going; on the peer
 ## that controls you, like a wash). Its machinery house on the pedestal is a Fixture
-## (MapHighSeas). Placed ship-local on the deck, a child of the ship.
+## (MapHighSeas). Placed ship-local on the deck, a child of the ship. Off a ship (the Map Kit's
+## Crane piece) it runs off the match clock and the load hangs plumb.
+## model: your own crane instead of the built-in one: a part named "Turret" slews (its jib
+## along the Turret's +X), an empty "Hook" on it is where the cable hangs from. load_model:
+## what hangs (in a box of load_size, its origin in the middle).
 
 var ship: Ship
+var world: Node # (off a ship: the match, for the clock and the Yeets it sweeps)
+var model: PackedScene
+var load_model: PackedScene
 var height := 12.0 # the pedestal's top above the deck
 var jib := 14.0
 var cable := 3.0
@@ -21,6 +28,8 @@ var load_color := Color(0.95, 0.55, 0.1)
 const YELLOW := Color(0.95, 0.75, 0.15)
 
 var _slew: Node3D
+var _slew_base := 0.0 # (a model's Turret: its own heading, the sweep goes on top)
+var _hook: Node3D
 var _cable: MeshInstance3D
 var _load: AnimatableBody3D
 var _prev := Vector3.INF
@@ -29,7 +38,64 @@ var _t := 0.0
 
 
 func _ready() -> void:
+	if world == null and ship:
+		world = ship.world
 	var yellow := Mats.world(YELLOW, 0.6)
+	if model:
+		_own_model()
+	else:
+		_built_in(yellow)
+	# The cable and its load (in the world: it hangs plumb, not with the ship's tilt).
+	_cable = MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.04
+	cyl.bottom_radius = 0.04
+	cyl.height = 1.0
+	cyl.radial_segments = 6
+	_cable.mesh = cyl
+	_cable.material_override = Mats.world(Color(0.15, 0.15, 0.17), 0.4)
+	_cable.top_level = true
+	add_child(_cable)
+	_load = AnimatableBody3D.new()
+	_load.collision_layer = Game.L_WORLD
+	_load.collision_mask = 0
+	_load.sync_to_physics = true
+	_load.top_level = true
+	var look := load_model.instantiate() as Node3D if load_model else null
+	if look:
+		_load.add_child(look)
+	else:
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = load_size
+		mi.mesh = bm
+		mi.material_override = MapHighSeas.container_material(load_color)
+		_load.add_child(mi)
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = load_size
+	cs.shape = sh
+	_load.add_child(cs)
+	add_child(_load)
+	_place()
+
+
+## Your own crane: its Turret slews, its Hook holds the cable (no Turret: it stands still and
+## the cable hangs from the Hook, or the jib's end).
+func _own_model() -> void:
+	var m := model.instantiate() as Node3D
+	add_child(m)
+	_slew = Looks.part(m, "Turret")
+	_hook = Looks.part(m, "Hook")
+	if _slew:
+		_slew_base = _slew.rotation.y
+	else:
+		_slew = Node3D.new()
+		_slew.position.y = height + 1.8
+		add_child(_slew)
+
+
+func _built_in(yellow: Material) -> void:
 	var ped := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
 	cm.top_radius = 0.8
@@ -52,35 +118,6 @@ func _ready() -> void:
 	var stay := _part(_slew, Vector3(jib * 0.5, 1.65, 0), Vector3(Vector2(jib, 2.7).length(), 0.06, 0.06), Mats.world(Color(0.2, 0.2, 0.22), 0.5))
 	stay.rotation.z = -atan2(2.7, jib)
 	_part(_slew, Vector3(jib, 0.0, 0), Vector3(0.6, 0.5, 0.9), Mats.world(Color(0.2, 0.2, 0.22), 0.5)) # (the sheave)
-	# The cable and its load (in the world: it hangs plumb, not with the ship's tilt).
-	_cable = MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.04
-	cyl.bottom_radius = 0.04
-	cyl.height = 1.0
-	cyl.radial_segments = 6
-	_cable.mesh = cyl
-	_cable.material_override = Mats.world(Color(0.15, 0.15, 0.17), 0.4)
-	_cable.top_level = true
-	add_child(_cable)
-	_load = AnimatableBody3D.new()
-	_load.collision_layer = Game.L_WORLD
-	_load.collision_mask = 0
-	_load.sync_to_physics = true
-	_load.top_level = true
-	var mi := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = load_size
-	mi.mesh = bm
-	mi.material_override = MapHighSeas.container_material(load_color)
-	_load.add_child(mi)
-	var cs := CollisionShape3D.new()
-	var sh := BoxShape3D.new()
-	sh.size = load_size
-	cs.shape = sh
-	_load.add_child(cs)
-	add_child(_load)
-	_place()
 
 
 func _part(parent: Node3D, pos: Vector3, size: Vector3, mat: Material) -> MeshInstance3D:
@@ -97,18 +134,20 @@ func _part(parent: Node3D, pos: Vector3, size: Vector3, mat: Material) -> MeshIn
 func _physics_process(delta: float) -> void:
 	var was := _load.global_position
 	_place()
-	if ship == null or ship.world == null or delta <= 0.0:
+	if world == null or delta <= 0.0:
 		return
 	var vel := (_load.global_position - was) / delta
 	_knock(vel)
 
 
-## Where everything is right now, from the ship's clock.
+## Where everything is right now, from the ship's clock (off a ship: the match's).
 func _place() -> void:
-	var t: float = ship._clock if ship else 0.0
+	var t: float = ship._clock if ship else (world.net_time() if world else 0.0)
 	var heading := slew_center + slew_amp * sin(TAU * t / period)
-	_slew.rotation.y = heading
+	_slew.rotation.y = _slew_base + heading
 	var tip := global_transform * (_slew.position + Basis(Vector3.UP, heading) * Vector3(jib, -0.2, 0))
+	if _hook:
+		tip = _hook.global_position
 	# Plumb, swung out past it by how she's tilting, and a little pendulum of its own.
 	var down := Vector3.DOWN
 	if ship:
@@ -141,7 +180,7 @@ func _knock(vel: Vector3) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	var inv := _load.global_transform.affine_inverse()
 	var half := load_size * 0.5
-	for pl: Player in ship.world.players.values():
+	for pl: Player in world.players.values():
 		if not pl.is_controlled_here() or not pl.is_alive() or now - float(_knocked.get(pl, -10.0)) < 1.0:
 			continue
 		var l := inv * pl.body_center()

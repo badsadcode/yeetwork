@@ -451,7 +451,10 @@ which one to get. Your first custom map, step by step with pictures:
 pipe (its model says where the water comes out), a new trap (its own model, name, damage,
 slowing; the shop sells it), a new crate or barrel (a PropType: your model, size, weight,
 toughness), a new pickup (a PickupType), your own flag stands and fans, breakable walls in
-your own textures; the map check names any marker your model is missing.
+your own textures, ladders, cranes and horns (High Seas' pieces, on any map; the sea can be
+made swimmable), and doors, windows and fences you model that break part by part (each
+part named for its material: glass shatters, wood splinters, "Fixed" parts stay, loose parts
+fall); the map check names any marker your model is missing.
 `custom/make_your_own/` has one of each, starter models with their markers, and
 a map using them all (*Make Your Own Workshop*).
 
@@ -472,15 +475,17 @@ which wall cells are already broken.
 ```
 scripts/core/     game.gd (settings, input map), main.gd (menu/session), world.gd (match + network hub)
 scripts/player/   player.gd (movement), gravity_gun.gd, character_model.gd, ragdoll.gd
-scripts/props/    prop.gd (networked physics objects)
+scripts/props/    prop.gd (networked physics objects), prop_type.gd (your own props)
 scripts/world/    arena.gd (+ Prime layout), map_facing.gd, destructible.gd, mats.gd,
+                  model_destructible.gd (your models breaking part by part), pickup_type.gd,
                   world_surface.gdshader, space_sky.gdshader, trigger_volume.gd, lift.gd,
                   liquid.gd + liquid.gdshader + liquid_waves.gdshaderinc (water, acid, lava),
                   liquid_sculpted.gdshader + liquid_waves_sculpted.gdshaderinc (sculpted water),
                   underwater*.gdshader (full-screen underwater pass), glass.gdshader,
                   ssr.gdshaderinc (screen-space reflections for water and glass),
                   map_high_seas.gd + ship.gd + container.gdshader (High Seas), ship_crane.gd
-scripts/mapkit/   the Map Kit's pieces (fixture.gd: set dressing that hums, turns, breaks)
+scripts/mapkit/   the Map Kit's pieces (fixture.gd: set dressing that hums, turns, breaks;
+                  ladder.gd, crane.gd, horn.gd; breakable_model.gd; looks.gd: models, markers)
 scripts/modes/    mode_base.gd (sandbox), mode_ctf.gd, mode_dodgeball.gd, mode_megayeet.gd...
 scripts/horde/    horde.gd (MegaYeet's monsters: server walkers, snapshots, one MultiMesh),
                   flow_field.gd (the ways to the Heart), monster_look.gd + monster.gdshader
@@ -582,7 +587,9 @@ godot --headless --path . -- --host --map res://maps/fortress.tscn --bots 0 --to
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --tour /tmp/shots --tour-mode megayeet
 # Make your own versions: a pipe pouring from its model's Spout, a drain's Intake, oil drums
 # (a PropType), a thorn bed trap of your own in the shop and at work, an energy drink (a
-# PickupType), a fan and flag stands of your own, a brick wall and its pieces (the Workshop map)
+# PickupType), a fan and flag stands of your own, a brick wall and its pieces, a ladder out of
+# the swimmable sea, a crane and a bell of your own, a door, a window and a fence breaking part
+# by part (the Workshop map)
 godot --path . -- --host --map res://custom/make_your_own/workshop.tscn --mode megayeet --bots 0 --tour /tmp/shots --tour-mode makeyourown
 # ... and over the network: a client sees the oil drums and the thorn bed as they are
 godot --headless --path . -- --host --map res://custom/make_your_own/workshop.tscn --bots 0 --port 24812

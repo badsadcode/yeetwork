@@ -8,7 +8,12 @@ extends Node
 ## its own numbers. Phase 2: a pickup of your own (the energy drink) shows its model and gives
 ## its boost for its own time; the fan's own model turns its Rotor; the flag stands take their
 ## model; a brick wall wears its material, and so do its pieces when it breaks; the map check
-## spots a marker spelled wrong. Screenshots. Exits 1 if a step fails.
+## spots a marker spelled wrong. Phase 3: a ladder of your own up out of the swimmable sea
+## (climbed to the top), the built-in ladder; a crane of your own slews and swings its load;
+## a bell (a Horn) of your own sounds and its Lever is pulled. Breakable models: a door's
+## plank breaks (the frame stands), its knob comes off whole; a window's pane shatters, its
+## frame stays; a fence's rails fall off whole when the posts holding them go. Screenshots.
+## Exits 1 if a step fails.
 ## Usage: godot -- --host --map res://custom/make_your_own/workshop.tscn --mode megayeet --bots 0 --port 24810 --tour <dir> --tour-mode makeyourown
 
 var world: Node
@@ -91,6 +96,15 @@ func _ready() -> void:
 	await _wait(0.2)
 	await _shot("y04_thorns")
 	await _phase2(pl)
+	await _phase3(pl)
+	await _breakables(pl)
+	# Spray and a rift's glow seen against the sea (the sea mustn't paint over them).
+	_cam(Vector3(-1.5, 2.6, -0.5), Vector3(-20, 1.6, -6.5))
+	await _wait(0.4)
+	await _shot("y14_pipe_against_sea")
+	_cam(Vector3(10, 1.4, -9), Vector3(10, 0.8, -30))
+	await _wait(0.4)
+	await _shot("y15_rift_against_sea")
 	print("MAKE YOUR OWN CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -122,7 +136,8 @@ func _phase2(pl: Player) -> void:
 	# A brick wall: its material, and its pieces'.
 	var wall: Destructible = null
 	for d: Destructible in world.arena.destructibles:
-		wall = d
+		if not d is ModelDestructible:
+			wall = d
 	var faced := wall != null and wall.face_path.ends_with("bricks.tres")
 	_cam(wall.global_position + Vector3(3, 2.5, 6), wall.global_position + Vector3.UP * 1.5)
 	await _wait(0.3)
@@ -151,6 +166,147 @@ func _phase2(pl: Player) -> void:
 	var spelled := notes.any(func(n): return n.contains("\"spout\"") and n.contains("exactly"))
 	var missing := notes.any(func(n): return n.contains("no \"Spout\""))
 	_check("the map check notes a marker spelled wrong, and one that's missing", spelled and missing, "%s" % [notes])
+
+
+func _phase3(pl: Player) -> void:
+	var sea_ladder: Ladder = null
+	var crane: Crane = null
+	var bell: Horn = null
+	for n in world.arena.find_children("*", "", true, false):
+		if n is Ladder and String(n.name) == "SeaLadder":
+			sea_ladder = n
+		elif n is Crane:
+			crane = n
+		elif n is Horn:
+			bell = n
+	# The sea and the ladder out of it.
+	var sea := Liquid.at(Vector3(30, -1.5, 0), 0.5)
+	_check("the sea round the island is swimmable, its ladder known to the bots", sea != null and sea.swimmable and sea_ladder != null and world.arena.ladders.has(sea_ladder.foot()), "")
+	var wood := sea_ladder != null and sea_ladder.find_children("WoodLadder", "", true, false).size() > 0
+	world.server_clear_buffs(pl)
+	pl.respawn(sea_ladder.global_position + Vector3(0.7, 1.6, 0), 0.0)
+	await _wait(0.2)
+	_face(pl, sea_ladder.global_position + Vector3(-2, 3.5, 0))
+	pl.cmd.move = Vector2(0, 1)
+	var top := -10.0
+	for k in 40:
+		await _wait(0.15)
+		_face(pl, sea_ladder.global_position + Vector3(-2, 3.5, 0))
+		pl.cmd.move = Vector2(0, 1)
+		top = maxf(top, pl.global_position.y)
+		if pl.global_position.y > 0.3 and pl.is_on_floor():
+			break
+	pl.cmd.move = Vector2.ZERO
+	_check("a ladder of your own: climbed out of the sea onto the island", wood and pl.global_position.y > -0.2 and top > 0.0, "model %s, at y %.1f (highest %.1f)" % [wood, pl.global_position.y, top])
+	# The crane.
+	var sc: ShipCrane = crane.crane if crane else null
+	var turret: Node3D = sc._slew if sc else null
+	var a0 := turret.rotation.y if turret else 0.0
+	var p0: Vector3 = sc._load.global_position if sc else Vector3.ZERO
+	_cam(crane.global_position + Vector3(14, 10, 14), crane.global_position + Vector3(4, 5, 0))
+	await _wait(1.5)
+	await _shot("y08_crane")
+	var own := sc != null and sc._hook != null and String(turret.name) == "Turret" and sc._load.find_children("CrateLoad", "", true, false).size() > 0
+	_check("a crane of your own: its Turret slews, the load (your model) swings from its Hook", own and absf(turret.rotation.y - a0) > 0.01 and sc._load.global_position.distance_to(p0) > 0.1, "turned %.2f rad, load moved %.2f m" % [absf(turret.rotation.y - a0) if turret else 0.0, sc._load.global_position.distance_to(p0) if sc else 0.0])
+	# The bell.
+	var lever: Node3D = bell._lever if bell else null
+	var r0 := lever.rotation.z if lever else 0.0
+	pl.respawn(bell.global_position + Vector3(0, 0, 1.6), 0.0)
+	await _wait(0.3)
+	_face(pl, bell.use_point())
+	world.use_pressed(pl)
+	await _wait(0.3)
+	_check("a bell of your own (a Horn): Use sounds it, its Lever is pulled", lever != null and String(lever.name) == "Lever" and absf(lever.rotation.z - r0) > 0.3, "lever %.2f -> %.2f" % [r0, lever.rotation.z if lever else 0.0])
+	_cam(bell.global_position + Vector3(2.5, 2.0, 2.5), bell.global_position + Vector3(0.3, 1.2, 0))
+	await _wait(0.1)
+	await _shot("y09_bell")
+	_cam(sea_ladder.global_position + Vector3(6, 3, 5), sea_ladder.global_position + Vector3(0, 2, 0))
+	await _wait(0.2)
+	await _shot("y10_sea_ladder")
+
+
+func _breakables(pl: Player) -> void:
+	var door: ModelDestructible = null
+	var window: ModelDestructible = null
+	var fence: ModelDestructible = null
+	for d in world.arena.destructibles:
+		if d is ModelDestructible:
+			var md := d as ModelDestructible
+			if md.part_meshes.size() == 8:
+				door = md
+			elif md.part_meshes.size() == 4:
+				window = md
+			elif md.part_meshes.size() == 7:
+				fence = md
+	_check("a door, a window and a fence of your own, breakable part by part", door != null and window != null and fence != null, "")
+	pl.respawn(Vector3(15, 0, 16), 0.0)
+	_cam(Vector3(15.5, 2.5, 15), Vector3(15.5, 1.0, 8))
+	await _wait(0.4)
+	await _shot("y11_breakables")
+	# The door: one plank, then the knob.
+	var plank := _part(door, "Wood_Plank2")
+	var knob := _part(door, "Metal_Knob")
+	var frame_bodies := door.get_children().filter(func(c): return c is StaticBody3D and not c.has_meta("cell")).size()
+	world.server_damage_destructible(door, door.cell_world(plank) + Vector3(0, 0.3, 0.05), 0.15, 120.0, Vector3(0, 0, -8), 0, 4.0)
+	await _wait(0.4)
+	var planks_left := 0
+	for i in door.part_meshes.size():
+		if door.is_alive(i) and String(door.part_meshes[i].name).begins_with("Wood_Plank"):
+			planks_left += 1
+	_check("... a hit breaks the door's planks where it lands, the rest hold; its frame (Fixed) stands", not door.is_alive(plank) and planks_left >= 2 and frame_bodies == 3 and door.part_mats[plank] == "wood", "plank alive %s, planks left %d, frame pieces %d" % [door.is_alive(plank), planks_left, frame_bodies])
+	world.server_damage_destructible(door, door.cell_world(knob), 0.1, 400.0, Vector3(0, 0, 4), 0, 4.0)
+	await _wait(0.4)
+	var knob_prop := false
+	for p: Prop in world.props.values():
+		if p.extra.get("whole", false) and int(p.extra.get("mwall", -1)) == door.wall_id and int(p.extra.get("part", -1)) == knob:
+			knob_prop = true
+	_check("... its knob (small, metal) comes off whole: a prop", not door.is_alive(knob) and knob_prop and door.part_small[knob] == 1, "prop %s" % knob_prop)
+	# The window: a pane shatters, the frame stays.
+	var pane := _part(window, "Glass_PaneLeft")
+	var bar := _part(window, "Wood_Mullion")
+	world.server_damage_destructible(window, window.cell_world(pane) + Vector3(-0.1, 0.2, 0.03), 0.2, 60.0, Vector3(0, 0, -6), 0, 4.0)
+	await _wait(0.15)
+	await _shot("y12_window")
+	await _wait(0.3)
+	_check("... a window's pane shatters (glass), its mullion and frame stay", not window.is_alive(pane) and window.is_alive(bar) and window.part_mats[pane] == "glass", "pane %s, mullion %s" % [window.is_alive(pane), window.is_alive(bar)])
+	# The fence: break the middle post (the rails still hang on the outer ones), then the left
+	# post: the left bay's rails hold onto nothing and fall off whole.
+	var mid := _part(fence, "Wood_Post1")
+	var left := _part(fence, "Wood_Post0")
+	world.server_damage_destructible(fence, fence.cell_world(mid) + Vector3(0, 0, -0.1), 0.12, 150.0, Vector3(0, 0, 5), 0, 4.0)
+	await _wait(0.3)
+	var rails_after_mid := 0
+	for i in fence.part_meshes.size():
+		if fence.is_alive(i) and String(fence.part_meshes[i].name).begins_with("Wood_Rail"):
+			rails_after_mid += 1
+	world.server_damage_destructible(fence, fence.cell_world(left) + Vector3(0, 0, -0.1), 0.12, 150.0, Vector3(0, 0, 5), 0, 4.0)
+	await _wait(0.6)
+	var fallen := 0
+	for p: Prop in world.props.values():
+		if p.extra.get("whole", false) and int(p.extra.get("mwall", -1)) == fence.wall_id:
+			fallen += 1
+	_check("... a fence: its rails hold on while a post stands; with both gone they fall off whole", rails_after_mid == 4 and fallen >= 2 and not fence.is_alive(_part(fence, "Wood_Rail0_0")), "rails after the middle post %d, fallen %d" % [rails_after_mid, fallen])
+	_cam(Vector3(18, 2.5, 13), Vector3(15, 0.6, 5))
+	await _wait(0.6)
+	await _shot("y13_fence")
+	# Repaired: whole again.
+	world.server_restore_wall(fence.wall_id)
+	await _wait(0.2)
+	_check("... repaired, it's whole again (every part back)", fence.broken_cells.is_empty() and fence.part_meshes.all(func(m): return m.visible), "")
+
+
+## The cell of a model's part by its name.
+func _part(d: ModelDestructible, part_name: String) -> int:
+	for i in d.part_meshes.size():
+		if String(d.part_meshes[i].name) == part_name:
+			return i
+	return -1
+
+
+func _face(q: Player, at: Vector3) -> void:
+	var to := at - q.eye_position()
+	q.yaw = atan2(-to.x, -to.z)
+	q.pitch = atan2(to.y, Vector2(to.x, to.z).length())
 
 
 func _check(what: String, ok: bool, detail: String) -> void:

@@ -170,6 +170,16 @@ func breakable(center: Vector3, basis: Basis, slab_size: Vector2, thickness: flo
 	return d
 
 
+## A breakable model (BreakableModel): its parts are its cells (ModelDestructible).
+func breakable_model(xf: Transform3D, model: Node3D, material := "wood", color := C_BREAK, hp_scale := 1.0, ground := true) -> ModelDestructible:
+	var d := ModelDestructible.new()
+	d.transform = xf
+	add_child(d)
+	d.setup_model(destructibles.size(), model, material, color, hp_scale, ground)
+	destructibles.append(d)
+	return d
+
+
 func jump_pad(pos: Vector3, velocity: Vector3, model: PackedScene = null, basis := Basis.IDENTITY) -> void:
 	var t := TriggerVolume.new()
 	t.position = pos + Vector3(0, 0.6, 0)
@@ -285,7 +295,9 @@ func _build_scene_map(path: String) -> void:
 		kill_y = settings.kill_height
 		avoid_rects.assign(settings.avoid_areas)
 		if settings.ocean:
-			add_child(Liquid.create_ocean(settings.ocean_level, Game.sea_override if Game.sea_override != "" else settings.ocean_preset))
+			var sea := Liquid.create_ocean(settings.ocean_level, Game.sea_override if Game.sea_override != "" else settings.ocean_preset)
+			sea.swimmable = settings.ocean_swimmable
+			add_child(sea)
 	if not _has_class(root, "WorldEnvironment") and not _has_class(root, "DirectionalLight3D"):
 		environment_preset(settings.sky if settings else "sunset", settings)
 	if settings and settings.weather == "rain":
@@ -342,6 +354,19 @@ func _collect(n: Node) -> void:
 	elif n is PropSpawn:
 		var ps := n as PropSpawn
 		initial_props.append([ps.type.behaves_like if ps.type else ps.kind, Transform3D(ps.global_transform.basis.orthonormalized(), ps.global_position), ps.key_prop, {"type": ps.type.resource_path} if ps.type else {}])
+	elif n is BreakableModel:
+		var bm := n as BreakableModel
+		var inst := bm.model.instantiate() as Node3D if bm.model else null
+		if inst:
+			breakable_model(bm.global_transform, inst, bm.material, bm.color, bm.hp_scale, bm.anchor_to_ground)
+		bm.queue_free()
+	elif n is Crane:
+		(n as Crane).set_world(world)
+	elif n is Ladder:
+		# Out of the sea: bots overboard swim to it.
+		var ld := n as Ladder
+		if map_settings and map_settings.ocean and ld.foot() and ld.global_position.y < map_settings.ocean_level + 0.5:
+			ladders.append(ld.foot())
 	elif n is JumpPadNode:
 		var jp := n as JumpPadNode
 		jump_pad(jp.global_position, jp.launch_velocity(), MapTheme.pick(jp, "jump_pad", jp.model), jp.global_transform.basis.orthonormalized())
@@ -791,6 +816,24 @@ func _note_models(n: Node) -> void:
 	var m = n.get("model")
 	if m is PackedScene:
 		model_notes.append_array(Looks.notes(who, m, cls))
+	if n is BreakableModel and m is PackedScene:
+		# What it's made of, and what holds it up.
+		var inst := (m as PackedScene).instantiate()
+		var parts := 0
+		var fixed := 0
+		for mi in inst.find_children("*", "MeshInstance3D", true, false):
+			var nm := ModelDestructible._names(mi, inst).to_lower()
+			if nm.contains("collision"):
+				continue
+			if nm.contains("fixed"):
+				fixed += 1
+			else:
+				parts += 1
+		inst.free()
+		if parts == 0:
+			model_notes.append("%s: nothing in its model can break (every part is Fixed)." % who)
+		elif fixed == 0 and not (n as BreakableModel).anchor_to_ground:
+			model_notes.append("%s: nothing holds it up (no Fixed part, Anchor To Ground off): it all falls at the first hit." % who)
 	var t = n.get("type")
 	if t is PropType and (t as PropType).model:
 		model_notes.append_array(Looks.notes(who, (t as PropType).model, "PropType"))

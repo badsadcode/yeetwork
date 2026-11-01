@@ -1,15 +1,43 @@
-class_name ShipHorn
+@tool
+class_name Horn
 extends PuzzleNode
-## The ship's horn on the bridge's console (High Seas): walk up and press Use to sound it, a
-## deep blast everyone hears. A lever on a post; not too often (a few seconds between blasts).
+## A horn (a ship's on its bridge, a factory whistle, a stadium klaxon): walk up and press Use
+## to sound it, a deep blast everyone hears. A lever on a post; not too often (a few seconds
+## between blasts). Model: your own; a part named "Lever" is pulled down and back.
+
+## Your own model for it (instead of the lever on a post, and the map theme's).
+@export var model: PackedScene:
+	set(v):
+		model = v
+		_rebuild()
 
 const COOLDOWN := 4.0
 
 var _next := 0.0
 var _lever: Node3D
+var _lever_rest := 0.0 # (its tilt at rest: a pull swings it 0.9 rad and back)
+var _parts: Node3D
 
 
 func _ready() -> void:
+	_rebuild()
+
+
+func _rebuild() -> void:
+	if not is_inside_tree():
+		return
+	if _parts:
+		_parts.queue_free()
+	_parts = Node3D.new()
+	add_child(_parts, false, Node.INTERNAL_MODE_FRONT)
+	_build()
+	var look := Looks.apply(_parts, MapTheme.pick(self, "horn", model))
+	if look:
+		_lever = Looks.part(look, "Lever")
+	_lever_rest = _lever.rotation.z if _lever else 0.0
+
+
+func _build() -> void:
 	var post := MeshInstance3D.new()
 	var pm := CylinderMesh.new()
 	pm.top_radius = 0.08
@@ -18,10 +46,10 @@ func _ready() -> void:
 	post.mesh = pm
 	post.position = Vector3(0, 0.5, 0)
 	post.material_override = Mats.plastic(Color(0.3, 0.32, 0.36), 0.4)
-	add_child(post)
+	_parts.add_child(post)
 	_lever = Node3D.new()
 	_lever.position = Vector3(0, 1.0, 0)
-	add_child(_lever)
+	_parts.add_child(_lever)
 	var arm := MeshInstance3D.new()
 	var am := BoxMesh.new()
 	am.size = Vector3(0.06, 0.4, 0.06)
@@ -63,6 +91,6 @@ func server_used(_pl: Player) -> void:
 func pull() -> void:
 	if _lever:
 		var tw := create_tween()
-		tw.tween_property(_lever, "rotation:z", 0.5, 0.12)
+		tw.tween_property(_lever, "rotation:z", _lever_rest + 0.9, 0.12)
 		tw.tween_interval(1.6)
-		tw.tween_property(_lever, "rotation:z", -0.4, 0.4)
+		tw.tween_property(_lever, "rotation:z", _lever_rest, 0.4)

@@ -1084,7 +1084,7 @@ func _s_break(wall_id: int, cells: PackedInt32Array, point: Vector3, impulse: Ve
 		_drop_chunk(d, live, point)
 	else:
 		_shatter_cells(d, live, point, impulse)
-	var snd: String = d.matdef.sound
+	var snd: String = d.cell_matdef(live[0]).sound
 	Sfx.play3d(snd, point, 4.0, rng.randf_range(0.8, 1.1))
 	fx.dust(point, d.color, clampf(live.size() * 0.5, 0.5, 3.0))
 	if local_player and local_player.global_position.distance_to(point) < 20.0:
@@ -1093,40 +1093,57 @@ func _s_break(wall_id: int, cells: PackedInt32Array, point: Vector3, impulse: Ve
 
 ## Breaks cells into impact-biased fragments. Big fragments become networked props the
 ## gravity gun can use (spawned by the server); small ones are local cosmetic debris.
-## Fragment shapes are seeded per cell, so every peer computes the same pieces.
+## Fragment shapes are seeded per cell, so every peer computes the same pieces. Each cell
+## breaks in its own frame and material (a model's parts: Destructible.cell_frame); a small
+## part of a model (a knob) comes off whole instead.
 func _shatter_cells(d: Destructible, list: PackedInt32Array, point: Vector3, impulse: Vector3) -> void:
-	var local_pt3 := d.to_local2(point)
-	var local_pt := Vector2(local_pt3.x, local_pt3.y)
-	var basis := d.global_transform.basis.orthonormalized()
 	var speed := impulse.length()
-	var dir := impulse / speed if speed > 0.1 else -basis.z
-	var metric: Vector2 = d.matdef.get("grain", Vector2.ONE)
 	var net_spawned := 0
+	var model := d as ModelDestructible
 	for i in list:
+		var frame := d.cell_frame(i)
+		var basis := frame.basis.orthonormalized()
+		var dir := impulse / speed if speed > 0.1 else -basis.z
+		if model and model.part_small[i] == 1:
+			if is_server:
+				_spawn_part(model, i, dir * speed * 0.4 + Vector3.UP * 2.0)
+			continue
+		var md := d.cell_matdef(i)
+		var mat_name := d.cell_material(i)
+		var t := d.cell_thickness(i)
+		var lp := frame.affine_inverse() * point
+		var local_pt := Vector2(lp.x, lp.y)
+		var metric: Vector2 = md.get("grain", Vector2.ONE)
 		var frng := RandomNumberGenerator.new()
 		frng.seed = d.wall_id * 100003 + i * 31 + 7
-		var near := clampf(1.0 - d.centers[i].distance_to(local_pt) / 2.5, 0.0, 1.0)
-		var count := int(round(d.matdef.shatter * (0.5 + near * 1.3)))
+		var near := clampf(1.0 - Fracture.centroid(d.cells[i]).distance_to(local_pt) / 2.5, 0.0, 1.0)
+		var count := int(round(md.shatter * (0.5 + near * 1.3)))
 		var pieces := Fracture.shatter(d.cells[i], count, frng, local_pt if near > 0.2 else Vector2.INF, metric)
+		var face := d.cell_face(i)
+		var side := d.cell_side(i)
 		for piece in pieces:
 			var pc := Fracture.centroid(piece)
 			var local_poly := Fracture.translated(piece, -pc)
-			var pos := d.global_transform * Vector3(pc.x, pc.y, 0.0)
+			var pos := frame * Vector3(pc.x, pc.y, 0.0)
 			var away := (pos - point).normalized()
 			var vel := dir * speed * frng.randf_range(0.25, 0.6) * (0.4 + near) + away * frng.randf_range(1.0, 4.0) + Vector3.UP * frng.randf_range(0.5, 2.0)
 			var spin := Vector3(frng.randf_range(-6, 6), frng.randf_range(-6, 6), frng.randf_range(-6, 6))
-			var big := Fracture.area(piece) * d.thickness >= NET_FRAGMENT_VOLUME and d.material != "glass"
+			var big := Fracture.area(piece) * t >= NET_FRAGMENT_VOLUME and mat_name != "glass"
 			if big and net_spawned < 24:
 				net_spawned += 1
 				if is_server:
-					_spawn_fragment(d, [local_poly], Transform3D(basis, pos), vel, spin)
+					_spawn_fragment(d, i, [local_poly], Transform3D(basis, pos), vel, spin)
 			else:
-				fx.shard(local_poly, d.thickness, Transform3D(basis, pos), vel, spin, d.color, d.material, Mats.slab_face_at(d.face_path, d.texture_size))
+				fx.shard(local_poly, t, Transform3D(basis, pos), vel, spin, d.color, mat_name, face, side)
 
 
-## An unsupported group of cells falls as one rigid chunk.
+## An unsupported group of cells falls as one rigid chunk (a model's parts: each one whole).
 func _drop_chunk(d: Destructible, list: PackedInt32Array, _point: Vector3) -> void:
 	if not is_server:
+		return
+	if d is ModelDestructible:
+		for i in list:
+			_spawn_part(d as ModelDestructible, i, Vector3.DOWN * 0.5)
 		return
 	var c := d.island_center(list)
 	var polys := []
@@ -1134,14 +1151,22 @@ func _drop_chunk(d: Destructible, list: PackedInt32Array, _point: Vector3) -> vo
 		polys.append(Fracture.translated(d.cells[i], -c))
 	var basis := d.global_transform.basis.orthonormalized()
 	var spin := Vector3(rng.randf_range(-0.6, 0.6), rng.randf_range(-0.6, 0.6), rng.randf_range(-0.6, 0.6))
-	_spawn_fragment(d, polys, Transform3D(basis, d.global_transform * Vector3(c.x, c.y, 0.0)), Vector3.DOWN * 0.5, spin)
+	_spawn_fragment(d, list[0], polys, Transform3D(basis, d.global_transform * Vector3(c.x, c.y, 0.0)), Vector3.DOWN * 0.5, spin)
 
 
-func _spawn_fragment(d: Destructible, polys: Array, xf: Transform3D, vel: Vector3, spin: Vector3) -> void:
-	var extra := {"polys": polys, "t": d.thickness, "mat": d.material}
-	if d.face_path != "":
-		extra.face = d.face_path
-		extra.tex = d.texture_size
+## A model's part comes off whole (its own mesh, a prop: grab it, throw it).
+func _spawn_part(d: ModelDestructible, i: int, vel: Vector3) -> void:
+	var xf := d.part_transform(i)
+	var extra := d.fragment_extra(i)
+	extra.whole = true
+	var piece := server_spawn_prop("shard", Transform3D(xf.basis.orthonormalized(), xf.origin), Vector3.ZERO, d.color, 0, vel, extra)
+	piece.angular_velocity = Vector3(rng.randf_range(-1, 1), rng.randf_range(-1, 1), rng.randf_range(-1, 1))
+	_track_debris(piece)
+
+
+func _spawn_fragment(d: Destructible, cell: int, polys: Array, xf: Transform3D, vel: Vector3, spin: Vector3) -> void:
+	var extra := d.fragment_extra(cell)
+	extra.polys = polys
 	var piece := server_spawn_prop("shard", xf, Vector3.ZERO, d.color, 0, vel, extra)
 	piece.angular_velocity = spin
 	_track_debris(piece)
@@ -1174,6 +1199,7 @@ func _server_split_fragment(p: Prop, rel: Vector3) -> void:
 	var vel := p.linear_velocity
 	var mat_name: String = p.extra.get("mat", "plaster")
 	var col := p.color
+	var p_extra := p.extra.duplicate()
 	server_despawn_prop(p)
 	for poly: PackedVector2Array in out:
 		var pc := Fracture.centroid(poly)
@@ -1181,7 +1207,9 @@ func _server_split_fragment(p: Prop, rel: Vector3) -> void:
 		var v := vel * 0.6 + (pos - xf.origin).normalized() * srng.randf_range(2.0, 5.0) + rel.normalized() * -2.0
 		var local := Fracture.translated(poly, -pc)
 		if Fracture.area(poly) * t >= NET_FRAGMENT_VOLUME:
-			var piece := server_spawn_prop("shard", Transform3D(xf.basis, pos), Vector3.ZERO, col, 0, v, {"polys": [local], "t": t, "mat": mat_name})
+			var extra := p_extra.duplicate() # (its material, a model's part: kept)
+			extra.polys = [local]
+			var piece := server_spawn_prop("shard", Transform3D(xf.basis, pos), Vector3.ZERO, col, 0, v, extra)
 			piece.angular_velocity = Vector3(srng.randf_range(-8, 8), srng.randf_range(-8, 8), srng.randf_range(-8, 8))
 			_track_debris(piece)
 		else:
@@ -1969,7 +1997,7 @@ func _server_walls_and_fire(t: float) -> void:
 			_bc_all("_s_wall_fire", [wall_id, false])
 			var alive := PackedInt32Array()
 			for i in d.cells.size():
-				if d.is_alive(i):
+				if d.is_alive(i) and d.cell_material(i) == "wood": # (a model's glass, frame... stay)
 					alive.append(i)
 			if not alive.is_empty():
 				_bc_all("_s_break", [wall_id, alive, d.global_position, Vector3.DOWN * 2.0, PackedInt32Array(), PackedByteArray(), BREAK_SHATTER])
@@ -1979,18 +2007,18 @@ func _server_walls_and_fire(t: float) -> void:
 	if sources.is_empty():
 		return
 	for d: Destructible in arena.destructibles:
-		if d.material == "wood" and not _burning_walls.has(d.wall_id):
+		if d.has_material("wood") and not _burning_walls.has(d.wall_id):
 			for s in sources:
 				if not d.cells_near(s[0], float(s[1]) + 0.5).is_empty():
 					_burning_walls[d.wall_id] = t + 6.0
 					_bc_all("_s_wall_fire", [d.wall_id, true])
 					break
-		elif d.material == "ice":
+		elif d.has_material("ice"):
 			var heat: Dictionary = _melting.get(d.wall_id, {})
 			var melted := PackedInt32Array()
 			for s in sources:
 				for c in d.cells_near(s[0], float(s[1]) + 1.0):
-					if d.is_alive(c):
+					if d.is_alive(c) and d.cell_material(c) == "ice":
 						heat[c] = heat.get(c, 0.0) + FIRE_TICK
 						if heat[c] >= 2.0 and not c in melted:
 							melted.append(c)
@@ -2001,7 +2029,7 @@ func _server_walls_and_fire(t: float) -> void:
 					var at := d.cell_world(c)
 					var fz := FloodZone.at(self, at)
 					if fz:
-						fz.pour(at, 0.5, _cell_area(d.cells[c]) * d.thickness * 0.9)
+						fz.pour(at, 0.5, _cell_area(d.cells[c]) * d.cell_thickness(c) * 0.9)
 				_bc_all("_s_melt", [d.wall_id, melted])
 				_server_check_supports(d)
 
@@ -2021,7 +2049,7 @@ func _s_wall_fire(wall_id: int, on: bool) -> void:
 		return
 	var d := arena.destructibles[wall_id]
 	if on:
-		Burning.on(d, 0.0, AABB(Vector3(-d.size.x * 0.5, -d.size.y * 0.5, -d.thickness * 0.5 - 0.1), Vector3(d.size.x, d.size.y, d.thickness + 0.2)))
+		Burning.on(d, 0.0, d.bounds().grow(0.1))
 		Sfx.play3d("whoosh", d.global_position, 0.0, 0.7)
 	else:
 		Burning.off(d)
@@ -2409,9 +2437,9 @@ func _s_rogue(side: float, hit: float) -> void:
 	ship.rogue(side, hit)
 	hud.show_message("ROGUE WAVE! " + ("STARBOARD" if side > 0.0 else "PORT") + " SIDE!", Color(1.0, 0.4, 0.3), true)
 	for n in arena.puzzle:
-		if n is ShipHorn:
+		if n is Horn:
 			Sfx.play3d("ship_horn", n.use_point(), 14.0, 1.0)
-			(n as ShipHorn).pull()
+			(n as Horn).pull()
 
 
 # --- Map props coming back ------------------------------------------------------------
@@ -2845,8 +2873,8 @@ func _s_fx(kind: String, pos: Vector3, dir: Vector3, amount: float, normal: Vect
 		"ship_horn":
 			Sfx.play3d("ship_horn", pos, 14.0, 1.0)
 			for n in arena.puzzle:
-				if n is ShipHorn and n.use_point().distance_to(pos) < 1.0:
-					(n as ShipHorn).pull()
+				if n is Horn and n.use_point().distance_to(pos) < 1.0:
+					(n as Horn).pull()
 			if local_player:
 				local_player.shake(clampf(0.5 - local_player.global_position.distance_to(pos) / 120.0, 0.0, 0.4))
 		"beep":

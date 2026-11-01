@@ -13,6 +13,15 @@ extends SceneTree
 ##   blades, turns about its own Z.
 ## - flag_stand.glb: a stone plinth for a FlagStand (origin on the floor; the flag sits 0.4 m up).
 ## - can.glb: an energy drink for a PickupSpawn's own pickup (origin in its middle).
+## - crane.glb: a small crane (8 m to its turret, a 10 m jib) for a Crane: "Turret" slews, its
+##   jib along the Turret's +X; "Hook", at the jib's end, is where the cable hangs.
+## - crate_load.glb: what the crane carries (a 3 x 1.5 x 1.5 m crate, origin in its middle).
+## - ladder.glb: a 4 m wooden ladder for a Ladder (origin at its foot, the wall behind at -Z).
+## - bell.glb: a bell on a post for a Horn: "Lever", its handle, is pulled.
+## - window.glb, door.glb, fence.glb: for a BreakableModel, each part named for what it's made
+##   of ("Glass_", "Wood_", "Metal_"), the parts that never break "Fixed_": a window (a fixed
+##   frame, two panes, a wooden mullion and bar), a door of planks (a fixed frame, five planks,
+##   two braces, a metal knob that comes off whole), a fence (posts and rails).
 ## And ../textures/bricks.png, a brick texture for a breakable wall's Custom Material.
 ## Usage: godot --headless --path . --script res://tools/make_templates.gd
 
@@ -28,6 +37,13 @@ func _init() -> void:
 	_save(_fan(), "fan")
 	_save(_flag_stand(), "flag_stand")
 	_save(_can(), "can")
+	_save(_crane(), "crane")
+	_save(_crate_load(), "crate_load")
+	_save(_ladder(), "ladder")
+	_save(_bell(), "bell")
+	_save(_window(), "window")
+	_save(_door(), "door")
+	_save(_fence(), "fence")
 	_bricks()
 	quit()
 
@@ -256,3 +272,151 @@ func _bricks() -> void:
 	DirAccess.make_dir_recursive_absolute("res://custom/make_your_own/textures/")
 	var err := img.save_png("res://custom/make_your_own/textures/bricks.png")
 	print("bricks.png: %s" % ("ok" if err == OK else error_string(err)))
+
+
+func _crane() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Crane"
+	var red := _mat(Color(0.75, 0.18, 0.12), 0.6)
+	var dark := _mat(Color(0.18, 0.18, 0.2), 0.5)
+	_mesh(root, "Tower", _cyl(0.7, 8.0, 8), red, Transform3D(Basis.IDENTITY, Vector3(0, 4.0, 0)))
+	var turret := Node3D.new()
+	turret.name = "Turret"
+	turret.position = Vector3(0, 8.0, 0)
+	root.add_child(turret)
+	var cab := BoxMesh.new()
+	cab.size = Vector3(2.4, 1.6, 2.0)
+	_mesh(turret, "Cab", cab, red, Transform3D(Basis.IDENTITY, Vector3(-0.6, 0.8, 0)))
+	var arm := BoxMesh.new()
+	arm.size = Vector3(10.0, 0.5, 0.6)
+	_mesh(turret, "Jib", arm, red, Transform3D(Basis.IDENTITY, Vector3(5.0, 1.8, 0)))
+	var weight := BoxMesh.new()
+	weight.size = Vector3(1.2, 1.0, 1.4)
+	_mesh(turret, "Counterweight", weight, dark, Transform3D(Basis.IDENTITY, Vector3(-2.6, 1.6, 0)))
+	var sheave := BoxMesh.new()
+	sheave.size = Vector3(0.5, 0.5, 0.8)
+	_mesh(turret, "Sheave", sheave, dark, Transform3D(Basis.IDENTITY, Vector3(9.8, 1.4, 0)))
+	_marker(turret, "Hook", Vector3(9.8, 1.15, 0), Vector3.UP)
+	return root
+
+
+func _crate_load() -> Node3D:
+	var root := Node3D.new()
+	root.name = "CrateLoad"
+	var wood := _mat(Color(0.75, 0.55, 0.3), 0.8)
+	var band := _mat(Color(0.3, 0.3, 0.32), 0.5, 0.6)
+	var body := BoxMesh.new()
+	body.size = Vector3(3.0, 1.5, 1.5)
+	_mesh(root, "Body", body, wood)
+	for x in [-1.2, 0.0, 1.2]:
+		var b := BoxMesh.new()
+		b.size = Vector3(0.12, 1.54, 1.54)
+		_mesh(root, "Band", b, band, Transform3D(Basis.IDENTITY, Vector3(x, 0, 0)))
+	return root
+
+
+func _ladder() -> Node3D:
+	var root := Node3D.new()
+	root.name = "WoodLadder"
+	var wood := _mat(Color(0.55, 0.38, 0.2), 0.85)
+	for s in [-1, 1]:
+		var rail := BoxMesh.new()
+		rail.size = Vector3(0.1, 4.0, 0.08)
+		_mesh(root, "Rail", rail, wood, Transform3D(Basis.IDENTITY, Vector3(s * 0.28, 2.0, 0.12)))
+	for i in 11:
+		var rung := BoxMesh.new()
+		rung.size = Vector3(0.56, 0.06, 0.06)
+		_mesh(root, "Rung", rung, wood, Transform3D(Basis.IDENTITY, Vector3(0, 0.3 + i * 0.35, 0.12)))
+	return root
+
+
+func _bell() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Bell"
+	var wood := _mat(Color(0.45, 0.3, 0.18), 0.8)
+	var brass := _mat(Color(0.85, 0.65, 0.25), 0.3, 0.9)
+	var post := BoxMesh.new()
+	post.size = Vector3(0.14, 1.6, 0.14)
+	_mesh(root, "Post", post, wood, Transform3D(Basis.IDENTITY, Vector3(0, 0.8, 0)))
+	var arm := BoxMesh.new()
+	arm.size = Vector3(0.7, 0.1, 0.1)
+	_mesh(root, "Arm", arm, wood, Transform3D(Basis.IDENTITY, Vector3(0.3, 1.6, 0)))
+	var bell := CylinderMesh.new()
+	bell.top_radius = 0.1
+	bell.bottom_radius = 0.24
+	bell.height = 0.32
+	_mesh(root, "Bell", bell, brass, Transform3D(Basis.IDENTITY, Vector3(0.55, 1.38, 0)))
+	# The handle you pull (it turns about its own Z).
+	var lever := Node3D.new()
+	lever.name = "Lever"
+	lever.position = Vector3(0, 1.0, 0.1)
+	root.add_child(lever)
+	var handle := BoxMesh.new()
+	handle.size = Vector3(0.05, 0.4, 0.05)
+	_mesh(lever, "Handle", handle, brass, Transform3D(Basis.IDENTITY, Vector3(0, 0.2, 0)))
+	var knob := SphereMesh.new()
+	knob.radius = 0.06
+	knob.height = 0.12
+	_mesh(lever, "Knob", knob, brass, Transform3D(Basis.IDENTITY, Vector3(0, 0.42, 0)))
+	return root
+
+
+func _box_part(parent: Node3D, n: String, size: Vector3, at: Vector3, mat: Material) -> void:
+	var b := BoxMesh.new()
+	b.size = size
+	_mesh(parent, n, b, mat, Transform3D(Basis.IDENTITY, at))
+
+
+## A window standing on the ground (origin at the sill's middle, in the XY plane).
+func _window() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Window"
+	var frame := _mat(Color(0.95, 0.95, 0.92), 0.6)
+	var wood := _mat(Color(0.5, 0.33, 0.18), 0.8)
+	var glass := _mat(Color(0.7, 0.88, 1.0, 0.35), 0.05)
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_box_part(root, "Fixed_FrameBottom", Vector3(1.6, 0.12, 0.16), Vector3(0, 0.06, 0), frame)
+	_box_part(root, "Fixed_FrameTop", Vector3(1.6, 0.12, 0.16), Vector3(0, 1.74, 0), frame)
+	_box_part(root, "Fixed_FrameLeft", Vector3(0.12, 1.56, 0.16), Vector3(-0.74, 0.9, 0), frame)
+	_box_part(root, "Fixed_FrameRight", Vector3(0.12, 1.56, 0.16), Vector3(0.74, 0.9, 0), frame)
+	_box_part(root, "Wood_Mullion", Vector3(0.08, 1.56, 0.08), Vector3(0, 0.9, 0), wood)
+	_box_part(root, "Wood_Bar", Vector3(1.36, 0.06, 0.06), Vector3(0, 1.1, 0.03), wood)
+	_box_part(root, "Glass_PaneLeft", Vector3(0.6, 1.56, 0.02), Vector3(-0.35, 0.9, 0), glass)
+	_box_part(root, "Glass_PaneRight", Vector3(0.6, 1.56, 0.02), Vector3(0.35, 0.9, 0), glass)
+	return root
+
+
+## A door of planks in its frame (origin at the threshold's middle, in the XY plane).
+func _door() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Door"
+	var frame := _mat(Color(0.3, 0.22, 0.15), 0.8)
+	var plank := _mat(Color(0.62, 0.42, 0.22), 0.85)
+	var brace := _mat(Color(0.5, 0.33, 0.17), 0.85)
+	var iron := _mat(Color(0.25, 0.25, 0.28), 0.4, 0.8)
+	_box_part(root, "Fixed_PostLeft", Vector3(0.16, 2.3, 0.2), Vector3(-0.68, 1.15, 0), frame)
+	_box_part(root, "Fixed_PostRight", Vector3(0.16, 2.3, 0.2), Vector3(0.68, 1.15, 0), frame)
+	_box_part(root, "Fixed_Lintel", Vector3(1.52, 0.16, 0.2), Vector3(0, 2.38, 0), frame)
+	for i in 5:
+		_box_part(root, "Wood_Plank%d" % i, Vector3(0.235, 2.2, 0.06), Vector3(-0.48 + i * 0.24, 1.12, 0), plank)
+	_box_part(root, "Wood_BraceLow", Vector3(1.18, 0.14, 0.05), Vector3(0, 0.5, 0.055), brace)
+	_box_part(root, "Wood_BraceHigh", Vector3(1.18, 0.14, 0.05), Vector3(0, 1.75, 0.055), brace)
+	var knob := SphereMesh.new()
+	knob.radius = 0.05
+	knob.height = 0.1
+	_mesh(root, "Metal_Knob", knob, iron, Transform3D(Basis.IDENTITY, Vector3(0.38, 1.05, 0.1)))
+	return root
+
+
+## Two bays of fence (origin on the ground at its middle, along X).
+func _fence() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Fence"
+	var wood := _mat(Color(0.55, 0.4, 0.25), 0.9)
+	var rail := _mat(Color(0.65, 0.5, 0.32), 0.9)
+	for i in 3:
+		_box_part(root, "Wood_Post%d" % i, Vector3(0.14, 1.2, 0.14), Vector3(-2.0 + i * 2.0, 0.6, 0), wood)
+	for bay in 2:
+		for k in 2:
+			_box_part(root, "Wood_Rail%d_%d" % [bay, k], Vector3(1.86, 0.12, 0.05), Vector3(-1.0 + bay * 2.0, 0.45 + k * 0.5, 0.095), rail)
+	return root

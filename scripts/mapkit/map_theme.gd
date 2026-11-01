@@ -12,6 +12,9 @@ extends Resource
 ##   a reset post's "Cap", a volley net's "Net".
 
 @export_group("Movement")
+@export var ladder: PackedScene
+@export var crane: PackedScene
+@export var horn: PackedScene
 @export var jump_pad: PackedScene
 @export var lift: PackedScene
 @export var grapple_point: PackedScene

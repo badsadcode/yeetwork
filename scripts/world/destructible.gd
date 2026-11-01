@@ -152,6 +152,54 @@ func _rebuild_mesh() -> void:
 
 # --- Queries ------------------------------------------------------------------------
 
+## A cell's own frame: its polygon (cells[i]) lies in this frame's XY plane, thickness along
+## its Z. A slab's cells share the slab's frame; a model's parts each have their own
+## (ModelDestructible).
+func cell_frame(_i: int) -> Transform3D:
+	return global_transform
+
+
+func cell_thickness(_i: int) -> float:
+	return thickness
+
+
+## What a cell is made of (Fracture.MATERIALS): how tough it is, how it breaks and sounds.
+func cell_material(_i: int) -> String:
+	return material
+
+
+func cell_matdef(_i: int) -> Dictionary:
+	return matdef
+
+
+## A cell's fragments' faces and sides (null: the Material's look).
+func cell_face(_i: int) -> Material:
+	return Mats.slab_face_at(face_path, texture_size)
+
+
+func cell_side(_i: int) -> Material:
+	return null
+
+
+## What a networked fragment of this cell carries so every peer builds it the same.
+func fragment_extra(i: int) -> Dictionary:
+	var extra := {"t": cell_thickness(i), "mat": cell_material(i)}
+	if face_path != "":
+		extra.face = face_path
+		extra.tex = texture_size
+	return extra
+
+
+## Any cell of this material (fire takes wood, it melts ice)?
+func has_material(m: String) -> bool:
+	return material == m
+
+
+## The box it fills (local), for its flames.
+func bounds() -> AABB:
+	return AABB(Vector3(-size.x * 0.5, -size.y * 0.5, -thickness * 0.5), Vector3(size.x, size.y, thickness))
+
+
 func to_local2(world_point: Vector3) -> Vector3:
 	return global_transform.affine_inverse() * world_point
 

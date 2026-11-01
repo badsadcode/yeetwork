@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=32 format=3]
 
 [ext_resource type="Script" path="res://scripts/mapkit/map_settings.gd" id="settings"]
 [ext_resource type="Script" path="res://scripts/mapkit/arena_block.gd" id="block"]
@@ -20,6 +20,17 @@
 [ext_resource type="PackedScene" path="res://custom/make_your_own/models/fan.glb" id="fanmodel"]
 [ext_resource type="PackedScene" path="res://custom/make_your_own/models/flag_stand.glb" id="flagmodel"]
 [ext_resource type="Material" path="res://custom/make_your_own/bricks.tres" id="bricks"]
+[ext_resource type="Script" path="res://scripts/mapkit/ladder.gd" id="ladder"]
+[ext_resource type="Script" path="res://scripts/mapkit/crane.gd" id="crane"]
+[ext_resource type="Script" path="res://scripts/mapkit/horn.gd" id="horn"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/ladder.glb" id="laddermodel"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/crane.glb" id="cranemodel"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/crate_load.glb" id="loadmodel"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/bell.glb" id="bellmodel"]
+[ext_resource type="Script" path="res://scripts/mapkit/breakable_model.gd" id="bmodel"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/door.glb" id="doormodel"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/window.glb" id="windowmodel"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/fence.glb" id="fencemodel"]
 
 [node name="MakeYourOwnWorkshop" type="Node3D"]
 
@@ -30,6 +41,10 @@ author = "Yeetwork Map Kit"
 description = "The Make Your Own examples at work: a pipe of your own pouring out of a wall, a drain, oil drums next to the barrels, and (MegaYeet) a thorn bed trap."
 sky = "day"
 kill_height = -20.0
+ocean = true
+ocean_level = -1.5
+ocean_preset = "calm"
+ocean_swimmable = true
 
 [node name="Blocks" type="Node3D" parent="."]
 
@@ -42,109 +57,109 @@ kill_height = -20.0
 [node name="More" type="Node3D" parent="."]
 
 [node name="Floor" type="StaticBody3D" parent="Blocks"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, -3, 0)
 script = ExtResource("block")
-size = Vector3(44, 1, 44)
+size = Vector3(44, 6, 44)
 color = Color(0.45, 0.5, 0.42, 1)
 
 [node name="BackWall" type="StaticBody3D" parent="Blocks"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 2, -6.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 2, -6.25)
 script = ExtResource("block")
 size = Vector3(12.5, 4, 0.5)
 color = Color(0.6, 0.55, 0.5, 1)
 
 [node name="FrontWall" type="StaticBody3D" parent="Blocks"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.5, 6.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 0.5, 6.25)
 script = ExtResource("block")
 size = Vector3(12.5, 1, 0.5)
 color = Color(0.6, 0.55, 0.5, 1)
 
 [node name="LeftWall" type="StaticBody3D" parent="Blocks"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.25, 0.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -14.25, 0.5, 0)
 script = ExtResource("block")
 size = Vector3(0.5, 1, 12)
 color = Color(0.6, 0.55, 0.5, 1)
 
 [node name="RightWall" type="StaticBody3D" parent="Blocks"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.75, 0.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -1.75, 0.5, 0)
 script = ExtResource("block")
 size = Vector3(0.5, 1, 12)
 color = Color(0.6, 0.55, 0.5, 1)
 
 [node name="Pool" type="Node3D" parent="Water"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 0, 0)
 script = ExtResource("flood")
 size = Vector3(12, 4, 12)
 
 [node name="MyPipe" parent="Water" instance=ExtResource("pipe")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 2.6, -6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 2.6, -6)
 
 [node name="MyDrain" parent="Water" instance=ExtResource("drain")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, 3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -11, 0, 3)
 
 [node name="OilDrum0" type="Node3D" parent="Props"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.6, -10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 3, 0.6, -10)
 script = ExtResource("prop")
 type = ExtResource("drum")
 
 [node name="OilDrum1" type="Node3D" parent="Props"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.3, 0.6, -10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4.3, 0.6, -10)
 script = ExtResource("prop")
 type = ExtResource("drum")
 
 [node name="OilDrum2" type="Node3D" parent="Props"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.6, 0.6, -10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 5.6, 0.6, -10)
 script = ExtResource("prop")
 type = ExtResource("drum")
 
 [node name="OilDrum3" type="Node3D" parent="Props"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.9, 0.6, -10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6.9, 0.6, -10)
 script = ExtResource("prop")
 type = ExtResource("drum")
 
 [node name="Barrel0" type="Node3D" parent="Props"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.6, -12.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 3, 0.6, -12.5)
 script = ExtResource("prop")
 kind = "barrel"
 
 [node name="Barrel1" type="Node3D" parent="Props"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.3, 0.6, -12.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4.3, 0.6, -12.5)
 script = ExtResource("prop")
 kind = "barrel"
 
 [node name="Heart" type="Node3D" parent="MegaYeet"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, 14)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0, 14)
 script = ExtResource("heart")
 radius = 2.5
 
 [node name="Rift" type="Node3D" parent="MegaYeet"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -18)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0, -18)
 script = ExtResource("rift")
 radius = 3.0
 
 [node name="ThornTrap" parent="MegaYeet" instance=ExtResource("thorns")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0, -4)
 
 [node name="FireGrate" type="Node3D" parent="MegaYeet"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0, 4)
 script = ExtResource("trap")
 kind = "fire"
 size = Vector3(4, 1, 4)
 
 [node name="EnergyDrink" type="Node3D" parent="More"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, 8)
 script = ExtResource("pickup")
 type = ExtResource("drink")
 
 [node name="WoodenFan" type="Node3D" parent="More"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4.5, 0, -4)
 script = ExtResource("fan")
 model = ExtResource("fanmodel")
 strength = 20.0
 reach = 9.0
 
 [node name="BrickWall" type="Node3D" parent="More"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 12)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 0, 12)
 script = ExtResource("slab")
 size = Vector2(6, 3)
 thickness = 0.4
@@ -154,29 +169,78 @@ texture_size = 1.5
 hp_scale = 0.6
 
 [node name="FlagRed" type="Node3D" parent="More"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 16)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -16, 0, 16)
 script = ExtResource("flag")
 team = 0
 model = ExtResource("flagmodel")
 
 [node name="FlagBlue" type="Node3D" parent="More"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -16)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 16, 0, -16)
 script = ExtResource("flag")
 team = 1
 model = ExtResource("flagmodel")
 
+[node name="SeaLadder" type="Node3D" parent="More"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 22, -3.9, 4)
+script = ExtResource("ladder")
+height = 4.0
+model = ExtResource("laddermodel")
+
+[node name="WallLadder" type="Node3D" parent="More"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, -12, 0, -6.5)
+script = ExtResource("ladder")
+height = 4.0
+over_the_top = 2.0
+
+[node name="Crane" type="Node3D" parent="More"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -18, 0, -14)
+script = ExtResource("crane")
+height = 8.0
+jib = 10.0
+cable = 3.0
+heading = 60.0
+sweep = 50.0
+period = 30.0
+load_size = Vector3(3, 1.5, 1.5)
+pedestal_size = Vector3(1.4, 0, 1.4)
+model = ExtResource("cranemodel")
+load_model = ExtResource("loadmodel")
+
+[node name="Bell" type="Node3D" parent="More"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 3, 0, 13)
+script = ExtResource("horn")
+model = ExtResource("bellmodel")
+
+[node name="Door" type="Node3D" parent="More"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 14, 0, 10)
+script = ExtResource("bmodel")
+model = ExtResource("doormodel")
+material = "wood"
+
+[node name="Window" type="Node3D" parent="More"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 17.5, 0, 10)
+script = ExtResource("bmodel")
+model = ExtResource("windowmodel")
+material = "glass"
+
+[node name="Fence" type="Node3D" parent="More"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 15, 0, 4)
+script = ExtResource("bmodel")
+model = ExtResource("fencemodel")
+material = "wood"
+
 [node name="Spawn0" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 16)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -3, 0, 16)
 script = ExtResource("spawn")
 
 [node name="Spawn1" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 16)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, 16)
 script = ExtResource("spawn")
 
 [node name="Spawn2" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 16)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 3, 0, 16)
 script = ExtResource("spawn")
 
 [node name="Spawn3" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 16)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 0, 16)
 script = ExtResource("spawn")

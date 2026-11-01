@@ -160,6 +160,10 @@ func _ready() -> void:
 		params.swell_angle = float(params.wind_angle) + 0.9
 	material = ShaderMaterial.new()
 	material.shader = preload("res://scripts/world/liquid_sculpted.gdshader") if sculpted else preload("res://scripts/world/liquid.gdshader")
+	# Drawn before the other see-through things (spray, sparks, rifts, glass): it's one huge
+	# surface sorted as if it were near, so drawn after them it painted over them. It writes
+	# depth, so what's below it still stays hidden.
+	material.render_priority = -1
 	_textures()
 	for key in params:
 		if key not in VIEW_KEYS:

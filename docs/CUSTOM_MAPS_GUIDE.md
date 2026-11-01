@@ -285,6 +285,32 @@ a Hoop take a **Model** too. A **BreakableSlab** takes your **Custom Material** 
 texture: `bricks.tres`), laid on every **Texture Size** metres; its broken edges and the
 pieces that fly off match, and its **Material** still says how it breaks.
 
+**4f. Ladders, cranes, horns.** Like High Seas has: a **Ladder** (its blue arrow pointing
+away from the wall; your model's origin at its foot), a **Crane** (your model's swinging part
+named `Turret`, with an empty `Hook` at the jib's end where the cable hangs; a **Load Model**
+for what it carries), a **Horn** (a part named `Lever` gets pulled). With **MapSettings >
+Ocean Swimmable**, players who fall in the sea can swim to a ladder and climb back out.
+
+**4g. Things that break part by part: doors, windows, fences.** Model it in Blender with
+every part a separate object (each plank, each pane, each post, the knob), and name each one
+for what it's made of: `Glass_PaneLeft`, `Wood_Plank3`, `Metal_Knob` (glass, wood, metal,
+stone, concrete, brick, plaster or ice anywhere in the name). Name the parts that must never
+break `Fixed_...` (a window's frame, a door's posts). Export it, add a **BreakableModel**
+and drag the model onto its **Model** slot; **Material** is for parts named none of them,
+**Hp Scale** makes it all tougher. In the game:
+
+- A hit breaks the parts it reaches. A broken part shatters from the hit outward into pieces
+  cut from its own shape, in its own material: glass into thin shards, wood into splinters
+  along the part's longest side. The big pieces are props you can grab.
+- Small parts (under 30 cm: a knob, a hinge) come off whole.
+- Parts hold onto the Fixed parts, the ground (with **Anchor To Ground**: the model's lowest
+  parts stand on it) and each other. A part left holding onto nothing falls off whole: break a
+  fence's posts and its rails drop.
+- Wooden parts burn; monsters batter it like a gate in MegaYeet, and the shop repairs it.
+
+`custom/make_your_own/models/` has a window, a door and a fence to start from; the Workshop
+has all three.
+
 **Did I name it right?** Run the map check (the `--validate` line in step 10):
 it lists each model's missing markers and what that means ("its model has no Spout: the
 water falls straight down"), and catches a near miss ("spout": the name must be "Spout"

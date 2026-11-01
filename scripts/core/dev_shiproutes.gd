@@ -67,9 +67,9 @@ func _ready() -> void:
 	await _wait(0.6)
 	await _shot("r03_bridge")
 	# 4. The horn.
-	var horn: ShipHorn = null
+	var horn: Horn = null
 	for n in world.arena.puzzle:
-		if n is ShipHorn:
+		if n is Horn:
 			horn = n
 	_put(pl, Vector3(-52.6, deck + 18.2, 2.0), Vector3(1, 0, 0))
 	await _wait(0.3)

@@ -13,7 +13,7 @@ The built-in arenas **Yeetwork Prime** (`maps/prime.tscn`) and **Facing Yeets**
 built-in names in the map list. (They were generated from the old code builders; see
 *Converting the code-built maps* at the end. Regenerating overwrites your edits.)
 **High Seas** stays in code: the whole map rides a moving ship, which the Map Kit can't
-express yet.
+express yet (its ladders, crane and horn are Map Kit pieces now: Ladder, Crane, Horn).
 
 ---
 
@@ -330,6 +330,44 @@ along local -Z) or `neon` (a 1.2 m tube along X).
 - `maps/haunted_yard.tscn` is an example: lamp posts (one failing), candles on the graves,
   torches at the crypt and a power switch for the crypt's lights.
 
+### BreakableModel (your own model, breaking part by part)
+A door, a window, a fence you modelled: each separate part (each mesh) breaks on its own.
+- **Model**: your model. A part's name says what it's made of (glass, wood, metal, stone,
+  concrete, brick, plaster, ice anywhere in it: `Glass_Pane`, `Wood_Plank3`); `Fixed` in its
+  name: it never breaks and holds up what touches it; `Collision`: hidden.
+- **Material**: what a part named none of them is made of. **Hp Scale**: toughness (times
+  the material's). **Anchor To Ground**: its lowest parts stand on the ground and hold the rest
+  (off: only the Fixed parts do). **Color**: dust and fallbacks.
+- A broken part shatters into pieces cut from its own outline (the hull of the part in its own
+  plane: its two longest sides; the longest is the grain, so wood splinters along it), from the
+  hit outward, in the part's own material; a part under 0.3 m comes off whole. A part left
+  holding onto nothing falls off whole (a prop). Hits are measured to each part itself, so a
+  hit on one plank reaches only the planks it touches.
+- Like a BreakableSlab: synced for everyone and late joiners, battered by monsters (a
+  MegaYeet gate; the shop repairs it), wooden parts burn. The map check notes a model that
+  can't break (every part Fixed) or that nothing holds up.
+- Parts work best mostly flat or long (panes, planks, boards, posts, bars); a chunky part
+  breaks into pieces cut through its box.
+
+### Ladder, Crane, Horn (High Seas' pieces, for any map)
+- **Ladder**: climb a wall (a building, a ship's side, out of a pool or the sea). Put the node
+  at the foot against the wall, its **+Z** (blue arrow) pointing away from the wall, toward the
+  climber. **Height**; **Over The Top** (how hard the top throws you on over the edge, m/s:
+  more for a rail or a wide ledge). Face it and hold forward (or Jump) to climb, back to go
+  down. **Model**: your own ladder (origin at the foot, up +Y, wall behind at -Z). A ladder
+  whose foot is in a swimmable sea is where bots in the water swim to.
+- **Crane**: slews to and fro on its own, a solid load swinging from its jib (ride it, or be
+  swept off a roof). **Height**, **Jib**, **Cable**, **Heading** (degrees round from +X:
+  the middle of its sweep), **Sweep** (either side), **Period** (s there and back), **Load
+  Size** and **Load Color**, **Pedestal Size** (its collision; height 0: the crane's).
+  **Model**: a part named `Turret` slews (its jib along the Turret's +X), an empty `Hook` on it
+  is where the cable hangs. **Load Model**: what hangs (origin in its middle). Every player
+  sees the same crane (it runs off the match clock).
+- **Horn**: Use sounds a deep blast everyone hears (a ship's horn, a factory whistle). Model:
+  a part named `Lever` is pulled.
+- **MapSettings > Ocean Swimmable**: the ocean can be swum in (and climbed out of by a
+  Ladder) instead of drowning whoever falls in.
+
 ### Fixture (set dressing that does something)
 Machinery, appliances, anything that fills out a place and hums, turns, steams or sparks.
 Everything is optional: a fixture can just be a model.
@@ -511,6 +549,8 @@ Workshop), and starter models with their markers (`models/`, made by
   material as a `.tres` so the flying pieces match for every player.
 - PropTypes and PickupTypes must be saved as files (`.tres`), not kept inside a scene: the
   game sends their path to the other players.
+- **A ladder, a crane, a horn** of your own: their Model slots (see *Ladder, Crane, Horn*):
+  a crane's `Turret` and `Hook`, a horn's `Lever`.
 - **The map check's notes** (`--validate` prints them as NOTE, they don't fail the check):
   a model missing the markers its piece looks for, and what happens without them; a name
   that's nearly a marker's ("spout" for "Spout").
