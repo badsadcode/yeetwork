@@ -274,6 +274,12 @@ sockets), your **Model**, its **Size** (the box it fills; 0: the built-in one's)
 a hit breaks it) or **Unbreakable**. Then place PropSpawns and drag the file onto their
 **Type** slot. (`oil_drum.tres`: heavier and tougher than a barrel, with a Collision mesh.)
 
+A prop that falls apart: model it with every part a separate object named for what it's made
+of (`Wood_Top`, `Glass_Door`, `Metal_Handle`, like a door in 4g) and tick **Breaks Into Its
+Parts**. Broken, it comes apart: every part flies off whole (a prop you can grab), glass
+shatters. Behaves Like has to be a prop that breaks (a crate). (`glass_cabinet.tres`, with
+`models/cabinet.glb`.)
+
 **4d. A new pickup.** Like a prop, a file: **Create New > Resource... > PickupType**
 (`energy_drink.tres`): **Display Name**, **Gives** (health heals; speed, super, feather, iron
 give that boost), **Heal** or **Lasts** (seconds), **Respawn**, your **Model** (it floats over
@@ -307,9 +313,12 @@ and drag the model onto its **Model** slot; **Material** is for parts named none
   parts stand on it) and each other. A part left holding onto nothing falls off whole: break a
   fence's posts and its rails drop.
 - Wooden parts burn; monsters batter it like a gate in MegaYeet, and the shop repairs it.
+- **Tear Off** on: the gravity gun rips it off its frame (a door off its hinges): all its
+  loose parts come away together, one thing to carry and throw. Throw it hard and it comes
+  apart into its parts. (The Workshop's shed door.)
 
 `custom/make_your_own/models/` has a window, a door and a fence to start from; the Workshop
-has all three.
+has all three, and a shed door that tears off.
 
 **4h. A ship.** Add a **Vessel** node on the waterline (MapSettings: **Ocean** on), its red
 arrow (+X) toward the bow, and build the ship as its children: blocks for the hull and the

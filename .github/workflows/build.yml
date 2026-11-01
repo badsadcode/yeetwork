@@ -78,7 +78,7 @@ jobs:
       - name: Shop window check (every tab of MegaYeet's shop shows its wares)
         timeout-minutes: 2
         run: timeout 70 godot --headless -- --host --map res://maps/fortress.tscn --mode megayeet --bots 0 --spooky off --tour x --tour-mode shop
-      - name: Make your own check (a pipe's Spout, a drain's Intake, a PropType, a trap of your own in the shop and at work; a client sees them)
+      - name: Make your own check (a pipe's Spout, a drain's Intake, a PropType, a trap of your own in the shop and at work, breakable models and props; a client sees them)
         timeout-minutes: 4
         run: |
           timeout 100 godot --headless -- --host --map res://custom/make_your_own/workshop.tscn --mode megayeet --bots 0 --spooky off --tour x --tour-mode makeyourown

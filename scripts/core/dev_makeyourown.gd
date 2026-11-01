@@ -61,7 +61,7 @@ func _ready() -> void:
 	var drums := []
 	var barrels := []
 	for p: Prop in world.props.values():
-		if p.ptype:
+		if p.ptype and p.ptype.display_name == "Oil drum":
 			drums.append(p)
 		elif p.kind == "barrel":
 			barrels.append(p)
@@ -98,6 +98,7 @@ func _ready() -> void:
 	await _phase2(pl)
 	await _phase3(pl)
 	await _breakables(pl)
+	await _breaking_props(pl)
 	# Spray and a rift's glow seen against the sea (the sea mustn't paint over them).
 	_cam(Vector3(-1.5, 2.6, -0.5), Vector3(-20, 1.6, -6.5))
 	await _wait(0.4)
@@ -230,7 +231,7 @@ func _breakables(pl: Player) -> void:
 	var window: ModelDestructible = null
 	var fence: ModelDestructible = null
 	for d in world.arena.destructibles:
-		if d is ModelDestructible:
+		if d is ModelDestructible and not (d as ModelDestructible).tear_off:
 			var md := d as ModelDestructible
 			if md.part_meshes.size() == 8:
 				door = md
@@ -293,6 +294,78 @@ func _breakables(pl: Player) -> void:
 	world.server_restore_wall(fence.wall_id)
 	await _wait(0.2)
 	_check("... repaired, it's whole again (every part back)", fence.broken_cells.is_empty() and fence.part_meshes.all(func(m): return m.visible), "")
+
+
+## A door the gun rips off (Tear Off), thrown: it comes apart. A PropType that breaks into its
+## parts (a glass cabinet).
+func _breaking_props(pl: Player) -> void:
+	var shed: ModelDestructible = null
+	for d in world.arena.destructibles:
+		if d is ModelDestructible and (d as ModelDestructible).tear_off:
+			shed = d
+	_check("a shed door that tears off (BreakableModel Tear Off)", shed != null, "")
+	if shed == null:
+		return
+	pl.respawn(shed.global_position + Vector3(0, 0, 3.2), 0.0)
+	await _wait(0.4)
+	var at := shed.global_position + Vector3(0, 1.1, 0)
+	_face(pl, at)
+	pl.gun.server_action(GravityGun.Action.GRAB_START, pl.eye_position(), at - pl.eye_position())
+	await _wait(1.0)
+	var held := world.get_prop(pl.gun.held_id) as Prop if pl.gun.held_kind == GravityGun.Kind.PROP else null
+	var gone := range(shed.cells.size()).all(func(i): return not shed.is_alive(i))
+	var frame_left := shed.get_children().filter(func(c): return c is StaticBody3D and not c.has_meta("cell")).size()
+	var meshes := held.get_children().filter(func(c): return c is MeshInstance3D and c.visible).size() if held else 0
+	_check("... the gun rips it off its frame: its planks, braces and knob, one prop in its hands; the frame stays", held != null and held.extra.get("assembly", false) and gone and frame_left == 3 and meshes == 8, "held %s, parts gone %s, frame pieces %d, meshes %d" % [held != null, gone, frame_left, meshes])
+	_cam(shed.global_position + Vector3(2.5, 2.2, 4.5), shed.global_position + Vector3(0, 1.0, 1.5))
+	await _wait(0.3)
+	await _shot("y16_torn_off")
+	# Carried back out of the frame, and thrown: it comes apart into its parts where it lands.
+	for k in 10:
+		pl.global_position += Vector3(0, 0, 0.25)
+		await _wait(0.05)
+	var door_id := held.prop_id if held else -1
+	pl.gun.server_action(GravityGun.Action.THROW, pl.eye_position(), Vector3(0, 0.2, -1))
+	await _wait(0.1)
+	pl.gun.server_action(GravityGun.Action.THROW_RELEASE, pl.eye_position(), Vector3(0, 0.2, -1))
+	pl.gun.server_action(GravityGun.Action.GRAB_END, pl.eye_position(), Vector3.FORWARD) # (or it rips the repaired one off again)
+	await _wait(1.5)
+	var parts := 0
+	for p: Prop in world.props.values():
+		if p.extra.get("whole", false) and int(p.extra.get("mwall", -1)) == shed.wall_id:
+			parts += 1
+	_check("... thrown hard, it comes apart into its parts", world.get_prop(door_id) == null and parts >= 6, "door still there %s, parts %d" % [world.get_prop(door_id) != null, parts])
+	_cam(shed.global_position + Vector3(3, 2.5, 1), shed.global_position + Vector3(0, 0.3, -1))
+	await _wait(0.3)
+	await _shot("y17_door_apart")
+	world.server_restore_wall(shed.wall_id)
+	await _wait(0.2)
+	_check("... repaired, it's back on its frame", shed.broken_cells.is_empty() and shed.part_meshes.all(func(m): return m.visible), "broken %s, hidden %d" % [shed.broken_cells, shed.part_meshes.filter(func(m): return not m.visible).size()])
+	# A glass cabinet (a PropType that breaks into its parts).
+	var cab: Prop = null
+	for p: Prop in world.props.values():
+		if p.ptype and p.ptype.breaks_into_parts:
+			cab = p
+	_check("glass cabinets (a PropType that breaks into its parts)", cab != null and cab.is_fragile(), "")
+	if cab == null:
+		return
+	var path := cab.ptype.resource_path
+	var where := cab.global_position
+	_cam(where + Vector3(2.0, 1.6, 2.6), where)
+	await _wait(0.2)
+	await _shot("y18_cabinets")
+	world.server_break_prop(cab, Vector3(0, 0, -8))
+	await _wait(0.1)
+	await _shot("y19_cabinet_apart")
+	var boards := 0
+	var glass := 0
+	for p: Prop in world.props.values():
+		if p.extra.get("ptype", "") == path and p.extra.get("whole", false):
+			if p.extra.part == 6:
+				glass += 1
+			boards += 1
+	_check("... broken, its boards and handle fly off whole, its glass shatters", not is_instance_valid(cab) or cab.is_queued_for_deletion(), "")
+	_check("... (7 parts, no glass among them)", boards == 7 and glass == 0, "%d parts, %d glass" % [boards, glass])
 
 
 ## The cell of a model's part by its name.

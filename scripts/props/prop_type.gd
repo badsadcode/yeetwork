@@ -26,8 +26,45 @@ extends Resource
 ## only for props that break (crates, barrels, planks, pumpkins, gravestones, coffins).
 @export_range(0.0, 100000.0, 100.0) var toughness := 0.0
 @export var unbreakable := false
+## When it breaks, it comes apart into its model's parts (each object in it: a plank, a pane,
+## a hinge, named for what they're made of like a BreakableModel's: "Glass_", "Wood_",
+## "Metal_"...): each flies off whole (a prop), glass shatters; instead of the built-in one's
+## way of breaking. Behaves Like has to be a prop that breaks (a crate, a plank...).
+@export var breaks_into_parts := false
 ## The colour of what it breaks into, and of the built-in look if there's no model.
 @export var color := Color(0, 0, 0, 0)
+
+
+static var _parts := {} # path -> [model instance, parts]
+
+
+## Its model's parts, every peer the same: [mesh, where it sits in the model, what it's made
+## of] each (not the Collision mesh).
+static func parts_of(path: String) -> Array:
+	if _parts.has(path):
+		return _parts[path][1]
+	var out := []
+	var t := load(path) as PropType if ResourceLoader.exists(path) else null
+	var root: Node = t.model.instantiate() if t and t.model else null
+	if root:
+		var base := "metal" if Prop.DEFS.get(t.behaves_like, {}).get("metal", false) else "wood"
+		for mi: MeshInstance3D in root.find_children("*", "MeshInstance3D", true, false):
+			var names := ModelDestructible._names(mi, root).to_lower()
+			if mi.mesh == null or names.contains("collision"):
+				continue
+			var xf := Transform3D.IDENTITY
+			var n: Node = mi
+			while n != root:
+				xf = (n as Node3D).transform * xf
+				n = n.get_parent()
+			var word := ModelDestructible._word(names)
+			out.append([mi, xf, word if word != "" else base])
+	_parts[path] = [root, out]
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree and root is Node3D:
+		(root as Node3D).visible = false
+		tree.root.add_child.call_deferred(root)
+	return out
 
 
 ## The built-in prop's numbers with yours on top (what Prop.def is).

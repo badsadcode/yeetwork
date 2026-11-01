@@ -6,6 +6,8 @@ wooden fan (a PuzzleFan's Model) blowing at them, a brick wall to break (a Break
 Custom Material), stone flag stands (CTF), a crane of your own swinging a crate, a bell (a
 Horn), a swimmable sea round the island with a wooden ladder up out of it, the built-in ladder
 up the pool's back wall, a door, a window and a fence that break part by part (BreakableModel),
+a shed door the gravity gun rips off (Tear Off), glass cabinets that break into their parts
+(a PropType),
 and, for MegaYeet, a thorn bed (your own trap) and a built-in fire
 grate on the monsters' way to the Heart.
 
@@ -27,6 +29,7 @@ ext = [
     ('PackedScene', 'res://custom/make_your_own/my_drain.tscn', 'drain'),
     ('PackedScene', 'res://custom/make_your_own/thorn_trap.tscn', 'thorns'),
     ('Resource', 'res://custom/make_your_own/oil_drum.tres', 'drum'),
+    ('Resource', 'res://custom/make_your_own/glass_cabinet.tres', 'cabinet'),
     ('Script', 'res://scripts/mapkit/pickup_spawn.gd', 'pickup'),
     ('Script', 'res://scripts/mapkit/puzzle_fan.gd', 'fan'),
     ('Script', 'res://scripts/mapkit/flag_stand.gd', 'flag'),
@@ -112,6 +115,9 @@ for i in range(4):
     node('OilDrum%d' % i, 'prop', 'Props', at=(3 + i * 1.3, 0.6, -10), type='ExtResource("drum")')
 for i in range(2):
     node('Barrel%d' % i, 'prop', 'Props', at=(3 + i * 1.3, 0.6, -12.5), kind='"barrel"')
+# Glass cabinets (a PropType that breaks into its parts) beside them.
+for i in range(2):
+    node('Cabinet%d' % i, 'prop', 'Props', at=(0 + i * 1.2, 0.6, -12.5), type='ExtResource("cabinet")')
 # MegaYeet: monsters from the far side to the Heart, over a thorn bed and a fire grate.
 node('Heart', 'heart', 'MegaYeet', at=(10, 0, 14), radius='2.5')
 node('Rift', 'rift', 'MegaYeet', at=(10, 0, -18), radius='3.0')
@@ -136,6 +142,8 @@ node('Bell', 'horn', 'More', at=(3, 0, 13), model='ExtResource("bellmodel")')
 node('Door', 'bmodel', 'More', at=(14, 0, 10), model='ExtResource("doormodel")', material='"wood"')
 node('Window', 'bmodel', 'More', at=(17.5, 0, 10), model='ExtResource("windowmodel")', material='"glass"')
 node('Fence', 'bmodel', 'More', at=(15, 0, 4), model='ExtResource("fencemodel")', material='"wood"')
+# The same door again, on a shed: the gravity gun rips it off its frame (Tear Off).
+node('ShedDoor', 'bmodel', 'More', at=(20.5, 0, 10), model='ExtResource("doormodel")', material='"wood"', tear_off='true')
 # Where the Yeets start.
 for i, x in enumerate([-3, 0, 3, 6]):
     node('Spawn%d' % i, 'spawn', '.', at=(x, 0, 16))

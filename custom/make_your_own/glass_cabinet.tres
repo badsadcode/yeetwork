@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PropType" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/props/prop_type.gd" id="type"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/cabinet.glb" id="model"]
+
+[resource]
+script = ExtResource("type")
+display_name = "Glass cabinet"
+behaves_like = "crate"
+model = ExtResource("model")
+size = Vector3(0.8, 1.1, 0.45)
+mass = 30.0
+toughness = 7000.0
+breaks_into_parts = true

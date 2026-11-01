@@ -402,7 +402,7 @@ func _collect(n: Node) -> void:
 		var bm := n as BreakableModel
 		var inst := bm.model.instantiate() as Node3D if bm.model else null
 		if inst:
-			breakable_model(bm.global_transform, inst, bm.material, bm.color, bm.hp_scale, bm.anchor_to_ground)
+			breakable_model(bm.global_transform, inst, bm.material, bm.color, bm.hp_scale, bm.anchor_to_ground).tear_off = bm.tear_off
 		bm.queue_free()
 	elif n is Crane:
 		(n as Crane).set_world(world)

@@ -22,6 +22,8 @@ extends SceneTree
 ##   of ("Glass_", "Wood_", "Metal_"), the parts that never break "Fixed_": a window (a fixed
 ##   frame, two panes, a wooden mullion and bar), a door of planks (a fixed frame, five planks,
 ##   two braces, a metal knob that comes off whole), a fence (posts and rails).
+## - cabinet.glb: a glass-fronted cabinet for a PropType that Breaks Into Its Parts (origin in
+##   its middle): its boards ("Wood_"), a glass door ("Glass_"), a metal handle ("Metal_").
 ## And ../textures/bricks.png, a brick texture for a breakable wall's Custom Material.
 ## Usage: godot --headless --path . --script res://tools/make_templates.gd
 
@@ -44,6 +46,7 @@ func _init() -> void:
 	_save(_window(), "window")
 	_save(_door(), "door")
 	_save(_fence(), "fence")
+	_save(_cabinet(), "cabinet")
 	_bricks()
 	quit()
 
@@ -405,6 +408,26 @@ func _door() -> Node3D:
 	knob.radius = 0.05
 	knob.height = 0.1
 	_mesh(root, "Metal_Knob", knob, iron, Transform3D(Basis.IDENTITY, Vector3(0.38, 1.05, 0.1)))
+	return root
+
+
+## A glass-fronted cabinet, 0.8 x 1.1 x 0.45 m (origin in its middle, the glass toward +Z).
+func _cabinet() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Cabinet"
+	var wood := _mat(Color(0.5, 0.32, 0.18), 0.8)
+	var back := _mat(Color(0.4, 0.26, 0.15), 0.85)
+	var glass := _mat(Color(0.75, 0.88, 0.95, 0.35), 0.05)
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var brass := _mat(Color(0.8, 0.62, 0.25), 0.3, 0.9)
+	_box_part(root, "Wood_Top", Vector3(0.8, 0.05, 0.45), Vector3(0, 0.525, 0), wood)
+	_box_part(root, "Wood_Bottom", Vector3(0.8, 0.05, 0.45), Vector3(0, -0.525, 0), wood)
+	_box_part(root, "Wood_SideLeft", Vector3(0.05, 1.0, 0.45), Vector3(-0.375, 0, 0), wood)
+	_box_part(root, "Wood_SideRight", Vector3(0.05, 1.0, 0.45), Vector3(0.375, 0, 0), wood)
+	_box_part(root, "Wood_Back", Vector3(0.7, 1.0, 0.03), Vector3(0, 0, -0.21), back)
+	_box_part(root, "Wood_Shelf", Vector3(0.7, 0.04, 0.38), Vector3(0, 0, -0.02), wood)
+	_box_part(root, "Glass_Door", Vector3(0.68, 0.96, 0.02), Vector3(0, 0, 0.21), glass)
+	_box_part(root, "Metal_Handle", Vector3(0.03, 0.16, 0.03), Vector3(0.27, 0, 0.24), brass)
 	return root
 
 

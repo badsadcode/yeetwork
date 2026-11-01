@@ -387,6 +387,11 @@ A door, a window, a fence you modelled: each separate part (each mesh) breaks on
 - Like a BreakableSlab: synced for everyone and late joiners, battered by monsters (a
   MegaYeet gate; the shop repairs it), wooden parts burn. The map check notes a model that
   can't break (every part Fixed) or that nothing holds up.
+- **Tear Off**: the gravity gun rips it off (a door off its hinges): its loose parts (not the
+  Fixed ones) come away together as one prop, in the gun's grip, free of its frame until it's
+  out. Thrown hard (it hits something at about 25 m/s; sooner with glass in it, later with a
+  higher Hp Scale), it comes apart into its parts, each a prop of its own; glass shatters. The
+  shop's repair puts it back. On a MegaYeet gate it lets players pull the gate off.
 - Parts work best mostly flat or long (panes, planks, boards, posts, bars); a chunky part
   breaks into pieces cut through its box.
 
@@ -580,7 +585,10 @@ Workshop), and starter models with their markers (`models/`, made by
   metres; 0 the built-in one's), **Shape** (auto: its `Collision` mesh, made convex, if it
   has one, else the built-in shape; or box, ball, cylinder), **Mass**, **Bounce**,
   **Toughness** (impact energy that breaks it; props that break only), **Unbreakable**,
-  **Color** (what it breaks into). It travels to every player like any prop.
+  **Breaks Into Its Parts** (it comes apart into its model's parts instead: each part named
+  for its material like a BreakableModel's, `Wood_Side`, `Glass_Door`, `Metal_Handle`; each
+  flies off whole as a prop, glass shatters; Behaves Like must be a prop that breaks: a crate,
+  a plank...), **Color** (what it breaks into). It travels to every player like any prop.
 - **A pickup**: a **PickupType** resource on a PickupSpawn's **Type** slot: **Display Name**,
   **Gives** (health, speed, super, feather, iron), **Heal** (health; 0: 50), **Lasts**
   (boost seconds; 0: the boost's), **Respawn**, **Model** (floats over the pad), **Color**

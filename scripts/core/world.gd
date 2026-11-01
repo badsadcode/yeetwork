@@ -824,6 +824,15 @@ func server_break_prop(p: Prop, rel: Vector3) -> void:
 	if not is_instance_valid(p) or p.is_queued_for_deletion() or not props.has(p.prop_id):
 		return
 	p.exploded = true
+	if p.extra.get("assembly", false) or (p.ptype and p.ptype.breaks_into_parts and p.ptype.model):
+		var parts := _parts_of_prop(p)
+		var at := p.global_transform
+		var vel := p.linear_velocity
+		mode_logic.on_prop_broken(p)
+		_queue_restock(p, 20.0)
+		server_despawn_prop(p)
+		_server_break_into_parts(parts, at, vel, rel, p.color)
+		return
 	var def: Dictionary = p.def
 	var xf := p.global_transform
 	var vel := p.linear_velocity
@@ -853,6 +862,95 @@ func server_break_prop(p: Prop, rel: Vector3) -> void:
 			else:
 				server_fx_shard(local, thickness, Transform3D(basis, pos), v, col, mat_name)
 		server_fx("impact:" + ("wood" if mat_name == "wood" else "stone"), xf.origin, rel, 1.5, Vector3.UP)
+
+
+## A prop made of model parts, the parts: [extra naming the part, where it sits in the prop].
+func _parts_of_prop(p: Prop) -> Array:
+	var out := []
+	if p.extra.get("assembly", false):
+		var c: Vector3 = p.extra.get("center", Vector3.ZERO)
+		for i in p.extra.get("parts", []):
+			var ex := {"mwall": p.extra.mwall, "part": i}
+			var e := Prop.model_part(self, ex)
+			if not e.is_empty():
+				out.append([ex, Transform3D(Basis.IDENTITY, -c) * (e[1] as Transform3D)])
+	else:
+		var path := p.ptype.resource_path
+		for i in PropType.parts_of(path).size():
+			out.append([{"ptype": path, "part": i}, PropType.parts_of(path)[i][1]])
+	return out
+
+
+## A prop made of model parts comes apart (a torn-off door, a PropType that breaks into its
+## parts): each part flies off whole, a prop of its own (glass shatters instead, its pieces cut
+## from the pane's own shape).
+func _server_break_into_parts(parts: Array, at: Transform3D, vel: Vector3, rel: Vector3, col: Color) -> void:
+	var srng := RandomNumberGenerator.new()
+	srng.seed = int(at.origin.x * 131.0 + at.origin.z * 17.0)
+	for pe: Array in parts:
+		var ex: Dictionary = pe[0]
+		var e := Prop.model_part(self, ex)
+		if e.is_empty():
+			continue
+		var xf: Transform3D = at * (pe[1] as Transform3D)
+		var away := (xf.origin - at.origin).normalized()
+		var v := vel * 0.6 + away * srng.randf_range(1.0, 3.0) + Vector3.UP * srng.randf_range(1.0, 2.5) + rel.limit_length(6.0) * 0.2
+		if e[2] == "glass":
+			var pl := ModelDestructible.plane_of(e[0], xf)
+			var frame: Transform3D = pl[0]
+			var basis := frame.basis.orthonormalized()
+			for piece in Fracture.shatter(pl[1], 6, srng):
+				var pc := Fracture.centroid(piece)
+				server_fx_shard(Fracture.translated(piece, -pc), pl[2], Transform3D(basis, frame * Vector3(pc.x, pc.y, 0.0)), v + Vector3(srng.randf_range(-2, 2), srng.randf_range(0, 2), srng.randf_range(-2, 2)), col, "glass")
+			continue
+		var whole := ex.duplicate()
+		whole.whole = true
+		var piece := server_spawn_prop("shard", Transform3D(xf.basis.orthonormalized(), xf.origin), Vector3.ZERO, col, 0, v, whole)
+		piece.angular_velocity = Vector3(srng.randf_range(-3, 3), srng.randf_range(-3, 3), srng.randf_range(-3, 3))
+		_track_debris(piece)
+	server_fx("impact:wood", at.origin, rel, 1.5, Vector3.UP)
+
+
+## The gravity gun rips a breakable model off (BreakableModel Tear Off: a door off its frame):
+## its loose parts still there come away together, one prop made of them in their place.
+func server_tear_off(d: ModelDestructible) -> Prop:
+	var alive := []
+	var c := Vector3.ZERO
+	for i in d.cells.size():
+		if d.is_alive(i):
+			alive.append(i)
+			c += d.part_c3[i]
+	if alive.is_empty():
+		return null
+	c /= alive.size()
+	_bc_all("_s_tear_off", [d.wall_id, PackedInt32Array(alive)])
+	var xf := Transform3D(d.global_basis.orthonormalized(), d.global_transform * c)
+	var p := server_spawn_prop("shard", xf, Vector3.ZERO, d.color, 0, Vector3.ZERO, {"mwall": d.wall_id, "parts": alive, "center": c, "assembly": true})
+	# It fits its frame snugly: free of it till it's out.
+	var frame := d.get_children().filter(func(n): return n is StaticBody3D and not n.has_meta("cell"))
+	for b: StaticBody3D in frame:
+		p.add_collision_exception_with(b)
+	_free_of_frame(p, frame, xf.origin, d.bounds().size.length() * 0.5 + 0.5)
+	return p
+
+
+func _free_of_frame(p: Prop, frame: Array, from: Vector3, clear: float) -> void:
+	while is_instance_valid(p) and p.global_position.distance_to(from) < clear:
+		await get_tree().create_timer(0.25).timeout
+	if is_instance_valid(p):
+		for b in frame:
+			if is_instance_valid(b):
+				p.remove_collision_exception_with(b)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_tear_off(wall_id: int, cells: PackedInt32Array) -> void:
+	if wall_id >= arena.destructibles.size():
+		return
+	var d := arena.destructibles[wall_id]
+	d.remove_cells(cells)
+	Sfx.play3d("crack", d.global_position + Vector3.UP, 2.0, 0.8)
+	Sfx.play3d("splinter", d.global_position + Vector3.UP, 0.0, 0.9)
 
 
 ## Breaks a prop into flat pieces: [poly (local 2D), thickness, Transform3D in prop space].

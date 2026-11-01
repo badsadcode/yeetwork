@@ -593,9 +593,11 @@ godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3
 # (a PropType), a thorn bed trap of your own in the shop and at work, an energy drink (a
 # PickupType), a fan and flag stands of your own, a brick wall and its pieces, a ladder out of
 # the swimmable sea, a crane and a bell of your own, a door, a window and a fence breaking part
-# by part (the Workshop map)
+# by part, a shed door the gun rips off and throws apart, glass cabinets breaking into their
+# parts (the Workshop map)
 godot --path . -- --host --map res://custom/make_your_own/workshop.tscn --mode megayeet --bots 0 --tour /tmp/shots --tour-mode makeyourown
-# ... and over the network: a client sees the oil drums and the thorn bed as they are
+# ... and over the network: a client sees the oil drums, the thorn bed, the cabinets and the
+# shed door as they are
 godot --headless --path . -- --host --map res://custom/make_your_own/workshop.tscn --bots 0 --port 24812
 godot --headless --path . -- --join 127.0.0.1 --port 24812 --tour x --tour-mode makeyourownclient
 # High Seas saved again as a Map Kit scene from its code builder (overwrites maps/high_seas.tscn)

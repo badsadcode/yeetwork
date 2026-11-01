@@ -15,7 +15,9 @@ extends Node3D
 ## throw it). A small part (under 0.3 m: a knob, a hinge) comes off whole when hit. The pieces
 ## of a broken part are cut from its own shape, from the hit outward, in its own material.
 ## Works like a BreakableSlab: everyone sees the same, monsters batter it (a MegaYeet gate),
-## the shop repairs it, wood burns.
+## the shop repairs it, wood burns. Tear Off: the gravity gun rips it off (a door off its
+## hinges): its loose parts (not the Fixed ones) come away together as one prop to carry and
+## throw, and thrown hard it comes apart into its parts.
 
 @export var model: PackedScene:
 	set(v):
@@ -28,6 +30,8 @@ extends Node3D
 ## Its lowest parts stand on the ground and hold up the rest (a fence's posts, a door's
 ## frame); off: only the Fixed parts hold it (a sign hanging from a fixed bracket).
 @export var anchor_to_ground := true
+## The gravity gun can rip it off: its loose parts come away together as one prop.
+@export var tear_off := false
 ## The dust when a part breaks, and the colour fire and fragments fall back to.
 @export var color := Color(0.6, 0.45, 0.3)
 

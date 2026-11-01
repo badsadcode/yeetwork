@@ -25,6 +25,9 @@ var part_small := PackedByteArray()
 var part_rect: Array[Rect2] = [] # its outline's box in its own plane
 var _box := AABB()
 var _hp_scale := 1.0
+## The gravity gun can rip its loose parts off (BreakableModel Tear Off): they come away
+## together as one prop (World.server_tear_off).
+var tear_off := false
 
 
 ## Builds it from `model` (already instanced; it's added here as it is).
@@ -102,8 +105,10 @@ static func _word(lower: String) -> String:
 
 
 ## A part: its plane (its two longest sides; the longest along Y, the grain), its outline
-## there (the hull of its vertices), its thickness.
-func _add_part(mi: MeshInstance3D, xf: Transform3D, word: String) -> void:
+## A part's plane: its frame (its two longest sides in XY, the longest along Y: the grain;
+## thickness along Z), its outline there (the hull of its vertices), its thickness and its
+## longest side; `xf`: where the mesh sits. [frame, hull, thickness, longest]
+static func plane_of(mi: MeshInstance3D, xf: Transform3D) -> Array:
 	var aabb := mi.get_aabb()
 	var axes := [Vector3.RIGHT, Vector3.UP, Vector3.BACK]
 	var lens := []
@@ -114,8 +119,7 @@ func _add_part(mi: MeshInstance3D, xf: Transform3D, word: String) -> void:
 	var uy: Vector3 = (xf.basis * axes[order[0]]).normalized() # the longest: the grain
 	var ux: Vector3 = (xf.basis * axes[order[1]]).normalized()
 	var uz := ux.cross(uy).normalized()
-	var center := xf * aabb.get_center()
-	var frame := Transform3D(Basis(ux, uy, uz), center)
+	var frame := Transform3D(Basis(ux, uy, uz), xf * aabb.get_center())
 	var pts := PackedVector2Array()
 	var finv := frame.affine_inverse()
 	for s in mi.mesh.get_surface_count():
@@ -130,6 +134,15 @@ func _add_part(mi: MeshInstance3D, xf: Transform3D, word: String) -> void:
 		var hw: float = lens[order[1]] * 0.5
 		var hh: float = lens[order[0]] * 0.5
 		hull = PackedVector2Array([Vector2(-hw, -hh), Vector2(hw, -hh), Vector2(hw, hh), Vector2(-hw, hh)])
+	return [frame, hull, maxf(float(lens[order[2]]), 0.01), float(lens[order[0]])]
+
+
+## A part: its plane, its outline there and its thickness (plane_of).
+func _add_part(mi: MeshInstance3D, xf: Transform3D, word: String) -> void:
+	var pl := plane_of(mi, xf)
+	var frame: Transform3D = pl[0]
+	var hull: PackedVector2Array = pl[1]
+	var center := frame.origin
 	var rect := Rect2(hull[0], Vector2.ZERO)
 	for p in hull:
 		rect = rect.expand(p)
@@ -140,11 +153,11 @@ func _add_part(mi: MeshInstance3D, xf: Transform3D, word: String) -> void:
 	areas.append(Fracture.area(hull))
 	part_meshes.append(mi)
 	part_frames.append(frame)
-	part_thick.append(maxf(float(lens[order[2]]), 0.01))
+	part_thick.append(float(pl[2]))
 	part_mats.append(word if word != "" else material)
 	part_c3.append(center)
-	part_r.append(float(lens[order[0]]) * 0.5)
-	part_small.append(1 if float(lens[order[0]]) < SMALL else 0)
+	part_r.append(float(pl[3]) * 0.5)
+	part_small.append(1 if float(pl[3]) < SMALL else 0)
 
 
 ## A fixed part: solid, never breaks.
@@ -184,6 +197,11 @@ func _distance(local: Vector3, i: int) -> float:
 	var dy := maxf(maxf(r.position.y - l.y, l.y - r.end.y), 0.0)
 	var dz := maxf(absf(l.z) - part_thick[i] * 0.5, 0.0)
 	return Vector3(dx, dy, dz).length()
+
+
+## How tough its parts are (times their material's).
+func hp_scale() -> float:
+	return _hp_scale
 
 
 func cell_world(i: int) -> Vector3:

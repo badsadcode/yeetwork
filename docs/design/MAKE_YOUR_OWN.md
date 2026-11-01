@@ -19,11 +19,13 @@ carries everything aboard when it jumps. **High Seas as a scene done** (2026-11-
 `maps/high_seas.tscn`, saved from its builder (which notes what it makes), with new pieces
 for it: ShipHold, CargoContainer, a block's Solid switch, a ladder's Top Throw, the Vessel's
 High Seas Weather, CSG solids on a ship. Every map is now a Map Kit scene. Next: High Seas'
-washes and rogue waves sized for any Vessel; breakable props.
+washes and rogue waves sized for any Vessel.
 **Breakable models done** (2026-11-01, Tomek's ask): BreakableModel, a model breaking part by
 part (parts named for their material, `Fixed` parts that never break, procedural shards cut
-from each part's own shape, loose parts falling whole). Later: props that break into their
-model's parts (a door you rip off and throw).
+from each part's own shape, loose parts falling whole). **Breakable props done**
+(2026-11-01): a PropType that Breaks Into Its Parts (each part flies off whole, glass
+shatters: the Workshop's glass cabinets), and a BreakableModel's Tear Off (the gravity gun
+rips its loose parts off together as one prop; thrown hard, it comes apart: the shed door).
 
 ## The idea in one paragraph
 

@@ -277,7 +277,12 @@ func _start_world(server: bool) -> void:
 		add_child(t)
 	if _tour_dir != "":
 		var script_path := "res://scripts/core/dev_%s.gd" % _tour_mode if _tour_mode != "" else "res://scripts/core/dev_tour.gd"
-		var tour: Node = load(script_path).new()
+		var gs := load(script_path) as Script
+		if gs == null or not gs.can_instantiate():
+			print("CHECK FAILED: %s doesn't load (see the errors above)" % script_path)
+			get_tree().quit(1)
+			return
+		var tour: Node = gs.new()
 		tour.set("world", world)
 		tour.set("out_dir", _tour_dir)
 		add_child(tour)

@@ -431,7 +431,16 @@ func _build_candy(parent: MeshInstance3D) -> void:
 
 ## Irregular fragment of a destructible: one or more extruded polygons.
 func _build_shard() -> void:
-	# A model's part (ModelDestructible): its material, or the whole part come off.
+	# Made of a model's parts: one come off whole, or several still together (a torn-off door).
+	if extra.get("assembly", false):
+		_build_assembly()
+		return
+	if extra.get("whole", false):
+		var whole := Prop.model_part(world, extra)
+		if not whole.is_empty():
+			_build_part(whole)
+			return
+	# A model's part's piece (ModelDestructible): its material.
 	var walls: Array = world.arena.destructibles if world and world.get("arena") else []
 	var mw: ModelDestructible = null
 	var part: int = extra.get("part", -1)
@@ -439,9 +448,6 @@ func _build_shard() -> void:
 		mw = walls[int(extra.mwall)] as ModelDestructible
 	if mw and (part < 0 or part >= mw.part_meshes.size()):
 		mw = null
-	if mw and extra.get("whole", false):
-		_build_whole_part(mw, part)
-		return
 	var polys: Array = extra.get("polys", [])
 	var t: float = extra.get("t", 0.5)
 	var mat_name: String = extra.get("mat", "plaster")
@@ -478,30 +484,87 @@ func _build_shard() -> void:
 	add_child(mi)
 
 
-## A part of a breakable model come off whole: its own mesh (and its scale), a convex shape
-## round it, its weight from its size and material.
-func _build_whole_part(mw: ModelDestructible, part: int) -> void:
-	var src := mw.part_meshes[part]
-	var basis := src.global_transform.basis
-	var scale_basis := basis.orthonormalized().inverse() * basis
+## A model's part a piece is made of, every peer the same: a BreakableModel's (extra "mwall",
+## its wall id) or a PropType's model's (extra "ptype", its path), "part" its index: [its mesh,
+## where it sits in its source's frame, what it's made of], or [] if there's none.
+static func model_part(w: Node, ex: Dictionary) -> Array:
+	var part: int = ex.get("part", -1)
+	if part < 0:
+		return []
+	if ex.has("mwall"):
+		var walls: Array = w.arena.destructibles if w and w.get("arena") else []
+		var mw: ModelDestructible = walls[int(ex.mwall)] as ModelDestructible if int(ex.mwall) < walls.size() else null
+		if mw and part < mw.part_meshes.size():
+			var mi := mw.part_meshes[part]
+			var xf := mw.global_transform.affine_inverse() * mi.global_transform if mi.is_inside_tree() else mi.transform
+			return [mi, xf, mw.part_mats[part]]
+	elif ex.has("ptype"):
+		var parts := PropType.parts_of(ex.ptype)
+		if part < parts.size():
+			return parts[part]
+	return []
+
+
+## A model's part come off whole: its own mesh (and its scale), a convex shape round it, its
+## weight from its size and material.
+func _build_part(e: Array) -> void:
+	var scale_basis: Basis = (e[1] as Transform3D).basis.orthonormalized().inverse() * (e[1] as Transform3D).basis
+	var box := _add_part_mesh(e[0], Transform3D(scale_basis, Vector3.ZERO))
+	size = box.size.max(Vector3.ONE * 0.05)
+	mass = clampf(size.x * size.y * size.z * 0.6 * Fracture.mat(e[2]).density, 1.0, 300.0)
+	_part_physics()
+
+
+## Parts of a breakable model still together (a door torn off its frame: World.server_tear_off):
+## each part's mesh and shape where it was, round their middle; its weight theirs; it breaks
+## (into them again) when it hits something at about 25 m/s (a hard throw), sooner with a
+## weaker part in it (glass), later the tougher the model.
+func _build_assembly() -> void:
+	var c: Vector3 = extra.get("center", Vector3.ZERO)
+	var box := AABB()
+	var total := 0.0
+	var weakest := INF
+	var first := true
+	for i in extra.get("parts", []):
+		var e := Prop.model_part(world, {"mwall": extra.get("mwall", -1), "part": i})
+		if e.is_empty():
+			continue
+		var b := _add_part_mesh(e[0], Transform3D(Basis.IDENTITY, -c) * (e[1] as Transform3D))
+		box = b if first else box.merge(b)
+		first = false
+		var md := Fracture.mat(e[2])
+		total += b.size.x * b.size.y * b.size.z * 0.6 * md.density
+		weakest = minf(weakest, md.hp)
+	size = box.size.max(Vector3.ONE * 0.05) if not first else Vector3.ONE * 0.2
+	mass = clampf(total, 2.0, 400.0)
+	var walls: Array = world.arena.destructibles if world and world.get("arena") else []
+	var mw: ModelDestructible = walls[int(extra.get("mwall", -1))] as ModelDestructible if int(extra.get("mwall", -1)) < walls.size() else null
+	def = def.duplicate()
+	def.fragile = 0.5 * mass * 25.0 * 25.0 * (weakest if weakest < INF else 70.0) / 70.0 * (mw.hp_scale() if mw else 1.0)
+	_part_physics()
+
+
+## A part's mesh at `xf` (in this prop), a convex shape round it there; its box (in the prop).
+func _add_part_mesh(src: MeshInstance3D, xf: Transform3D) -> AABB:
 	var mi := MeshInstance3D.new()
 	mi.mesh = src.mesh
 	mi.material_override = src.material_override
 	for k in src.get_surface_override_material_count():
 		mi.set_surface_override_material(k, src.get_surface_override_material(k))
-	mi.transform = Transform3D(scale_basis, Vector3.ZERO)
+	mi.transform = xf
 	add_child(mi)
 	var hull := src.mesh.create_convex_shape(true, true) as ConvexPolygonShape3D
 	var pts := PackedVector3Array()
 	for v in hull.points:
-		pts.append(scale_basis * v)
+		pts.append(xf * v)
 	hull.points = pts
 	var cs := CollisionShape3D.new()
 	cs.shape = hull
 	add_child(cs)
-	var box := Transform3D(scale_basis, Vector3.ZERO) * src.get_aabb()
-	size = box.size.max(Vector3.ONE * 0.05)
-	mass = clampf(size.x * size.y * size.z * 0.6 * Fracture.mat(mw.cell_material(part)).density, 1.0, 300.0)
+	return xf * src.get_aabb()
+
+
+func _part_physics() -> void:
 	continuous_cd = mass < 10.0
 	var pm := PhysicsMaterial.new()
 	pm.bounce = 0.1

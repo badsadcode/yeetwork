@@ -597,6 +597,13 @@ func _try_grab(origin: Vector3, dir: Vector3) -> void:
 	var q := PhysicsRayQueryParameters3D.create(origin, origin + dir * PULL_RANGE, Game.L_WORLD | Game.L_PLAYERS | Game.L_PROPS, [player.get_rid()])
 	var hit := space.intersect_ray(q)
 	var target: Node = hit.get("collider") if not hit.is_empty() else null
+	# A breakable model that tears off (a door): its loose parts come away as a prop to pull.
+	if target and target.has_meta("destructible") and target.get_meta("destructible") is ModelDestructible:
+		var md := target.get_meta("destructible") as ModelDestructible
+		if md.tear_off:
+			var torn: Prop = w.server_tear_off(md)
+			if torn:
+				target = torn
 	if not (target is Prop or target is Player):
 		target = _catch_assist(origin, dir)
 	if not (target is Prop or target is Player) and w.horde:
