@@ -91,8 +91,9 @@ jobs:
       - name: High Seas export (its code builder still saves the scene)
         timeout-minutes: 2
         run: |
+          cp maps/high_seas.tscn /tmp/high_seas.tscn
           timeout 100 godot --headless -- --host --map highseas --map-source code --bots 0 --spooky off --tour x --tour-mode export_highseas
-          git checkout -- maps/high_seas.tscn
+          cp /tmp/high_seas.tscn maps/high_seas.tscn
       - name: Match setup check (maps that suit each mode, the host's MegaYeet rules, unused pieces left out)
         timeout-minutes: 3
         run: timeout 90 godot --headless -- --host --map res://maps/fortress.tscn --bots 0 --spooky off --tour x --tour-mode setup
