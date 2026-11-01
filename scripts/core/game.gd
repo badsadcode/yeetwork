@@ -131,7 +131,7 @@ var map := "facing" # built-in key or a map scene path under res://maps
 ## MegaYeet's rules for a match (the host's; custom: these instead of the map's FortressHeart's).
 var megayeet_rules := {"custom": false, "health": 1000.0, "bite": 40.0, "kill_refill": 3.0, "wave_bonus": 60.0,
 	"first_break": 12.0, "break_time": 25.0, "wave_size": 1.0, "max_monsters": 220, "boss_every": 5,
-	"boss_health": 3000.0, "boss_reward": 300.0}
+	"boss_health": 3000.0, "boss_reward": 300.0, "economy": "shared"}
 var autostart := false
 var spooky := false # Halloween theme active for the current match (decided by the server) # set by a map scene run with F6 (playtest)
 var _map_cache: Array = []
@@ -551,6 +551,7 @@ func _setup_input() -> void:
 	_mouse("gun_throw", MOUSE_BUTTON_RIGHT)
 	_key("grapple", [KEY_G])
 	_key("flashlight", [KEY_L])
+	_key("shop", [KEY_B])
 	_mouse("grapple", MOUSE_BUTTON_MIDDLE)
 	_pad("grapple", JOY_BUTTON_RIGHT_STICK)
 	# The mouse wheel is read as raw events in Player (prop slots, or push/pull when
@@ -563,6 +564,7 @@ func _setup_input() -> void:
 	_pad("jump", JOY_BUTTON_A)
 	_pad("crouch", JOY_BUTTON_B)
 	_pad("spawn_prop", JOY_BUTTON_Y)
+	_pad("shop", JOY_BUTTON_Y) # (shares Y: spawning props is sandbox, the shop is MegaYeet)
 	_pad("freeze_prop", JOY_BUTTON_X)
 	_pad("use", JOY_BUTTON_X)
 	_pad("pause", JOY_BUTTON_START)

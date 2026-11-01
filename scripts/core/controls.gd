@@ -29,6 +29,7 @@ const ACTIONS := [
 	["use", "Use / interact (empty hands)", "Other"],
 	["toggle_view", "Third-person camera", "Other"],
 	["flashlight", "Flashlight on / off (dark maps)", "Other"],
+	["shop", "Shop (MegaYeet, between waves)", "Other"],
 	["scoreboard", "Scoreboard", "Other"],
 	["suicide", "Respawn", "Other"],
 	["pause", "Menu", "Other"],

@@ -2,7 +2,7 @@ class_name MegaYeetGate
 extends PuzzleNode
 ## MegaYeet: a breakable wall's repair point (ModeMegaYeet.prepare_arena makes one for each, on
 ## every peer; nothing to see). Between waves, Use on a broken gate rebuilds it whole, paid
-## out of the Fortress meter: more the more of it is gone.
+## out of the Fortress meter (or the Yeet's Y$): more the more of it is gone.
 
 var wall: Destructible
 
@@ -22,7 +22,7 @@ func price() -> float:
 
 
 func use_label() -> String:
-	return "Repair the gate  (-%d)" % int(price())
+	return "Repair the gate  (%s)" % ModeMegaYeet.price_text(world, price())
 
 
 func use_point() -> Vector3:

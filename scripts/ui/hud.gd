@@ -29,6 +29,8 @@ var _score_plate: HudPlate
 var _fortress: HudPlate # MegaYeet: the Fortress meter
 var _fortress_label: Label
 var _threat: Label
+var _cash: Label # MegaYeet with personal Y$: what you have
+var _shop: ShopWindow # MegaYeet: the break's shop (the shop key)
 var _boss_bar: HudPlate # MegaYeet: the boss's health while it lives
 var _boss_label: Label
 var _speed_plate: HudPlate
@@ -211,6 +213,11 @@ func _ready() -> void:
 	_fortress_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_fortress_label.size = Vector2(540, 34)
 	_fortress.add_child(_fortress_label)
+	_cash = _label(26, Color(1.0, 0.85, 0.3))
+	_cash.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_cash.position = Vector2(284, 64)
+	_cash.visible = false
+	_root.add_child(_cash)
 	_threat = _label(19, Color(1.0, 0.86, 0.35))
 	_threat.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_threat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -651,8 +658,33 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause") or (_paused and event.is_action_pressed("ui_cancel") and event is InputEventJoypadButton):
 		set_paused(not _paused)
 		get_viewport().set_input_as_handled()
-	elif event is InputEventMouseButton and event.pressed and not _paused and _match_end == null and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+	elif event.is_action_pressed("shop") and not _paused and world and world.mode == Game.Mode.MEGAYEET:
+		get_viewport().set_input_as_handled()
+		open_shop()
+	elif event is InputEventMouseButton and event.pressed and not _paused and not shop_open() and _match_end == null and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## MegaYeet: the shop window (between waves only).
+func open_shop() -> void:
+	if int(world.mode_state.get("phase", -1)) != ModeMegaYeet.Phase.BREAK:
+		show_message("The shop opens between waves", Color(1.0, 0.7, 0.4), false)
+		return
+	if _shop == null:
+		_shop = ShopWindow.new(world)
+		_shop.closed.connect(_shop_closed)
+		_root.add_child(_shop)
+	_shop._pad = _pad_used # (a pad: the first card takes the focus)
+	_shop.open()
+
+
+func _shop_closed() -> void:
+	if not _paused and _match_end == null:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func shop_open() -> bool:
+	return _shop != null and _shop.visible
 
 
 func _process(delta: float) -> void:
@@ -678,7 +710,7 @@ func _process(delta: float) -> void:
 		_help.text = _help_text(_pad_used)
 	_vignette.color.a = maxf(_vignette.color.a - delta * 0.8, 0.0)
 	var usable: PuzzleNode = world.usable_for(pl) if world and pl and pl.is_alive() and pl.gun and pl.gun.vis_kind == GravityGun.Kind.NONE else null
-	_use_prompt.visible = usable != null and not _paused
+	_use_prompt.visible = usable != null and not _paused and not shop_open()
 	if usable:
 		_use_prompt.text = "[%s]  %s" % [Controls.pad_of("use") if _pad_used else Controls.key_of("use"), usable.use_label()]
 	if world and Game.is_sport(world.mode):
@@ -834,12 +866,15 @@ func _megayeet_hud() -> void:
 	_fortress.bar_color = Color(1.0, 0.25, 0.2).lerp(Color(1.0, 0.85, 0.2), clampf(k * 2.0, 0.0, 1.0)).lerp(Color(0.4, 1.0, 0.5), clampf(k * 2.0 - 1.0, 0.0, 1.0))
 	_fortress.queue_redraw()
 	_fortress_label.text = "FORTRESS  %d / %d" % [int(meter), int(top)]
+	_cash.visible = ModeMegaYeet.is_personal(world) and not _paused
+	if _cash.visible:
+		_cash.text = "Y$ %d" % ModeMegaYeet.wallet(world, pl)
 	var text := ""
 	if phase == ModeMegaYeet.Phase.BREAK:
 		var left := maxf(float(s.get("next", 0.0)) - world.net_time(), 0.0)
 		text = "Wave %d in %d  ·  get ready" % [wave + 1, ceili(left)] if wave > 0 else "The monsters are coming in %d  ·  defend the Heart!" % ceili(left)
-		var ups: int = s.get("ups", 0)
-		text += "\nSpend the meter (Use): repair gates  ·  build traps  ·  team upgrade at the Heart (%d/%d)" % [ups, ModeMegaYeet.UPGRADES.size()]
+		var key := Controls.pad_of("shop") if _pad_used else Controls.key_of("shop")
+		text += "\nSHOP: %s   ·   or Use: repair gates, build traps, team upgrade at the Heart" % key
 		_threat.label_settings.font_color = Color(0.7, 0.9, 1.0)
 	elif phase == ModeMegaYeet.Phase.WAVE:
 		var parts := []

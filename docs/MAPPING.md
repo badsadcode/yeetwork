@@ -380,7 +380,9 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
   Steam Deck), **Boss Every** (a boss wave every this many, 5; 0: none), **Boss Health**
   (3000; more with more players and each time it returns) and **Boss Reward** (300).
 - **TrapSpot**: a place for a trap (a box, **Size**, its bottom on the node), built between
-  waves by a player with Use, paid out of the Fortress meter (**Cost**; 0: the usual).
+  waves by a player with Use or from the shop window (which builds the free spot of that kind
+  nearest the buyer), paid out of the Fortress meter or the buyer's Y$, as the match's
+  Economy says (**Cost**; 0: the usual: spikes 80, fire 120, mine 60).
   **Kind**: `spikes` (monsters crossing are hurt and slowed), `fire` (a burning grate: they
   catch fire), `mine` (blows up under the first monsters, then it's gone: build it again).
   Built traps last until the fortress falls. Put them where monsters will come: behind a

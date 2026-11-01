@@ -7,7 +7,9 @@ extends Node
 ## runners outpace shamblers, a brute shrugs a push off and can't be grabbed, a ghost drifts
 ## through a wall, ignores a push and burns in a flashlight's beam, a climber gets over a
 ## wall, a bomber blows a gate in and a killed one takes its neighbours with it, fire spreads,
-## a monster is grabbed and thrown, waves mix the kinds. Screenshots.
+## a monster is grabbed and thrown, waves mix the kinds. The shop: personal Y$ earned by
+## kills and waves held, spent in the shop window (a power-up, the nearest trap, every gate,
+## the Heart healed), not without the Y$. Screenshots.
 ## Exits 1 if a step fails.
 ## Usage: godot -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --port 24700 --tour <dir> --tour-mode megayeet
 
@@ -130,6 +132,7 @@ func _ready() -> void:
 	await _kinds()
 	await _way_out(brains)
 	await _shop()
+	await _shop_window()
 	await _team_lift(brains)
 	await _boss_fight()
 	# Bots fight.
@@ -488,6 +491,112 @@ func _shop() -> void:
 	_check("nothing for sale during a wave, nor below what's kept back", in_wave == 1 and mode.ups == 1, "during the wave %d, kept back %d" % [in_wave, mode.ups])
 	mode.meter = mode.max_meter
 	horde.server_clear()
+
+
+## Personal Y$ and the shop window: a Yeet starts with some; a stylish kill earns more (and
+## puts nothing in the meter: it's only life now); a wave held pays everyone; the shop sells
+## a power-up (it lasts into the wave), builds the free trap spot nearest you, repairs every
+## gate, heals the Heart; nothing without the Y$. The window opens on the shop key with the
+## tab's wares, and closes itself when the wave comes.
+func _shop_window() -> void:
+	horde.server_clear()
+	world.server_restore_walls()
+	for n in world.arena.puzzle:
+		if n is TrapSpot:
+			(n as TrapSpot).server_clear()
+	mode.personal = true
+	mode.cash.clear()
+	mode.phase = ModeMegaYeet.Phase.BREAK
+	mode.phase_end = world.now() + 999.0
+	mode.meter = mode.max_meter * 0.5
+	mode._send_state()
+	await _wait(0.3)
+	_check("personal Y$: everyone starts with some", ModeMegaYeet.is_personal(world) and ModeMegaYeet.wallet(world, pl) == ModeMegaYeet.CASH_START, "%d Y$" % ModeMegaYeet.wallet(world, pl))
+	var m0 := mode.meter
+	var mon = horde.server_spawn(mode.heart.global_position + Vector3(12, 0, 12), "shambler")
+	mon.attacker = pl.player_id
+	mon.attacker_t = world.now()
+	horde._kill(mon, "fall")
+	mode._send_state()
+	await _wait(0.2)
+	var after_kill := ModeMegaYeet.wallet(world, pl)
+	_check("a stylish kill earns Y$ (and puts nothing back in the meter)", after_kill == ModeMegaYeet.CASH_START + ModeMegaYeet.CASH_KILL + ModeMegaYeet.CASH_STYLE and mode.meter == m0, "%d Y$, meter %.0f -> %.0f" % [after_kill, m0, mode.meter])
+	mode._wave_cleared()
+	mode.phase_end = world.now() + 999.0
+	await _wait(0.2)
+	var paid := ModeMegaYeet.wallet(world, pl) - after_kill
+	_check("a wave held pays every Yeet", paid == ModeMegaYeet.CASH_WAVE + 5 * mode.wave, "+%d Y$ (wave %d)" % [paid, mode.wave])
+	mode.cash[pl.player_id] = 1000
+	mode.meter = mode.max_meter * 0.5
+	mode._send_state()
+	await _wait(0.2)
+	# The window.
+	pl.respawn(Vector3(9.0, 0.2, 0.0), 0.0) # (east of the Heart: FireE is the fire grate nearest)
+	await _wait(0.3)
+	world.hud.open_shop()
+	await _wait(0.6)
+	var win: ShopWindow = world.hud._shop
+	var trap_cards := win._cards.size() if win else 0
+	_check("the shop key opens the window: the traps tab, a card for each kind", win != null and win.visible and trap_cards == 3, "%d cards" % trap_cards)
+	await _shot("m15_shop_traps")
+	var fire: TrapSpot = ModeMegaYeet._free_spot(world, pl, "fire")
+	win._buy("trap:fire")
+	await _wait(0.4)
+	_check("... a trap bought builds the free spot of its kind nearest you", fire and fire.name == "FireE" and fire.active and ModeMegaYeet.wallet(world, pl) == 1000 - int(fire.price()), "%s built %s, %d Y$" % [fire.name if fire else "none", fire.active if fire else false, ModeMegaYeet.wallet(world, pl)])
+	win._set_tab(1)
+	await _wait(0.6)
+	_check("... the power-ups tab", win._cards.size() == ModeMegaYeet.POWERS.size(), "%d cards" % win._cards.size())
+	await _shot("m16_shop_powerups")
+	var y0 := ModeMegaYeet.wallet(world, pl)
+	win._buy("power:speed")
+	await _wait(0.4)
+	_check("... a power-up bought lasts into the wave", pl.buff_left("speed") > ModeMegaYeet.POWER_LASTS and ModeMegaYeet.wallet(world, pl) == y0 - 40, "%.0f s left, %d Y$" % [pl.buff_left("speed"), ModeMegaYeet.wallet(world, pl)])
+	# Every gate repaired at once.
+	var hit := 0
+	for d: Destructible in world.arena.destructibles:
+		if hit < 2:
+			world.server_damage_destructible(d, d.global_position, 2.5, 3000.0, Vector3(0, 0, 5), 0, 1.0)
+			hit += 1
+	await _wait(0.3)
+	var broken := 0
+	for d: Destructible in world.arena.destructibles:
+		broken += 0 if d.broken_cells.is_empty() else 1
+	world.shop_buy("fix:all")
+	await _wait(0.3)
+	var still := 0
+	for d: Destructible in world.arena.destructibles:
+		still += 0 if d.broken_cells.is_empty() else 1
+	_check("... repair every gate: all of them whole", broken >= 2 and still == 0, "%d broken, %d after" % [broken, still])
+	win._set_tab(4)
+	await _wait(0.4)
+	m0 = mode.meter
+	win._buy("heal")
+	await _wait(0.3)
+	_check("... heal the Heart (Y$ only)", absf(mode.meter - m0 - mode.max_meter * ModeMegaYeet.HEAL) < 0.5, "meter %.0f -> %.0f" % [m0, mode.meter])
+	await _shot("m17_shop_heart")
+	mode.cash[pl.player_id] = 10
+	mode._send_state()
+	await _wait(0.2)
+	world.shop_buy("power:super")
+	await _wait(0.3)
+	_check("... nothing without the Y$", ModeMegaYeet.wallet(world, pl) == 10 and pl.buff_left("super") == 0.0, "%d Y$" % ModeMegaYeet.wallet(world, pl))
+	mode.phase = ModeMegaYeet.Phase.WAVE
+	mode._to_spawn = 3
+	mode._send_state()
+	await _wait(0.3)
+	_check("... the window closes itself when the wave comes", not win.visible, "")
+	# Back to the shared meter.
+	mode.personal = false
+	mode.cash.clear()
+	mode._to_spawn = 0
+	mode.phase = ModeMegaYeet.Phase.BREAK
+	mode.meter = mode.max_meter
+	for n in world.arena.puzzle:
+		if n is TrapSpot:
+			(n as TrapSpot).server_clear()
+	pl.buffs.clear()
+	mode._send_state()
+	await _wait(0.2)
 
 
 ## The iron ball: one gun alone only strains at it; a second lifts it; they throw it together

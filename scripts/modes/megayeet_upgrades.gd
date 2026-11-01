@@ -2,7 +2,7 @@ class_name MegaYeetUpgrades
 extends PuzzleNode
 ## MegaYeet: team upgrades at the Heart (ModeMegaYeet.prepare_arena puts it there, on every
 ## peer). Between waves, Use on the Heart buys the next one for everyone, out of the Fortress
-## meter (ModeMegaYeet.UPGRADES, in order; until the fortress falls).
+## meter or the Yeet's Y$ (ModeMegaYeet.UPGRADES, in order; until the fortress falls).
 
 var heart: FortressHeart
 
@@ -20,7 +20,7 @@ func usable() -> bool:
 
 func use_label() -> String:
 	var up: Array = ModeMegaYeet.UPGRADES[int(world.mode_state.get("ups", 0))]
-	return "Team upgrade: %s  (-%d)\n%s" % [up[0], int(up[1]), up[2]]
+	return "Team upgrade: %s  (%s)\n%s" % [up[0], ModeMegaYeet.price_text(world, up[1]), up[2]]
 
 
 func use_point() -> Vector3:

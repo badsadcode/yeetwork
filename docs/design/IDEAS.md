@@ -106,12 +106,25 @@ Waves grow bigger and nastier. To design: monster kinds and how they move and at
 must be yeetable), wave pacing, downed/revive or respawns, scoring (waves survived), which
 maps, bots joining in.
 
-- **Next, planned with Tomek** (the match setup is done): a proper **shop window** in the
-  breaks (tabs and thumbnails: traps, personal power-ups, team upgrades, repairs, healing the
-  Heart); an **economy** option in the match setup: *Shared* (the meter is life and money,
-  as now: the challenge) or *Personal Y$* (each Yeet earns Y$ from kills, style and the boss,
-  and buys for themselves; the meter is only life; Y$ can heal the Heart, dearly); **traps
-  placed anywhere** (bought, then put down where you aim, with a preview).
+- **Done with Tomek**: the match setup; the **shop window** in the breaks (tabs, turning 3D
+  thumbnails: traps, personal power-ups, team upgrades, repairs, healing the Heart); the
+  **Economy** option: *Shared* (the meter is life and money: the challenge) or *Personal Y$*
+  (each Yeet earns Y$ from kills, style, combos, waves held and the boss, and buys for
+  themselves; the meter is only life; Y$ heals the Heart, dearly).
+- **Next, planned with Tomek**: **traps placed anywhere** (bought, then put down where you
+  aim, with a preview); for now a bought trap goes on the free map spot nearest you.
+
+## Art pack: every model and texture swappable without code (Tomek, for when the game's done)
+
+The models now are placeholders. Wanted: one easy way to replace the look of everything in
+the game (characters, monsters and the boss, the gravity gun, props, pickups, traps, Map Kit
+pieces, the ship, the shop's pictures, the HUD's icons) and its textures and materials,
+without touching code. A start exists: a map's **MapTheme** swaps Map Kit pieces and props on
+one map, and a piece's own Model slot wins over it. To design: a game-wide art pack (one
+resource or folder with a slot per object, the theme's way of finding moving parts by name,
+materials and textures too), what wins over what (piece, map theme, art pack, built-in), how
+animated models (characters, monsters) map onto the game's moves, and a check that shows
+every slot with what fills it.
 - **Team lift** (done: the iron ball, two guns lift it, either throws it along their shared
   aim; possible later: heavier ones needing three or four, a boss to throw them at). Tomek's
   note: a really heavy object (a huge iron ball, a siege

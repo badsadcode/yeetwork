@@ -1,7 +1,8 @@
 extends Node
 ## Developer check for MegaYeet over the network, run on a client joining a MegaYeet host:
 ## the monsters show up here (the snapshots arrive), move, and the HUD's state (the Fortress
-## meter, the wave) comes through; a death reaches us too. Exits 1 if a step fails.
+## meter, the wave) comes through; a death reaches us too; something bought in the shop before
+## the first wave (a power-up, from the shared meter) is ours. Exits 1 if a step fails.
 ## Usage (host first): godot -- --host --map res://maps/fortress.tscn --mode megayeet --bots 2 --port 24781
 ##                     godot -- --join 127.0.0.1 --port 24781 --tour x --tour-mode megayeetclient
 
@@ -14,6 +15,21 @@ func _ready() -> void:
 	get_tree().create_timer(80.0).timeout.connect(func():
 		print("MEGAYEET CLIENT CHECK FAILED (timed out)")
 		get_tree().quit(1))
+	# The shop, before the first wave: a client's purchase goes through the server.
+	for k in 40:
+		if world.local_player and int(world.mode_state.get("phase", -1)) == ModeMegaYeet.Phase.BREAK:
+			break
+		await get_tree().create_timer(0.25).timeout
+	var meter0 := int(world.mode_state.get("meter", 0))
+	world.shop_buy("power:speed")
+	var fast := false
+	for k in 20:
+		await get_tree().create_timer(0.2).timeout
+		if world.local_player and world.local_player.buff_left("speed") > 0.0:
+			fast = true
+			break
+	await get_tree().create_timer(0.6).timeout
+	_check("a client buys a power-up in the shop (paid from the meter)", fast and int(world.mode_state.get("meter", 0)) < meter0, "speed %s, meter %d -> %d" % [fast, meter0, int(world.mode_state.get("meter", 0))])
 	var seen := 0
 	for k in 60:
 		await get_tree().create_timer(0.5).timeout

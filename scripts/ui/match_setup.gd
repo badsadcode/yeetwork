@@ -25,6 +25,7 @@ var _spooky: OptionButton
 var _water: OptionButton
 var _sky: OptionButton
 var _mega_custom: OptionButton
+var _economy: OptionButton
 var _mega := {} # rule -> SpinBox
 var _compact := false
 
@@ -174,6 +175,9 @@ func _build_options() -> void:
 	_row("Ball hits players", _knock, [Game.Mode.YEETBALL, Game.Mode.HOOPS, Game.Mode.VOLLEY])
 	# MegaYeet: the map's own rules (its FortressHeart's), or the host's.
 	var r: Dictionary = Game.megayeet_rules
+	_economy = _options(["Shared: the Fortress meter", "Personal Y$"], 1 if r.get("economy", "shared") == "personal" else 0)
+	_economy.tooltip_text = "Shared: the shop spends the Fortress meter (the team's life), and kills fill it back.\nPersonal Y$: every Yeet earns their own Y$ (kills, style, combos, the boss, waves held)\nand shops with it; the meter is only the fortress's life (Y$ can heal it, dearly)."
+	_row("Economy", _economy, [Game.Mode.MEGAYEET])
 	_mega_custom = _options(["The map's own", "Custom"], 1 if r.get("custom", false) else 0)
 	_mega_custom.item_selected.connect(func(_i: int): _mega_editable())
 	_row("MegaYeet rules", _mega_custom, [Game.Mode.MEGAYEET])
@@ -299,6 +303,7 @@ func store() -> void:
 	Game.water_style = "sculpted" if _water.selected == 1 else "classic"
 	Game.sky_override = "" if _sky.selected <= 0 else MapEnvironment.PRESETS[_sky.selected - 1]
 	Game.megayeet_rules.custom = _mega_custom.selected == 1
+	Game.megayeet_rules.economy = "personal" if _economy.selected == 1 else "shared"
 	for k in _mega:
 		Game.megayeet_rules[k] = (_mega[k] as SpinBox).value
 	Game.save_settings()

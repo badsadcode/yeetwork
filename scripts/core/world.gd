@@ -2507,6 +2507,37 @@ func _c_use() -> void:
 		_server_use(pl)
 
 
+## MegaYeet's shop window: buy something (the server checks it: ModeMegaYeet.shop_buy).
+func shop_buy(id: String) -> void:
+	if is_server:
+		_server_shop_buy(local_player, id)
+	else:
+		_c_shop_buy.rpc_id(1, id)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_shop_buy(id: String) -> void:
+	_server_shop_buy(get_player(multiplayer.get_remote_sender_id()), id)
+
+
+func _server_shop_buy(pl: Player, id: String) -> void:
+	var m := mode_logic as ModeMegaYeet
+	if m and pl:
+		m.shop_buy(pl, id)
+
+
+## A power-up from the shop: a boost until `until` (net time), or first aid now.
+func server_shop_power(pl: Player, kind: String, until: float) -> void:
+	if not Pickups.is_powerup(kind):
+		pl.hp = minf(pl.hp + Pickups.INFO[kind].heal, 100.0)
+		_bc_all("_s_hp", [pl.player_id, pl.hp])
+		server_fx("heal", pl.global_position, Vector3.UP, 1.0)
+		return
+	pl.buffs[kind] = until
+	_bc_all("_s_buffs", [pl.player_id, pl.buffs])
+	server_fx("powerup", pl.global_position, Vector3.UP, 1.0)
+
+
 func _server_use(pl: Player) -> void:
 	if not pl.is_alive():
 		return
@@ -2826,6 +2857,12 @@ func local_blood(pos: Vector3, normal: Vector3, dir: Vector3, amount: float) -> 
 
 func server_message(text: String, color := Color.WHITE, big := false) -> void:
 	_bc_all("_s_msg", [text, color, big])
+
+
+## A message for one Yeet only.
+func server_message_to(pl: Player, text: String, color := Color.WHITE, big := false) -> void:
+	if not pl.is_bot:
+		_to_owner(pl, "_s_msg", [text, color, big])
 
 
 @rpc("authority", "call_remote", "reliable")

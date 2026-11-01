@@ -2,7 +2,8 @@
 class_name TrapSpot
 extends PuzzleNode
 ## MegaYeet: a place for a trap (a box, Size, its bottom on the node). Between waves a Yeet
-## builds it with Use, paying its Cost out of the Fortress meter; built, it works on every
+## builds it with Use (or from the shop), paying its Cost out of the Fortress meter (or their
+## Y$, by the match's Economy); built, it works on every
 ## monster that walks into it until the fortress falls:
 ## - spikes: monsters crossing them are hurt and slowed.
 ## - fire: a burning grate; monsters crossing catch fire.
@@ -53,7 +54,7 @@ func usable() -> bool:
 
 
 func use_label() -> String:
-	return "Build %s  (-%d)" % [NAMES[kind], int(price())]
+	return "Build %s  (%s)" % [NAMES[kind], ModeMegaYeet.price_text(world, price())]
 
 
 func use_point() -> Vector3:

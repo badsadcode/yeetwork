@@ -31,8 +31,8 @@ The step-by-step install and multiplayer guide is in **[docs/STEAM_DECK.md](docs
 3. In the menu: **PLAY** opens the **match setup**: the mode first, then only the maps that
    suit it (Capture the Flag: maps with two flag stands; Yeetball, YeetHoops, YeetVolley:
    their goals, hoops or net; Puzzle: puzzle levels; the rest any map), then that mode's
-   options (bots, pickups; the sports' rules and length; MegaYeet's rules, the map's own or
-   custom: the Heart's health, bites, waves, the boss, the breaks) and the world (spooky,
+   options (bots, pickups; the sports' rules and length; MegaYeet's economy and rules, the
+   map's own or custom: the Heart's health, bites, waves, the boss, the breaks) and the world (spooky,
    water, sky); *Start match*. A map played in a mode it isn't made for leaves the other
    pieces out (a deathmatch on a CTF map has no flags; a fortress, no Heart or monsters).
    *Quick start* on the Play page plays the last match again.
@@ -66,6 +66,7 @@ menu art and font (`assets/`): the title background and logo, button and frame a
 | Use (puzzle buttons, the Reset button; empty hands) | E (gamepad X) |
 | Spawn prop (sandbox) / pick prop | Q / 1-9 or mouse wheel (when not holding) |
 | Third-person camera | V |
+| MegaYeet shop (between waves) | B (gamepad Y; LB / RB switch tabs) |
 | Scoreboard | Tab |
 | Respawn | K |
 | Menu and settings | Esc |
@@ -256,11 +257,18 @@ and one that reaches the glowing **Heart** in the middle takes a big bite. Kills
 back, more for style (thrown off a wall, crushed by a crate, drowned, into lava, bowled over
 by a flying friend), and a burst of kills is a combo (TRIPLE SPLAT, MONSTER MASH,
 MEGAYEET). Holding a wave tops the meter up; there's a short break before the next, bigger
-one, and the break is for spending the meter (it's money as well as life): look at a broken
-gate and Use to rebuild it, Use a trap spot to build its trap (spikes that hurt and slow,
-a fire grate that sets them alight, a mine that blows up under them), or Use the Heart
-for a team upgrade (stronger pushes and throws for everyone, softer bites, quicker
-respawns). The **iron ball** is too heavy for one gun: grab it alone and it only strains
+one, and the break is for shopping. **B** (Y on a pad) opens the **shop window**: tabs of
+cards with turning pictures and prices: **traps** (spikes that hurt and slow, a fire grate
+that sets them alight, a mine that blows up under them: built on the free spot of that kind
+nearest you), **power-ups** for yourself (first aid, speed, feather, Super Yeet, Iron Yeet:
+they last 45 s into the wave), **team upgrades** (stronger pushes and throws for everyone,
+softer bites, quicker respawns, in that order), **repairs** (the nearest broken gate, or all
+of them) and, with personal Y$, **the Heart** (heal it, dearly). Use works too: on a broken
+gate, a trap spot, the Heart. What pays is the match's **Economy**: *Shared* (the default:
+the Fortress meter is money as well as life, and a tenth of it is never spent) or *Personal
+Y$* (every Yeet earns their own Y$, shown by the meter: 5 a kill, 5 more for style, the
+combos, 30 and more for every wave held, 150 for bringing the boss down and 75 for everyone
+else; the meter is only life then, and kills put nothing back in it). The **iron ball** is too heavy for one gun: grab it alone and it only strains
 toward you ("1 of 2 pulling"); with two guns on it, it lifts and floats where you aim
 together, and either of you charges and throws it along your shared aim (harder with more
 of you): it flattens whatever it hits, brutes included. The Fortress has two. Every fifth
@@ -268,7 +276,7 @@ wave is a **boss wave**: **the Siege Golem**, three times a Yeet's height, leads
 health bar on the HUD). Gates crumble under it; pushes, grabs, falls and water do nothing; it
 stomps anyone close (and flattens its own minions), hurls boulders at Yeets up on the walls
 (catch one and throw it back), and calls packs out of the ground. Blasts, fire and heavy
-things hurt it, the iron ball most of all; bringing it down tops the meter up. Monsters walk the ways to the Heart, batter gates down and hit any Yeet they reach; a
+things hurt it, the iron ball most of all; bringing it down tops the meter up (or pays Y$). Monsters walk the ways to the Heart, batter gates down and hit any Yeet they reach; a
 gravity-gun push and blasts send them flying, flung props crush them, they die from falls,
 lava, acid and deep water, and fire spreads through a crowd. Grab one with the gun and
 throw it, or swing it into the others. Waves mix the kinds as they go on, each announced
@@ -562,11 +570,15 @@ godot --headless --path . -- --host --map highseas_dusk --bots 1 --tour x --tour
 # pieces left out (the Fortress as a deathmatch)
 godot --headless --path . -- --host --map res://maps/fortress.tscn --bots 0 --tour x --tour-mode setup
 # MegaYeet: waves, the ways to the Heart, a gate battered down, the meter, kills, bots, the
-# time 200 monsters take a tick, the fall and a fresh start (screenshots with a folder)
+# time 200 monsters take a tick, the fall and a fresh start, the shop window and personal Y$
+# (screenshots with a folder)
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --tour /tmp/shots --tour-mode megayeet
+# ... the shop window, every tab (screenshots at 1600 x 900 and the Steam Deck's 1280 x 800)
+godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 0 --tour /tmp/shots --tour-mode shop
 # ... with a full house of bots (11) and a big wave: how long the server's frames take
 godot --headless --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 11 --tour x --tour-mode megayeetbots
-# ... and over the network: a client joining a MegaYeet host sees the monsters and the meter
+# ... and over the network: a client joining a MegaYeet host sees the monsters and the meter,
+# and buys a power-up in the shop
 godot --headless --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 2 --port 24781
 godot --headless --path . -- --join 127.0.0.1 --port 24781 --tour x --tour-mode megayeetclient
 # Fixtures: the Pump House's machines run, the wired pump waits, breaking and mending, a zap

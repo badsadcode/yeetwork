@@ -10,9 +10,13 @@ extends ModeBase
 ## game puts a Heart amid the spawn points, rings of zones round it and rifts far out
 ## (prepare_arena, every peer). Waves mix the kinds of monster as they go on (KIND_MIX, brutes
 ## a few a wave from wave 3), each announced the first time it comes, with how to beat it.
-## The breaks between waves are for spending the meter (buy): repairing gates (MegaYeetGate),
-## building traps (TrapSpot), team upgrades at the Heart (MegaYeetUpgrades, UPGRADES); never
-## below a tenth of it, and only between waves.
+## The breaks between waves are for shopping (buy): repairing gates (MegaYeetGate), building
+## traps (TrapSpot), team upgrades at the Heart (MegaYeetUpgrades, UPGRADES), power-ups, all in
+## the shop window too (shop_items, shop_buy; ShopWindow), only between waves. What pays is
+## the match's Economy (Game.megayeet_rules.economy): "shared", the Fortress meter itself
+## (never below a tenth of it); "personal", each Yeet's own Y$, earned by kills (more for
+## style and combos), the boss and every wave held, and the meter is only the fortress's life
+## (kills put nothing back; Y$ can heal the Heart, dearly).
 
 ## (fallbacks with no Heart yet; a FortressHeart sets them: its MegaYeet Rules)
 const METER := 1000.0
@@ -31,6 +35,26 @@ const UPGRADES := [
 	["Quick return", 120, "Back in the fight twice as fast"],
 ]
 const KEEP := 0.1 # (spending never takes the meter below this much of it)
+## Personal Y$: what a Yeet starts with and earns (a wave held: CASH_WAVE and 5 more a wave,
+## everyone; the boss: CASH_BOSS for whoever brings it down, half that for the rest).
+const CASH_START := 60
+const CASH_KILL := 5
+const CASH_STYLE := 5
+const CASH_WAVE := 30
+const CASH_BOSS := 150
+## The shop's power-ups (Pickups' kinds) and their prices; bought in a break, a boost lasts
+## until POWER_LASTS seconds into the wave.
+const POWERS := [
+	["health", "First aid", 25, "+50 health, now"],
+	["speed", "Speed", 40, "Run 40% faster"],
+	["feather", "Feather", 35, "Low gravity, high jumps"],
+	["super", "Super Yeet", 60, "Throws and punts 1.8x stronger"],
+	["iron", "Iron Yeet", 60, "Can't be grabbed or knocked about; half damage"],
+]
+const POWER_LASTS := 45.0
+const HEAL_COST := 150 # (Y$ only: a tenth of the Heart back)
+const HEAL := 0.1
+const TABS := ["Traps", "Power-ups", "Team", "Repairs", "Heart"]
 const ANNOUNCE := {
 	"runner": "RUNNERS!  Fast, but they fall apart",
 	"bomber": "BOMBERS!  Keep them off the gates, or throw them into the crowd",
@@ -53,6 +77,8 @@ var started := 0.0
 var kills := 0
 var heart_hits := 0
 var ups := 0 # team upgrades bought
+var personal := false # (the Economy: each Yeet's own Y$)
+var cash := {} # player id -> Y$
 var boss # (Horde.Monster) the boss while it lives
 var _bosses := 0 # how many have come this game
 var _broke_msg := 0.0
@@ -84,6 +110,7 @@ func setup(p_world: Node) -> void:
 	heart = world.arena.heart
 	if heart:
 		apply_rules(heart, Game.megayeet_rules)
+	personal = Game.megayeet_rules.get("economy", "shared") == "personal"
 	max_meter = heart.health if heart else METER
 	meter = max_meter
 	started = world.now()
@@ -327,7 +354,14 @@ func _wave_cleared() -> void:
 	phase = Phase.BREAK
 	phase_end = world.now() + heart.break_time
 	meter = minf(meter + heart.wave_bonus, max_meter)
-	world.server_message("WAVE %d HELD!  +%d" % [wave, int(heart.wave_bonus)], Color(0.5, 1.0, 0.5), true)
+	var pay := ""
+	if personal:
+		var y := CASH_WAVE + 5 * wave
+		for p: Player in world.players.values():
+			_earn(p, y)
+		pay = "  ·  everyone +%d Y$" % y
+	world.server_message("WAVE %d HELD!  +%d%s" % [wave, int(heart.wave_bonus), pay], Color(0.5, 1.0, 0.5), true)
+	_send_state()
 
 
 func _drain() -> void:
@@ -362,18 +396,26 @@ func on_monster_killed(m, cause: String, attacker: int) -> void:
 		_send_state()
 	if phase == Phase.OVER or cause == "heart":
 		return
-	if m.kind == "golem":
-		meter = minf(meter + heart.boss_reward, max_meter)
-		var who: Player = world.get_player(attacker) if attacker != 0 else null
-		world.server_message("%s FALLS!  +%d%s" % [Horde.BOSS_NAME, int(heart.boss_reward), ("  (" + who.display_name + ")") if who else ""], Color(1.0, 0.85, 0.3), true)
-	kills += 1
-	var gain := heart.kill_refill + (heart.style_refill if cause in STYLE else 0.0)
-	meter = minf(meter + gain, max_meter)
 	var pl: Player = world.get_player(attacker) if attacker != 0 else null
+	if m.kind == "golem":
+		var by := ("  (" + pl.display_name + ")") if pl else ""
+		if personal:
+			for p: Player in world.players.values():
+				_earn(p, CASH_BOSS if p == pl else CASH_BOSS / 2)
+			world.server_message("%s FALLS!  +%d Y$%s, +%d Y$ everyone else" % [Horde.BOSS_NAME, CASH_BOSS, by, CASH_BOSS / 2], Color(1.0, 0.85, 0.3), true)
+		else:
+			meter = minf(meter + heart.boss_reward, max_meter)
+			world.server_message("%s FALLS!  +%d%s" % [Horde.BOSS_NAME, int(heart.boss_reward), by], Color(1.0, 0.85, 0.3), true)
+	kills += 1
+	var style := cause in STYLE
+	if not personal:
+		meter = minf(meter + heart.kill_refill + (heart.style_refill if style else 0.0), max_meter)
 	if pl == null:
 		return
 	pl.score += 1
 	world.server_player_stats(pl)
+	if personal:
+		_earn(pl, CASH_KILL + (CASH_STYLE if style else 0))
 	var now: float = world.now()
 	var c: Array = _combo.get(attacker, [0, -10.0])
 	c[0] = c[0] + 1 if now - float(c[1]) < 1.5 else 1
@@ -381,8 +423,15 @@ func on_monster_killed(m, cause: String, attacker: int) -> void:
 	_combo[attacker] = c
 	for step in COMBOS:
 		if c[0] == step[0]:
-			meter = minf(meter + step[2], max_meter)
-			world.server_message("%s: %s!  +%d" % [pl.display_name, step[1], int(step[2])], Color(1.0, 0.8, 0.2))
+			if personal:
+				_earn(pl, int(step[2]))
+			else:
+				meter = minf(meter + step[2], max_meter)
+			world.server_message("%s: %s!  +%d%s" % [pl.display_name, step[1], int(step[2]), " Y$" if personal else ""], Color(1.0, 0.8, 0.2))
+
+
+func _earn(pl: Player, y: int) -> void:
+	cash[pl.player_id] = int(cash.get(pl.player_id, CASH_START)) + y
 
 
 func on_monster_reached(m) -> void:
@@ -421,6 +470,7 @@ func _restart() -> void:
 	kills = 0
 	_seen.clear()
 	ups = 0
+	cash.clear()
 	boss = null
 	_bosses = 0
 	for n in world.arena.puzzle:
@@ -432,11 +482,22 @@ func _restart() -> void:
 	world.server_message("The fortress stands again. Get ready!", Color(0.6, 0.9, 1.0), true)
 
 
-## Server: a Yeet spends `cost` of the Fortress meter on something (between waves, and not
-## below KEEP of it). True when it's paid; everyone's told what was bought.
+## Server: a Yeet pays `cost` for something (between waves): out of their Y$ (personal), or
+## of the Fortress meter (shared; not below KEEP of it). True when it's paid; everyone's told
+## what was bought.
 func buy(pl: Player, cost: float, what: String) -> bool:
 	if phase != Phase.BREAK:
 		return false
+	if personal:
+		var have := int(cash.get(pl.player_id, CASH_START))
+		var price := ceili(cost)
+		if have < price:
+			_tell(pl, "Not enough Y$: %d needed, you have %d" % [price, have])
+			return false
+		cash[pl.player_id] = have - price
+		world.server_message("%s %s  (%d Y$)" % [pl.display_name, what, price], Color(0.7, 0.9, 1.0))
+		_send_state()
+		return true
 	var floor := max_meter * KEEP
 	if meter - cost < floor:
 		var now: float = world.now()
@@ -460,6 +521,147 @@ func buy_upgrade(pl: Player) -> void:
 		_send_state()
 
 
+## Server: a purchase from the shop window (checked against what the shop offers this Yeet).
+func shop_buy(pl: Player, id: String) -> void:
+	var item := {}
+	for it: Dictionary in shop_items(world, pl):
+		if it.id == id:
+			item = it
+	if item.is_empty() or not item.ok:
+		return
+	var parts := id.split(":")
+	match parts[0]:
+		"trap":
+			var spot := _free_spot(world, pl, parts[1])
+			if spot:
+				spot.server_used(pl)
+		"power":
+			if buy(pl, item.cost, "bought %s" % item.name):
+				var until: float = world.net_time() + maxf(phase_end - world.now(), 0.0) + POWER_LASTS
+				world.server_shop_power(pl, parts[1], until)
+		"up":
+			buy_upgrade(pl)
+		"fix":
+			var walls := _broken_walls(world, pl)
+			if parts[1] == "near":
+				walls = walls.slice(0, 1)
+			if not walls.is_empty() and buy(pl, item.cost, "repaired %s" % ("a gate" if walls.size() == 1 else "%d gates" % walls.size())):
+				for d: Destructible in walls:
+					world.server_restore_wall(d.wall_id)
+				if horde:
+					horde.request_gate_refresh()
+		"heal":
+			if personal and buy(pl, item.cost, "healed the Heart"):
+				meter = minf(meter + max_meter * HEAL, max_meter)
+				world.server_fx("heal", heart.global_position + Vector3.UP, Vector3.UP, 2.0)
+				_send_state()
+
+
+## The shop's wares for this Yeet as things stand, on any peer (the window lists them, the
+## server checks a purchase against them): {id, tab, name, about, cost, ok, why, owned, look}.
+## A trap builds the nearest free TrapSpot of its kind; a power-up lasts into the next wave.
+static func shop_items(w: Node, pl: Player) -> Array:
+	var s: Dictionary = w.mode_state
+	var mine := is_personal(w)
+	var out := []
+	# Traps: by kind, the free spot nearest you.
+	for kind: String in TrapSpot.NAMES:
+		var free := 0
+		var all := 0
+		for n in w.arena.puzzle:
+			if n is TrapSpot and (n as TrapSpot).kind == kind:
+				all += 1
+				free += 0 if n.active else 1
+		if all == 0:
+			continue
+		var spot := _free_spot(w, pl, kind)
+		out.append({"id": "trap:" + kind, "tab": 0, "name": TrapSpot.NAMES[kind], "look": "trap:" + kind,
+			"cost": spot.price() if spot else TrapSpot.COSTS[kind],
+			"about": "Built on the free spot nearest you (%d of %d free)" % [free, all],
+			"why": "" if spot else "All built"})
+	for p: Array in POWERS:
+		var why := ""
+		if p[0] == "health" and pl.hp >= 100.0:
+			why = "You're at full health"
+		out.append({"id": "power:" + p[0], "tab": 1, "name": p[1], "look": "power:" + p[0], "cost": p[2],
+			"about": p[3] + ("" if p[0] == "health" else "; lasts %d s into the wave" % int(POWER_LASTS)), "why": why})
+	var ups := int(s.get("ups", 0))
+	for i in UPGRADES.size():
+		var up: Array = UPGRADES[i]
+		out.append({"id": "up:%d" % i, "tab": 2, "name": up[0], "look": "up:%d" % i, "cost": up[1], "about": up[2] + "; for everyone",
+			"owned": i < ups, "why": "Bought" if i < ups else ("" if i == ups else "After " + String(UPGRADES[i - 1][0]))})
+	var walls := _broken_walls(w, pl)
+	var near := 0.0
+	var every := 0.0
+	for i in walls.size():
+		var c := 10.0 + (walls[i] as Destructible).broken_cells.size() * 3.0
+		every += c
+		if i == 0:
+			near = c
+	var none := "No gate is broken" if walls.is_empty() else ""
+	out.append({"id": "fix:near", "tab": 3, "name": "Repair a gate", "look": "fix:near", "cost": near if near > 0.0 else 10.0,
+		"about": "The broken gate nearest you, whole again", "why": none})
+	out.append({"id": "fix:all", "tab": 3, "name": "Repair every gate", "look": "fix:all", "cost": every if every > 0.0 else 10.0,
+		"about": ("All %d broken ones, whole again" % walls.size()) if not walls.is_empty() else "Every broken gate, whole again", "why": none})
+	if mine:
+		var top := float(s.get("max", METER))
+		out.append({"id": "heal", "tab": 4, "name": "Heal the Heart", "look": "heal", "cost": HEAL_COST,
+			"about": "+%d to the Fortress meter" % int(top * HEAL), "why": "The Heart is whole" if float(s.get("meter", top)) >= top else ""})
+	var have := wallet(w, pl)
+	var brk := int(s.get("phase", -1)) == Phase.BREAK
+	for it: Dictionary in out:
+		it.cost = ceili(float(it.cost))
+		if it.why == "" and not brk:
+			it.why = "Between waves"
+		elif it.why == "" and it.cost > have:
+			it.why = "Not enough Y$" if mine else "Not enough in the meter"
+		it.ok = it.why == ""
+		it.owned = it.get("owned", false)
+	return out
+
+
+## Does this match pay in personal Y$ (any peer, from the mode state)?
+static func is_personal(w: Node) -> bool:
+	return int(w.mode_state.get("eco", 0)) == 1
+
+
+## What this Yeet can spend: their Y$, or the meter above what's kept back.
+static func wallet(w: Node, pl: Player) -> int:
+	var s: Dictionary = w.mode_state
+	if is_personal(w):
+		return int(s.get("cash", {}).get(pl.player_id, CASH_START)) if pl else 0
+	return int(float(s.get("meter", 0)) - float(s.get("max", METER)) * KEEP)
+
+
+## A price as the Use prompts show it: "-120" (the meter) or "120 Y$".
+static func price_text(w: Node, cost: float) -> String:
+	return ("%d Y$" % ceili(cost)) if is_personal(w) else ("-%d" % int(cost))
+
+
+static func _free_spot(w: Node, pl: Player, kind: String) -> TrapSpot:
+	var best: TrapSpot = null
+	for n in w.arena.puzzle:
+		if n is TrapSpot and not n.active and (n as TrapSpot).kind == kind:
+			if best == null or n.global_position.distance_to(pl.global_position) < best.global_position.distance_to(pl.global_position):
+				best = n
+	return best
+
+
+## Broken walls, nearest this Yeet first.
+static func _broken_walls(w: Node, pl: Player) -> Array:
+	var out := []
+	for d in w.arena.destructibles:
+		if is_instance_valid(d) and not (d as Destructible).broken_cells.is_empty():
+			out.append(d)
+	out.sort_custom(func(a, b): return a.global_position.distance_to(pl.global_position) < b.global_position.distance_to(pl.global_position))
+	return out
+
+
+## Only this Yeet hears it.
+func _tell(pl: Player, text: String) -> void:
+	world.server_message_to(pl, text, Color(1.0, 0.5, 0.4))
+
+
 ## Upgrades at work (World, the gun, the Horde ask).
 func gun_power(_pl: Player) -> float:
 	return 1.3 if ups >= 1 else 1.0
@@ -479,7 +681,17 @@ func _send_state() -> void:
 		"next": phase_end if phase != Phase.WAVE else -1.0, "left": _to_spawn + horde.count(),
 		"zones": _zone_counts.slice(1), "best": best, "kills": kills, "ups": ups,
 		"boss": [Horde.BOSS_NAME, boss.hp / boss.max_hp] if boss and boss.hp > 0.0 else [],
+		"eco": 1 if personal else 0, "cash": _cash_state(),
 	})
+
+
+func _cash_state() -> Dictionary:
+	if not personal:
+		return {}
+	var out := {}
+	for id in world.players:
+		out[id] = int(cash.get(id, CASH_START))
+	return out
 
 
 ## Bots: the monsters to go after, nearest the Heart first.
