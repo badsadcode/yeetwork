@@ -205,10 +205,17 @@ func _phase3(pl: Player) -> void:
 	var a0 := turret.rotation.y if turret else 0.0
 	var p0: Vector3 = sc._load.global_position if sc else Vector3.ZERO
 	_cam(crane.global_position + Vector3(14, 10, 14), crane.global_position + Vector3(4, 5, 0))
-	await _wait(1.5)
+	# The most it turns and moves in 1.5 s (it slews to and fro: two moments alone can straddle a turn).
+	var turned := 0.0
+	var moved := 0.0
+	for k in 15:
+		await _wait(0.1)
+		if turret:
+			turned = maxf(turned, absf(turret.rotation.y - a0))
+			moved = maxf(moved, sc._load.global_position.distance_to(p0))
 	await _shot("y08_crane")
 	var own := sc != null and sc._hook != null and String(turret.name) == "Turret" and sc._load.find_children("CrateLoad", "", true, false).size() > 0
-	_check("a crane of your own: its Turret slews, the load (your model) swings from its Hook", own and absf(turret.rotation.y - a0) > 0.01 and sc._load.global_position.distance_to(p0) > 0.1, "turned %.2f rad, load moved %.2f m" % [absf(turret.rotation.y - a0) if turret else 0.0, sc._load.global_position.distance_to(p0) if sc else 0.0])
+	_check("a crane of your own: its Turret slews, the load (your model) swings from its Hook", own and turned > 0.01 and moved > 0.1, "turned %.2f rad, load moved %.2f m" % [turned, moved])
 	# The bell.
 	var lever: Node3D = bell._lever if bell else null
 	var r0 := lever.rotation.z if lever else 0.0
