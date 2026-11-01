@@ -305,6 +305,8 @@ func _build_scene_map(path: String) -> void:
 		kill_y = settings.kill_height
 		avoid_rects.assign(settings.avoid_areas)
 		if settings.ocean:
+			if not root.find_children("*", "Vessel", true, false).is_empty():
+				Liquid.style = "sculpted" # (a ship rides the sculpted ocean's swell, as on High Seas)
 			var sea := Liquid.create_ocean(settings.ocean_level, Game.sea_override if Game.sea_override != "" else settings.ocean_preset)
 			sea.swimmable = settings.ocean_swimmable
 			add_child(sea)
