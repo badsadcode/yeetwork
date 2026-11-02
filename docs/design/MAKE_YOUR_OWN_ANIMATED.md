@@ -56,6 +56,13 @@ drawbridge), all four in the Make Your Own Workshop (the drawbridge on a button 
 its page, the guide's step 4i, checks (the windmill on the shared clock, a ferry ride, the
 drawbridge on its button; a client sees it turn). Next: 5b, your own gravity gun.
 
+**5b done** (2026-11-02): `assets/characters/guns/`: `default.glb` is the Default Gun
+(everyone's, the built-in one becoming *Classic*), any other a version picked in the
+Character menu (**Gun**, shown in the preview's hand) and seen by everyone; the parts by name
+(`Muzzle`, `Grip`, `Core`, `ClawPivot0-2`, `Accent`) and the gun's own actions (`Grab`,
+`Hold`, `Charge`, `Throw`, `Idle`). The example Scrap gun (tools/make_templates.gd), the
+guide in docs/CHARACTERS.md, `--gun <name>` to try one, tests. Next: 5c.
+
 ## The pieces to build
 
 0. **AnimatedModel** (a Map Kit piece): your model, playing its own Blender animations in

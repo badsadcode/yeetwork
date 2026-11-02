@@ -572,6 +572,9 @@ godot --path . -- --host --map courtyard --bots 0 --tour /tmp/shots --tour-mode 
 # Any of these with a graphics preset for one run (0 = Low / Steam Deck, 1 = Medium, 2 = High)
 godot --path . -- --host --map courtyard --graphics 0
 
+# Carrying a gun from assets/characters/guns/ this time (its file name, without .glb)
+godot --path . -- --host --map prime --bots 0 --gun scrap_gun
+
 # Water style, sea state and environment for a match (the host's choice reaches every client)
 godot --path . -- --host --map courtyard --water-style sculpted --sea stormy --sky volcano
 
@@ -692,10 +695,12 @@ blender --background --python tools/glb_to_blend.py -- /tmp/chars/characters.glb
 
 `art/` is ignored by Godot (it is source art).
 
-**Your own models:** hats, head extras, outfits and body parts dropped into
+**Your own models:** hats, head extras, outfits, body parts and gravity guns dropped into
 `assets/characters/` (as `.glb` from Blender) are in the game with no code: they show up in
-the character menu, take the team colour on a material named `Shirt`, and work online. Step
-by step, with an example hat: [docs/CHARACTERS.md](docs/CHARACTERS.md).
+the character menu, take the team colour on a material named `Shirt` (a gun's: `Accent`), and
+work online. A gun named `default.glb` is the one everyone carries; a gun's own `Grab`,
+`Hold`, `Charge`, `Throw` and `Idle` animations play as it's used. Step by step, with an
+example hat and an example gun: [docs/CHARACTERS.md](docs/CHARACTERS.md).
 
 **Your own sounds:** every sound is made by the game's code, and a recording saved into
 `assets/sounds/` under a sound's name replaces it (`boom.ogg`, or `boom_1.ogg`, `boom_2.ogg`...

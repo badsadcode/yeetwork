@@ -79,6 +79,7 @@ var face := 0
 var skin := -1
 var outfit := 0
 var character := 0
+var gun_model := "" # the gravity gun this player carries (CharacterParts.gun_choices)
 
 # Gameplay (server authoritative, replicated).
 var hp := 100.0
@@ -185,6 +186,7 @@ func setup(p_world: Node, info: Dictionary) -> void:
 	skin = info.get("skin", -1)
 	outfit = info.get("outfit", 0)
 	character = info.get("character", 0)
+	gun_model = str(info.get("gun", ""))
 	frags = info.get("frags", 0)
 	deaths = info.get("deaths", 0)
 	score = info.get("score", 0)

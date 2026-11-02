@@ -33,6 +33,10 @@ extends SceneTree
 ##   - drawbridge.glb: a 6 m bridge on its "Hinge", lowering from upright to flat along -Z
 ##     ("Lower", play it once: wired to a button, down while it's on, up while it's off).
 ## And ../textures/bricks.png, a brick texture for a breakable wall's Custom Material.
+## And a gravity gun of your own, assets/characters/guns/scrap_gun.glb (the Character menu's
+## Gun: "Scrap gun"), pointing along -Z: "Muzzle", "Grip", "Core", "ClawPivot0-2" (each with
+## a "ClawHinge" that opens), an "Accent" stripe, and its own actions: "Grab", "Hold",
+## "Charge", "Throw", "Idle".
 ## Usage: godot --headless --path . --script res://tools/make_templates.gd
 
 const OUT := "res://custom/make_your_own/models/"
@@ -60,15 +64,17 @@ func _init() -> void:
 	_save(_platform(), "platform")
 	_save(_drawbridge(), "drawbridge")
 	_bricks()
+	_save(_scrap_gun(), "scrap_gun", "res://assets/characters/guns/")
 	quit()
 
 
-func _save(root: Node3D, file: String) -> void:
+func _save(root: Node3D, file: String, dir := OUT) -> void:
+	DirAccess.make_dir_recursive_absolute(dir)
 	var doc := GLTFDocument.new()
 	var state := GLTFState.new()
 	var err := doc.append_from_scene(root, state)
 	if err == OK:
-		err = doc.write_to_filesystem(state, OUT + file + ".glb")
+		err = doc.write_to_filesystem(state, dir + file + ".glb")
 	print("%s.glb: %s" % [file, "ok" if err == OK else error_string(err)])
 	root.free()
 
@@ -443,12 +449,16 @@ func _cabinet() -> Node3D:
 	return root
 
 
-## An animation on a model: tracks [node path, "rotation" or "position", [[time, value]...]],
-## rotations as Basis-free Euler degrees (Vector3).
+## An animation on a model: tracks [node path, "rotation", "position" or "scale", [[time,
+## value]...]], rotations as Euler degrees (Vector3). More than one: they share the model's
+## AnimationPlayer.
 func _animate(root: Node3D, anim_name: String, length: float, tracks: Array) -> void:
-	var ap := AnimationPlayer.new()
-	ap.name = "AnimationPlayer"
-	root.add_child(ap)
+	var ap := root.get_node_or_null("AnimationPlayer") as AnimationPlayer
+	if ap == null:
+		ap = AnimationPlayer.new()
+		ap.name = "AnimationPlayer"
+		root.add_child(ap)
+		ap.add_animation_library("", AnimationLibrary.new())
 	var a := Animation.new()
 	a.length = length
 	for t: Array in tracks:
@@ -458,14 +468,88 @@ func _animate(root: Node3D, anim_name: String, length: float, tracks: Array) -> 
 			for k: Array in t[2]:
 				var e: Vector3 = k[1]
 				a.rotation_track_insert_key(tr, k[0], Basis.from_euler(Vector3(deg_to_rad(e.x), deg_to_rad(e.y), deg_to_rad(e.z))).get_rotation_quaternion())
+		elif t[1] == "scale":
+			var tr := a.add_track(Animation.TYPE_SCALE_3D)
+			a.track_set_path(tr, NodePath(t[0]))
+			for k: Array in t[2]:
+				a.scale_track_insert_key(tr, k[0], k[1])
 		else:
 			var tr := a.add_track(Animation.TYPE_POSITION_3D)
 			a.track_set_path(tr, NodePath(t[0]))
 			for k: Array in t[2]:
 				a.position_track_insert_key(tr, k[0], k[1])
-	var lib := AnimationLibrary.new()
-	lib.add_animation(anim_name, a)
-	ap.add_animation_library("", lib)
+	ap.get_animation_library("").add_animation(anim_name, a)
+
+
+## A gravity gun of your own (the built-in gun's size, held at the same place), pointing along
+## -Z: a boxy body with an orange "Accent" stripe, a barrel, three claws round a glowing "Core",
+## a tank on top. Its actions: Grab (the claws open), Hold (open, the core pulsing), Charge
+## (wider, the core swelling, the tank glowing), Throw (the barrel kicks back, the claws snap
+## shut), Idle (a slow breath of the core).
+func _scrap_gun() -> Node3D:
+	var root := Node3D.new()
+	root.name = "ScrapGun"
+	var body := _mat(Color(0.32, 0.42, 0.4), 0.55, 0.6)
+	var dark := _mat(Color(0.12, 0.12, 0.14), 0.5, 0.5)
+	var accent := _mat(Color(1.0, 0.36, 0.04), 0.5)
+	accent.resource_name = "Accent"
+	var glow := _mat(Color(0.5, 1.0, 0.6), 0.3)
+	glow.emission_enabled = true
+	glow.emission = Color(0.4, 1.0, 0.5)
+	glow.emission_energy_multiplier = 5.0
+	_box_part(root, "Body", Vector3(0.26, 0.24, 0.6), Vector3(0, 0, 0.05), body)
+	_box_part(root, "Stripe", Vector3(0.27, 0.06, 0.5), Vector3(0, 0.05, 0.05), accent)
+	_box_part(root, "BackPlate", Vector3(0.22, 0.2, 0.05), Vector3(0, 0, 0.37), dark)
+	var barrel := Node3D.new()
+	barrel.name = "Barrel"
+	root.add_child(barrel)
+	_mesh(barrel, "BarrelTube", _cyl(0.1, 0.24, 8), dark, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, -0.36)))
+	_mesh(barrel, "BarrelRing", _cyl(0.12, 0.05, 8), accent, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, -0.46)))
+	var core := Node3D.new()
+	core.name = "Core"
+	core.position = Vector3(0, 0, -0.5)
+	root.add_child(core)
+	var ball := SphereMesh.new()
+	ball.radius = 0.05
+	ball.height = 0.1
+	ball.radial_segments = 12
+	ball.rings = 6
+	_mesh(core, "CoreBall", ball, glow)
+	_marker(root, "Muzzle", Vector3(0, 0, -0.58), Vector3(0, 0, -1))
+	for i in 3:
+		var pivot := Node3D.new()
+		pivot.name = "ClawPivot%d" % i
+		pivot.position = Vector3(0, 0, -0.44)
+		pivot.rotation.z = i * TAU / 3.0 # (the first on top)
+		root.add_child(pivot)
+		var hinge := Node3D.new()
+		hinge.name = "ClawHinge%d" % i
+		hinge.position = Vector3(0, 0.12, 0)
+		pivot.add_child(hinge)
+		_box_part(hinge, "Claw%d" % i, Vector3(0.05, 0.04, 0.2), Vector3(0, 0, -0.1), dark)
+		_box_part(hinge, "ClawTip%d" % i, Vector3(0.06, 0.03, 0.05), Vector3(0, -0.03, -0.19), accent)
+	var tank := Node3D.new()
+	tank.name = "Tank"
+	root.add_child(tank)
+	var liquid := _mat(Color(0.25, 0.75, 0.35), 0.2)
+	liquid.emission_enabled = true
+	liquid.emission = Color(0.2, 0.8, 0.3)
+	liquid.emission_energy_multiplier = 0.8
+	_mesh(tank, "TankGlass", _cyl(0.06, 0.32, 8), liquid, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0.17, 0.08)))
+	_box_part(root, "GripHandle", Vector3(0.08, 0.24, 0.1), Vector3(0, -0.2, 0.3), dark)
+	_box_part(root, "Trigger", Vector3(0.03, 0.06, 0.04), Vector3(0, -0.14, 0.22), accent)
+	_marker(root, "Grip", Vector3(0, -0.25, 0.36), Vector3.UP)
+	var claws := func(keys: Array) -> Array:
+		var out := []
+		for i in 3:
+			out.append(["ClawPivot%d/ClawHinge%d" % [i, i], "rotation", keys.map(func(k): return [k[0], Vector3(k[1], 0, 0)])])
+		return out
+	_animate(root, "Idle", 2.0, [["Core", "scale", [[0.0, Vector3.ONE], [1.0, Vector3.ONE * 1.2], [2.0, Vector3.ONE]]]] + claws.call([[0.0, 0.0], [2.0, 0.0]]))
+	_animate(root, "Grab", 0.2, claws.call([[0.0, 0.0], [0.2, 35.0]]) + [["Core", "scale", [[0.0, Vector3.ONE], [0.2, Vector3.ONE * 1.4]]]])
+	_animate(root, "Hold", 0.6, claws.call([[0.0, 35.0], [0.3, 30.0], [0.6, 35.0]]) + [["Core", "scale", [[0.0, Vector3.ONE * 1.4], [0.3, Vector3.ONE * 1.7], [0.6, Vector3.ONE * 1.4]]]])
+	_animate(root, "Charge", 1.0, claws.call([[0.0, 35.0], [1.0, 60.0]]) + [["Core", "scale", [[0.0, Vector3.ONE * 1.4], [1.0, Vector3.ONE * 2.6]]], ["Tank", "scale", [[0.0, Vector3.ONE], [1.0, Vector3(1.25, 1.0, 1.25)]]]])
+	_animate(root, "Throw", 0.4, claws.call([[0.0, 60.0], [0.1, 70.0], [0.4, 0.0]]) + [["Barrel", "position", [[0.0, Vector3.ZERO], [0.06, Vector3(0, 0, 0.1)], [0.4, Vector3.ZERO]]], ["Core", "scale", [[0.0, Vector3.ONE * 2.6], [0.1, Vector3.ONE * 0.6], [0.4, Vector3.ONE]]], ["Tank", "scale", [[0.0, Vector3(1.25, 1.0, 1.25)], [0.4, Vector3.ONE]]]])
+	return root
 
 
 ## A windmill (origin on the ground at its middle): a tapering tower and four sails on the

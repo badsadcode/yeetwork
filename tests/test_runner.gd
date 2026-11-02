@@ -300,6 +300,7 @@ func _run() -> void:
 	await _water_tests()
 	await _fire_tests()
 	_custom_parts_tests()
+	await _custom_gun_tests()
 	# The Yeets' voices (made on a thread at startup): every kind, with its takes.
 	var missing := Yeetish.KINDS.filter(func(k): return not Sfx._streams.has("voice_" + k))
 	check("Yeetish voices are made", missing.is_empty() and Sfx._streams.voice_yeet.size() >= 1, "missing %s" % [missing])
@@ -436,6 +437,46 @@ func _custom_parts_tests() -> void:
 	m.queue_free()
 	check("custom hat (assets/characters/hats) on the head, team-coloured band", i >= 0 and hat in CharacterModel.pickable_hats() and absf(top - head_top - 0.2) < 0.25 and tinted,
 		"found %s, top %.2f m over the head's top, tinted %s" % [i >= 0, top - head_top, tinted])
+
+
+## Gravity guns of your own (assets/characters/guns/): the example Scrap gun is a choice
+## after the Default Gun; a player joining with it carries it (an unknown one: the Default
+## Gun); its parts are where the game looks for them, and its own actions follow what the gun
+## does (Grab, Hold, Charge, Throw, Idle).
+func _custom_gun_tests() -> void:
+	var choices := CharacterParts.gun_choices()
+	var listed: bool = choices[0] == ["Default", ""] and choices.has(["Scrap gun", "scrap_gun"])
+	check("custom guns (assets/characters/guns) listed after the Default Gun", listed and CharacterParts.gun_path("") == CharacterParts.BUILT_IN_GUN and CharacterParts.gun_path("scrap_gun").ends_with("guns/scrap_gun.glb"),
+		"%s" % [choices])
+	var a: Player = world._server_add_player(0, "Gunner", true, {"gun": "scrap_gun"})
+	var b: Player = world._server_add_player(0, "Nobody", true, {"gun": "no_such_gun"})
+	await ticks(2)
+	var g := a.gun
+	var muzzle_ok := g._wm_muzzle != null and g._wm_muzzle.global_position.distance_to(a.model.gun_socket.global_position) < 1.0
+	check("... a player picks it: carried, its Muzzle and Grip found; an unknown gun: the Default", a.gun_model == "scrap_gun" and b.gun_model == "" and muzzle_ok and g._anim_players.size() == 1 and b.gun._anim_players.is_empty(),
+		"gun %s / %s, muzzle %s, own actions %d / %d" % [a.gun_model, b.gun_model, muzzle_ok, g._anim_players.size(), b.gun._anim_players.size()])
+	var seen := []
+	var step := func() -> void:
+		for i in 6:
+			g.update_visuals(1.0 / 60.0)
+			await get_tree().process_frame
+		seen.append(g._anim_state)
+	await step.call()
+	g.set_visual_state(GravityGun.Kind.PLAYER, b.player_id)
+	await step.call()
+	await get_tree().create_timer(0.3).timeout
+	await step.call()
+	g.set_charge_visual(true)
+	await step.call()
+	g.set_charge_visual(false)
+	g.set_visual_state(GravityGun.Kind.NONE, 0)
+	await step.call()
+	await get_tree().create_timer(0.6).timeout
+	await step.call()
+	check("... its own actions play: Idle, Grab, Hold, Charge, Throw, Idle", seen == ["Idle", "Grab", "Hold", "Charge", "Throw", "Idle"], "%s" % [seen])
+	world._server_remove_player(a)
+	world._server_remove_player(b)
+	await ticks(2)
 
 
 ## Fire: a burning place sets a player alight and hurts them; jumping in water puts the fire

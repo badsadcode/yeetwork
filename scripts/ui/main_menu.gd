@@ -280,6 +280,10 @@ func _page_character(stack: Control) -> Control:
 	_picker(grid, "face", "Head extra", CharacterModel.face_names(), Game.look_face)
 	if _outfit_ids.size() > 1:
 		_picker(grid, "outfit", "Outfit", outfits, maxi(_outfit_ids.find(Game.look_outfit), 0))
+	# Gravity guns: the Default Gun, then any others in assets/characters/guns/.
+	_guns = CharacterParts.gun_choices().map(func(g): return g[1])
+	if _guns.size() > 1:
+		_picker(grid, "gun", "Gun", CharacterParts.gun_choices().map(func(g): return g[0]), maxi(_guns.find(Game.look_gun), 0))
 	_picker(grid, "skin", "Skin", skins, Game.look_skin + 1)
 	_picker(grid, "color", "Shirt", colors, Game.look_color + 1)
 	_picker(grid, "faces", "Faces", ["Expressive", "Classic"], 0 if Game.expressive_faces else 1)
@@ -331,6 +335,7 @@ func _page_options(stack: Control) -> Control:
 ## The hats and outfits the pickers step through (built-in, then custom models).
 var _hat_ids: Array[int] = []
 var _outfit_ids: Array = []
+var _guns: Array = [] # the gun choices the Gun picker steps through ("": the Default Gun)
 
 
 func _picker(grid: GridContainer, key: String, title: String, names: Array, index: int) -> void:
@@ -366,6 +371,8 @@ func _set_pick(key: String, index: int) -> void:
 	Game.look_hat = _hat_ids[_pickers.hat.index - 1] if _pickers.hat.index > 0 else -1
 	if _pickers.has("outfit"):
 		Game.look_outfit = _outfit_ids[_pickers.outfit.index]
+	if _pickers.has("gun"):
+		Game.look_gun = _guns[_pickers.gun.index]
 	Game.look_face = _pickers.face.index
 	Game.look_skin = _pickers.skin.index - 1
 	Game.look_color = _pickers.color.index - 1
@@ -376,7 +383,7 @@ func _set_pick(key: String, index: int) -> void:
 func _update_preview() -> void:
 	var shirt: Color = Game.FFA_COLORS[maxi(Game.look_color, 0) % Game.FFA_COLORS.size()]
 	var hat := Game.look_hat if Game.look_hat >= 0 else 0
-	_preview.show_look(shirt, hat, Game.look_face, Game.look_skin, 1, Game.look_outfit, Game.look_character)
+	_preview.show_look(shirt, hat, Game.look_face, Game.look_skin, 1, Game.look_outfit, Game.look_character, CharacterParts.known_gun(Game.look_gun))
 
 
 # --- Building blocks --------------------------------------------------------------

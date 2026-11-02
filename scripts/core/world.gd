@@ -365,7 +365,7 @@ func _build_init_state() -> Dictionary:
 func _player_info(pl: Player) -> Dictionary:
 	return {
 		"id": pl.player_id, "owner": pl.owner_peer, "bot": pl.is_bot, "name": pl.display_name,
-		"team": pl.team, "color": pl.color, "hat": pl.hat, "face": pl.face, "skin": pl.skin, "outfit": pl.outfit, "character": pl.character, "frags": pl.frags, "deaths": pl.deaths,
+		"team": pl.team, "color": pl.color, "hat": pl.hat, "face": pl.face, "skin": pl.skin, "outfit": pl.outfit, "character": pl.character, "gun": pl.gun_model, "frags": pl.frags, "deaths": pl.deaths,
 		"score": pl.score, "pos": pl.global_position, "yaw": pl.yaw, "hp": pl.hp, "alive": pl.is_alive(),
 	}
 
@@ -455,6 +455,7 @@ func _server_add_player(peer: int, pname: String, bot: bool, look := {}) -> Play
 		"skin": clampi(int(look.get("skin", -1)), -1, CharacterModel.SKINS.size() - 1),
 		"outfit": clampi(outfit, 0, CharacterModel.outfit_names().size() - 1),
 		"character": clampi(int(look.get("character", 0)), 0, CharacterModel.CHARACTER_NAMES.size() - 1),
+		"gun": CharacterParts.known_gun(str(look.get("gun", ""))), # (bots: the Default Gun)
 		"frags": 0, "deaths": 0, "score": 0, "pos": Vector3.ZERO, "yaw": 0.0, "hp": 100.0, "alive": true,
 	}
 	var pl := _create_player(info)

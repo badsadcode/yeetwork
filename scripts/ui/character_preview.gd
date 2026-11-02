@@ -43,13 +43,22 @@ func _ready() -> void:
 	_vp.add_child(_pivot)
 
 
-func show_look(shirt: Color, hat: int, face: int, skin: int, seed_value: int, outfit := 0, character := 0) -> void:
+## gun: the gravity gun in its hand (a CharacterParts.gun_choices choice).
+func show_look(shirt: Color, hat: int, face: int, skin: int, seed_value: int, outfit := 0, character := 0, gun := "") -> void:
 	if _model:
 		_model.queue_free()
 	_model = CharacterModel.new()
 	_model.expressive = Game.expressive_faces
 	_pivot.add_child(_model)
 	_model.setup(shirt, hat, seed_value, face, skin, outfit, character)
+	if _model.gun_socket: # (held the way a player holds it: GravityGun._build_world_model)
+		var holder := Node3D.new()
+		holder.rotation.x = -PI * 0.5
+		_model.gun_socket.add_child(holder)
+		var model := GravityGun.make_model(gun, Color(1.0, 0.45, 0.08))
+		model.scale = Vector3.ONE * 0.5
+		model.position = -GravityGun.grip_of(model) * 0.5
+		holder.add_child(model)
 	_model.squash(0.25) # a little hop of joy on every change
 
 

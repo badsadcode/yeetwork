@@ -1,7 +1,7 @@
 # Your own character models
 
-Hats, head extras, outfits, and even the Yeet's own body parts can be your models. Make them
-in Blender, save them into a folder, and they're in the game: no code to change.
+Hats, head extras, outfits, the Yeet's own body parts and the gravity gun can be your models.
+Make them in Blender, save them into a folder, and they're in the game: no code to change.
 
 | Folder | What it is | Where it shows up |
 |---|---|---|
@@ -9,6 +9,7 @@ in Blender, save them into a folder, and they're in the game: no code to change.
 | `assets/characters/extras/` | a head extra (glasses, a mask, a mustache...) | Character menu → **Head extra** |
 | `assets/characters/outfits/` | an outfit over the torso | Character menu → **Outfit** (the picker appears once there is one) |
 | `assets/characters/parts/` | replaces a body part's built-in shape | on every classic Yeet (see [Body parts](#replacing-body-parts)) |
+| `assets/characters/guns/` | a gravity gun: `default.glb` is the one everyone carries, any other can be picked | Character menu → **Gun** (see [Your own gravity gun](#your-own-gravity-gun)) |
 
 The file name becomes the name in the menu: `pirate_hat.glb` → *Pirate hat*. Files can be
 `.glb` / `.gltf` (from Blender) or Godot scenes (`.tscn` / `.scn`).
@@ -112,6 +113,52 @@ shape on every classic Yeet (Noor keeps her own look):
 - Use `Shirt` for clothing (sleeves, a jacket) and `Skin` for skin, so team colours and skin
   tones still work.
 
+## Your own gravity gun
+
+Your gun replaces the built-in one, or sits beside it as a version players can pick:
+
+- **`assets/characters/guns/default.glb`** is the **Default Gun**: everyone carries it,
+  bots too. The built-in gun is then *Classic* in the menu.
+- **Any other name** (`rusty_gun.glb`) is another version: Character menu → **Gun** →
+  *Rusty gun*. Everyone in the match sees the gun each player picked.
+
+There's an example: **`assets/characters/guns/scrap_gun.glb`** (*Scrap gun* in the menu), made
+by `tools/make_templates.gd`, with every named part below and its own actions. Open it in
+Blender (File → Import → glTF) to see how it's put together.
+
+**Start from the built-in gun**: `art/gravity_gun/gravity_gun.blend`. Save a copy under a new
+name and model yours over it, so it's the same size, held in the same place and points the
+same way (along Blender's +Y). Keep these names; the game finds them by name:
+
+| Name | What it is | Without it |
+|---|---|---|
+| `Muzzle` | an empty at the front: where the beam starts | the beam starts at the Yeet's eyes |
+| `Grip` | an empty where the hand holds it | held where the built-in gun's grip is |
+| `Core` | the part that pulses while something's held, more as a throw charges | nothing pulses |
+| `ClawPivot0`, `ClawPivot1`, `ClawPivot2` | each with one child (a hinge) that opens as you grab: it turns around its X axis | no claws open |
+| `Accent` | a material: it takes the team colour (orange outside team modes) | no team colour on the gun |
+
+**Your own actions (optional).** Animate it in Blender (object animation is enough: keyframe
+the claws' hinges, the core's scale, a barrel kicking back) and name the actions:
+
+| Action | Plays |
+|---|---|
+| `Grab` | as something's caught (once) |
+| `Hold` | while it's held (loops) |
+| `Charge` | while a throw winds up (once: make it as long as a full charge, 1 second) |
+| `Throw` | as it's thrown, and on a push (once: end it where the gun rests) |
+| `Idle` | the rest of the time (loops) |
+
+With any of these the game leaves the claws and the core to your actions; without them it
+moves them itself. Leave out the ones you don't need. Export as .glb with *Animation* ticked
+(and *+Y Up*, like everything else).
+
+**Hand-painted textures**: use .glb (it packs the images in). An `Accent` material with a
+texture is tinted by the team colour, so paint its parts light (white or light grey).
+
+**Try it quickly**: `godot --path . -- --host --map prime --bots 0 --gun rusty_gun` (the file's
+name without `.glb`) starts a match carrying it, whatever the menu says.
+
 ## Changing a built-in part
 
 The built-in hats and extras are made by the game's code (`scripts/player/character_model.gd`),
@@ -136,11 +183,15 @@ their game doesn't have.
 | No team colour | The material isn't named `Shirt` (or `Team`). |
 | Textures missing | Use .glb (it packs the images in), not .gltf with separate files. |
 | Far too big or small | The scene's unit scale was changed. The Yeet is about 2 m tall: model to that. |
+| The gun points sideways or at you | It wasn't modelled over the built-in gun (it points along Blender's +Y). |
+| The beam starts in the wrong place | The `Muzzle` empty is missing or not at the front. |
+| The claws don't move | They aren't `ClawPivot0-2` with one child each, or the gun has its own actions (then they move only in those). |
 
 ## For reference
 
 - `scripts/player/character_parts.gd` finds the files; `CharacterModel._add_custom()` puts
-  them on the Yeet.
+  them on the Yeet. `GravityGun.make_model()` builds a gun, `_update_actions()` plays its
+  actions.
 - `art/characters/characters.blend` is made from the game's code. If the built-in parts
   change, it can be rebuilt (see the README's *Characters* section). Keep your own work in
   your own .blend files or collections, or re-add it after a rebuild.

@@ -33,7 +33,8 @@ a new map from an idea, Lighthouse Point (`docs/MAKE_A_NEW_MAP.md`,
 `custom/lighthouse_point/`, checked in CI); the walkthroughs' tables are made from their maps.
 Next: Phase 5 (things that animate), planned in
 [MAKE_YOUR_OWN_ANIMATED.md](MAKE_YOUR_OWN_ANIMATED.md): animated scenery first (**done**
-2026-11-02: AnimatedModel), then your own gravity gun, your own monsters, rigged monsters.
+2026-11-02: AnimatedModel), then your own gravity gun (**done** 2026-11-02:
+`assets/characters/guns/`), your own monsters, rigged monsters.
 
 ## The idea in one paragraph
 

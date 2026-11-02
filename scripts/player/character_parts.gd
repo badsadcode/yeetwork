@@ -6,6 +6,8 @@ class_name CharacterParts
 ##   assets/characters/outfits/   an outfit over the torso
 ##   assets/characters/parts/     replaces a body part's built-in shape: head, torso, arm_l,
 ##                                arm_r, leg_l or leg_r (the face stays on a new head)
+##   assets/characters/guns/      a gravity gun (default.glb: the one everyone has; any other:
+##                                picked in the menu). See GravityGun for the parts it needs.
 ## Model it where it sits on a standing Yeet (art/characters/characters.blend has the body and
 ## every built-in part in place): the game works out where it attaches. Materials named
 ## "Shirt" (or "Team") take the player's shirt / team colour, "Skin" their skin tone.
@@ -14,7 +16,12 @@ class_name CharacterParts
 ## See docs/CHARACTERS.md.
 
 const ROOT := "res://assets/characters/"
-const KINDS := ["hats", "extras", "outfits", "parts"]
+const KINDS := ["hats", "extras", "outfits", "parts", "guns"]
+## The built-in gravity gun (tools/make_gravity_gun.py).
+const BUILT_IN_GUN := "res://assets/models/gravity_gun.glb"
+## Gun choices: "" is the Default Gun (guns/default.glb, or the built-in one without it);
+## CLASSIC_GUN the built-in one; any other a file in guns/ by its name (without extension).
+const CLASSIC_GUN := "@classic"
 const BODY_PARTS := ["head", "torso", "arm_l", "arm_r", "leg_l", "leg_r"]
 const EXTENSIONS := ["glb", "gltf", "tscn", "scn"]
 
@@ -38,6 +45,44 @@ static func part_path(part: String) -> String:
 	for e in list("parts"):
 		if (e[1] as String).get_file().get_basename() == part:
 			return e[1]
+	return ""
+
+
+## The guns a player can pick: [[menu name, choice], ...], the Default Gun first. The built-in
+## gun is "Classic" once a default.glb takes its place.
+static func gun_choices() -> Array:
+	var out := [["Default", ""]]
+	var has_default := false
+	for e in list("guns"):
+		var stem := (e[1] as String).get_file().get_basename()
+		if stem == "default":
+			has_default = true
+		else:
+			out.append([e[0], stem])
+	if has_default:
+		out.insert(1, ["Classic", CLASSIC_GUN])
+	return out
+
+
+## The model of a gun choice (an unknown one: the Default Gun's).
+static func gun_path(choice: String) -> String:
+	if choice == CLASSIC_GUN:
+		return BUILT_IN_GUN
+	var fallback := BUILT_IN_GUN
+	for e in list("guns"):
+		var stem := (e[1] as String).get_file().get_basename()
+		if stem == choice and choice != "":
+			return e[1]
+		if stem == "default":
+			fallback = e[1]
+	return fallback
+
+
+## A choice as one the game knows ("" when there's no such gun in this build).
+static func known_gun(choice: String) -> String:
+	for e in gun_choices():
+		if e[1] == choice:
+			return choice
 	return ""
 
 

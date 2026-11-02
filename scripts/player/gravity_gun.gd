@@ -49,7 +49,15 @@ var vis_id := 0
 var _viewmodel: Node3D
 var _vm_muzzle: Node3D
 var _vm_claws: Array[Node3D] = []
-var _vm_core: MeshInstance3D
+var _vm_core: Node3D
+## The gun's own actions (a model with Grab / Hold / Charge / Throw / Idle animations): one
+## AnimationPlayer in the hands, one on the Yeet. Without them the game moves the claws and
+## the core itself.
+var _anim_players: Array[AnimationPlayer] = []
+var _anim_state := ""
+var _anim_was_kind: int = Kind.NONE
+var _charge_off_time := -10.0
+var _throw_time := -10.0
 ## First-person gun placement (camera space) and size.
 const VM_POS := Vector3(0.27, -0.3, -0.3)
 const VM_SCALE := 0.4
@@ -113,31 +121,101 @@ func _ready() -> void:
 
 # --- Visual construction ------------------------------------------------------------
 
-## The gun model (tools/make_gravity_gun.py, made in Blender). It points along -Z.
-const GUN_SCENE := preload("res://assets/models/gravity_gun.glb")
-static var _merged_guns := {} # team colour -> the world model's pieces merged into one mesh
-## Where the grip is in the model, so a hand can hold it.
+## The gun model: the built-in one (tools/make_gravity_gun.py, made in Blender) or a player's
+## own from assets/characters/guns/ (CharacterParts.gun_path). It points along -Z (Blender:
+## +Y). What the game uses of it, by name:
+##   Muzzle        where the beam starts (an empty at the front)
+##   Grip          where the hand holds it (an empty; without one, where the built-in gun's
+##                 grip is: model it in place in art/gravity_gun/gravity_gun.blend)
+##   Core          pulses while something's held, more as a throw charges
+##   ClawPivot0-2  each with one child that opens (turns around X) as you grab
+##   Accent        a material: takes the team colour
+## Animations named Grab, Hold, Charge, Throw and Idle play instead of the game moving the
+## claws and the core: Grab as something's caught, Hold (looping) while it's held, Charge as
+## a throw winds up, Throw as it goes (and on a push), Idle (looping) the rest of the time.
+## Any of them can be left out.
+const ACTIONS := ["Grab", "Hold", "Charge", "Throw", "Idle"]
+static var _merged_guns := {} # gun model + team colour -> the world model's pieces merged into one mesh
+static var _gun_scenes := {} # path -> PackedScene
+## Where the grip is in the built-in model, so a hand can hold it.
 const GRIP := Vector3(0.0, -0.25, 0.36)
 
 
-## Adds the gun model under parent, scaled, with the grip at the parent's origin. The orange
-## "Accent" parts take the team colour.
-func _gun_mesh(parent: Node3D, scale_f: float) -> Node3D:
-	var gun := GUN_SCENE.instantiate() as Node3D
-	gun.scale = Vector3.ONE * scale_f
-	gun.position = -GRIP * scale_f
-	parent.add_child(gun)
-	var accent := Color(1.0, 0.45, 0.08) if player.team == 0 else Game.team_color(player.team)
-	for mi in _all_geometry(gun):
-		var m := mi as MeshInstance3D
-		if m == null or m.mesh == null:
+## A new gun model (a choice from CharacterParts.gun_choices), its "Accent" parts in `accent`.
+## A model that doesn't load: the built-in gun.
+static func make_model(choice: String, accent: Color) -> Node3D:
+	var path := CharacterParts.gun_path(choice)
+	if not _gun_scenes.has(path):
+		var ps := load(path) as PackedScene if ResourceLoader.exists(path) else null
+		if ps == null:
+			push_warning("Gun %s didn't load: the built-in gun instead" % path)
+			ps = load(CharacterParts.BUILT_IN_GUN) as PackedScene
+		_gun_scenes[path] = ps
+	var gun := (_gun_scenes[path] as PackedScene).instantiate() as Node3D
+	for n in gun.find_children("*", "MeshInstance3D", true, false):
+		var m := n as MeshInstance3D
+		if m.mesh == null:
 			continue
 		for i in m.mesh.get_surface_count():
-			var mat := m.mesh.surface_get_material(i) as StandardMaterial3D
+			var mat := m.get_active_material(i) as BaseMaterial3D
 			if mat and mat.resource_name == "Accent":
-				var tinted := mat.duplicate() as StandardMaterial3D
+				var tinted := mat.duplicate() as BaseMaterial3D
 				tinted.albedo_color = accent
 				m.set_surface_override_material(i, tinted)
+	return gun
+
+
+## Where a gun model is held, in its own space: its Grip, else the built-in gun's.
+static func grip_of(gun: Node3D) -> Vector3:
+	var g := gun.find_child("Grip", true, false) as Node3D
+	if g == null:
+		return GRIP
+	var xf := Transform3D.IDENTITY
+	var cur: Node = g
+	while cur and cur != gun:
+		if cur is Node3D:
+			xf = (cur as Node3D).transform * xf
+		cur = cur.get_parent()
+	return xf.origin
+
+
+## What a gun model is missing (for the checks), [] when it has everything.
+static func notes(gun: Node3D) -> Array:
+	var out := []
+	if gun.find_child("Muzzle", true, false) == null:
+		out.append("no \"Muzzle\" (the beam starts from the Yeet's eyes)")
+	if gun.find_child("Grip", true, false) == null:
+		out.append("no \"Grip\" (held where the built-in gun's grip is)")
+	return out
+
+
+## The AnimationPlayer with the gun's own actions, or null when it has none.
+static func actions_of(gun: Node) -> AnimationPlayer:
+	for ap: AnimationPlayer in gun.find_children("*", "AnimationPlayer", true, false):
+		for a in ACTIONS:
+			if ap.has_animation(a):
+				return ap
+	return null
+
+
+func _accent() -> Color:
+	return Color(1.0, 0.45, 0.08) if player.team == 0 else Game.team_color(player.team)
+
+
+## Adds the player's gun model under parent, scaled, with the grip at the parent's origin.
+## The "Accent" parts take the team colour.
+func _gun_mesh(parent: Node3D, scale_f: float) -> Node3D:
+	var gun := make_model(player.gun_model, _accent())
+	gun.scale = Vector3.ONE * scale_f
+	gun.position = -grip_of(gun) * scale_f
+	parent.add_child(gun)
+	var ap := actions_of(gun)
+	if ap:
+		for a in ["Hold", "Idle"]:
+			if ap.has_animation(a):
+				ap.get_animation(a).loop_mode = Animation.LOOP_LINEAR
+		_anim_players.append(ap)
+		_anim_state = ""
 	return gun
 
 
@@ -149,10 +227,9 @@ func _build_world_model() -> void:
 	player.model.gun_socket.add_child(_world_model)
 	var gun := _gun_mesh(_world_model, 0.5)
 	_wm_muzzle = gun.find_child("Muzzle", true, false) as Node3D
-	if Game.character_detail == 0:
+	if Game.character_detail == 0 and actions_of(gun) == null:
 		# Everyone else's gun: one mesh instead of 64 pieces (nothing on it moves).
-		var accent := Color(1.0, 0.45, 0.08) if player.team == 0 else Game.team_color(player.team)
-		MeshMerge.merge(gun, {}, false, _merged_guns, accent.to_html())
+		MeshMerge.merge(gun, {}, false, _merged_guns, CharacterParts.gun_path(player.gun_model) + _accent().to_html())
 
 
 func build_viewmodel(camera: Camera3D) -> void:
@@ -164,11 +241,12 @@ func build_viewmodel(camera: Camera3D) -> void:
 	var gun := _gun_mesh(_viewmodel, VM_SCALE)
 	gun.rotation = Vector3(0.06, 0.22, -0.08) # turned in toward the crosshair: its side shows
 	_vm_muzzle = gun.find_child("Muzzle", true, false) as Node3D
-	_vm_core = gun.find_child("Core", true, false) as MeshInstance3D
-	for i in 3:
-		var pivot := gun.find_child("ClawPivot%d" % i, true, false) as Node3D
-		if pivot and pivot.get_child_count() > 0:
-			_vm_claws.append(pivot)
+	if actions_of(gun) == null: # (a gun's own actions move them instead)
+		_vm_core = gun.find_child("Core", true, false) as Node3D
+		for i in 3:
+			var pivot := gun.find_child("ClawPivot%d" % i, true, false) as Node3D
+			if pivot and pivot.get_child_count() > 0 and pivot.get_child(0) is Node3D:
+				_vm_claws.append(pivot)
 	_build_hands(gun)
 	for mi in _all_geometry(_viewmodel):
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -246,14 +324,57 @@ func set_visual_state(kind: int, id: int) -> void:
 	var now := held_node()
 	if now and now is PhysicsBody3D:
 		player.add_collision_exception_with(now)
+	if kind == Kind.NONE and Time.get_ticks_msec() / 1000.0 - _charge_off_time < 0.3:
+		_play_throw() # (let go just as a charge ended: thrown)
 
 
 func kick(amount: float) -> void:
 	_kick = maxf(_kick, amount)
+	_play_throw() # (a throw or a push; only the gun's owner hears of it)
+
+
+func _play_throw() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if _anim_players.is_empty() or now - _throw_time < 0.3:
+		return
+	_throw_time = now
+	_play_action("Throw")
+
+
+## Plays one of the gun's own actions from its start, on each model of the gun that has it.
+func _play_action(a: String) -> void:
+	_anim_state = a
+	for ap in _anim_players:
+		if is_instance_valid(ap) and ap.has_animation(a):
+			ap.play(a, 0.08)
+			ap.seek(0.0, true)
+
+
+## The gun's own actions follow what it does: Grab as something's caught, then Hold; Charge
+## while a throw winds up; Throw (set off above); Idle otherwise. Grab and Throw play to their
+## end before the next (unless a charge starts).
+func _update_actions() -> void:
+	if _anim_players.is_empty():
+		return
+	if vis_kind != Kind.NONE and _anim_was_kind == Kind.NONE:
+		_play_action("Grab")
+	_anim_was_kind = vis_kind
+	var want := "Idle"
+	if vis_kind != Kind.NONE:
+		want = "Charge" if _vis_charging else "Hold"
+	var ap: AnimationPlayer = _anim_players[0]
+	var one_shot := _anim_state in ["Grab", "Throw"] and ap.is_playing() and ap.current_animation == _anim_state
+	if want == _anim_state or (one_shot and want != "Charge"):
+		return
+	_anim_state = want
+	for p in _anim_players:
+		if is_instance_valid(p) and p.has_animation(want):
+			p.play(want, 0.12) # (one it doesn't have: it stays where the last one left it)
 
 
 func update_visuals(delta: float) -> void:
 	_update_charge_fx(delta)
+	_update_actions()
 	var target := held_node()
 	var to := Vector3.INF
 	if vis_kind == Kind.MONSTER and player.world.horde:
@@ -838,6 +959,8 @@ func visual_charge() -> float:
 
 
 func set_charge_visual(on: bool) -> void:
+	if _vis_charging and not on:
+		_charge_off_time = Time.get_ticks_msec() / 1000.0
 	_vis_charging = on
 	_vis_charge_start = Time.get_ticks_msec() / 1000.0
 	if on:

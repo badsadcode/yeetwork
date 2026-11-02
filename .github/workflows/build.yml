@@ -83,11 +83,11 @@ jobs:
       - name: Shop window check (every tab of MegaYeet's shop shows its wares)
         timeout-minutes: 2
         run: timeout 70 godot --headless -- --host --map res://maps/fortress.tscn --mode megayeet --bots 0 --spooky off --tour x --tour-mode shop
-      - name: Make your own check (a pipe's Spout, a drain's Intake, a PropType, a trap of your own in the shop and at work, breakable models and props, models playing their own animations; a client sees them)
+      - name: Make your own check (a pipe's Spout, a drain's Intake, a PropType, a trap of your own in the shop and at work, breakable models and props, models playing their own animations; a client sees them and a player's own gun)
         timeout-minutes: 4
         run: |
           timeout 100 godot --headless -- --host --map res://custom/make_your_own/workshop.tscn --mode megayeet --bots 0 --spooky off --tour x --tour-mode makeyourown
-          (timeout 50 godot --headless -- --host --map res://custom/make_your_own/workshop.tscn --mode megayeet --bots 0 --port 24812 --spooky off > /dev/null 2>&1 &)
+          (timeout 50 godot --headless -- --host --map res://custom/make_your_own/workshop.tscn --mode megayeet --bots 0 --port 24812 --spooky off --gun scrap_gun > /dev/null 2>&1 &)
           sleep 5
           timeout 70 godot --headless -- --join 127.0.0.1 --port 24812 --tour x --tour-mode makeyourownclient
       - name: Vessel check (a boat of Map Kit pieces rides the swell, Yeets, cargo, ladder, crane and its flag ride along; the island beside it stays put)
