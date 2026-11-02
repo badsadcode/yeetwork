@@ -11,7 +11,9 @@ extends ModeBase
 ## (prepare_arena, every peer). Waves mix the kinds of monster as they go on (KIND_MIX, brutes
 ## a few a wave from wave 3), each announced the first time it comes, with how to beat it.
 ## The breaks between waves are for shopping (buy): repairing gates (MegaYeetGate), building
-## traps (TrapSpot), team upgrades at the Heart (MegaYeetUpgrades, UPGRADES), power-ups, all in
+## traps (TrapSpot: put down where you aim, on ground the monsters walk, up to the Heart's Max
+## Traps, a map's own spots taking the trap that's put on them; picked up again to move or
+## sell: placement, server_place, server_pick_up; TrapPlacer), team upgrades at the Heart (MegaYeetUpgrades, UPGRADES), power-ups, all in
 ## the shop window too (shop_items, shop_buy; ShopWindow), only between waves. What pays is
 ## the match's Economy (Game.megayeet_rules.economy): "shared", the Fortress meter itself
 ## (never below a tenth of it); "personal", each Yeet's own Y$, earned by kills (more for
@@ -35,6 +37,8 @@ const UPGRADES := [
 	["Quick return", 120, "Back in the fight twice as fast"],
 ]
 const KEEP := 0.1 # (spending never takes the meter below this much of it)
+const SELL_BACK := 0.5 # (a trap picked up and sold: this much of its price back)
+const PLACE_REACH := 12.0 # (how far off a Yeet can put a trap down)
 ## Personal Y$: what a Yeet starts with and earns (a wave held: CASH_WAVE and 5 more a wave,
 ## everyone; the boss: CASH_BOSS for whoever brings it down, half that for the rest).
 const CASH_START := 60
@@ -82,6 +86,7 @@ var cash := {} # player id -> Y$
 var boss # (Horde.Monster) the boss while it lives
 var _bosses := 0 # how many have come this game
 var _broke_msg := 0.0
+var _carry := {} # player id -> [trap type, what it sells for]: picked up, not put down yet
 var _to_spawn := 0
 var _spawn_gap := 1.0
 var _spawn_t := 0.0
@@ -279,6 +284,7 @@ func _wave_count() -> int:
 
 
 func _start_wave() -> void:
+	_drop_carried()
 	wave += 1
 	phase = Phase.WAVE
 	_to_spawn = _wave_count()
@@ -480,9 +486,12 @@ func _restart() -> void:
 	cash.clear()
 	boss = null
 	_bosses = 0
+	_carry.clear()
 	for n in world.arena.puzzle:
 		if n is TrapSpot:
 			(n as TrapSpot).server_clear()
+			if n.placed and not n.gone:
+				world.server_remove_trap(n.puzzle_index) # (the fortress fell: they're gone)
 	started = world.now()
 	phase = Phase.BREAK
 	phase_end = world.now() + heart.first_break
@@ -538,10 +547,8 @@ func shop_buy(pl: Player, id: String) -> void:
 		return
 	var parts := id.split(":", true, 1)
 	match parts[0]:
-		"trap":
-			var spot := _free_spot(world, pl, parts[1])
-			if spot:
-				spot.server_used(pl)
+		"trap": # (paid for when it's put down: TrapPlacer, server_place)
+			world.server_trap_carry(pl, parts[1], false)
 		"power":
 			if buy(pl, item.cost, "bought %s" % item.name):
 				var until: float = world.net_time() + maxf(phase_end - world.now(), 0.0) + POWER_LASTS
@@ -571,23 +578,23 @@ static func shop_items(w: Node, pl: Player) -> Array:
 	var s: Dictionary = w.mode_state
 	var mine := is_personal(w)
 	var out := []
-	# Traps: by type (the built-in kinds, and the map's own: TrapSpot.type_key), the free spot
-	# nearest you.
-	var types := {} # key -> [a spot, free, all]
-	for n in w.arena.puzzle:
-		if n is TrapSpot:
-			var key := (n as TrapSpot).type_key()
-			if not types.has(key):
-				types[key] = [n, 0, 0]
-			types[key][1] += 0 if n.active else 1
-			types[key][2] += 1
-	for key: String in types:
-		var any: TrapSpot = types[key][0]
+	# Traps: by type (the built-in kinds, and the map's own: TrapSpot.type_key), put down where
+	# you aim (a map's spot of that type takes it), up to the Heart's Max Traps.
+	var down := placed_count(w)
+	var cap := max_traps(w)
+	for key: String in TrapSpot.types(w):
+		var any: TrapSpot = null
+		for n in w.arena.puzzle:
+			if n is TrapSpot and not n.placed and (n as TrapSpot).type_key() == key:
+				any = n
+				break
 		var spot := _free_spot(w, pl, key)
-		out.append({"id": "trap:" + key, "tab": 0, "name": any.title(), "look": "spot:%d" % any.puzzle_index,
-			"cost": (spot if spot else any).price(),
-			"about": "Built on the free spot nearest you (%d of %d free)" % [types[key][1], types[key][2]],
-			"why": "" if spot else "All built"})
+		var full := down >= cap and spot == null
+		out.append({"id": "trap:" + key, "tab": 0, "name": key.get_slice("|", 0),
+			"look": ("spot:%d" % any.puzzle_index) if any else "trap:" + key.get_slice("|", 1),
+			"cost": price_of(w, key),
+			"about": "Put it down where you aim, where the monsters walk (%d of %d placed)" % [down, cap],
+			"why": ("All %d placed: pick one up to move it" % cap) if full else ""})
 	for p: Array in POWERS:
 		var why := ""
 		if p[0] == "health" and pl.hp >= 100.0:
@@ -645,6 +652,156 @@ static func wallet(w: Node, pl: Player) -> int:
 ## A price as the Use prompts show it: "-120" (the meter) or "120 Y$".
 static func price_text(w: Node, cost: float) -> String:
 	return ("%d Y$" % ceili(cost)) if is_personal(w) else ("-%d" % int(cost))
+
+
+## How many traps players have put down (out of the Heart's Max Traps).
+static func placed_count(w: Node) -> int:
+	return w.arena.puzzle.filter(func(n): return n is TrapSpot and n.placed and not n.gone).size()
+
+
+static func max_traps(w: Node) -> int:
+	return w.arena.heart.max_traps if w.arena.heart else 12
+
+
+## What a trap of this type costs.
+static func price_of(w: Node, key: String) -> float:
+	var t := TrapSpot.make(w, key)
+	var p := t.price()
+	t.free()
+	return p
+
+
+## Where a trap of this type would go, put down at `at` (a point on the ground) turned `yaw`,
+## by this Yeet: {ok, why, at, spot} (spot: a map's free spot of the type it snaps onto).
+## Any peer checks it for the preview; the server again when it's put down (and only it knows
+## where monsters walk: the FlowField). carrying: picked up, so it's paid for.
+static func placement(w: Node, pl: Player, key: String, at: Vector3, yaw: float, carrying := false) -> Dictionary:
+	var out := {"ok": false, "why": "", "at": at, "spot": null}
+	if int(w.mode_state.get("phase", -1)) != Phase.BREAK:
+		out.why = "Between waves"
+		return out
+	for n in w.arena.puzzle:
+		if n is TrapSpot and not n.placed and not n.active and (n as TrapSpot).type_key() == key and (n as TrapSpot).has_point(at + Vector3.UP * 0.2):
+			out.spot = n
+			out.at = (n as TrapSpot).global_position
+			break
+	var t := TrapSpot.make(w, key)
+	var size := t.size
+	var price := t.price()
+	t.free()
+	if out.spot == null and placed_count(w) >= max_traps(w):
+		out.why = "All %d traps are down: pick one up to move it" % max_traps(w)
+		return out
+	if pl.eye_position().distance_to(at) > PLACE_REACH:
+		out.why = "Too far away"
+		return out
+	if not carrying and wallet(w, pl) < ceili(price):
+		out.why = "Not enough Y$" if is_personal(w) else "Not enough in the meter"
+		return out
+	if out.spot:
+		out.ok = true
+		return out
+	var heart: FortressHeart = w.arena.heart
+	if heart and Vector2(at.x - heart.global_position.x, at.z - heart.global_position.z).length() < heart.radius + maxf(size.x, size.z) * 0.5:
+		out.why = "Too close to the Heart"
+		return out
+	var r := Vector2(size.x, size.z).length() * 0.5
+	for n in w.arena.puzzle:
+		if n is TrapSpot and not n.gone and (n.active or n.placed):
+			var o := n as TrapSpot
+			var ro := Vector2(o.size.x, o.size.z).length() * 0.5
+			if Vector2(at.x - o.global_position.x, at.z - o.global_position.z).length() < (r + ro) * 0.7 and absf(at.y - o.global_position.y) < 2.0:
+				out.why = "On another trap"
+				return out
+	var space: PhysicsDirectSpaceState3D = pl.get_world_3d().direct_space_state
+	var b := Basis(Vector3.UP, yaw)
+	for c in [Vector2.ZERO, Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
+		var p: Vector3 = at + b * Vector3(c.x * size.x * 0.45, 0, c.y * size.z * 0.45)
+		var q := PhysicsRayQueryParameters3D.create(p + Vector3.UP * 0.6, p + Vector3.DOWN * 0.6, Game.L_WORLD)
+		var hit := space.intersect_ray(q)
+		if hit.is_empty() or (hit.normal as Vector3).y < 0.8:
+			out.why = "Not on flat ground"
+			return out
+	var f: FlowField = w.horde.field if w.horde else null
+	if f:
+		var cell := f.cell_of(at)
+		if cell < 0 or f.walk[cell] == 0 or f.dist[cell] >= FlowField.INF_COST or absf(f.height[cell] - at.y) > 0.6:
+			out.why = "Monsters never walk here"
+			return out
+	out.ok = true
+	return out
+
+
+## Server: a Yeet puts a trap down (TrapPlacer): paid for now (unless it's one they picked
+## up), built at once; onto a map's spot of its type if it's there.
+func server_place(pl: Player, key: String, at: Vector3, yaw: float) -> void:
+	if not TrapSpot.types(world).has(key):
+		return
+	var carry: Array = _carry.get(pl.player_id, [])
+	var moving: bool = not carry.is_empty() and carry[0] == key
+	var p := placement(world, pl, key, at, yaw, moving)
+	if not p.ok:
+		_tell(pl, p.why)
+		world.server_trap_carry(pl, key, moving) # (still placing)
+		return
+	var title := key.get_slice("|", 0)
+	if not moving and not buy(pl, price_of(world, key), "put down %s" % title.to_lower()):
+		return
+	_carry.erase(pl.player_id)
+	if p.spot:
+		(p.spot as TrapSpot).build(pl.player_id)
+	else:
+		world.server_place_trap(key, Transform3D(Basis(Vector3.UP, yaw), p.at), pl.player_id)
+	world.server_fx("zap", p.at + Vector3.UP * 0.3, Vector3.UP, 0.8)
+
+
+## Server: Use on a built trap between waves: picked up, to put down again (free) or sell.
+func server_pick_up(pl: Player, t: TrapSpot) -> void:
+	if phase != Phase.BREAK or not t.built:
+		return
+	if personal and t.owner_id != 0 and t.owner_id != pl.player_id:
+		var who: Player = world.get_player(t.owner_id)
+		_tell(pl, "Only %s can pick it up (their Y$)" % (who.display_name if who else "who built it"))
+		return
+	if _carry.has(pl.player_id):
+		_tell(pl, "Put down the trap you're carrying first")
+		return
+	_carry[pl.player_id] = [t.type_key(), t.price() * SELL_BACK]
+	if t.placed:
+		world.server_remove_trap(t.puzzle_index)
+	else:
+		t.server_clear()
+	world.server_trap_carry(pl, t.type_key(), true)
+
+
+## Server: a Yeet stops placing: a trap they picked up is sold (SELL_BACK of its price).
+func server_cancel_trap(pl: Player) -> void:
+	var carry: Array = _carry.get(pl.player_id, [])
+	if carry.is_empty():
+		return
+	_carry.erase(pl.player_id)
+	refund(pl, carry[1], "sold %s" % (carry[0] as String).get_slice("|", 0).to_lower())
+
+
+## Server: money back to a Yeet (their Y$) or the meter.
+func refund(pl: Player, amount: float, what: String) -> void:
+	if personal:
+		cash[pl.player_id] = int(cash.get(pl.player_id, CASH_START)) + int(amount)
+		world.server_message("%s %s  (+%d Y$)" % [pl.display_name, what, int(amount)], Color(0.7, 0.9, 1.0))
+	else:
+		meter = minf(meter + amount, max_meter)
+		world.server_message("%s %s  +%d" % [pl.display_name, what, int(amount)], Color(0.7, 0.9, 1.0))
+	_send_state()
+
+
+## Server: the break's over: traps still being carried are sold, and nobody's placing.
+func _drop_carried() -> void:
+	for id in _carry.keys():
+		var pl: Player = world.get_player(id)
+		if pl:
+			server_cancel_trap(pl)
+			world.server_trap_carry(pl, "", false)
+	_carry.clear()
 
 
 ## The free trap spot of this type (TrapSpot.type_key) nearest this Yeet.

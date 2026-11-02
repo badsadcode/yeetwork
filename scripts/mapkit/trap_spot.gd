@@ -10,6 +10,10 @@ extends PuzzleNode
 ## - mine: blows up under the first monsters to step on it (then it's gone: build it again).
 ## Put them where monsters will come: behind a gate, in a passage. Not built, it shows as a
 ## faint outline. (On or off like any puzzle piece: on while built.)
+## Players can also put traps anywhere monsters walk (the shop: ModeMegaYeet's placing): those
+## are TrapSpots too, made in the game (placed); a spot on the map is a suggestion, a placed
+## trap of its type snapping onto it. Between waves Use on a built trap picks it up, to put
+## it somewhere else or sell it for half.
 ## Your own trap (Your Own Trap): your model for it built, its name (the Use prompt, the
 ## shop), and what it does to a monster in it: damage a second, how fast it lets one cross,
 ## how long it sets one alight, how big a blast it goes off with (then it's gone). Kind gives
@@ -59,6 +63,10 @@ const STATS := {
 
 var built := false # (server: what evaluate() says)
 var owner_id := 0 # (server: who built it, for the kills)
+var placed := false # (put down by a player in the game, not one of the map's spots)
+var gone := false # (a placed one picked up again: it stays in the puzzle list, out of play)
+## The size of a built-in trap put down by a player.
+const PLACED_SIZE := Vector3(3, 1, 3)
 var _parts: Node3D
 var _ghost: Node3D
 var _real: Node3D
@@ -96,12 +104,15 @@ func evaluate() -> bool:
 
 
 func usable() -> bool:
-	if active or world == null or world.mode != Game.Mode.MEGAYEET:
+	if gone or world == null or world.mode != Game.Mode.MEGAYEET:
 		return false
 	return int(world.mode_state.get("phase", -1)) == ModeMegaYeet.Phase.BREAK
 
 
 func use_label() -> String:
+	if active:
+		var back := int(price() * ModeMegaYeet.SELL_BACK)
+		return "Pick up %s  (put it elsewhere, or sell it: %s back)" % [title(), ("%d Y$" % back) if ModeMegaYeet.is_personal(world) else "+%d" % back]
 	return "Build %s  (%s)" % [title(), ModeMegaYeet.price_text(world, price())]
 
 
@@ -111,15 +122,63 @@ func use_point() -> Vector3:
 
 func server_used(pl: Player) -> void:
 	var mode := world.mode_logic as ModeMegaYeet
-	if mode and not built and mode.buy(pl, price(), "built %s" % title().to_lower()):
-		built = true
-		owner_id = pl.player_id
+	if mode and built:
+		mode.server_pick_up(pl, self)
+	elif mode and not built and mode.buy(pl, price(), "built %s" % title().to_lower()):
+		build(pl.player_id)
+
+
+## Server: built by this Yeet (the kills are theirs; with Y$, so is picking it up).
+func build(by: int) -> void:
+	built = true
+	owner_id = by
+
+
+## A new trap of a type (type_key) as players put them down: a built-in kind's
+## (PLACED_SIZE), or one like the map's own spot of that type (its model, size, numbers).
+static func make(w: Node, key: String) -> TrapSpot:
+	var t := TrapSpot.new()
+	var src: TrapSpot = null
+	if w and w.arena:
+		for n in w.arena.puzzle:
+			if n is TrapSpot and not n.placed and (n as TrapSpot).type_key() == key:
+				src = n
+				break
+	if src:
+		for p in ["kind", "size", "cost", "trap_name", "model", "damage", "slows_to", "burn", "blast"]:
+			t.set(p, src.get(p))
+	else:
+		var kind := key.get_slice("|", 1)
+		t.kind = kind if COSTS.has(kind) else "spikes"
+		t.size = PLACED_SIZE
+	t.placed = true
+	return t
+
+
+## The types players can put down: the built-in kinds, then the map's own (type_key).
+static func types(w: Node) -> Array:
+	var out := []
+	for k in ["spikes", "fire", "mine"]:
+		out.append("%s|%s" % [NAMES[k], k])
+	if w and w.arena:
+		for n in w.arena.puzzle:
+			if n is TrapSpot and not n.placed and not out.has((n as TrapSpot).type_key()):
+				out.append((n as TrapSpot).type_key())
+	return out
 
 
 ## Server: a mine went off (or the fortress fell): not built any more.
 func server_clear() -> void:
 	built = false
 	owner_id = 0
+
+
+## Every peer: a placed trap picked up (or cleared away): out of play, hidden, for good.
+func remove() -> void:
+	gone = true
+	built = false
+	owner_id = 0
+	visible = false
 
 
 ## Inside its box (a world point)?

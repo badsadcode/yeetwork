@@ -245,6 +245,9 @@ func _build_cards(items: Array) -> void:
 func _buy(id: String) -> void:
 	world.shop_buy(id)
 	Sfx.play_ui("click")
+	if id.begins_with("trap:"):
+		close() # (it's put down where you aim: TrapPlacer)
+		return
 	_refresh_t = 0.1 # (the server's answer comes with the next mode state)
 
 

@@ -710,8 +710,11 @@ func _process(delta: float) -> void:
 		_help.text = _help_text(_pad_used)
 	_vignette.color.a = maxf(_vignette.color.a - delta * 0.8, 0.0)
 	var usable: PuzzleNode = world.usable_for(pl) if world and pl and pl.is_alive() and pl.gun and pl.gun.vis_kind == GravityGun.Kind.NONE else null
-	_use_prompt.visible = usable != null and not _paused and not shop_open()
-	if usable:
+	var placing: bool = world != null and world.trap_placer != null and world.trap_placer.active
+	_use_prompt.visible = (usable != null or placing) and not _paused and not shop_open()
+	if placing:
+		_use_prompt.text = world.trap_placer.prompt(_pad_used)
+	elif usable:
 		_use_prompt.text = "[%s]  %s" % [Controls.pad_of("use") if _pad_used else Controls.key_of("use"), usable.use_label()]
 	if world and Game.is_sport(world.mode):
 		_ball_marks.queue_redraw()
@@ -874,7 +877,7 @@ func _megayeet_hud() -> void:
 		var left := maxf(float(s.get("next", 0.0)) - world.net_time(), 0.0)
 		text = "Wave %d in %d  ·  get ready" % [wave + 1, ceili(left)] if wave > 0 else "The monsters are coming in %d  ·  defend the Heart!" % ceili(left)
 		var key := Controls.pad_of("shop") if _pad_used else Controls.key_of("shop")
-		text += "\nSHOP: %s   ·   or Use: repair gates, build traps, team upgrade at the Heart" % key
+		text += "\nSHOP: %s (traps go where you aim)   ·   or Use: repair gates, move or sell traps, team upgrade at the Heart" % key
 		_threat.label_settings.font_color = Color(0.7, 0.9, 1.0)
 	elif phase == ModeMegaYeet.Phase.WAVE:
 		var parts := []

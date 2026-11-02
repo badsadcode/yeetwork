@@ -46,6 +46,8 @@ extends Node3D
 @export_range(0.2, 5.0, 0.05) var wave_size := 1.0
 ## The most monsters at once (the rest of a wave waits for room). Mind the Steam Deck.
 @export_range(10, 400, 5) var max_monsters := 220
+## How many traps players can put down anywhere (on top of the map's own trap spots).
+@export_range(0, 100, 1) var max_traps := 12
 ## A boss wave every this many waves (0: never): the Siege Golem leads it in.
 @export_range(0, 50, 1) var boss_every := 5
 ## Its hit points (more with more Yeets playing, and each time it comes back), and what

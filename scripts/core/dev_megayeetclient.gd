@@ -2,7 +2,8 @@ extends Node
 ## Developer check for MegaYeet over the network, run on a client joining a MegaYeet host:
 ## the monsters show up here (the snapshots arrive), move, and the HUD's state (the Fortress
 ## meter, the wave) comes through; a death reaches us too; something bought in the shop before
-## the first wave (a power-up, from the shared meter) is ours. Exits 1 if a step fails.
+## the first wave (a power-up, from the shared meter) is ours; a trap a client puts down is
+## built, there on the client too. Exits 1 if a step fails.
 ## Usage (host first): godot -- --host --map res://maps/fortress.tscn --mode megayeet --bots 2 --port 24781
 ##                     godot -- --join 127.0.0.1 --port 24781 --tour x --tour-mode megayeetclient
 
@@ -20,6 +21,28 @@ func _ready() -> void:
 		if world.local_player and int(world.mode_state.get("phase", -1)) == ModeMegaYeet.Phase.BREAK:
 			break
 		await get_tree().create_timer(0.25).timeout
+	# A trap put down by a client: the server builds it, the client gets it (a new trap piece).
+	var pl: Player = world.local_player
+	var pieces: int = world.arena.puzzle.size()
+	var put := false
+	for k in 12:
+		var a := k * TAU / 12.0
+		var at := pl.global_position + Vector3(cos(a), 0, sin(a)) * 6.0
+		var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 3.0, at + Vector3.DOWN * 3.0, Game.L_WORLD)
+		var hit := pl.get_world_3d().direct_space_state.intersect_ray(q)
+		if hit.is_empty() or not ModeMegaYeet.placement(world, pl, "Spikes|spikes", hit.position, 0.0).ok:
+			continue
+		world.place_trap("Spikes|spikes", hit.position, 0.0)
+		for j in 8:
+			await get_tree().create_timer(0.25).timeout
+			if world.arena.puzzle.size() > pieces:
+				break
+		if world.arena.puzzle.size() > pieces:
+			put = true
+			break
+	var t: TrapSpot = world.arena.puzzle[-1] if put else null
+	await get_tree().create_timer(0.4).timeout
+	_check("a client puts a trap down: built, there for the client too", t != null and t.placed and t.active, "%d -> %d pieces, built %s" % [pieces, world.arena.puzzle.size(), t.active if t else false])
 	var meter0 := int(world.mode_state.get("meter", 0))
 	world.shop_buy("power:speed")
 	var fast := false

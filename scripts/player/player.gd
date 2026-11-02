@@ -334,7 +334,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		pitch = clampf(pitch - e.relative.y * Game.mouse_sensitivity, -1.55, 1.55)
 	elif event is InputEventMouseButton and event.pressed and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 		var up := (event as InputEventMouseButton).button_index == MOUSE_BUTTON_WHEEL_UP
-		if _holding():
+		if world.trap_placer and world.trap_placer.active:
+			world.trap_placer.turn(1 if up else -1) # (MegaYeet: turning a trap before it's put down)
+		elif _holding():
 			_adjust_dist += 0.6 if up else -0.6
 		else:
 			var n := Prop.SPAWNABLE.size()
@@ -444,6 +446,10 @@ func _read_local_input(_delta: float) -> void:
 		_run_toggle = false
 	cmd.run = Game.always_run != (Input.is_action_pressed("run") or _run_toggle)
 	if not is_alive():
+		return
+	if world.trap_placer and world.trap_placer.active: # (MegaYeet: putting a trap down)
+		cmd.grapple = false
+		world.trap_placer.handle_input()
 		return
 	if Input.is_action_just_pressed("gun_grab"):
 		world.gun_action(self, GravityGun.Action.GRAB_START)

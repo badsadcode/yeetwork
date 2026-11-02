@@ -8,8 +8,11 @@ extends Node
 ## through a wall, ignores a push and burns in a flashlight's beam, a climber gets over a
 ## wall, a bomber blows a gate in and a killed one takes its neighbours with it, fire spreads,
 ## a monster is grabbed and thrown, waves mix the kinds. The shop: personal Y$ earned by
-## kills and waves held, spent in the shop window (a power-up, the nearest trap, every gate,
-## the Heart healed), not without the Y$. Screenshots.
+## kills and waves held, spent in the shop window (a power-up, a trap onto a map's spot, every
+## gate, the Heart healed), not without the Y$. Traps put down anywhere: from the shop, where
+## you aim (a preview), paid when down, hurting monsters; not on the Heart, another trap,
+## out of reach or past the Heart's Max Traps; picked up and put down again free, or sold for
+## half; one still carried when the wave comes is sold. Screenshots.
 ## Exits 1 if a step fails.
 ## Usage: godot -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --port 24700 --tour <dir> --tour-mode megayeet
 
@@ -133,6 +136,7 @@ func _ready() -> void:
 	await _way_out(brains)
 	await _shop()
 	await _shop_window()
+	await _placing()
 	await _team_lift(brains)
 	await _boss_fight()
 	# Bots fight.
@@ -543,7 +547,16 @@ func _shop_window() -> void:
 	var fire: TrapSpot = ModeMegaYeet._free_spot(world, pl, "Fire grate|fire")
 	win._buy("trap:Fire grate|fire")
 	await _wait(0.4)
-	_check("... a trap bought builds the free spot of its kind nearest you", fire and fire.name == "FireE" and fire.active and ModeMegaYeet.wallet(world, pl) == 1000 - int(fire.price()), "%s built %s, %d Y$" % [fire.name if fire else "none", fire.active if fire else false, ModeMegaYeet.wallet(world, pl)])
+	var placing: bool = world.trap_placer != null and world.trap_placer.active and world.trap_placer.key == "Fire grate|fire" and not win.visible
+	world.trap_placer.stop()
+	pl.respawn(fire.global_position + Vector3(0, 0, 4), 0.0) # (within reach)
+	await _wait(0.3)
+	world.place_trap("Fire grate|fire", fire.global_position, 0.0) # (put down on the map's spot)
+	await _wait(0.4)
+	_check("... a trap bought is put down where you aim: onto the map's spot of its kind there", placing and fire and fire.name == "FireE" and fire.active and ModeMegaYeet.placed_count(world) == 0 and ModeMegaYeet.wallet(world, pl) == 1000 - int(fire.price()), "placing %s, %s built %s, %d Y$" % [placing, fire.name if fire else "none", fire.active if fire else false, ModeMegaYeet.wallet(world, pl)])
+	world.hud.open_shop()
+	await _wait(0.4)
+	win = world.hud._shop
 	win._set_tab(1)
 	await _wait(0.6)
 	_check("... the power-ups tab", win._cards.size() == ModeMegaYeet.POWERS.size(), "%d cards" % win._cards.size())
@@ -598,6 +611,134 @@ func _shop_window() -> void:
 	pl.buffs.clear()
 	mode._send_state()
 	await _wait(0.2)
+
+
+## Traps put down anywhere the monsters walk: bought in the shop, a preview where you aim,
+## paid when it's down; it hurts a monster; refused on the Heart, on another trap, out of
+## reach, past Max Traps; picked up and put down again (free, turned), or sold for half; one
+## still carried when the wave comes is sold.
+func _placing() -> void:
+	horde.server_clear()
+	mode.personal = true
+	mode.cash.clear()
+	mode.cash[pl.player_id] = 500
+	mode.phase = ModeMegaYeet.Phase.BREAK
+	mode.phase_end = world.now() + 999.0
+	mode._send_state()
+	var key := "Spikes|spikes"
+	var spot := _open_ground()
+	_check("traps anywhere: open ground the monsters walk, found", spot != Vector3.INF, "%s" % spot)
+	if spot == Vector3.INF:
+		return
+	pl.respawn(spot + Vector3(0, 0, 4.5), 0.0)
+	await _wait(0.4)
+	_face(pl, spot)
+	world.shop_buy("trap:" + key)
+	await _wait(0.5)
+	var placer: TrapPlacer = world.trap_placer
+	var previewed := placer != null and placer.active and placer.ok and placer._at.distance_to(spot) < 0.6
+	_check("... the shop's trap follows your aim, green where it fits", previewed, "active %s, ok %s (%s), at %s" % [placer.active, placer.ok, placer.why, placer._at])
+	if pl.camera:
+		pl.camera.make_current()
+	await _wait(0.2)
+	await _shot("m18_place_trap")
+	var y0 := ModeMegaYeet.wallet(world, pl)
+	placer.confirm()
+	await _wait(0.4)
+	var t: TrapSpot = world.arena.puzzle[world.arena.puzzle.size() - 1] if world.arena.puzzle[-1] is TrapSpot else null
+	var down := t != null and t.placed and t.active and t.global_position.distance_to(spot) < 0.6
+	_check("... put down: built there, paid when it's down", down and ModeMegaYeet.placed_count(world) == 1 and ModeMegaYeet.wallet(world, pl) == y0 - 80, "down %s, %d Y$" % [down, ModeMegaYeet.wallet(world, pl)])
+	if not down:
+		return
+	var m = horde.server_spawn(spot + Vector3(0.5, 0, 0.5), "shambler")
+	m.speed = 0.0
+	await _wait(0.6)
+	_check("... a monster in it is hurt and slowed", m.hp < 40.0 and m.slow_to < 1.0, "hp %.0f, slowed to %.2f" % [m.hp, m.slow_to])
+	horde.server_clear()
+	# Where it can't go.
+	var back := pl.global_position
+	pl.respawn(mode.heart.global_position + Vector3(4, 0, 0), 0.0)
+	await _wait(0.3)
+	var why_heart: String = ModeMegaYeet.placement(world, pl, key, mode.heart.global_position + Vector3(0.5, 0, 0), 0.0).why
+	pl.respawn(back, 0.0)
+	await _wait(0.3)
+	var why_far: String = ModeMegaYeet.placement(world, pl, key, pl.global_position + Vector3(0, 0, 25), 0.0).why
+	var why_on: String = ModeMegaYeet.placement(world, pl, key, spot + Vector3(1, 0, 0), 0.0).why
+	_check("... not on the Heart, not on another trap, not out of reach", why_heart == "Too close to the Heart" and why_on == "On another trap" and why_far == "Too far away", "%s / %s / %s" % [why_heart, why_on, why_far])
+	mode.heart.max_traps = 1
+	var why_full: String = ModeMegaYeet.placement(world, pl, key, spot + Vector3(0, 0, -5), 0.0).why
+	var item: Dictionary = ModeMegaYeet.shop_items(world, pl).filter(func(it): return it.id == "trap:" + key)[0]
+	mode.heart.max_traps = 12
+	_check("... not past the Heart's Max Traps (the shop counts them; the map's own spots still take one)", why_full.begins_with("All 1 traps are down") and String(item.about).contains("1 of 1 placed"), "%s / %s" % [why_full, item.about])
+	# Picked up, put down again (free, turned).
+	t.server_used(pl)
+	await _wait(0.3)
+	var carrying := placer.active and placer.free and t.gone and ModeMegaYeet.placed_count(world) == 0
+	_face(pl, spot)
+	placer._turn = PI * 0.25
+	await _wait(0.4)
+	var y1 := ModeMegaYeet.wallet(world, pl)
+	placer.confirm()
+	await _wait(0.4)
+	var t2: TrapSpot = world.arena.puzzle[-1] if world.arena.puzzle[-1] is TrapSpot else null
+	var turned := t2 != null and t2 != t and t2.active and absf(wrapf(t2.global_rotation.y - (pl.yaw + PI * 0.25), -PI, PI)) < 0.05
+	_check("... Use picks it up (preview, free), put down again elsewhere or turned: free", carrying and turned and ModeMegaYeet.wallet(world, pl) == y1, "carrying %s, turned %s, %d -> %d Y$" % [carrying, turned, y1, ModeMegaYeet.wallet(world, pl)])
+	if t2 == null:
+		return
+	t2.server_used(pl)
+	await _wait(0.3)
+	var y2 := ModeMegaYeet.wallet(world, pl)
+	placer.cancel()
+	await _wait(0.3)
+	_check("... or sold, for half", ModeMegaYeet.wallet(world, pl) == y2 + 40 and ModeMegaYeet.placed_count(world) == 0, "%d -> %d Y$" % [y2, ModeMegaYeet.wallet(world, pl)])
+	# Still carried when the wave comes: sold.
+	_face(pl, spot)
+	world.shop_buy("trap:" + key)
+	await _wait(0.4)
+	placer.confirm()
+	await _wait(0.4)
+	(world.arena.puzzle[-1] as TrapSpot).server_used(pl)
+	await _wait(0.3)
+	var y3 := ModeMegaYeet.wallet(world, pl)
+	var wave0 := mode.wave
+	mode._start_wave()
+	await _wait(0.3)
+	_check("... one still carried when the wave comes is sold, and the preview's gone", not placer.active and ModeMegaYeet.wallet(world, pl) == y3 + 40, "placing %s, %d -> %d Y$" % [placer.active, y3, ModeMegaYeet.wallet(world, pl)])
+	horde.server_clear()
+	mode._to_spawn = 0
+	mode.wave = wave0
+	mode.personal = false
+	mode.cash.clear()
+	mode.phase = ModeMegaYeet.Phase.BREAK
+	mode.phase_end = world.now() + 999.0
+	mode._send_state()
+	await _wait(0.2)
+
+
+## Open, flat ground a fair way from the Heart, where monsters walk (the FlowField), with no
+## trap spot near: a place to put a trap down (Vector3.INF if there's none).
+func _open_ground() -> Vector3:
+	var f := horde.field
+	var h := mode.heart.global_position
+	for i in f.walk.size():
+		if f.walk[i] != 1 or f.dist[i] >= FlowField.INF_COST:
+			continue
+		var p := Vector3(f.origin.x + (i % f.nx + 0.5) * FlowField.CELL, f.height[i], f.origin.y + (i / f.nx + 0.5) * FlowField.CELL)
+		var d := Vector2(p.x - h.x, p.z - h.z).length()
+		if d < 6.0 or d > 22.0:
+			continue
+		var clear := true
+		for n in world.arena.puzzle:
+			if n is TrapSpot and (n as TrapSpot).global_position.distance_to(p) < 5.0:
+				clear = false
+		for dz in range(-2, 3):
+			for dx in range(-2, 3):
+				var c := f.cell_of(p + Vector3(dx, 0, dz))
+				if c < 0 or f.walk[c] != 1 or absf(f.height[c] - p.y) > 0.15:
+					clear = false
+		if clear:
+			return p
+	return Vector3.INF
 
 
 ## The iron ball: one gun alone only strains at it; a second lifts it; they throw it together

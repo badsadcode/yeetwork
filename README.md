@@ -259,12 +259,16 @@ by a flying friend), and a burst of kills is a combo (TRIPLE SPLAT, MONSTER MASH
 MEGAYEET). Holding a wave tops the meter up; there's a short break before the next, bigger
 one, and the break is for shopping. **B** (Y on a pad) opens the **shop window**: tabs of
 cards with turning pictures and prices: **traps** (spikes that hurt and slow, a fire grate
-that sets them alight, a mine that blows up under them: built on the free spot of that kind
-nearest you), **power-ups** for yourself (first aid, speed, feather, Super Yeet, Iron Yeet:
+that sets them alight, a mine that blows up under them: put down **where you aim**, a green
+preview where it fits and red where it can't, saying why; the wheel turns it, a click puts
+it down and pays, right click cancels; anywhere the monsters walk, not on the Heart or
+another trap, up to the fortress's Max Traps; aimed into a map's trap spot of its kind it
+goes on the spot. Use on a built trap between waves picks it up: put it down somewhere else
+for free, or right click to sell it for half), **power-ups** for yourself (first aid, speed, feather, Super Yeet, Iron Yeet:
 they last 45 s into the wave), **team upgrades** (stronger pushes and throws for everyone,
 softer bites, quicker respawns, in that order), **repairs** (the nearest broken gate, or all
 of them) and, with personal Y$, **the Heart** (heal it, dearly). Use works too: on a broken
-gate, a trap spot, the Heart. What pays is the match's **Economy**: *Shared* (the default:
+gate, a trap spot, a built trap (to move or sell it), the Heart. What pays is the match's **Economy**: *Shared* (the default:
 the Fortress meter is money as well as life, and a tenth of it is never spent) or *Personal
 Y$* (every Yeet earns their own Y$, shown by the meter: 5 a kill, 5 more for style, the
 combos, 30 and more for every wave held, 150 for bringing the boss down and 75 for everyone
@@ -593,7 +597,9 @@ godot --headless --path . -- --host --map highseas_dusk --bots 1 --tour x --tour
 # pieces left out (the Fortress as a deathmatch)
 godot --headless --path . -- --host --map res://maps/fortress.tscn --bots 0 --tour x --tour-mode setup
 # MegaYeet: waves, the ways to the Heart, a gate battered down, the meter, kills, bots, the
-# time 200 monsters take a tick, the fall and a fresh start, the shop window and personal Y$
+# time 200 monsters take a tick, the fall and a fresh start, the shop window and personal Y$,
+# traps put down anywhere (the preview, paid when down, not on the Heart or another trap, Max
+# Traps, picked up and put down again, sold for half, sold when the wave comes)
 # (screenshots with a folder)
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --tour /tmp/shots --tour-mode megayeet
 # Make your own versions: a pipe pouring from its model's Spout, a drain's Intake, oil drums
@@ -630,7 +636,7 @@ godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 0
 # ... with a full house of bots (11) and a big wave: how long the server's frames take
 godot --headless --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 11 --tour x --tour-mode megayeetbots
 # ... and over the network: a client joining a MegaYeet host sees the monsters and the meter,
-# and buys a power-up in the shop
+# puts a trap down and buys a power-up in the shop
 godot --headless --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 2 --port 24781
 godot --headless --path . -- --join 127.0.0.1 --port 24781 --tour x --tour-mode megayeetclient
 # Fixtures: the Pump House's machines run, the wired pump waits, breaking and mending, a zap

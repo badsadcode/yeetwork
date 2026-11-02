@@ -485,7 +485,8 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
   Refill** (what kills put back, 3 and 2 more for style), **Wave Bonus** (holding a wave,
   60), **First Break** and **Break Time** (seconds, 12 and 25), **Wave Size** (times the
   usual: 24 in wave 1, ten more each wave) and **Max Monsters** (at once, 220; fewer for the
-  Steam Deck), **Boss Every** (a boss wave every this many, 5; 0: none), **Boss Health**
+  Steam Deck), **Max Traps** (how many traps players can put down anywhere, 12; the map's
+  trap spots don't count), **Boss Every** (a boss wave every this many, 5; 0: none), **Boss Health**
   (3000; more with more players and each time it returns) and **Boss Reward** (300).
 - **TrapSpot**: a place for a trap (a box, **Size**, its bottom on the node), built between
   waves by a player with Use or from the shop window (which builds the free spot of that kind
@@ -494,7 +495,11 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
   **Kind**: `spikes` (monsters crossing are hurt and slowed), `fire` (a burning grate: they
   catch fire), `mine` (blows up under the first monsters, then it's gone: build it again).
   Built traps last until the fortress falls. Put them where monsters will come: behind a
-  gate, in a passage. Not built, a faint outline shows where it goes. **Your Own Trap**:
+  gate, in a passage. Not built, a faint outline shows where it goes. Players can also put
+  traps down anywhere monsters walk (the shop: a preview where they aim), up to the Heart's
+  **Max Traps** (12; on top of the map's spots): a map's spots are suggestions, a trap of the
+  spot's kind aimed into it goes on the spot. A built trap, spot or not, can be picked up
+  between waves (Use) to move it, or sold for half. **Your Own Trap**:
   its name, model and numbers (damage, slowing, burning, blast): see *Make your own
   versions*.
 - Between waves players also **repair gates** (Use on a broken one; the more is gone, the

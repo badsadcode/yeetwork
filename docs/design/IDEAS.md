@@ -111,8 +111,12 @@ maps, bots joining in.
   **Economy** option: *Shared* (the meter is life and money: the challenge) or *Personal Y$*
   (each Yeet earns Y$ from kills, style, combos, waves held and the boss, and buys for
   themselves; the meter is only life; Y$ heals the Heart, dearly).
-- **Next, planned with Tomek**: **traps placed anywhere** (bought, then put down where you
-  aim, with a preview); for now a bought trap goes on the free map spot nearest you.
+- **Done with Tomek** (2026-11-02): **traps placed anywhere**: bought, then put down where
+  you aim with a preview (green, or red with the reason), turned with the wheel, paid when
+  down; where monsters walk, not on the Heart or another trap, up to the Heart's Max Traps
+  (12); a map's spots are suggestions (a trap of the kind snaps onto one); Use on a built
+  trap picks it up between waves to move it (free) or sell it (half); one still carried
+  when the wave comes is sold.
 
 ## Art pack: every model and texture swappable without code (Tomek, for when the game's done)
 

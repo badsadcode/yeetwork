@@ -75,6 +75,7 @@ var puzzle_results := {} # the end screen (Puzzle mode), the same on every peer
 ## What the HUD shows of a mode's state (Yeetball: rules, clock, overtime), set by the server.
 var mode_state := {}
 var horde: Horde # MegaYeet's monsters (every peer)
+var trap_placer: TrapPlacer # MegaYeet: putting a trap down (the local player)
 var _pickups: Array = [] # server: per arena.pickups entry [0 off / 1 taken / 2 there, kind, back at]
 
 
@@ -349,6 +350,7 @@ func _build_init_state() -> Dictionary:
 		"wall_damage": wall_damage,
 		"scores": team_scores,
 		"guns": guns,
+		"placed_traps": arena.puzzle.filter(func(n: PuzzleNode) -> bool: return n is TrapSpot and n.placed).map(func(n: TrapSpot) -> Array: return [n.puzzle_index, n.type_key(), n.global_transform, n.gone]),
 		"puzzle": arena.puzzle.map(func(n: PuzzleNode) -> bool: return n.active),
 		"lights_broken": _broken_lights.keys(),
 		"cargo_loose": _cargo_loose.keys(),
@@ -400,6 +402,10 @@ func _s_init(state: Dictionary) -> void:
 		var pl := get_player(g[0])
 		if pl:
 			pl.gun.set_visual_state(g[1], g[2])
+	for e: Array in state.get("placed_traps", []): # (first: the puzzle states count them)
+		_s_trap_placed(e[0], e[1], e[2])
+		if e[3]:
+			_s_trap_gone(e[0])
 	var pz: Array = state.get("puzzle", [])
 	for i in mini(pz.size(), arena.puzzle.size()):
 		arena.puzzle[i].set_active(pz[i], false)
@@ -1551,7 +1557,7 @@ func server_horde_snapshot(buf: PackedByteArray) -> void:
 
 
 @rpc("authority", "call_remote", "unreliable_ordered", 3)
-func _s_horde(buf: PackedByteArray) -> void:
+func _s_horde(buf := PackedByteArray()) -> void: # (an empty one, "no monsters", arrives as no argument)
 	if horde:
 		horde.apply_snapshot(buf)
 
@@ -2643,6 +2649,97 @@ func _c_use() -> void:
 	var pl := get_player(multiplayer.get_remote_sender_id())
 	if pl:
 		_server_use(pl)
+
+
+## MegaYeet: put a trap down (TrapPlacer; the server checks it: ModeMegaYeet.server_place).
+func place_trap(key: String, at: Vector3, yaw: float) -> void:
+	if is_server:
+		_server_place_trap(local_player, key, at, yaw)
+	else:
+		_c_place_trap.rpc_id(1, key, at, yaw)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_place_trap(key: String, at: Vector3, yaw: float) -> void:
+	_server_place_trap(get_player(multiplayer.get_remote_sender_id()), key, at, yaw)
+
+
+func _server_place_trap(pl: Player, key: String, at: Vector3, yaw: float) -> void:
+	var m := mode_logic as ModeMegaYeet
+	if m and pl:
+		m.server_place(pl, key, at, yaw)
+
+
+## MegaYeet: stop putting a trap down (one picked up is sold).
+func cancel_trap() -> void:
+	if is_server:
+		_server_cancel_trap(local_player)
+	else:
+		_c_cancel_trap.rpc_id(1)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _c_cancel_trap() -> void:
+	_server_cancel_trap(get_player(multiplayer.get_remote_sender_id()))
+
+
+func _server_cancel_trap(pl: Player) -> void:
+	var m := mode_logic as ModeMegaYeet
+	if m and pl:
+		m.server_cancel_trap(pl)
+
+
+## Server: this Yeet is to put a trap of this type down (bought: paid when it's down; picked
+## up: free), or stops ("").
+func server_trap_carry(pl: Player, key: String, free: bool) -> void:
+	if not pl.is_bot or pl == local_player: # (bots don't build; a check's held player does)
+		_to_owner(pl, "_s_trap_carry", [key, free])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_trap_carry(key: String, free: bool) -> void:
+	if trap_placer == null:
+		trap_placer = TrapPlacer.new()
+		trap_placer.world = self
+		add_child(trap_placer)
+	if key == "":
+		trap_placer.stop()
+	else:
+		trap_placer.start(key, free)
+
+
+## Server: a trap put down (a new TrapSpot, the same on every peer: the next puzzle index).
+func server_place_trap(key: String, xf: Transform3D, by: int) -> void:
+	var i := arena.puzzle.size()
+	_bc_all("_s_trap_placed", [i, key, xf])
+	(arena.puzzle[i] as TrapSpot).build(by)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_trap_placed(index: int, key: String, xf: Transform3D) -> void:
+	if index != arena.puzzle.size():
+		push_warning("Placed trap %d out of order (%d pieces)" % [index, arena.puzzle.size()])
+		return
+	var t := TrapSpot.make(self, key)
+	t.name = "PlacedTrap%d" % index
+	t.world = self
+	t.puzzle_index = index
+	arena.add_child(t)
+	t.global_transform = xf
+	arena.puzzle.append(t)
+	if horde:
+		horde._traps.append(t)
+
+
+## Server: a placed trap picked up, or the fortress fell: out of play for good.
+func server_remove_trap(index: int) -> void:
+	_bc_all("_s_trap_gone", [index])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_trap_gone(index: int) -> void:
+	if index >= 0 and index < arena.puzzle.size() and arena.puzzle[index] is TrapSpot:
+		(arena.puzzle[index] as TrapSpot).remove()
 
 
 ## MegaYeet's shop window: buy something (the server checks it: ModeMegaYeet.shop_buy).
