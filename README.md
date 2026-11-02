@@ -493,7 +493,7 @@ scripts/world/    arena.gd (+ Prime layout), map_facing.gd, destructible.gd, mat
                   map_high_seas.gd + ship.gd + container.gdshader (High Seas), ship_crane.gd
 scripts/mapkit/   the Map Kit's pieces (fixture.gd: set dressing that hums, turns, breaks;
                   ladder.gd, crane.gd, horn.gd; vessel.gd, ship_hold.gd, cargo_container.gd;
-                  breakable_model.gd; looks.gd: models, markers)
+                  breakable_model.gd, animated_model.gd; looks.gd: models, markers)
 scripts/modes/    mode_base.gd (sandbox), mode_ctf.gd, mode_dodgeball.gd, mode_megayeet.gd...
 scripts/horde/    horde.gd (MegaYeet's monsters: server walkers, snapshots, one MultiMesh),
                   flow_field.gd (the ways to the Heart), monster_look.gd + monster.gdshader
@@ -598,10 +598,11 @@ godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3
 # PickupType), a fan and flag stands of your own, a brick wall and its pieces, a ladder out of
 # the swimmable sea, a crane and a bell of your own, a door, a window and a fence breaking part
 # by part, a shed door the gun rips off and throws apart, glass cabinets breaking into their
-# parts (the Workshop map)
+# parts, models playing their own animations (a windmill, a ferry you ride, a drawbridge on a
+# button) (the Workshop map)
 godot --path . -- --host --map res://custom/make_your_own/workshop.tscn --mode megayeet --bots 0 --tour /tmp/shots --tour-mode makeyourown
-# ... and over the network: a client sees the oil drums, the thorn bed, the cabinets and the
-# shed door as they are
+# ... and over the network: a client sees the oil drums, the thorn bed, the cabinets, the
+# shed door and the windmill turning as they are
 godot --headless --path . -- --host --map res://custom/make_your_own/workshop.tscn --bots 0 --port 24812
 godot --headless --path . -- --join 127.0.0.1 --port 24812 --tour x --tour-mode makeyourownclient
 # High Seas saved again as a Map Kit scene from its code builder (overwrites maps/high_seas.tscn)

@@ -99,6 +99,7 @@ func _ready() -> void:
 	await _phase3(pl)
 	await _breakables(pl)
 	await _breaking_props(pl)
+	await _animated(pl)
 	# Spray and a rift's glow seen against the sea (the sea mustn't paint over them).
 	_cam(Vector3(-1.5, 2.6, -0.5), Vector3(-20, 1.6, -6.5))
 	await _wait(0.4)
@@ -376,6 +377,70 @@ func _breaking_props(pl: Player) -> void:
 			boards += 1
 	_check("... broken, its boards and handle fly off whole, its glass shatters", not is_instance_valid(cab) or cab.is_queued_for_deletion(), "")
 	_check("... (7 parts, no glass among them)", boards == 7 and glass == 0, "%d parts, %d glass" % [boards, glass])
+
+
+## Models playing their own animations (AnimatedModel): the windmill turns on the shared clock,
+## the ferry carries a Yeet, a button lowers the drawbridge (stand on it) and raises it again.
+func _animated(pl: Player) -> void:
+	var am := {}
+	for n in world.arena.puzzle:
+		if n is AnimatedModel:
+			am[String(n.name)] = n
+	var mill: AnimatedModel = am.get("Windmill")
+	var ferry: AnimatedModel = am.get("Ferry")
+	var bridge: AnimatedModel = am.get("Drawbridge")
+	_check("models playing their own animations (AnimatedModel): a windmill, a sign, a ferry, a drawbridge", am.size() == 4 and mill and mill._anim == "Turn" and ferry and ferry._bodies.size() == 1 and bridge and bridge._bodies.size() == 1, "%s" % [am.keys()])
+	if am.size() < 4 or mill == null or ferry == null or bridge == null:
+		return
+	# The windmill: its sails turn, at the point of their animation the shared clock says.
+	var sails := mill._inst.find_child("Sails", true, false) as Node3D
+	var x0 := sails.global_basis.x
+	await _wait(0.5)
+	var turned := sails.global_basis.x.angle_to(x0)
+	var drift := absf(mill._ap.current_animation_position - mill.time_now(world.net_time()))
+	# (a few frames' lag under load at most: not on the clock, it'd be seconds out)
+	_check("... the windmill's sails turn, every player at the same point (the shared clock)", turned > 0.2 and (drift < 0.25 or drift > mill._len - 0.25), "turned %.2f rad, %.3f s off the clock" % [turned, drift])
+	_cam(mill.global_position + Vector3(9, 5, 9), mill.global_position + Vector3(0, 5, 0))
+	await _wait(0.2)
+	await _shot("y20_windmill")
+	# The ferry: stand on it, and it carries you out over the sea.
+	var deck := ferry._bodies[0][0] as AnimatableBody3D
+	world.server_clear_buffs(pl)
+	pl.respawn(deck.global_position + Vector3(0, 0.4, 0), 0.0)
+	await _wait(0.3)
+	# (the most it moves in 3 s: it goes to and fro, so two moments alone can straddle a turn)
+	var d0 := deck.global_position
+	var moved := 0.0
+	var on := true
+	for k in 30:
+		await _wait(0.1)
+		moved = maxf(moved, deck.global_position.distance_to(d0))
+		on = on and Vector2(pl.global_position.x - deck.global_position.x, pl.global_position.z - deck.global_position.z).length() < 1.6 and absf(pl.global_position.y - deck.global_position.y - 0.2) < 0.5
+	_check("... the ferry carries a Yeet standing on it", moved > 0.8 and on, "deck moved up to %.2f m, the Yeet on it all along %s" % [moved, on])
+	_cam(deck.global_position + Vector3(6, 4, -3), deck.global_position)
+	await _wait(0.1)
+	await _shot("y21_ferry")
+	# The drawbridge: up; a press lowers it (walk across), another raises it.
+	var span := bridge._bodies[0][0] as AnimatableBody3D
+	var up0 := span.global_basis.y.dot(Vector3.UP)
+	var btn: PuzzleButton = null
+	for n in world.arena.puzzle:
+		if n is PuzzleButton and String(n.name) == "BridgeButton":
+			btn = n
+	btn.server_used(pl)
+	await _wait(3.6)
+	var flat := span.global_basis.y.dot(Vector3.UP)
+	pl.respawn(span.global_position + Vector3(0, 0.4, 0), 0.0)
+	await _wait(0.6)
+	var standing := pl.is_on_floor() and absf(pl.global_position.y) < 0.4
+	_check("... a button (Use) lowers the drawbridge: up, then flat, a Yeet stands on it", up0 < 0.4 and flat > 0.99 and bridge.active and standing, "up %.2f, then %.2f, on it %s (y %.2f)" % [up0, flat, standing, pl.global_position.y])
+	_cam(span.global_position + Vector3(-3, 4, 6), span.global_position + Vector3(2, 0, 0))
+	await _wait(0.1)
+	await _shot("y22_drawbridge")
+	pl.respawn(Vector3(15, 0, -11), 0.0)
+	btn.server_used(pl)
+	await _wait(3.6)
+	_check("... pressed again, it rises", span.global_basis.y.dot(Vector3.UP) < 0.4 and not bridge.active, "up %.2f" % span.global_basis.y.dot(Vector3.UP))
 
 
 ## The cell of a model's part by its name.

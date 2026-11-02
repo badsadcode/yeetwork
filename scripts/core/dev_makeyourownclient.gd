@@ -40,6 +40,15 @@ func _ready() -> void:
 			shed = md
 	var plank := Prop.model_part(world, {"mwall": shed.wall_id, "part": 0}) if shed else []
 	_check("... the shed door tears off (its parts to build the torn-off door from)", shed != null and not plank.is_empty() and plank[2] == "wood", "")
+	# A model playing its own animation: the windmill's sails turn here too.
+	var mill: AnimatedModel = null
+	for n in world.arena.puzzle:
+		if n is AnimatedModel and String(n.name) == "Windmill":
+			mill = n
+	var sails := mill._inst.find_child("Sails", true, false) as Node3D if mill and mill._inst else null
+	var x0 := sails.global_basis.x if sails else Vector3.ZERO
+	await get_tree().create_timer(0.5).timeout
+	_check("... the windmill (an AnimatedModel) turns for a client too", sails != null and sails.global_basis.x.angle_to(x0) > 0.2, "")
 	print("MAKE YOUR OWN CLIENT CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
 	get_tree().quit(0 if _failed == 0 else 1)
 

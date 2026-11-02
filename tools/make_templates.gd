@@ -24,6 +24,14 @@ extends SceneTree
 ##   two braces, a metal knob that comes off whole), a fence (posts and rails).
 ## - cabinet.glb: a glass-fronted cabinet for a PropType that Breaks Into Its Parts (origin in
 ##   its middle): its boards ("Wood_"), a glass door ("Glass_"), a metal handle ("Metal_").
+## - For an AnimatedModel, each with its animation (object animation, no armature), its
+##   moving solid parts named "Collision...":
+##   - windmill.glb: a tower (solid: "Collision_Tower") and its "Sails" turning ("Turn", a loop).
+##   - sign.glb: an inn sign: its "Board" swinging on its arm ("Swing", ping pong).
+##   - platform.glb: a "Deck" sliding 6 m along +X and back ("Slide", ping pong); its
+##     "Collision_Deck" inside it, so it carries whoever stands on it.
+##   - drawbridge.glb: a 6 m bridge on its "Hinge", lowering from upright to flat along -Z
+##     ("Lower", play it once: wired to a button, down while it's on, up while it's off).
 ## And ../textures/bricks.png, a brick texture for a breakable wall's Custom Material.
 ## Usage: godot --headless --path . --script res://tools/make_templates.gd
 
@@ -47,6 +55,10 @@ func _init() -> void:
 	_save(_door(), "door")
 	_save(_fence(), "fence")
 	_save(_cabinet(), "cabinet")
+	_save(_windmill(), "windmill")
+	_save(_sign(), "sign")
+	_save(_platform(), "platform")
+	_save(_drawbridge(), "drawbridge")
 	_bricks()
 	quit()
 
@@ -428,6 +440,127 @@ func _cabinet() -> Node3D:
 	_box_part(root, "Wood_Shelf", Vector3(0.7, 0.04, 0.38), Vector3(0, 0, -0.02), wood)
 	_box_part(root, "Glass_Door", Vector3(0.68, 0.96, 0.02), Vector3(0, 0, 0.21), glass)
 	_box_part(root, "Metal_Handle", Vector3(0.03, 0.16, 0.03), Vector3(0.27, 0, 0.24), brass)
+	return root
+
+
+## An animation on a model: tracks [node path, "rotation" or "position", [[time, value]...]],
+## rotations as Basis-free Euler degrees (Vector3).
+func _animate(root: Node3D, anim_name: String, length: float, tracks: Array) -> void:
+	var ap := AnimationPlayer.new()
+	ap.name = "AnimationPlayer"
+	root.add_child(ap)
+	var a := Animation.new()
+	a.length = length
+	for t: Array in tracks:
+		if t[1] == "rotation":
+			var tr := a.add_track(Animation.TYPE_ROTATION_3D)
+			a.track_set_path(tr, NodePath(t[0]))
+			for k: Array in t[2]:
+				var e: Vector3 = k[1]
+				a.rotation_track_insert_key(tr, k[0], Basis.from_euler(Vector3(deg_to_rad(e.x), deg_to_rad(e.y), deg_to_rad(e.z))).get_rotation_quaternion())
+		else:
+			var tr := a.add_track(Animation.TYPE_POSITION_3D)
+			a.track_set_path(tr, NodePath(t[0]))
+			for k: Array in t[2]:
+				a.position_track_insert_key(tr, k[0], k[1])
+	var lib := AnimationLibrary.new()
+	lib.add_animation(anim_name, a)
+	ap.add_animation_library("", lib)
+
+
+## A windmill (origin on the ground at its middle): a tapering tower and four sails on the
+## front (+Z), turning once every 6 seconds.
+func _windmill() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Windmill"
+	var white := _mat(Color(0.92, 0.9, 0.85), 0.9)
+	var roof := _mat(Color(0.55, 0.25, 0.2), 0.8)
+	var wood := _mat(Color(0.5, 0.36, 0.22), 0.85)
+	var cloth := _mat(Color(0.95, 0.93, 0.86), 0.95)
+	var tower := CylinderMesh.new()
+	tower.top_radius = 1.3
+	tower.bottom_radius = 2.0
+	tower.height = 7.0
+	tower.radial_segments = 8
+	_mesh(root, "Tower", tower, white, Transform3D(Basis.IDENTITY, Vector3(0, 3.5, 0)))
+	var cap := CylinderMesh.new()
+	cap.top_radius = 0.0
+	cap.bottom_radius = 1.6
+	cap.height = 1.6
+	cap.radial_segments = 8
+	_mesh(root, "Roof", cap, roof, Transform3D(Basis.IDENTITY, Vector3(0, 7.8, 0)))
+	_box_part(root, "Collision_Tower", Vector3(3.0, 7.0, 3.0), Vector3(0, 3.5, 0), white)
+	var sails := Node3D.new()
+	sails.name = "Sails"
+	sails.position = Vector3(0, 6.4, 1.6)
+	root.add_child(sails)
+	var hub := _cyl(0.35, 0.5)
+	_mesh(sails, "Hub", hub, wood, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO))
+	for i in 4:
+		var arm := Node3D.new()
+		arm.name = "Arm%d" % i
+		arm.rotation.z = i * PI * 0.5
+		sails.add_child(arm)
+		_box_part(arm, "Spar%d" % i, Vector3(0.18, 4.6, 0.12), Vector3(0, 2.4, 0.1), wood)
+		_box_part(arm, "Cloth%d" % i, Vector3(1.0, 3.6, 0.04), Vector3(0.6, 2.8, 0.12), cloth)
+	_animate(root, "Turn", 6.0, [["Sails", "rotation", [[0.0, Vector3.ZERO], [1.5, Vector3(0, 0, -90)], [3.0, Vector3(0, 0, -180)], [4.5, Vector3(0, 0, -270)], [6.0, Vector3(0, 0, -360)]]]])
+	return root
+
+
+## An inn sign (origin on the ground at its post): a post, an arm along +X, a board hanging
+## from it swinging to and fro.
+func _sign() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Sign"
+	var wood := _mat(Color(0.42, 0.3, 0.18), 0.85)
+	var paint := _mat(Color(0.2, 0.42, 0.3), 0.7)
+	var iron := _mat(Color(0.2, 0.2, 0.22), 0.4, 0.8)
+	_box_part(root, "Post", Vector3(0.2, 3.2, 0.2), Vector3(0, 1.6, 0), wood)
+	_box_part(root, "ArmBeam", Vector3(1.6, 0.14, 0.14), Vector3(0.7, 3.0, 0), wood)
+	var board := Node3D.new()
+	board.name = "Board"
+	board.position = Vector3(1.0, 2.93, 0)
+	root.add_child(board)
+	_box_part(board, "Chains", Vector3(0.9, 0.3, 0.03), Vector3(0, -0.15, 0), iron)
+	_box_part(board, "Panel", Vector3(1.0, 0.7, 0.06), Vector3(0, -0.65, 0), paint)
+	_animate(root, "Swing", 1.6, [["Board", "rotation", [[0.0, Vector3(-22, 0, 0)], [0.8, Vector3(0, 0, 0)], [1.6, Vector3(22, 0, 0)]]]])
+	return root
+
+
+## A platform (origin where its deck's top starts): a 3 x 0.4 x 3 m deck sliding 6 m along +X
+## and back.
+func _platform() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Platform"
+	var deck_mat := _mat(Color(0.55, 0.42, 0.28), 0.85)
+	var trim := _mat(Color(0.95, 0.75, 0.15), 0.5)
+	var deck := Node3D.new()
+	deck.name = "Deck"
+	root.add_child(deck)
+	_box_part(deck, "Boards", Vector3(3, 0.4, 3), Vector3(0, -0.2, 0), deck_mat)
+	_box_part(deck, "Edge", Vector3(3.1, 0.08, 3.1), Vector3(0, -0.02, 0), trim)
+	_box_part(deck, "Collision_Deck", Vector3(3, 0.4, 3), Vector3(0, -0.2, 0), deck_mat)
+	_animate(root, "Slide", 4.0, [["Deck", "position", [[0.0, Vector3.ZERO], [4.0, Vector3(6, 0, 0)]]]])
+	return root
+
+
+## A drawbridge (origin at its hinge, its deck's top there): 6 m long, 3 m wide, lowering
+## from upright to flat along -Z in 3 seconds.
+func _drawbridge() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Drawbridge"
+	var wood := _mat(Color(0.5, 0.36, 0.22), 0.85)
+	var iron := _mat(Color(0.25, 0.25, 0.28), 0.4, 0.8)
+	_box_part(root, "PostLeft", Vector3(0.4, 4.0, 0.4), Vector3(-1.8, 1.0, 0.2), wood)
+	_box_part(root, "PostRight", Vector3(0.4, 4.0, 0.4), Vector3(1.8, 1.0, 0.2), wood)
+	var hinge := Node3D.new()
+	hinge.name = "Hinge"
+	hinge.rotation.x = deg_to_rad(80.0)
+	root.add_child(hinge)
+	_box_part(hinge, "Bridge", Vector3(3, 0.3, 6), Vector3(0, -0.15, -3), wood)
+	_box_part(hinge, "Bands", Vector3(3.05, 0.32, 0.2), Vector3(0, -0.15, -5.5), iron)
+	_box_part(hinge, "Collision_Bridge", Vector3(3, 0.3, 6), Vector3(0, -0.15, -3), wood)
+	_animate(root, "Lower", 3.0, [["Hinge", "rotation", [[0.0, Vector3(80, 0, 0)], [3.0, Vector3.ZERO]]]])
 	return root
 
 

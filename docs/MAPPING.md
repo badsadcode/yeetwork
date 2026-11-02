@@ -400,6 +400,21 @@ A door, a window, a fence you modelled: each separate part (each mesh) breaks on
 - Parts work best mostly flat or long (panes, planks, boards, posts, bars); a chunky part
   breaks into pieces cut through its box.
 
+### AnimatedModel (your model, moving the way you animated it)
+A windmill, a swinging sign, a bobbing buoy, a piston, a sliding platform, a drawbridge: your
+model playing its own Blender animation (object animation is enough; armatures work too).
+- **Model**; **Animation**: which action (empty: the first). **Play**: `loop`, `ping pong`
+  (there and back) or `once` (to its end, then it stays). **Speed**, **Offset** (seconds in,
+  so several don't move in step). **Preview**: it moves in the editor too.
+- It runs off the match clock: every player sees it at the same point, nothing is sent.
+- **Solid** (on): its parts named `Collision...` are what things bump into and stand on,
+  moving with it (made convex, hidden in the game); a moving platform carries riders. Put a
+  Collision part inside the part that moves.
+- **Inputs** (a puzzle piece): it plays while they're on; with `once`, forward while on and
+  back while off (a drawbridge on a button). It's on (for other pieces) while it plays.
+- The map check notes a model with no animation, or none called **Animation**.
+- Starter models: `custom/make_your_own/models/` windmill, sign, platform, drawbridge.
+
 ### Ladder, Crane, Horn (High Seas' pieces, for any map)
 - **Ladder**: climb a wall (a building, a ship's side, out of a pool or the sea). Put the node
   at the foot against the wall, its **+Z** (blue arrow) pointing away from the wall, toward the

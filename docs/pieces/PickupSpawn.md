@@ -19,4 +19,4 @@ A pickup floating over a pad on the floor: walk through it to take it. It comes 
 
 ## Used in
 
-[Lighthouse Point](../../custom/lighthouse_point/lighthouse_point.tscn) (6), [Make Your Own Workshop](../../custom/make_your_own/workshop.tscn), [Courtyard](../../maps/courtyard.tscn) (5), [Facing Yeets](../../maps/facing.tscn) (6), [Haunted Yard](../../maps/haunted_yard.tscn) (4), [Hoops Court](../../maps/hoops_court.tscn) (2), [Lagoon](../../maps/lagoon.tscn) (5), [Yeetwork Prime](../../maps/prime.tscn) (6), [Volley Beach](../../maps/volley_beach.tscn) (2), [Yeetball Stadium](../../maps/yeetball_stadium.tscn) (2)
+[Lighthouse Point](../../custom/lighthouse_point/lighthouse_point.tscn) (6), [Make Your Own Workshop](../../custom/make_your_own/workshop.tscn) (2), [Courtyard](../../maps/courtyard.tscn) (5), [Facing Yeets](../../maps/facing.tscn) (6), [Haunted Yard](../../maps/haunted_yard.tscn) (4), [Hoops Court](../../maps/hoops_court.tscn) (2), [Lagoon](../../maps/lagoon.tscn) (5), [Yeetwork Prime](../../maps/prime.tscn) (6), [Volley Beach](../../maps/volley_beach.tscn) (2), [Yeetball Stadium](../../maps/yeetball_stadium.tscn) (2)

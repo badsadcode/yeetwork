@@ -334,6 +334,28 @@ with a jump pad at the end of the pier to leap aboard. For a big ship, open
 `maps/high_seas.tscn`: High Seas is built the same way (a **ShipHold** for its engine room,
 **CargoContainers** for its cargo, CSG shapes for its rounded ends).
 
+**4i. Things that move: a windmill, a swinging sign, a platform, a drawbridge.** Animate it
+in Blender: object animation is enough (keyframe a part's rotation or location in the Timeline;
+no armature needed), and name the action (in the Action editor) for what it does: `Turn`,
+`Swing`. Export it (glTF, with Animation ticked). Add an **AnimatedModel** and drag the model
+onto its **Model** slot; press F6 and it moves. In the game:
+
+- **Play**: `loop` (round and round: the windmill), `ping pong` (there and back: the sign, a
+  sliding platform) or `once` (to its end, then it stays there). **Speed** makes it faster or
+  slower; **Offset** starts it further on, so several of the same don't move in step.
+  **Animation** picks the action, if the model has more than one.
+- Everyone sees it at the same point of its animation: it runs off the match clock.
+- **Solid parts**: name a part `Collision...` (`Collision_Deck`) and it's what players bump
+  into and stand on, moving with the animation (hidden in the game; keep it a box or another
+  simple shape). Put it inside the part that moves (a child of the deck) and it moves with
+  it. A platform carries whoever stands on it. Without a Collision part you walk through it.
+- **Wired to a puzzle**: give it **Inputs** (a button, a plate) and it plays only while
+  they're on. With **Play** `once`, it goes forward while they're on and back while they're
+  off: a drawbridge a button lowers and raises, a gate that opens.
+
+`custom/make_your_own/models/` has a windmill, an inn sign, a sliding platform and a
+drawbridge; the Workshop has all four (the drawbridge on a button, across to an islet).
+
 **Did I name it right?** Run the map check (the `--validate` line in step 10):
 it lists each model's missing markers and what that means ("its model has no Spout: the
 water falls straight down"), and catches a near miss ("spout": the name must be "Spout"

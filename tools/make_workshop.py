@@ -7,7 +7,9 @@ Custom Material), stone flag stands (CTF), a crane of your own swinging a crate,
 Horn), a swimmable sea round the island with a wooden ladder up out of it, the built-in ladder
 up the pool's back wall, a door, a window and a fence that break part by part (BreakableModel),
 a shed door the gravity gun rips off (Tear Off), glass cabinets that break into their parts
-(a PropType),
+(a PropType), models playing their own animations (AnimatedModel): a windmill, a swinging
+sign, a platform ferrying you out over the sea and back, a drawbridge a button lowers to an
+islet,
 and, for MegaYeet, a thorn bed (your own trap) and a built-in fire
 grate on the monsters' way to the Heart.
 
@@ -49,6 +51,12 @@ ext = [
     ('PackedScene', 'res://custom/make_your_own/models/door.glb', 'doormodel'),
     ('PackedScene', 'res://custom/make_your_own/models/window.glb', 'windowmodel'),
     ('PackedScene', 'res://custom/make_your_own/models/fence.glb', 'fencemodel'),
+    ('Script', 'res://scripts/mapkit/animated_model.gd', 'anim'),
+    ('Script', 'res://scripts/mapkit/puzzle_button.gd', 'button'),
+    ('PackedScene', 'res://custom/make_your_own/models/windmill.glb', 'windmillmodel'),
+    ('PackedScene', 'res://custom/make_your_own/models/sign.glb', 'signmodel'),
+    ('PackedScene', 'res://custom/make_your_own/models/platform.glb', 'platformmodel'),
+    ('PackedScene', 'res://custom/make_your_own/models/drawbridge.glb', 'bridgemodel'),
 ]
 
 nodes = []
@@ -144,6 +152,19 @@ node('Window', 'bmodel', 'More', at=(17.5, 0, 10), model='ExtResource("windowmod
 node('Fence', 'bmodel', 'More', at=(15, 0, 4), model='ExtResource("fencemodel")', material='"wood"')
 # The same door again, on a shed: the gravity gun rips it off its frame (Tear Off).
 node('ShedDoor', 'bmodel', 'More', at=(20.5, 0, 10), model='ExtResource("doormodel")', material='"wood"', tear_off='true')
+# Models playing their own animations (AnimatedModel): a windmill, a swinging sign, a platform
+# from the south shore out over the sea and back, and a drawbridge to an islet off the east
+# shore, lowered and raised with a button (Use).
+node('Windmill', 'anim', 'More', at=(-17, 0, 15), model='ExtResource("windmillmodel")')
+node('InnSign', 'anim', 'More', at=(-2, 0, 11), model='ExtResource("signmodel")', play='"ping pong"')
+# (the ferry starts just off the shore, all of it over the sea: a deck sliding inside the
+# island's floor would leave whoever stands there behind on the floor)
+node('Ferry', 'anim', 'More', at=(-14, 0, 23.55), yaw=-90, model='ExtResource("platformmodel")', play='"ping pong"', speed='0.6')
+node('Islet', 'block', 'Blocks', at=(31, -3, -14), size=vec(6, 6, 6), color=color(0.55, 0.55, 0.5))
+node('IsletPrize', 'pickup', 'More', at=(31, 0, -14), kind='"random"')
+node('BridgeButton', 'button', 'More', at=(20, 0, -11), press='"use key"', label='"Drawbridge"')
+node('Drawbridge', 'anim', 'More', at=(22, 0, -14), yaw=-90, model='ExtResource("bridgemodel")', play='"once"',
+     inputs='Array[NodePath]([NodePath("../BridgeButton")])')
 # Where the Yeets start.
 for i, x in enumerate([-3, 0, 3, 6]):
     node('Spawn%d' % i, 'spawn', '.', at=(x, 0, 16))

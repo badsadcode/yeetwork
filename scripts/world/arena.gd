@@ -889,6 +889,8 @@ func _note_models(n: Node) -> void:
 	var m = n.get("model")
 	if m is PackedScene:
 		model_notes.append_array(Looks.notes(who, m, cls))
+	if n is AnimatedModel:
+		model_notes.append_array(AnimatedModel.notes(who, m, (n as AnimatedModel).animation))
 	if n is BreakableModel and m is PackedScene:
 		# What it's made of, and what holds it up.
 		var inst := (m as PackedScene).instantiate()

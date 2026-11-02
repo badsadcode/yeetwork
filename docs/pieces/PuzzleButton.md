@@ -28,4 +28,4 @@ Name these parts (or empties, for places) in your model exactly so: the map chec
 
 ## Used in
 
-[Haunted Yard](../../maps/haunted_yard.tscn), [The Pump House](../../maps/pump_house.tscn), [The Scrapyard](../../maps/scrapyard.tscn), [Test Chambers](../../maps/test_chambers.tscn) (3)
+[Make Your Own Workshop](../../custom/make_your_own/workshop.tscn), [Haunted Yard](../../maps/haunted_yard.tscn), [The Pump House](../../maps/pump_house.tscn), [The Scrapyard](../../maps/scrapyard.tscn), [Test Chambers](../../maps/test_chambers.tscn) (3)

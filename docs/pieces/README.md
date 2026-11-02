@@ -31,6 +31,7 @@ What the map is made of, and what moves you round it.
 | [GrapplePoint](GrapplePoint.md) | A ring to grapple onto. |
 | [HazardVolume](HazardVolume.md) | A box that does something to whatever is in it, by Kind: acid or lava (a glowing pool that hurts and bounces you up), water (a pool to swim in; wood and rubber float), kill (instant death: under a void), wind (a constant push: an updraft) or fire (a burning place: flames over the bottom of the box that set players and wood alight). |
 | [Spinner](Spinner.md) | Slowly turns its children around its local Y axis in game (decorations: Prime's orb ring, Facing's crystal). |
+| [AnimatedModel](AnimatedModel.md) | Your own model, moving the way you animated it in Blender: a windmill's sails turning, a sign swinging, a buoy bobbing, a piston, a platform sliding to and fro, a drawbridge. |
 
 ## Things in it
 

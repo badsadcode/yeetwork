@@ -31,7 +31,9 @@ rips its loose parts off together as one prop; thrown hard, it comes apart: the 
 current), the walkthrough rebuilding Courtyard (`docs/REBUILD_A_MAP.md`) and the one making
 a new map from an idea, Lighthouse Point (`docs/MAKE_A_NEW_MAP.md`,
 `custom/lighthouse_point/`, checked in CI); the walkthroughs' tables are made from their maps.
-Next: Phase 5 (things that animate).
+Next: Phase 5 (things that animate), planned in
+[MAKE_YOUR_OWN_ANIMATED.md](MAKE_YOUR_OWN_ANIMATED.md): animated scenery first (**done**
+2026-11-02: AnimatedModel), then your own gravity gun, your own monsters, rigged monsters.
 
 ## The idea in one paragraph
 
@@ -141,3 +143,4 @@ contacts, goal, volley net, the Heart, lights, machines (Fixture), trap spots: *
    its markers, a template model).
 5. **Things that animate**: monsters as type files with your rigged models (which animation
    plays when: walk, hit, fall, climb), then the Yeets and the gravity gun (an art pack).
+   The detailed plan: [MAKE_YOUR_OWN_ANIMATED.md](MAKE_YOUR_OWN_ANIMATED.md).

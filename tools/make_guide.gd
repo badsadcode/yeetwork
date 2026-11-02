@@ -31,6 +31,7 @@ const PIECES := [
 	["GrapplePoint", "res://scripts/mapkit/grapple_point.gd", "Building"],
 	["HazardVolume", "res://scripts/mapkit/hazard_volume.gd", "Building"],
 	["Spinner", "res://scripts/mapkit/spinner.gd", "Building"],
+	["AnimatedModel", "res://scripts/mapkit/animated_model.gd", "Building"],
 	["PropSpawn", "res://scripts/mapkit/prop_spawn.gd", "Things in it"],
 	["PropType", "res://scripts/props/prop_type.gd", "Things in it"],
 	["PickupSpawn", "res://scripts/mapkit/pickup_spawn.gd", "Things in it"],
@@ -104,6 +105,7 @@ const MARKERS := {
 	"Crane": [["Turret", "slews (its jib along its +X)"], ["Hook", "where the cable hangs (an empty at the jib's end)"]],
 	"Horn": [["Lever", "is pulled when it sounds"]],
 	"PropType": [["Collision", "a mesh that is its shape (made convex, hidden in the game)"]],
+	"AnimatedModel": [["Collision...", "any part whose name starts so is solid, moving with the animation and carrying what stands on it (made convex, hidden in the game)"]],
 }
 
 ## Files to start from: [path, what it is].
@@ -123,6 +125,7 @@ const STARTERS := {
 	"BreakableModel": [["custom/make_your_own/models/door.glb", "a door of planks in a Fixed frame"], ["custom/make_your_own/models/window.glb", "a window: a Fixed frame, glass, a wooden mullion"], ["custom/make_your_own/models/fence.glb", "a fence: posts and rails"]],
 	"BreakableSlab": [["custom/make_your_own/bricks.tres", "a brick material for Custom Material"]],
 	"Vessel": [["custom/make_your_own/boat.tscn", "Make Your Own Boat: a boat beside an island"]],
+	"AnimatedModel": [["custom/make_your_own/models/windmill.glb", "a windmill, its sails turning (loop)"], ["custom/make_your_own/models/sign.glb", "an inn sign swinging (ping pong)"], ["custom/make_your_own/models/platform.glb", "a platform sliding 6 m and back, carrying riders (ping pong)"], ["custom/make_your_own/models/drawbridge.glb", "a drawbridge lowering (once: wire it to a button)"]],
 }
 
 var _check := false
