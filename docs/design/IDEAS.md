@@ -39,6 +39,20 @@ pieces and a first level: [PUZZLE_COOP.md](PUZZLE_COOP.md). Step 1 is built; the
 revised with Noor's notes (multiple solutions always count, nothing stays broken, celebrate
 ridiculous solutions; six test chambers).
 
+## Adventure mode (idea, Tomek 2026-11-02; later)
+
+A few maps linked by a story, played co-op: the players work together, doing things that
+move the story on from one map to the next. Just an idea for now, nothing decided.
+- **An investigation in a big mansion**, maybe a haunted one: clues to find, rooms to open,
+  something going bump in the night.
+- **Everything enormous**: a mansion (or any map) built huge, so the Yeets feel like
+  miniatures, as if shrunk (they aren't: the map is just bigger). Climbing a bookshelf,
+  crossing a desk, books as bridges and walls, a sofa as a mountain.
+- To think about: how the maps link (an exit leads to the next map, progress kept between
+  them), the story told on the way (notes, voices, the map changing), what carries over
+  between maps, saving partway. The co-op puzzle mode's pieces (objectives, exits,
+  checkpoints, Lost Yeets) and the Map Kit are a likely start.
+
 ## Gravity gun: Grapple mode (later)
 
 A second mode for the same gun: amber energy, claws partly retracted, an energy anchor on a
