@@ -512,6 +512,26 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
   line round it on the ground.
 - **MonsterSpawn**: a rift monsters come out of (**Radius**). Several round the outside;
   **From Wave** keeps one shut until then (a surprise later on).
+- **Monsters of your own**: a **MonsterType** file (Create New > Resource > MonsterType) on
+  the Heart's **Monster Types** list joins the waves: **Behaves Like** a built-in kind (how it
+  moves and what it can do: a runner sprints, a brute smashes gates, a ghost drifts through
+  walls, a climber scales them, a bomber blows up), your **Model**, and its own **Hit
+  Points**, **Speed**, **Bite**, **Bash**, **Size**, **Burns**, **Grabbable** (0, or "as it":
+  the built-in kind's). **From Wave** and **Share** (0.3: about a third of every wave from
+  then on); **Announce**, what the wave says the first time it comes.
+  - The model: facing -Z (Blender +Y, like the Yeets), feet at the origin, about a Yeet's
+    height (1.8 m; **Size** scales it), in parts named `Torso`, `Leg_L`, `Leg_R`, `Arm_L`,
+    `Arm_R`, `Head`, **each with its origin at its joint** (the hips, the shoulders, the
+    neck): the game swings them like the built-in monsters' (a lurching stride, reaching
+    arms, flailing when thrown, a lolling head). Anything else rides on the part it's in (or
+    the torso). `Glow` in a part's or a material's name (or an emissive material) glows.
+    Colours and textures (one per material) show as in Blender.
+  - They're drawn by the hundred like the built-in ones (no rigging, no slow-down): no
+    animations of your own, the swing is the game's.
+  - The map check notes a type with no model or with parts it doesn't find.
+  - The example: `custom/make_your_own/scarecrow.tres` (a scarecrow with a pumpkin head that
+    behaves like a shambler; straw burns), its model `models/scarecrow.glb`, in the Make Your
+    Own Workshop.
 - Bots find their way round your fortress the way players can: walking, hopping anything
   up to about 1.3 m, dropping off walls, and riding **jump pads** (aimed with Target; not
   ones set by Velocity Override). Give the inner rings a way out (a low wall, a pad up onto
@@ -558,6 +578,7 @@ models (`.glb`, `.gltf`, `.blend`, `.fbx` or a `.tscn`) onto its slots. Pick it 
 | volley_net | `Net` | rises with the net (TOTAL YEET) |
 | fan (prop) | `Rotor` | spins |
 | door | (the whole model) | slides open like the built-in door |
+| monster_shambler ... monster_golem | `Torso`, `Leg_L`, `Leg_R`, `Arm_L`, `Arm_R`, `Head` (each origin at its joint) | swing like the built-in monster's (see *Monsters of your own* above): a theme's mummies for shamblers |
 | turntable, lift | (the whole model) | turns / rides along |
 
 **Slots**: *Lights* light_bulb, light_lamp_post, light_wall_lamp, light_candle,

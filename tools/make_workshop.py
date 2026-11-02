@@ -11,7 +11,8 @@ a shed door the gravity gun rips off (Tear Off), glass cabinets that break into 
 sign, a platform ferrying you out over the sea and back, a drawbridge a button lowers to an
 islet,
 and, for MegaYeet, a thorn bed (your own trap) and a built-in fire
-grate on the monsters' way to the Heart.
+grate on the monsters' way to the Heart, and Scarecrows (a MonsterType on the Heart's Monster
+Types) in the waves.
 
 Usage: python tools/make_workshop.py
 """
@@ -57,6 +58,8 @@ ext = [
     ('PackedScene', 'res://custom/make_your_own/models/sign.glb', 'signmodel'),
     ('PackedScene', 'res://custom/make_your_own/models/platform.glb', 'platformmodel'),
     ('PackedScene', 'res://custom/make_your_own/models/drawbridge.glb', 'bridgemodel'),
+    ('Script', 'res://scripts/horde/monster_type.gd', 'monstertype'),
+    ('Resource', 'res://custom/make_your_own/scarecrow.tres', 'scarecrow'),
 ]
 
 nodes = []
@@ -127,7 +130,8 @@ for i in range(2):
 for i in range(2):
     node('Cabinet%d' % i, 'prop', 'Props', at=(0 + i * 1.2, 0.6, -12.5), type='ExtResource("cabinet")')
 # MegaYeet: monsters from the far side to the Heart, over a thorn bed and a fire grate.
-node('Heart', 'heart', 'MegaYeet', at=(10, 0, 14), radius='2.5')
+node('Heart', 'heart', 'MegaYeet', at=(10, 0, 14), radius='2.5',
+     monster_types='Array[ExtResource("monstertype")]([ExtResource("scarecrow")])')
 node('Rift', 'rift', 'MegaYeet', at=(10, 0, -18), radius='3.0')
 node('ThornTrap', parent='MegaYeet', instance='thorns', at=(10, 0, -4))
 node('FireGrate', 'trap', 'MegaYeet', at=(10, 0, 4), kind='"fire"', size=vec(4, 1, 4))

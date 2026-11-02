@@ -2,7 +2,8 @@ extends Node
 ## Developer check for "Make your own versions" over the network, run on a client joining a
 ## Make Your Own Workshop host: the oil drums (a PropType) arrive as oil drums, with their
 ## model and weight, and the thorn bed trap has its own model; the glass cabinets' and the shed
-## door's parts are there to build their pieces from; the host's own gun (the Scrap gun) is
+## door's parts are there to build their pieces from; the Scarecrow (a monster of your own) is
+## a kind the client draws from its model; the host's own gun (the Scrap gun) is
 ## what the client sees it carry. Exits 1 if a step fails.
 ## Usage (host first): godot -- --host --map res://custom/make_your_own/workshop.tscn --bots 0 --port 24812 --gun scrap_gun
 ##                     godot -- --join 127.0.0.1 --port 24812 --tour x --tour-mode makeyourownclient
@@ -50,6 +51,12 @@ func _ready() -> void:
 	var x0 := sails.global_basis.x if sails else Vector3.ZERO
 	await get_tree().create_timer(0.5).timeout
 	_check("... the windmill (an AnimatedModel) turns for a client too", sails != null and sails.global_basis.x.angle_to(x0) > 0.2, "")
+	# A monster of your own: the same kinds in the same order (snapshots send a kind's place),
+	# the Scarecrow drawn from its own model.
+	var h: Horde = world.horde
+	var k := Horde.CUSTOM + "0"
+	var crow_mesh: Mesh = h._draw[k][0].multimesh.mesh if h and h._draw.has(k) else null
+	_check("... the Scarecrow (a MonsterType): a kind of its own, drawn from its model", h != null and h.kind_ids.find(k) == Horde.KIND_IDS.size() and crow_mesh != null and crow_mesh.has_meta("joints"), "")
 	# The host carries the Scrap gun (--gun): so it is for the client, its own actions and all.
 	var host: Player = world.get_player(1)
 	_check("... a player's own gun (the host's Scrap gun), seen by the client", host != null and host.gun_model == "scrap_gun" and host.gun._anim_players.size() == 1,

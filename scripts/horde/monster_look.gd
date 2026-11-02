@@ -10,6 +10,8 @@ extends RefCounted
 ## - ghost: a floating sheet with trailing arms (see-through: monster_ghost.gdshader).
 ## - climber: a skeleton. - bomber: a little imp with a lit powder keg on its back.
 ## - golem (the boss): a hulk of stone blocks, glowing cracks, fists like boulders.
+## A monster of your own (a MonsterType's model, a MapTheme's monster slot): from_model()
+## tags its parts the same way, from their names, and its joints come from the parts' origins.
 
 const HIP := 0.8
 const SHOULDER := 1.35
@@ -51,6 +53,116 @@ static func material(kind := "shambler") -> ShaderMaterial:
 		m.shader = preload("res://scripts/horde/monster_ghost.gdshader") if key == "ghost" else preload("res://scripts/horde/monster.gdshader")
 		_materials[key] = m
 	return _materials[key]
+
+
+## Your model's part names (lower case) and their tags.
+const PARTS := {"torso": 0, "leg_l": 1, "leg_r": 2, "arm_l": 3, "arm_r": 4, "head": 5}
+const PART_NAMES := ["Torso", "Leg_L", "Leg_R", "Arm_L", "Arm_R", "Head"]
+static var _models := {} # model path (+ "#ghost") -> ArrayMesh
+
+## A monster model of your own as one mesh for the horde: its parts named Torso, Leg_L, Leg_R,
+## Arm_L, Arm_R, Head (each with its origin at its joint) tagged for the shader to swing
+## (anything else rides on the part it's in, or the torso); "Glow" in a part's or a
+## material's name, or an emissive material, glows. A surface per texture, each with its own
+## material (the joints, the texture): draw it without a material override. ghost: see-through
+## (monster_ghost.gdshader).
+static func from_model(scene: PackedScene, ghost := false) -> ArrayMesh:
+	var key := scene.resource_path + ("#ghost" if ghost else "")
+	if _models.has(key):
+		return _models[key]
+	var root := scene.instantiate() as Node3D
+	var joints := {}
+	var groups := {} # texture (or null) -> SurfaceTool
+	_take(root, Transform3D.IDENTITY, 0, false, joints, groups)
+	root.free()
+	var mesh := ArrayMesh.new()
+	for tex in groups:
+		var st: SurfaceTool = groups[tex]
+		st.commit(mesh)
+		var m := ShaderMaterial.new()
+		m.shader = preload("res://scripts/horde/monster_ghost.gdshader") if ghost else preload("res://scripts/horde/monster.gdshader")
+		m.set_shader_parameter("legs", _pair(joints, 1, 2, Vector2(0.8, 0.0)))
+		m.set_shader_parameter("arms", _pair(joints, 3, 4, Vector2(1.35, 0.0)))
+		if tex:
+			m.set_shader_parameter("albedo_tex", tex)
+		mesh.surface_set_material(mesh.get_surface_count() - 1, m)
+	mesh.set_meta("joints", joints)
+	_models[key] = mesh
+	return mesh
+
+
+## What a monster model is missing (for the map check): [] when every part is there.
+static func notes(scene: PackedScene) -> Array:
+	var root := scene.instantiate() as Node3D
+	var found := {}
+	for n in root.find_children("*", "Node3D", true, false):
+		var p := _part_of(n.name)
+		if p >= 0:
+			found[p] = true
+	root.free()
+	var out := []
+	for i in PART_NAMES.size():
+		if not found.has(i):
+			out.append(PART_NAMES[i])
+	return out
+
+
+static func _part_of(node_name: String) -> int:
+	var n := node_name.to_lower().replace(".", "_").replace(" ", "_")
+	for k in PARTS:
+		if n == k or n.begins_with(k + "_"):
+			return PARTS[k]
+	return -1
+
+
+static func _pair(joints: Dictionary, l: int, r: int, fallback: Vector2) -> Vector4:
+	var a: Vector3 = joints.get(l, joints.get(r, Vector3(0, fallback.x, fallback.y)))
+	var b: Vector3 = joints.get(r, joints.get(l, Vector3(0, fallback.x, fallback.y)))
+	return Vector4(a.y, a.z, b.y, b.z)
+
+
+## Every mesh under n into its texture's SurfaceTool, in the model's space, tagged.
+static func _take(n: Node, xf: Transform3D, part: int, glow: bool, joints: Dictionary, groups: Dictionary) -> void:
+	var p := _part_of(n.name)
+	if p >= 0:
+		part = p
+		if not joints.has(p):
+			joints[p] = xf.origin
+	glow = glow or n.name.to_lower().contains("glow")
+	var mi := n as MeshInstance3D
+	if mi and mi.mesh and mi.visible:
+		for s in mi.mesh.get_surface_count():
+			if mi.mesh.surface_get_primitive_type(s) != Mesh.PRIMITIVE_TRIANGLES:
+				continue
+			var mat := mi.get_active_material(s) as BaseMaterial3D
+			var tex: Texture2D = mat.albedo_texture if mat else null
+			var tint := mat.albedo_color.srgb_to_linear() if mat else Color.WHITE # (the shader takes it as it is)
+			var shine := glow or (mat != null and (mat.emission_enabled or mat.resource_name.to_lower().contains("glow")))
+			if not groups.has(tex):
+				var st := SurfaceTool.new()
+				st.begin(Mesh.PRIMITIVE_TRIANGLES)
+				groups[tex] = st
+			var g: SurfaceTool = groups[tex]
+			var a := mi.mesh.surface_get_arrays(s)
+			var verts: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+			var norms: PackedVector3Array = a[Mesh.ARRAY_NORMAL] if a[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
+			var cols: PackedColorArray = a[Mesh.ARRAY_COLOR] if a[Mesh.ARRAY_COLOR] != null else PackedColorArray()
+			var uvs: PackedVector2Array = a[Mesh.ARRAY_TEX_UV] if a[Mesh.ARRAY_TEX_UV] != null else PackedVector2Array()
+			var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX] if a[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+			if idx.is_empty():
+				idx.resize(verts.size())
+				for i in verts.size():
+					idx[i] = i
+			var nb := xf.basis.inverse().transposed()
+			for i in idx:
+				g.set_color(tint * (cols[i] if i < cols.size() else Color.WHITE))
+				g.set_uv(Vector2(part, 1.0 if shine else 0.0))
+				g.set_uv2(uvs[i] if i < uvs.size() else Vector2.ZERO)
+				g.set_normal((nb * norms[i]).normalized() if i < norms.size() else Vector3.UP)
+				g.add_vertex(xf * verts[i])
+	for c in n.get_children():
+		if c is Node3D:
+			_take(c, xf * (c as Node3D).transform, part, glow, joints, groups)
 
 
 static func _shambler(st: SurfaceTool) -> void:

@@ -63,6 +63,16 @@ Character menu (**Gun**, shown in the preview's hand) and seen by everyone; the 
 `Hold`, `Charge`, `Throw`, `Idle`). The example Scrap gun (tools/make_templates.gd), the
 guide in docs/CHARACTERS.md, `--gun <name>` to try one, tests. Next: 5c.
 
+**5c done** (2026-11-02): MonsterType files on the FortressHeart's **Monster Types** (each
+with **From Wave** and **Share**; per-rift types left for later if wanted), behaving like a
+built-in kind with their own numbers; their models in parts that swing from their own
+joints (MonsterLook.from_model: the parts tagged by name, the joints from their origins,
+colours and textures; the shaders take per-model joints), drawn by the hundred like the
+built-in ones; the map check's notes; MapTheme's monster slots (a new look per built-in
+kind, the golem too). The example Scarecrow in the Workshop, its piece page, the guide's
+step 4j, checks (its numbers, parts, joints, drawn, its share of the waves, a theme slot; a
+client draws it). Next: 5d only if ever wanted.
+
 ## The pieces to build
 
 0. **AnimatedModel** (a Map Kit piece): your model, playing its own Blender animations in

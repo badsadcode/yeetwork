@@ -81,6 +81,7 @@ The fortress, the monsters' rifts, its zones and traps.
 |---|---|
 | [FortressHeart](FortressHeart.md) | MegaYeet: what the players defend (put one at the fortress's centre). |
 | [MonsterSpawn](MonsterSpawn.md) | MegaYeet: where monsters come from (a rift in the ground, Radius across). |
+| [MonsterType](MonsterType.md) | MegaYeet: your own monster, joining the waves beside the built-in ones. |
 | [DefenseZone](DefenseZone.md) | MegaYeet: a zone of the fortress (a box, Size, its bottom on the node). |
 | [TrapSpot](TrapSpot.md) | MegaYeet: a place for a trap (a box, Size, its bottom on the node). |
 

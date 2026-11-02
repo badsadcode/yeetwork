@@ -309,9 +309,9 @@ func _spawn(delta: float) -> void:
 		var kind := _pick_kind()
 		horde.server_spawn(at, kind)
 		_spawned += 1
-		if not _seen.has(kind) and ANNOUNCE.has(kind):
+		if not _seen.has(kind) and (ANNOUNCE.has(kind) or horde.types.has(kind)):
 			_seen[kind] = true
-			var text: String = ANNOUNCE[kind]
+			var text: String = ANNOUNCE[kind] if ANNOUNCE.has(kind) else horde.announcement(kind)
 			if kind == "ghost":
 				text = text % Controls.key_of("flashlight")
 			world.server_message(text, Color(1.0, 0.55, 0.3), true)
@@ -319,13 +319,20 @@ func _spawn(delta: float) -> void:
 		_to_spawn = 0
 
 
-## What comes out next: a brute now and then (spread through the wave), otherwise the wave's
+## What comes out next: a brute now and then (spread through the wave), otherwise the map's
+## own monsters (MonsterTypes on the Heart: each its Share, from its From Wave) and the wave's
 ## mix (KIND_MIX), mostly shamblers.
 func _pick_kind() -> String:
 	if _brutes > 0 and _spawned > 0 and _spawned % maxi(int(_wave_count() / (_brutes + 1.0)), 1) == 0:
 		_brutes -= 1
 		return "brute"
 	var r: float = world.rng.randf()
+	for k in horde.types:
+		var t: MonsterType = horde.types[k]
+		if wave >= t.from_wave:
+			if r < t.share:
+				return k
+			r -= t.share
 	for e in KIND_MIX:
 		if wave >= int(e[1]):
 			if r < float(e[2]):

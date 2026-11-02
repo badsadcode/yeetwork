@@ -356,6 +356,22 @@ onto its **Model** slot; press F6 and it moves. In the game:
 `custom/make_your_own/models/` has a windmill, an inn sign, a sliding platform and a
 drawbridge; the Workshop has all four (the drawbridge on a button, across to an islet).
 
+**4j. A monster of your own (MegaYeet).** Model it in Blender in parts, each a separate
+object named `Torso`, `Leg_L`, `Leg_R`, `Arm_L`, `Arm_R`, `Head`, and set each part's origin
+at its joint (Object > Set Origin > Origin to 3D Cursor, with the cursor on the hip, the
+shoulder, the neck): that's where it swings from. It faces +Y in Blender, feet on the
+ground, about 1.8 m tall. Export it (glTF). Then right-click a folder > **Create New >
+Resource > MonsterType**: drag the model onto **Model**, pick what it **Behaves Like** (a
+shambler, a runner, a brute...), give it a **Display Name**, and change any numbers you like
+(0 keeps the built-in kind's). Select the map's **FortressHeart**, and add it to **Monster
+Types**. **Share** says how much of each wave it is (0.3: about a third), **From Wave** from
+when. Play the map in MegaYeet: they come out of the rifts with the rest.
+
+The example is the Scarecrow (`custom/make_your_own/scarecrow.tres`, its model
+`models/scarecrow.glb`), in the Workshop. A **MapTheme** can also give the built-in
+monsters new looks (its Monsters slots: a model like the above for the shamblers, the
+runners...), their numbers staying the same.
+
 **Did I name it right?** Run the map check (the `--validate` line in step 10):
 it lists each model's missing markers and what that means ("its model has no Spout: the
 water falls straight down"), and catches a near miss ("spout": the name must be "Spout"

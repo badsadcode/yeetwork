@@ -602,11 +602,12 @@ godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3
 # the swimmable sea, a crane and a bell of your own, a door, a window and a fence breaking part
 # by part, a shed door the gun rips off and throws apart, glass cabinets breaking into their
 # parts, models playing their own animations (a windmill, a ferry you ride, a drawbridge on a
-# button) (the Workshop map)
+# button), monsters of your own (the Scarecrow: its parts swinging, its share of the waves)
+# and a theme's monster slot (the Workshop map)
 godot --path . -- --host --map res://custom/make_your_own/workshop.tscn --mode megayeet --bots 0 --tour /tmp/shots --tour-mode makeyourown
 # ... and over the network: a client sees the oil drums, the thorn bed, the cabinets, the
-# shed door and the windmill turning as they are
-godot --headless --path . -- --host --map res://custom/make_your_own/workshop.tscn --bots 0 --port 24812
+# shed door, the windmill turning, the Scarecrow and the host's own gun as they are
+godot --headless --path . -- --host --map res://custom/make_your_own/workshop.tscn --bots 0 --port 24812 --gun scrap_gun
 godot --headless --path . -- --join 127.0.0.1 --port 24812 --tour x --tour-mode makeyourownclient
 # High Seas saved again as a Map Kit scene from its code builder (overwrites maps/high_seas.tscn)
 godot --headless --path . -- --host --map highseas --map-source code --bots 0 --tour x --tour-mode export_highseas

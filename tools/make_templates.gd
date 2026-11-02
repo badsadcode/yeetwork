@@ -32,6 +32,10 @@ extends SceneTree
 ##     "Collision_Deck" inside it, so it carries whoever stands on it.
 ##   - drawbridge.glb: a 6 m bridge on its "Hinge", lowering from upright to flat along -Z
 ##     ("Lower", play it once: wired to a button, down while it's on, up while it's off).
+## - scarecrow.glb: a monster of your own (a MonsterType's model), facing -Z, feet at the
+##   origin: its parts "Torso", "Leg_L", "Leg_R", "Arm_L", "Arm_R", "Head", each with its
+##   origin at its joint (the hips, the shoulders, the neck); its pumpkin's eyes glow (a
+##   material named "Glow").
 ## And ../textures/bricks.png, a brick texture for a breakable wall's Custom Material.
 ## And a gravity gun of your own, assets/characters/guns/scrap_gun.glb (the Character menu's
 ## Gun: "Scrap gun"), pointing along -Z: "Muzzle", "Grip", "Core", "ClawPivot0-2" (each with
@@ -63,6 +67,7 @@ func _init() -> void:
 	_save(_sign(), "sign")
 	_save(_platform(), "platform")
 	_save(_drawbridge(), "drawbridge")
+	_save(_scarecrow(), "scarecrow")
 	_bricks()
 	_save(_scrap_gun(), "scrap_gun", "res://assets/characters/guns/")
 	quit()
@@ -646,6 +651,56 @@ func _drawbridge() -> Node3D:
 	_box_part(hinge, "Collision_Bridge", Vector3(3, 0.3, 6), Vector3(0, -0.15, -3), wood)
 	_animate(root, "Lower", 3.0, [["Hinge", "rotation", [[0.0, Vector3(80, 0, 0)], [3.0, Vector3.ZERO]]]])
 	return root
+
+
+## A scarecrow come alive (a monster of your own: feet at the origin, facing -Z, about a
+## Yeet's height): each part a node with its origin at its joint, the boxes inside it hanging
+## from there; arms reaching out, a pumpkin head with glowing eyes under a floppy hat.
+func _scarecrow() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Scarecrow"
+	var sack := _mat(Color(0.62, 0.5, 0.32), 0.95)
+	var patch := _mat(Color(0.35, 0.45, 0.6), 0.9)
+	var straw := _mat(Color(0.95, 0.8, 0.35), 0.9)
+	var denim := _mat(Color(0.25, 0.3, 0.45), 0.9)
+	var pumpkin := _mat(Color(0.95, 0.5, 0.1), 0.7)
+	var hat := _mat(Color(0.3, 0.22, 0.15), 0.9)
+	var glow := _mat(Color(1.0, 0.8, 0.2), 0.5)
+	glow.resource_name = "Glow"
+	glow.emission_enabled = true
+	glow.emission = Color(1.0, 0.7, 0.15)
+	glow.emission_energy_multiplier = 3.0
+	var torso := _part(root, "Torso", Vector3(0, 0.85, 0))
+	_box_part(torso, "Shirt", Vector3(0.56, 0.62, 0.32), Vector3(0, 0.3, 0), sack)
+	_box_part(torso, "Patch", Vector3(0.18, 0.16, 0.02), Vector3(0.12, 0.38, -0.165), patch)
+	_box_part(torso, "Rope", Vector3(0.58, 0.06, 0.34), Vector3(0, 0.02, 0), straw)
+	_box_part(torso, "StrawCollar", Vector3(0.4, 0.08, 0.26), Vector3(0, 0.64, 0), straw)
+	for s in [-1, 1]:
+		var side := "L" if s < 0 else "R"
+		var leg := _part(root, "Leg_" + side, Vector3(s * 0.13, 0.8, 0))
+		_box_part(leg, "Trousers_" + side, Vector3(0.2, 0.74, 0.22), Vector3(0, -0.37, 0), denim)
+		_box_part(leg, "Tuft_" + side, Vector3(0.16, 0.1, 0.16), Vector3(0, -0.78, -0.02), straw)
+		var arm := _part(root, "Arm_" + side, Vector3(s * 0.36, 1.35, 0))
+		_box_part(arm, "Sleeve_" + side, Vector3(0.15, 0.15, 0.6), Vector3(0, 0, -0.28), sack)
+		_box_part(arm, "Hand_" + side, Vector3(0.12, 0.08, 0.16), Vector3(0, 0, -0.64), straw)
+	var head := _part(root, "Head", Vector3(0, 1.5, 0))
+	var ball := _cyl(0.24, 0.36, 10)
+	_mesh(head, "Pumpkin", ball, pumpkin, Transform3D(Basis.IDENTITY, Vector3(0, 0.2, -0.04)))
+	_box_part(head, "Stem", Vector3(0.05, 0.1, 0.05), Vector3(0, 0.42, -0.04), hat)
+	_mesh(head, "HatBrim", _cyl(0.36, 0.03, 12), hat, Transform3D(Basis(Vector3.RIGHT, -0.15), Vector3(0, 0.39, -0.04)))
+	_mesh(head, "HatTop", _cyl(0.18, 0.2, 10), hat, Transform3D(Basis(Vector3.RIGHT, -0.15), Vector3(0, 0.5, -0.02)))
+	for s in [-1, 1]:
+		_box_part(head, "Eye%d" % (s + 1), Vector3(0.08, 0.07, 0.02), Vector3(s * 0.09, 0.26, -0.27), glow)
+	_box_part(head, "Mouth", Vector3(0.2, 0.05, 0.02), Vector3(0, 0.12, -0.265), glow)
+	return root
+
+
+func _part(parent: Node3D, n: String, at: Vector3) -> Node3D:
+	var p := Node3D.new()
+	p.name = n
+	p.position = at
+	parent.add_child(p)
+	return p
 
 
 ## Two bays of fence (origin on the ground at its middle, along X).

@@ -62,6 +62,24 @@ extends Resource
 @export var trap_fire: PackedScene
 @export var trap_mine: PackedScene
 
+@export_group("Monsters")
+## New looks for MegaYeet's monsters (their numbers stay the built-in ones'): models made of
+## parts named Torso, Leg_L, Leg_R, Arm_L, Arm_R, Head, each with its origin at its joint
+## (see MonsterType).
+@export var monster_shambler: PackedScene
+## The runners (drawn a little smaller than a Yeet).
+@export var monster_runner: PackedScene
+## The brutes (drawn half again a Yeet's height).
+@export var monster_brute: PackedScene
+## The ghosts (drawn see-through and glowing).
+@export var monster_ghost: PackedScene
+## The climbers.
+@export var monster_climber: PackedScene
+## The bombers (drawn small).
+@export var monster_bomber: PackedScene
+## The boss (the Siege Golem): drawn three times a Yeet's height.
+@export var monster_golem: PackedScene
+
 @export_group("Pickups")
 @export var pickup_pad: PackedScene
 @export var pickup_health: PackedScene
@@ -131,6 +149,11 @@ static func pick(n: Node, key: String, own: PackedScene = null) -> PackedScene:
 		return own
 	var t := of(n)
 	return t.get(key) as PackedScene if t and key in t else null
+
+
+## The theme's model for a built-in monster kind (null: the built-in look).
+func monster_model(kind: String) -> PackedScene:
+	return get("monster_" + kind) as PackedScene if ("monster_" + kind) in self else null
 
 
 ## The theme's model for a prop kind (null: the built-in look).

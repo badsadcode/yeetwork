@@ -12,7 +12,10 @@ extends Node
 ## (climbed to the top), the built-in ladder; a crane of your own slews and swings its load;
 ## a bell (a Horn) of your own sounds and its Lever is pulled. Breakable models: a door's
 ## plank breaks (the frame stands), its knob comes off whole; a window's pane shatters, its
-## frame stays; a fence's rails fall off whole when the posts holding them go. Screenshots.
+## frame stays; a fence's rails fall off whole when the posts holding them go. Monsters of
+## your own: the Scarecrow (a MonsterType on the Heart) has its numbers, its model's parts
+## tagged and its joints, it's drawn, and it's its share of the waves; a map theme's monster
+## slot gives the built-in runners its look. Screenshots.
 ## Exits 1 if a step fails.
 ## Usage: godot -- --host --map res://custom/make_your_own/workshop.tscn --mode megayeet --bots 0 --port 24810 --tour <dir> --tour-mode makeyourown
 
@@ -100,6 +103,7 @@ func _ready() -> void:
 	await _breakables(pl)
 	await _breaking_props(pl)
 	await _animated(pl)
+	await _monsters()
 	# Spray and a rift's glow seen against the sea (the sea mustn't paint over them).
 	_cam(Vector3(-1.5, 2.6, -0.5), Vector3(-20, 1.6, -6.5))
 	await _wait(0.4)
@@ -455,6 +459,73 @@ func _face(q: Player, at: Vector3) -> void:
 	var to := at - q.eye_position()
 	q.yaw = atan2(-to.x, -to.z)
 	q.pitch = atan2(to.y, Vector2(to.x, to.z).length())
+
+
+## Monsters of your own: the Scarecrow's numbers, its mesh (parts tagged from their names, the
+## joints from their origins, glowing eyes), drawn in the horde, its share of a wave; and a
+## theme's monster slot (a Horde made with the map's theme carrying one).
+func _monsters() -> void:
+	var h: Horde = world.horde
+	var k := Horde.CUSTOM + "0"
+	var d: Dictionary = h.defs.get(k, {})
+	_check("monsters of your own (a MonsterType on the Heart): the Scarecrow, its numbers", h.types.has(k) and d.get("name") == "Scarecrow" and d.get("like") == "shambler" and is_equal_approx(d.get("hp", 0.0), 55.0) and is_equal_approx(d.get("burn", 0.0), 2.5),
+		"%s" % [d])
+	if not h.types.has(k):
+		return
+	var mesh := h.mesh_of(k) as ArrayMesh
+	var tags := {}
+	var glows := false
+	for s in mesh.get_surface_count():
+		for uv: Vector2 in mesh.surface_get_arrays(s)[Mesh.ARRAY_TEX_UV]:
+			tags[int(round(uv.x))] = true
+			glows = glows or uv.y > 0.5
+	var joints: Dictionary = mesh.get_meta("joints", {})
+	var hips_ok: bool = joints.has(1) and absf((joints[1] as Vector3).y - 0.8) < 0.01 and joints.has(3) and absf((joints[3] as Vector3).y - 1.35) < 0.01
+	var mat := mesh.surface_get_material(0) as ShaderMaterial
+	var legs: Vector4 = mat.get_shader_parameter("legs") if mat else Vector4.ZERO
+	_check("... its model's parts (Torso, Leg_L... Head) tagged to swing, from their joints; its eyes glow", tags.size() == 6 and hips_ok and absf(legs.x - 0.8) < 0.01 and glows and MonsterLook.notes(h.types[k].model).is_empty(),
+		"tags %s, joints %s, glow %s" % [tags.keys(), joints, glows])
+	var crows := []
+	for i in 4:
+		crows.append(h.server_spawn(Vector3(2.0 + i * 1.3, 0, 4.0 - i * 0.6), k))
+	await _wait(0.3)
+	var drawn: int = h._draw[k][0].multimesh.visible_instance_count
+	_check("... spawned, drawn in a batch of their own", (crows[0] as Horde.Monster).hp == 55.0 and drawn == 4, "%d drawn" % drawn)
+	_cam(Vector3(8.5, 2.2, 9.5), Vector3(4.0, 1.0, 3.5))
+	await _wait(0.4)
+	await _shot("y20_scarecrows")
+	for m in crows:
+		h._kill(m, "hit")
+	# Its share of the waves: about 0.3 of them, from wave 1.
+	var mode := world.mode_logic as ModeMegaYeet
+	var was_wave := mode.wave
+	mode.wave = 1
+	mode._brutes = 0
+	var n := 0
+	for i in 1000:
+		if mode._pick_kind() == k:
+			n += 1
+	mode.wave = was_wave
+	_check("... its share of the waves (Share 0.3), and what the wave says when it comes", absf(n / 1000.0 - 0.3) < 0.06 and h.announcement(k).begins_with("SCARECROWS!"), "%.2f of them" % (n / 1000.0))
+	# A theme's monster slot: a Horde made for a map whose theme gives the runners a model.
+	var settings: MapSettings = null
+	for s in world.arena.find_children("*", "MapSettings", true, false):
+		settings = s
+	var theme := MapTheme.new()
+	theme.monster_runner = h.types[k].model
+	var old_theme: MapTheme = settings.theme if settings else null
+	if settings:
+		settings.theme = theme
+	var h2 := Horde.new()
+	h2.world = world
+	var holder := Node3D.new()
+	holder.add_child(h2)
+	world.add_child(holder)
+	var themed: bool = h2._models.get("runner") == theme.monster_runner and h2.defs.runner.hp == Horde.KINDS.runner.hp and h2._draw["runner"][0].multimesh.mesh == MonsterLook.from_model(theme.monster_runner)
+	holder.queue_free()
+	if settings:
+		settings.theme = old_theme
+	_check("a map theme's monster slot: the runners in a model of your own, their numbers as they were", settings != null and themed, "settings %s" % (settings != null))
 
 
 func _check(what: String, ok: bool, detail: String) -> void:

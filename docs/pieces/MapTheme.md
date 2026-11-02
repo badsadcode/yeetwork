@@ -80,6 +80,18 @@ A map's look in one file: a model for each kind of Map Kit piece and prop. Pick 
 | **Trap Fire** | (none) |  |
 | **Trap Mine** | (none) |  |
 
+### Monsters
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Monster Shambler** | (none) | New looks for MegaYeet's monsters (their numbers stay the built-in ones'): models made of parts named Torso, Leg_L, Leg_R, Arm_L, Arm_R, Head, each with its origin at its joint (see MonsterType). |
+| **Monster Runner** | (none) | The runners (drawn a little smaller than a Yeet). |
+| **Monster Brute** | (none) | The brutes (drawn half again a Yeet's height). |
+| **Monster Ghost** | (none) | The ghosts (drawn see-through and glowing). |
+| **Monster Climber** | (none) | The climbers. |
+| **Monster Bomber** | (none) | The bombers (drawn small). |
+| **Monster Golem** | (none) | The boss (the Siege Golem): drawn three times a Yeet's height. |
+
 ### Pickups
 
 | Setting | Default | What it does |

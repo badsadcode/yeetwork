@@ -3,6 +3,12 @@ shader_type spatial;
 // INSTANCE_CUSTOM: x its own phase, y how much it's walking (0..1), z a hit flash (0..1),
 // w flailing (flying through the air).
 
+// A monster of your own (MonsterLook.from_model): its own joints and texture. legs and arms:
+// the left and right joint's height and depth (y, z, y, z); the built-in ones' by default.
+uniform vec4 legs = vec4(0.8, 0.0, 0.8, 0.0);
+uniform vec4 arms = vec4(1.35, 0.0, 1.35, 0.0);
+uniform sampler2D albedo_tex : source_color, hint_default_white; // (its UVs in UV2)
+
 varying float v_flash;
 varying float v_glow;
 
@@ -21,19 +27,22 @@ void vertex() {
 	float cyc = TIME * 4.2 + phase;
 	vec3 v = VERTEX;
 	vec3 n = NORMAL;
+	float tall = max(max(legs.x, legs.z) / 0.8, 0.5); // (the sway and bob, for its height)
 	if (part > 0.5 && part < 2.5) { // legs: a stiff, lurching stride
 		float side = part < 1.5 ? 0.0 : 3.1416;
 		float a = sin(cyc + side) * 0.55 * walk + flail * sin(TIME * 17.0 + side + phase) * 0.7;
-		v = rot_x(v, vec3(0.0, 0.8, 0.0), a);
+		vec2 hip = part < 1.5 ? legs.xy : legs.zw;
+		v = rot_x(v, vec3(0.0, hip.x, hip.y), a);
 		n = rot_x(n, vec3(0.0), a);
 	} else if (part > 2.5 && part < 4.5) { // arms: reaching, bobbing, flailing in the air
 		float side = part < 3.5 ? 0.0 : 1.7;
 		float a = sin(cyc * 0.5 + side) * 0.18 * walk - 0.1 + flail * sin(TIME * 21.0 + side + phase) * 1.3;
-		v = rot_x(v, vec3(0.0, 1.35, 0.0), a);
+		vec2 shoulder = part < 3.5 ? arms.xy : arms.zw;
+		v = rot_x(v, vec3(0.0, shoulder.x, shoulder.y), a);
 		n = rot_x(n, vec3(0.0), a);
 	}
 	// The whole body sways side to side and bobs with the stride; the head lolls.
-	float sway = sin(cyc) * 0.05 * walk * (v.y / 1.8);
+	float sway = sin(cyc) * 0.05 * walk * (v.y / (1.8 * tall));
 	v.x += sway;
 	v.y += abs(sin(cyc)) * 0.04 * walk;
 	if (part > 4.5) {
@@ -46,7 +55,8 @@ void vertex() {
 }
 
 void fragment() {
-	ALBEDO = mix(COLOR.rgb, vec3(1.0, 0.25, 0.2), v_flash * 0.7);
-	EMISSION = COLOR.rgb * v_glow * 3.0 + vec3(1.0, 0.2, 0.1) * v_flash * 0.6;
+	vec3 col = COLOR.rgb * texture(albedo_tex, UV2).rgb;
+	ALBEDO = mix(col, vec3(1.0, 0.25, 0.2), v_flash * 0.7);
+	EMISSION = col * v_glow * 3.0 + vec3(1.0, 0.2, 0.1) * v_flash * 0.6;
 	ROUGHNESS = 0.85;
 }

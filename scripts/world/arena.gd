@@ -914,6 +914,18 @@ func _note_models(n: Node) -> void:
 		model_notes.append_array(Looks.notes(who, (t as PropType).model, "PropType"))
 	elif t is PickupType and (t as PickupType).model:
 		model_notes.append_array(Looks.notes(who, (t as PickupType).model, "PickupType"))
+	if n is FortressHeart:
+		for mt: MonsterType in (n as FortressHeart).monster_types:
+			if mt == null:
+				model_notes.append("%s: an empty slot in Monster Types." % who)
+			elif mt.model == null:
+				model_notes.append("%s: %s has no model (it looks like a %s)." % [who, mt.def().name, mt.behaves_like])
+			else:
+				var missing := MonsterLook.notes(mt.model)
+				if missing.size() == MonsterLook.PART_NAMES.size():
+					model_notes.append("%s: %s's model has no parts named Torso, Leg_L, Leg_R, Arm_L, Arm_R, Head: nothing on it swings." % [who, mt.def().name])
+				elif not missing.is_empty():
+					model_notes.append("%s: %s's model has no %s (only the parts it has swing)." % [who, mt.def().name, ", ".join(missing)])
 
 
 # --- A Vessel (a Map Kit ship) ----------------------------------------------------------

@@ -12,6 +12,7 @@ MegaYeet: what the players defend (put one at the fortress's centre). Monsters h
 | **Radius** | `2.5` | A monster this close (metres) has reached it. |
 | **Model** | (none) | Your own Heart (a throne, a reactor, a giant cake) instead of the crystal. |
 | **Color** | `Color(0.35, 0.9, 1.0)` | Its glow's colour (it flashes red when a monster bites). |
+| **Monster Types** | (none) | Monsters of your own (MonsterType files) joining the waves: each from its From Wave on, as its Share of every wave. |
 
 ### MegaYeet Rules
 
@@ -29,6 +30,10 @@ MegaYeet: what the players defend (put one at the fortress's centre). Monsters h
 | **Boss Every** | `5` | A boss wave every this many waves (0: never): the Siege Golem leads it in. *(0 to 50)* |
 | **Boss Health** | `3000` | Its hit points (more with more Yeets playing, and each time it comes back), and what bringing it down puts back in the meter. *(200 to 50000)* |
 | **Boss Reward** | `300` | What bringing the boss down puts back in the meter. *(0 to 5000)* |
+
+## Start from
+
+- [`custom/make_your_own/scarecrow.tres`](../../custom/make_your_own/scarecrow.tres): a monster of your own for Monster Types (see MonsterType)
 
 ## Used in
 

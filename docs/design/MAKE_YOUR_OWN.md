@@ -34,7 +34,8 @@ a new map from an idea, Lighthouse Point (`docs/MAKE_A_NEW_MAP.md`,
 Next: Phase 5 (things that animate), planned in
 [MAKE_YOUR_OWN_ANIMATED.md](MAKE_YOUR_OWN_ANIMATED.md): animated scenery first (**done**
 2026-11-02: AnimatedModel), then your own gravity gun (**done** 2026-11-02:
-`assets/characters/guns/`), your own monsters, rigged monsters.
+`assets/characters/guns/`), your own monsters (**done** 2026-11-02: MonsterType, MapTheme
+monster slots), rigged monsters.
 
 ## The idea in one paragraph
 

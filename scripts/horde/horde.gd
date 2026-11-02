@@ -20,6 +20,10 @@ extends Node3D
 ##   its own minions get flattened), hurls boulders at anyone up on the walls (real props:
 ##   throw them back), and now and then calls a pack out of the ground round it. Blasts,
 ##   fire and heavy things hurt it: the iron ball most of all.
+## Monsters of your own (MonsterType, on the map's FortressHeart) join them as kinds of their
+## own (kind_ids: the built-in ones, then the map's, the same on every peer: they all load
+## the same map), behaving like the built-in kind they pick; a map theme's monster slots give
+## the built-in kinds new looks (MonsterLook.from_model).
 ## Every peer draws them from compact snapshots (10 a second, 12 bytes a monster) in one
 ## MultiMesh per kind, the shader making them shamble; deaths go out reliably (a tumbling
 ## body). World holds the RPCs (_s_horde, _s_horde_deaths) and calls in here.
@@ -52,6 +56,8 @@ const KINDS := {
 	"golem": {"hp": 3000.0, "speed": 1.0, "bite": 30.0, "bash": 400.0, "knock": 0.0, "grab": false, "size": 3.0, "radius": 1.5, "burn": 0.5, "boss": true},
 }
 const KIND_IDS := ["shambler", "runner", "brute", "ghost", "climber", "bomber", "golem"]
+## A MonsterType's kind id: CUSTOM and its place in the Heart's list ("custom0").
+const CUSTOM := "custom"
 const BOSS_NAME := "THE SIEGE GOLEM"
 const CAUSES := ["", "punt", "blast", "crushed", "fall", "lava", "acid", "drowned", "bowled", "wall", "heart", "hit", "fire", "light", "bomb", "spikes"]
 
@@ -118,21 +124,29 @@ var _draw := {} # kind -> [MultiMeshInstance3D, buffer]
 var _corpses: Array[Node3D] = []
 var _groan_t := 2.0
 var _flames_t := 0.0
+## This map's kinds: the built-in ones, then its own (MonsterTypes); each one's numbers and
+## what it does (KINDS', with "like": the built-in kind it behaves like), its model of your
+## own (a MonsterType's, a theme's slot) and its MonsterType.
+var kind_ids: Array = KIND_IDS.duplicate()
+var defs := {}
+var _models := {} # kind -> PackedScene
+var types := {} # kind -> MonsterType
 
 
 func _ready() -> void:
-	for kind in KIND_IDS:
+	_setup_kinds()
+	for kind in kind_ids:
 		var mmi := MultiMeshInstance3D.new()
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_custom_data = true
-		mm.mesh = MonsterLook.mesh(kind)
+		mm.mesh = mesh_of(kind)
 		mm.instance_count = MAX_DRAWN
 		mm.visible_instance_count = 0
 		mmi.multimesh = mm
-		mmi.material_override = MonsterLook.material(kind)
+		mmi.material_override = _material_of(kind)
 		mmi.extra_cull_margin = 4096.0 # (they're everywhere: one big box)
-		if kind == "ghost":
+		if defs[kind].has("ghost"):
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mmi)
 		var buf := PackedFloat32Array()
@@ -145,6 +159,48 @@ func _ready() -> void:
 		for n in world.arena.puzzle:
 			if n is TrapSpot:
 				_traps.append(n)
+
+
+## The built-in kinds (with the map theme's monster slots), then the map's MonsterTypes.
+func _setup_kinds() -> void:
+	var theme: MapTheme = MapTheme.of(world.arena) if world and world.arena else null
+	for k in KIND_IDS:
+		defs[k] = KINDS[k].duplicate()
+		defs[k].like = k
+		defs[k].name = k
+		var slot := theme.monster_model(k) if theme else null
+		if slot:
+			_models[k] = slot
+	var heart: FortressHeart = world.arena.heart if world and world.arena else null
+	if heart == null:
+		return
+	for i in heart.monster_types.size():
+		var t: MonsterType = heart.monster_types[i]
+		if t == null:
+			continue
+		var k := CUSTOM + str(i)
+		kind_ids.append(k)
+		types[k] = t
+		defs[k] = t.def()
+		if t.model:
+			_models[k] = t.model
+
+
+## A kind's mesh: its model of your own, else the built-in look (of the kind it behaves like).
+func mesh_of(kind: String) -> Mesh:
+	if _models.has(kind):
+		return MonsterLook.from_model(_models[kind], defs[kind].has("ghost"))
+	return MonsterLook.mesh(defs[kind].like)
+
+
+## (null for a model of your own: its surfaces carry their own materials)
+func _material_of(kind: String) -> Material:
+	return null if _models.has(kind) else MonsterLook.material(defs[kind].like)
+
+
+## What the wave announces the first time a kind comes ("" for none).
+func announcement(kind: String) -> String:
+	return (types[kind] as MonsterType).announcement() if types.has(kind) else ""
 
 
 func _exit_tree() -> void:
@@ -168,7 +224,7 @@ func server_spawn(pos: Vector3, kind := "shambler") -> Monster:
 	m.id = _next_id
 	_next_id = (_next_id % 65000) + 1
 	m.kind = kind
-	m.def = KINDS[kind]
+	m.def = defs[kind]
 	m.hp = m.def.hp
 	m.max_hp = m.def.hp
 	m.speed = m.def.speed * randf_range(0.85, 1.15)
@@ -230,7 +286,7 @@ func request_gate_refresh() -> void:
 
 func server_clear() -> void:
 	for m in monsters: # (gone in a flash, no bodies)
-		_deaths.append_array([m.id, m.pos.x, m.pos.y, m.pos.z, 0.0, 0.0, 0.0, float(10 + KIND_IDS.find(m.kind) * 32)])
+		_deaths.append_array([m.id, m.pos.x, m.pos.y, m.pos.z, 0.0, 0.0, 0.0, float(10 + kind_ids.find(m.kind) * 32)])
 	monsters.clear()
 	_by_id.clear()
 	_bombs.clear()
@@ -358,7 +414,7 @@ func _kill(m: Monster, cause: String) -> void:
 	if m.def.has("bomb") and cause not in ["lava", "acid", "drowned", "heart"]:
 		_bombs.append([m.pos + Vector3.UP * 0.8, attacker]) # (it goes off where it fell)
 	var code := maxi(CAUSES.find(cause), 0)
-	_deaths.append_array([m.id, m.pos.x, m.pos.y, m.pos.z, m.vel.x, m.vel.y, m.vel.z, float(code + KIND_IDS.find(m.kind) * 32)])
+	_deaths.append_array([m.id, m.pos.x, m.pos.y, m.pos.z, m.vel.x, m.vel.y, m.vel.z, float(code + kind_ids.find(m.kind) * 32)])
 	if world.mode_logic and world.mode_logic.has_method("on_monster_killed"):
 		world.mode_logic.on_monster_killed(m, cause, attacker)
 
@@ -565,7 +621,7 @@ func _can_enter(_m: Monster, from: int, to: int) -> bool:
 
 
 func _bash(m: Monster) -> void:
-	m.attack_cd = 1.6 if m.kind == "brute" else 1.4
+	m.attack_cd = 1.6 if m.def.like == "brute" else 1.4
 	var wall = field.gate_wall.get(m.bash_at)
 	if wall == null or not is_instance_valid(wall):
 		_gates_hit = true
@@ -573,9 +629,9 @@ func _bash(m: Monster) -> void:
 	var c := field.center(m.bash_at)
 	var at := Vector3(c.x, field.height[m.bash_at] + 1.0, c.y)
 	var dir := (at - m.pos).normalized()
-	var reach := 1.8 if m.def.has("boss") else (0.9 if m.kind == "brute" else 0.7)
+	var reach := 1.8 if m.def.has("boss") else (0.9 if m.def.like == "brute" else 0.7)
 	world.server_damage_destructible(wall, at, reach, m.def.bash, dir * 3.0, 0, 1.0)
-	if m.kind == "brute" or m.def.has("boss"):
+	if m.def.like == "brute" or m.def.has("boss"):
 		world.server_fx("impact:metal", at, dir * 6.0, 1.5, -dir)
 	_gates_hit = true
 
@@ -914,7 +970,7 @@ func _props_hit(now: float) -> void:
 			_hit(m, clampf(energy / 30.0, 6.0, 900.0 if big else 500.0), v * 0.6 + Vector3.UP * 4.0, attacker, "crushed")
 			if world.is_burning(p):
 				_ignite(m, 5.0, attacker)
-			p.linear_velocity = v * (0.25 if big else (0.4 if m.kind == "brute" else 0.85))
+			p.linear_velocity = v * (0.25 if big else (0.4 if m.def.like == "brute" else 0.85))
 	if _prop_hits.size() > 2000:
 		_prop_hits.clear()
 
@@ -940,7 +996,7 @@ func _bite_players(_now: float) -> void:
 			var bite: float = m.def.bite * (world.mode_logic.bite_scale() if world.mode_logic.has_method("bite_scale") else 1.0)
 			world.server_damage_player(pl, bite, 0, "monster", pl.body_center(), dir)
 			if pl.is_alive():
-				var brute: bool = m.kind == "brute" or m.def.has("boss")
+				var brute: bool = m.def.like == "brute" or m.def.has("boss")
 				world.server_launch_player(pl, dir * (11.0 if brute else 3.5) + Vector3.UP * (5.0 if brute else 1.5), false, 0.8 if brute else 0.0, 0)
 
 
@@ -988,7 +1044,7 @@ func _send_snapshot() -> void:
 		buf.encode_s16(o + 6, clampi(int(m.pos.z * POS_SCALE), -32767, 32767))
 		buf.encode_u8(o + 8, int(fposmod(m.yaw, TAU) / TAU * 255.0))
 		buf.encode_u8(o + 9, _flags(m))
-		buf.encode_u8(o + 10, KIND_IDS.find(m.kind))
+		buf.encode_u8(o + 10, kind_ids.find(m.kind))
 		buf.encode_u8(o + 11, int(clampf(m.hp / m.max_hp, 0.0, 1.0) * 255.0))
 		n += 1
 		if n == PER_PACKET:
@@ -1040,7 +1096,7 @@ func apply_deaths(buf: PackedFloat32Array) -> void:
 		var vel := Vector3(buf[i + 4], buf[i + 5], buf[i + 6])
 		var code := int(buf[i + 7])
 		var cause := code % 32
-		var kind: String = KIND_IDS[clampi(code / 32, 0, KIND_IDS.size() - 1)]
+		var kind: String = kind_ids[clampi(code / 32, 0, kind_ids.size() - 1)]
 		var yaw := 0.0
 		if _views.has(id):
 			pos = _views[id][0]
@@ -1052,7 +1108,7 @@ func apply_deaths(buf: PackedFloat32Array) -> void:
 
 func _process(delta: float) -> void:
 	var counts := {}
-	for kind in KIND_IDS:
+	for kind in kind_ids:
 		counts[kind] = 0
 	var t := Time.get_ticks_msec() / 1000.0
 	_flames_t -= delta
@@ -1080,12 +1136,12 @@ func _process(delta: float) -> void:
 				continue
 			var aim: Vector3 = v[1] + v[2] * minf(age, 0.15)
 			v[0] = (v[0] as Vector3).lerp(aim, 1.0 - exp(-14.0 * delta))
-			var kind: String = KIND_IDS[clampi(v[6], 0, KIND_IDS.size() - 1)]
+			var kind: String = kind_ids[clampi(v[6], 0, kind_ids.size() - 1)]
 			var k: int = counts[kind]
 			if k >= MAX_DRAWN:
 				continue
 			var flags: int = v[4]
-			var size: float = KINDS[kind].size
+			var size: float = defs[kind].size
 			_put(_draw[kind][1], k, v[0], v[3], id, ((flags >> 2) & 7) / 7.0, 1.0 if flags & 2 else 0.0, flags & 1 != 0, size)
 			counts[kind] = k + 1
 			if flames and flags & 32 and lit < 30:
@@ -1093,7 +1149,7 @@ func _process(delta: float) -> void:
 				_flame(v[0], size)
 		for id in gone:
 			_views.erase(id)
-	for kind in KIND_IDS:
+	for kind in kind_ids:
 		var mm: MultiMesh = _draw[kind][0].multimesh
 		var n: int = counts[kind]
 		if n > 0:
@@ -1158,7 +1214,8 @@ func _death_fx(pos: Vector3, vel: Vector3, yaw: float, cause: int, kind: String)
 	if cause == 10: # (into the Heart: swallowed in a flash)
 		world.fx.puffs(pos + Vector3.UP, Vector3.UP, 10, [Color(1.0, 0.3, 0.2, 0.8), Color(0.6, 0.1, 0.1, 0.0)], 0.3, 0.7, 1.0, 3.0, 1.0)
 		return
-	if kind == "ghost":
+	var like: String = defs[kind].like
+	if like == "ghost":
 		world.fx.puffs(pos + Vector3.UP * 1.2, Vector3.UP, 14, [Color(0.8, 0.95, 1.0, 0.7), Color(0.5, 0.8, 1.0, 0.0)], 0.3, 0.8, 1.0, 3.0, 1.2)
 		Sfx.play3d("whoosh", pos + Vector3.UP, -2.0, 1.6)
 		return
@@ -1166,18 +1223,18 @@ func _death_fx(pos: Vector3, vel: Vector3, yaw: float, cause: int, kind: String)
 		world.fx.puffs(pos + Vector3.UP, Vector3.UP, 8, [Color(0.3, 0.3, 0.3, 0.7), Color(0.2, 0.2, 0.2, 0.0)], 0.4, 0.9, 1.0, 2.5, 1.6)
 		Sfx.play3d("sizzle", pos, 0.0, randf_range(0.8, 1.0))
 		return
-	if kind == "bomber":
+	if like == "bomber":
 		return # (the blast says it all)
-	if kind == "golem": # (it comes down in a cloud of rock)
+	if like == "golem": # (it comes down in a cloud of rock)
 		world.fx.explosion(pos + Vector3.UP * 2.5, 4.0)
 		world.fx.puffs(pos + Vector3.UP * 2.0, Vector3.UP, 30, [Color(0.5, 0.48, 0.45, 0.9), Color(0.4, 0.38, 0.36, 0.0)], 1.0, 2.2, 2.0, 6.0, 2.5)
 		Sfx.play3d("boom", pos, 8.0, 0.5)
-	var size: float = KINDS[kind].size
+	var size: float = defs[kind].size
 	if Game.gore_level > 0:
 		world.fx.blood(pos + Vector3.UP * size, Vector3.UP, vel.normalized() if vel.length() > 0.1 else Vector3.UP, 0.6 * size)
 	else:
 		world.fx.confetti(pos + Vector3.UP * size, Vector3.UP, 0.6)
-	Sfx.play3d("metal" if kind == "climber" else "smack", pos + Vector3.UP, -2.0, randf_range(0.7, 0.9) / size)
+	Sfx.play3d("metal" if like == "climber" else "smack", pos + Vector3.UP, -2.0, randf_range(0.7, 0.9) / size)
 	while _corpses.size() >= MAX_CORPSES:
 		var old: Node3D = _corpses.pop_front()
 		if is_instance_valid(old):
@@ -1193,8 +1250,8 @@ func _death_fx(pos: Vector3, vel: Vector3, yaw: float, cause: int, kind: String)
 	cs.position.y = 0.85 * size
 	rb.add_child(cs)
 	var mi := MeshInstance3D.new()
-	mi.mesh = MonsterLook.mesh(kind)
-	mi.material_override = MonsterLook.material(kind)
+	mi.mesh = mesh_of(kind)
+	mi.material_override = _material_of(kind)
 	mi.scale = Vector3.ONE * size
 	if cause == 12: # (burnt: charred)
 		mi.transparency = 0.0

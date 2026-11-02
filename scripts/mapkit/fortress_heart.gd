@@ -23,6 +23,10 @@ extends Node3D
 		color = v
 		_rebuild()
 
+## Monsters of your own (MonsterType files) joining the waves: each from its From Wave on, as
+## its Share of every wave.
+@export var monster_types: Array[MonsterType] = []
+
 @export_group("MegaYeet Rules")
 ## The Fortress meter: how much it holds (the team's life).
 @export_range(100.0, 10000.0, 10.0) var health := 1000.0

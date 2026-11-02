@@ -53,6 +53,7 @@ const PIECES := [
 	["VolleyNet", "res://scripts/mapkit/volley_net.gd", "Modes"],
 	["FortressHeart", "res://scripts/mapkit/fortress_heart.gd", "MegaYeet"],
 	["MonsterSpawn", "res://scripts/mapkit/monster_spawn.gd", "MegaYeet"],
+	["MonsterType", "res://scripts/horde/monster_type.gd", "MegaYeet"],
 	["DefenseZone", "res://scripts/mapkit/defense_zone.gd", "MegaYeet"],
 	["TrapSpot", "res://scripts/mapkit/trap_spot.gd", "MegaYeet"],
 	["PuzzleNode", "res://scripts/mapkit/puzzle_node.gd", "Puzzles"],
@@ -105,6 +106,7 @@ const MARKERS := {
 	"Crane": [["Turret", "slews (its jib along its +X)"], ["Hook", "where the cable hangs (an empty at the jib's end)"]],
 	"Horn": [["Lever", "is pulled when it sounds"]],
 	"PropType": [["Collision", "a mesh that is its shape (made convex, hidden in the game)"]],
+	"MonsterType": [["Torso", "the body (its origin: the hips)", "anything not in another part is the torso anyway"], ["Leg_L, Leg_R", "swing from their origins (the hips) as it walks", "no stride (and the map check notes it)"], ["Arm_L, Arm_R", "reach and flail from their origins (the shoulders)", "no reaching (and the map check notes it)"], ["Head", "lolls (its origin: the neck)", "no lolling (and the map check notes it)"], ["Glow", "in a part's or a material's name (or an emissive material): it glows", "nothing glows"]],
 	"AnimatedModel": [["Collision...", "any part whose name starts so is solid, moving with the animation and carrying what stands on it (made convex, hidden in the game)"]],
 }
 
@@ -125,6 +127,8 @@ const STARTERS := {
 	"BreakableModel": [["custom/make_your_own/models/door.glb", "a door of planks in a Fixed frame"], ["custom/make_your_own/models/window.glb", "a window: a Fixed frame, glass, a wooden mullion"], ["custom/make_your_own/models/fence.glb", "a fence: posts and rails"]],
 	"BreakableSlab": [["custom/make_your_own/bricks.tres", "a brick material for Custom Material"]],
 	"Vessel": [["custom/make_your_own/boat.tscn", "Make Your Own Boat: a boat beside an island"]],
+	"MonsterType": [["custom/make_your_own/scarecrow.tres", "a scarecrow come alive (behaves like a shambler; straw burns)"], ["custom/make_your_own/models/scarecrow.glb", "its model, its parts named, each origin at its joint"]],
+	"FortressHeart": [["custom/make_your_own/scarecrow.tres", "a monster of your own for Monster Types (see MonsterType)"]],
 	"AnimatedModel": [["custom/make_your_own/models/windmill.glb", "a windmill, its sails turning (loop)"], ["custom/make_your_own/models/sign.glb", "an inn sign swinging (ping pong)"], ["custom/make_your_own/models/platform.glb", "a platform sliding 6 m and back, carrying riders (ping pong)"], ["custom/make_your_own/models/drawbridge.glb", "a drawbridge lowering (once: wire it to a button)"]],
 }
 
@@ -288,7 +292,7 @@ func _page(p: Array, info: Dictionary) -> String:
 		md.append("| Name | What it does | Without it |")
 		md.append("|---|---|---|")
 		for m: Array in markers:
-			md.append("| `%s` | %s | %s |" % [m[0], _cell(m[1]), _cell(wants.get(m[0], "nothing is missed"))])
+			md.append("| `%s` | %s | %s |" % [m[0], _cell(m[1]), _cell(m[2] if m.size() > 2 else wants.get(m[0], "nothing is missed"))])
 	var starters: Array = STARTERS.get(cls, [])
 	if not starters.is_empty():
 		md.append("")

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MonsterType" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/horde/monster_type.gd" id="type"]
+[ext_resource type="PackedScene" path="res://custom/make_your_own/models/scarecrow.glb" id="model"]
+
+[resource]
+script = ExtResource("type")
+display_name = "Scarecrow"
+behaves_like = "shambler"
+model = ExtResource("model")
+hit_points = 55.0
+speed = 2.0
+burns = 2.5
+from_wave = 1
+share = 0.3
+announce = "SCARECROWS!  Straw burns: set them alight"

@@ -1,4 +1,4 @@
-[gd_scene load_steps=39 format=3]
+[gd_scene load_steps=41 format=3]
 
 [ext_resource type="Script" path="res://scripts/mapkit/map_settings.gd" id="settings"]
 [ext_resource type="Script" path="res://scripts/mapkit/arena_block.gd" id="block"]
@@ -38,6 +38,8 @@
 [ext_resource type="PackedScene" path="res://custom/make_your_own/models/sign.glb" id="signmodel"]
 [ext_resource type="PackedScene" path="res://custom/make_your_own/models/platform.glb" id="platformmodel"]
 [ext_resource type="PackedScene" path="res://custom/make_your_own/models/drawbridge.glb" id="bridgemodel"]
+[ext_resource type="Script" path="res://scripts/horde/monster_type.gd" id="monstertype"]
+[ext_resource type="Resource" path="res://custom/make_your_own/scarecrow.tres" id="scarecrow"]
 
 [node name="MakeYourOwnWorkshop" type="Node3D"]
 
@@ -148,6 +150,7 @@ type = ExtResource("cabinet")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0, 14)
 script = ExtResource("heart")
 radius = 2.5
+monster_types = Array[ExtResource("monstertype")]([ExtResource("scarecrow")])
 
 [node name="Rift" type="Node3D" parent="MegaYeet"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0, -18)
