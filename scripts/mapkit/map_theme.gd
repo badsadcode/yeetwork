@@ -77,8 +77,10 @@ extends Resource
 @export var monster_climber: PackedScene
 ## The bombers (drawn small).
 @export var monster_bomber: PackedScene
-## The boss (the Siege Golem): drawn three times a Yeet's height.
+## A boss, the Siege Golem: drawn three times a Yeet's height.
 @export var monster_golem: PackedScene
+## A boss, the Wrecking Ram: drawn 2.4 times a Yeet's height.
+@export var monster_ram: PackedScene
 
 @export_group("Pickups")
 @export var pickup_pad: PackedScene

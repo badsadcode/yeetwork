@@ -9,7 +9,8 @@ extends RefCounted
 ## - brute: Frankenstein's monster: square head, flat black hair, neck bolts, a dark coat.
 ## - ghost: a floating sheet with trailing arms (see-through: monster_ghost.gdshader).
 ## - climber: a skeleton. - bomber: a little imp with a lit powder keg on its back.
-## - golem (the boss): a hulk of stone blocks, glowing cracks, fists like boulders.
+## - golem (a boss): a hulk of stone blocks, glowing cracks, fists like boulders.
+## - ram (a boss): a hunched horned beast, head down, great curling horns, an iron nose ring.
 ## A monster of your own (a MonsterType's model, a MapTheme's monster slot): from_model()
 ## tags its parts the same way, from their names, and its joints come from the parts' origins.
 
@@ -38,6 +39,8 @@ static func mesh(kind: String) -> ArrayMesh:
 			_bomber(st)
 		"golem":
 			_golem(st)
+		"ram":
+			_ram(st)
 		_:
 			_shambler(st)
 	st.generate_normals()
@@ -293,6 +296,37 @@ static func _golem(st: SurfaceTool) -> void:
 	_box(st, Vector3(0, 1.5, -0.08), Vector3(0.3, 0.26, 0.28), stone, 5)
 	_box(st, Vector3(0, 1.65, -0.08), Vector3(0.32, 0.06, 0.3), moss, 5)
 	_eyes(st, 1.52, -0.225, glow, 0.06)
+
+
+static func _ram(st: SurfaceTool) -> void:
+	var hide := Color(0.36, 0.2, 0.13)
+	var dark := Color(0.2, 0.12, 0.09)
+	var wool := Color(0.62, 0.55, 0.42)
+	var horn := Color(0.85, 0.78, 0.6)
+	var iron := Color(0.25, 0.26, 0.3)
+	var glow := Color(1.0, 0.25, 0.1)
+	for s in [-1, 1]:
+		_box(st, Vector3(s * 0.2, HIP * 0.55, 0.04), Vector3(0.3, HIP * 0.9, 0.34), hide, _leg(s))
+		_box(st, Vector3(s * 0.2, 0.07, -0.04), Vector3(0.34, 0.14, 0.44), dark, _leg(s)) # (hooves)
+		# Thick arms held low and forward, hooves for fists.
+		_box(st, Vector3(s * 0.5, SHOULDER - 0.14, -0.2), Vector3(0.26, 0.34, 0.6), hide, _arm(s))
+		_box(st, Vector3(s * 0.5, SHOULDER - 0.3, -0.56), Vector3(0.3, 0.26, 0.26), dark, _arm(s))
+		_box(st, Vector3(s * 0.34, SHOULDER + 0.06, 0.0), Vector3(0.42, 0.34, 0.5), wool, 0) # (shaggy shoulders)
+		# Horns: out from the head, curling round and forward.
+		_box(st, Vector3(s * 0.25, 1.52, -0.3), Vector3(0.2, 0.16, 0.18), horn, 5)
+		_box(st, Vector3(s * 0.4, 1.58, -0.27), Vector3(0.16, 0.18, 0.16), horn, 5)
+		_box(st, Vector3(s * 0.48, 1.47, -0.33), Vector3(0.13, 0.2, 0.15), horn, 5)
+		_box(st, Vector3(s * 0.46, 1.34, -0.44), Vector3(0.1, 0.14, 0.18), horn, 5)
+		_box(st, Vector3(s * 0.4, 1.27, -0.55), Vector3(0.07, 0.08, 0.16), horn, 5)
+	_box(st, Vector3(0, 1.12, 0.08), Vector3(0.74, 0.62, 0.6), hide, 0)
+	_box(st, Vector3(0, 0.84, 0.06), Vector3(0.62, 0.16, 0.5), dark, 0)
+	_box(st, Vector3(0, 1.4, 0.18), Vector3(0.52, 0.22, 0.44), wool, 0) # (the hump)
+	# Its head, low and thrust forward: a heavy brow, a long muzzle, a ring through the nose.
+	_box(st, Vector3(0, 1.42, -0.38), Vector3(0.36, 0.34, 0.34), hide, 5)
+	_box(st, Vector3(0, 1.58, -0.38), Vector3(0.38, 0.1, 0.36), wool, 5)
+	_box(st, Vector3(0, 1.28, -0.58), Vector3(0.24, 0.2, 0.2), dark, 5)
+	_box(st, Vector3(0, 1.16, -0.68), Vector3(0.12, 0.1, 0.03), iron, 5)
+	_eyes(st, 1.46, -0.56, glow, 0.07)
 
 
 static func _eyes(st: SurfaceTool, y: float, z: float, col: Color, size := 0.07) -> void:

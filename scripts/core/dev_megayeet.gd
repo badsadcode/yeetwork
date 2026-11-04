@@ -12,7 +12,10 @@ extends Node
 ## gate, the Heart healed), not without the Y$. Traps put down anywhere: from the shop, where
 ## you aim (a preview), paid when down, hurting monsters; not on the Heart, another trap,
 ## out of reach or past the Heart's Max Traps; picked up and put down again free, or sold for
-## half; one still carried when the wave comes is sold. Screenshots.
+## half; one still carried when the wave comes is sold. The Wrecking Ram: bosses take turns
+## (the Heart's Bosses); it winds up, charges, flings a Yeet, scatters props, bowls over its
+## own, misses a Yeet who dodges, smashes through a gate, and into a wall it's dazed and hurts
+## double. Team upgrades in any order, and what each does. Screenshots.
 ## Exits 1 if a step fails.
 ## Usage: godot -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --port 24700 --tour <dir> --tour-mode megayeet
 
@@ -139,6 +142,8 @@ func _ready() -> void:
 	await _placing()
 	await _team_lift(brains)
 	await _boss_fight()
+	await _ram_fight()
+	await _team_upgrades()
 	# Bots fight.
 	for q: Player in brains:
 		q.bot_brain = brains[q]
@@ -472,26 +477,31 @@ func _shop() -> void:
 			break
 	await _wait(0.3)
 	_check("a mine goes off under the first monster (and is gone)", mine_built and not mine.built and not mine.active and stepper.hp <= 0.0, "built %s, still there %s, hp %.0f" % [mine_built, mine.built, stepper.hp])
-	# A team upgrade at the Heart.
+	# A team upgrade at the Heart: Use opens the shop's Team tab.
 	pl.respawn(mode.heart.global_position + Vector3(0, 0, 2.2), 0.0)
 	await _wait(0.3)
 	_face(pl, mode.heart.global_position + Vector3.UP * 1.6)
 	world.use_pressed(pl)
+	await _wait(0.3)
+	var team_tab: bool = world.hud.shop_open() and world.hud._shop._cards.size() == ModeMegaYeet.UPGRADES.size()
+	await _shot("m14_shop_team")
+	world.shop_buy("up:0")
 	await _wait(0.2)
-	_check("... Use on the Heart buys a team upgrade (stronger pushes)", mode.ups == 1 and is_equal_approx(mode.gun_power(pl), 1.3), "%d bought" % mode.ups)
+	world.hud._shop.close()
+	_check("... Use on the Heart opens the shop's Team tab; bought: stronger pushes", team_tab and mode.has_up(ModeMegaYeet.Up.PUSHES) and is_equal_approx(mode.gun_power(pl), 1.3), "tab %s, bought %d" % [team_tab, mode.ups])
 	await _shot("m14_break")
 	mode.phase = ModeMegaYeet.Phase.WAVE
 	mode._to_spawn = 3 # (a wave with monsters still to come: it doesn't end at once)
 	mode._send_state()
 	await _wait(0.1)
-	world.use_pressed(pl)
+	world.shop_buy("up:1")
 	await _wait(0.2)
 	var in_wave := mode.ups
 	mode.phase = ModeMegaYeet.Phase.BREAK
 	mode.meter = mode.max_meter * ModeMegaYeet.KEEP + 20.0
 	mode._send_state()
 	await _wait(0.1)
-	world.use_pressed(pl)
+	world.shop_buy("up:1")
 	await _wait(0.2)
 	_check("nothing for sale during a wave, nor below what's kept back", in_wave == 1 and mode.ups == 1, "during the wave %d, kept back %d" % [in_wave, mode.ups])
 	mode.meter = mode.max_meter
@@ -538,7 +548,7 @@ func _shop_window() -> void:
 	# The window.
 	pl.respawn(Vector3(9.0, 0.2, 0.0), 0.0) # (east of the Heart: FireE is the fire grate nearest)
 	await _wait(0.3)
-	world.hud.open_shop()
+	world.hud.open_shop(0)
 	await _wait(0.6)
 	var win: ShopWindow = world.hud._shop
 	var trap_cards := win._cards.size() if win else 0
@@ -881,6 +891,272 @@ func _boss_fight() -> void:
 		world.server_despawn_prop(ball)
 	horde.server_clear()
 	mode.meter = mode.max_meter
+
+
+## The Wrecking Ram: boss waves take turns (the Heart's Bosses); it winds up and charges, flings
+## a Yeet, scatters a crate, bowls over a shambler; a Yeet who steps aside in time is missed;
+## into a wall it's dazed and hurts double; it goes through a gate.
+func _ram_fight() -> void:
+	horde.server_clear()
+	mode.boss = null
+	await _wait(0.2)
+	# Turns: the next boss after the golem is the ram; a map can say otherwise; or none.
+	mode._bosses = 1
+	mode.wave = mode.heart.boss_every * 2 - 1
+	mode._start_wave()
+	await _wait(0.8)
+	var b = mode.boss
+	var turn_ok: bool = b != null and b.kind == "ram" and world.hud._boss_bar.visible and is_equal_approx(b.max_hp, b.hp) and horde._draw["ram"][0].multimesh.visible_instance_count == 1
+	horde.server_clear()
+	mode.boss = null
+	var was_bosses: Array[String] = mode.heart.bosses
+	mode.heart.bosses = ["golem"]
+	mode._spawn_boss()
+	var only_golem: bool = mode.boss != null and mode.boss.kind == "golem"
+	horde.server_clear()
+	mode.boss = null
+	mode.heart.bosses = []
+	mode._spawn_boss()
+	var no_boss: bool = mode.boss == null
+	mode.heart.bosses = was_bosses
+	_check("boss waves take turns: after the Siege Golem, the Wrecking Ram; a map's Bosses list decides", turn_ok and only_golem and no_boss, "ram %s, golem only %s, none %s" % [turn_ok, only_golem, no_boss])
+	mode.phase = ModeMegaYeet.Phase.BREAK
+	mode.phase_end = world.now() + 999.0
+	mode._to_spawn = 0
+	mode._send_state()
+	await _wait(0.2)
+	# One of our own. A way to charge: open ground, then a wall, from where it stands.
+	var way := _charge_way()
+	_check("the Ram: a place to try it (open ground, then a wall)", not way.is_empty(), "%s" % [way])
+	if way.is_empty():
+		return
+	var at: Vector3 = way[0]
+	var dir: Vector3 = way[1]
+	var r = horde.server_spawn(at, "ram")
+	r.speed = 0.0
+	r.charge_cd = 99.0
+	mode.boss = r
+	await _wait(0.2)
+	pl.respawn(at + dir * 7.0 + Vector3.UP * 0.2, 0.0)
+	var crate_at := at + dir * 4.0 + dir.cross(Vector3.UP) * 2.2 # (off to one side: it won't reach the Yeet first)
+	var crate: Prop = world.server_spawn_prop("crate", Transform3D(Basis.IDENTITY, crate_at + Vector3.UP * 0.6))
+	var mate = horde.server_spawn(at + dir * 5.0, "shambler")
+	mate.speed = 0.0
+	await _wait(0.4)
+	r.yaw = atan2(-dir.x, -dir.z)
+	_cam(at + dir * 9.0 + dir.cross(Vector3.UP) * 4.5 + Vector3.UP * 3.0, at + Vector3.UP * 2.4)
+	await _wait(0.2)
+	await _shot("m19_ram")
+	var hp0 := pl.hp
+	r.charge_cd = 0.0
+	var wound_up := false
+	var charged := false
+	var top := 0.0
+	var last: Vector3 = r.pos
+	for k in 240:
+		await get_tree().physics_frame
+		wound_up = wound_up or r.state == Horde.State.WINDUP
+		if r.state == Horde.State.CHARGE:
+			charged = true
+			top = maxf(top, r.pos.distance_to(last) * Engine.physics_ticks_per_second)
+			if k % 10 == 0:
+				await _shot("m20_ram_charging")
+		last = r.pos
+		if r.charge_hits.has(pl.player_id):
+			break
+	_check("... it paws the ground, then charges flat out", wound_up and charged and top > 10.0, "wound up %s, charged %s, %.1f m/s" % [wound_up, charged, top])
+	var flung := false
+	for k in 12: # (the launch lands a moment after the hit)
+		flung = flung or pl.velocity.length() > 8.0 or pl.state == Player.State.RAGDOLL
+		await get_tree().physics_frame
+	_check("... a Yeet in its way is flung", pl.hp < hp0 and flung, "hp %.0f -> %.0f, flung %s" % [hp0, pl.hp, flung])
+	await _wait(0.1)
+	var crate_moved: bool = crate == null or not is_instance_valid(crate) or crate.global_position.distance_to(crate_at) > 1.5
+	_check("... props scatter, its own go flying", crate_moved and (mate.state == Horde.State.FLY or mate.hp < 40.0), "crate moved %s, shambler state %d hp %.0f" % [crate_moved, mate.state, mate.hp])
+	for k in 40:
+		if r.state == Horde.State.STUN:
+			break
+		await _wait(0.1)
+	var dazed: bool = r.state == Horde.State.STUN and r.daze > 0.0
+	_cam(r.pos - dir * 4.0 + dir.cross(Vector3.UP) * 10.0 + Vector3.UP * 3.0, r.pos + Vector3.UP * 2.0)
+	await _wait(0.2)
+	await _shot("m21_ram_dazed")
+	var h0: float = r.hp
+	horde._damage(r, 100.0, "blast")
+	var hurt: float = h0 - r.hp
+	_check("... into a wall: dazed, and everything hurts it double", dazed and is_equal_approx(hurt, 100.0 * Horde.DAZE_HURTS), "dazed %s for %.1f s, a 100 hit took %.0f" % [dazed, r.daze, hurt])
+	r.daze = 0.0
+	r.stun = 0.0
+	await _wait(0.1)
+	h0 = r.hp
+	horde._damage(r, 100.0, "blast")
+	var woke: bool = r.state == Horde.State.WALK and is_equal_approx(h0 - r.hp, 100.0)
+	horde._hit(r, 10.0, Vector3(0, 0, 30.0), pl.player_id, "punt")
+	_check("... back on its feet, it hurts as usual, and a push doesn't move it", woke and r.state == Horde.State.WALK, "state %d" % r.state)
+	# A Yeet who steps aside just as it sets off is missed.
+	r.pos = at
+	r.yaw = atan2(-dir.x, -dir.z)
+	pl.hp = 100.0
+	pl.respawn(at + dir * 7.0 + Vector3.UP * 0.2, 0.0)
+	await _wait(0.3)
+	r.charge_cd = 0.0
+	for k in 80:
+		await get_tree().physics_frame
+		if r.state == Horde.State.WINDUP and r.windup < Horde.AIM_LOCK:
+			break
+	pl.respawn(at + dir * 7.0 + dir.cross(Vector3.UP) * 5.0 + Vector3.UP * 0.2, 0.0)
+	for k in 40:
+		await _wait(0.1)
+		if r.state == Horde.State.STUN:
+			break
+	_check("... step aside as it sets off: it misses, into the wall", r.state == Horde.State.STUN and r.daze > 0.0 and pl.hp >= 100.0 and r.charge_hits.is_empty(), "state %d, daze %.1f, hp %.0f" % [r.state, r.daze, pl.hp])
+	# Through a gate.
+	r.daze = 0.0
+	r.stun = 0.0
+	await _wait(0.1)
+	var run := _gate_run()
+	if not run.is_empty():
+		var wall = run[2]
+		var cells0: int = wall.broken_cells.size()
+		r.pos = run[0]
+		r.charge_dir = run[1]
+		r.charge_left = 2.0
+		r.charge_cd = 99.0
+		r.vel = r.charge_dir * Horde.CHARGE_SPEED
+		r.state = Horde.State.CHARGE
+		for k in 30:
+			await _wait(0.1)
+			if wall.broken_cells.size() > cells0 and r.state != Horde.State.CHARGE:
+				break
+		_check("... it goes through a gate", wall.broken_cells.size() > cells0, "%d -> %d broken cells" % [cells0, wall.broken_cells.size()])
+	else:
+		print("SKIP  the Ram through a gate (no straight run at one)")
+	# Down it goes: the reward, under its own name.
+	mode.meter = mode.max_meter * 0.5
+	var m0 := mode.meter
+	r.hp = 30.0
+	r.pos = at
+	r.charge_cd = 99.0
+	r.state = Horde.State.WALK
+	world.server_explode_at(r.pos + Vector3.UP * 1.5, 6.0, pl.player_id)
+	await _wait(0.8)
+	_check("brought down, it pays the meter back (the bar goes)", r.hp <= 0.0 and mode.boss == null and mode.meter >= m0 + mode.heart.boss_reward - 1.0 and not world.hud._boss_bar.visible, "meter %.0f -> %.0f" % [m0, mode.meter])
+	if crate and is_instance_valid(crate):
+		world.server_despawn_prop(crate)
+	horde.server_clear()
+	world.server_restore_walls()
+	pl.hp = 100.0
+	mode.meter = mode.max_meter
+	await _wait(0.3)
+
+
+## Where a charge goes: [from, direction]: 12+ m of level open ground and a wall within 34 m.
+func _charge_way() -> Array:
+	var f := horde.field
+	var dirs := [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vector3.BACK]
+	for i in f.walk.size():
+		if f.walk[i] != 1 or f.dist[i] >= FlowField.INF_COST or f.dist[i] < 12:
+			continue
+		var p := Vector3(f.origin.x + (i % f.nx + 0.5) * FlowField.CELL, f.height[i], f.origin.y + (i / f.nx + 0.5) * FlowField.CELL)
+		for d: Vector3 in dirs:
+			var ok := true
+			for k in range(1, 13):
+				for side in [-1, 0, 1]:
+					var c := f.cell_of(p + d * k + d.cross(Vector3.UP) * side * 2.0)
+					if c < 0 or f.walk[c] != 1 or absf(f.height[c] - p.y) > 0.1 or f.gate_wall.has(c):
+						ok = false
+			if not ok or Vector2(p.x + d.x * 8.0 - mode.heart.global_position.x, p.z + d.z * 8.0 - mode.heart.global_position.z).length() < 14.0:
+				continue
+			for k in range(13, 34):
+				var c := f.cell_of(p + d * k)
+				if f.gate_wall.has(c):
+					break
+				if c < 0 or f.walk[c] == 0 or f.height[c] - p.y > FlowField.STEP_UP * 2.0:
+					return [p, d]
+	return []
+
+
+## A straight run at a gate: [from, direction, its wall], or [].
+func _gate_run() -> Array:
+	var f := horde.field
+	for c: int in f.gate_wall:
+		var wall = f.gate_wall[c]
+		if not is_instance_valid(wall):
+			continue
+		var g := f.center(c)
+		for d: Vector3 in [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vector3.BACK]:
+			var h: float = f.height[c]
+			var ok := true
+			for k in range(1, 9):
+				var q := f.cell_of(Vector3(g.x, h, g.y) - d * k)
+				if q < 0 or f.walk[q] != 1 or absf(f.height[q] - h) > 0.1:
+					ok = false
+			if ok:
+				return [Vector3(g.x, h, g.y) - d * 8.0, d, wall]
+	return []
+
+
+## Team upgrades, in any order, and what each does.
+func _team_upgrades() -> void:
+	horde.server_clear()
+	mode.ups = 0
+	mode.personal = false
+	mode.meter = mode.max_meter
+	mode.phase = ModeMegaYeet.Phase.BREAK
+	mode.phase_end = world.now() + 999.0
+	mode._send_state()
+	await _wait(0.2)
+	# Sharper traps: the same trap, a monster in it, without and with.
+	var spot: TrapSpot = null
+	for n in world.arena.puzzle:
+		if n is TrapSpot and n.kind == "spikes" and not n.placed:
+			spot = n
+			break
+	spot.build(pl.player_id)
+	var plain = horde.server_spawn(spot.global_position, "brute")
+	plain.speed = 0.0
+	await _wait(1.0)
+	var lost: float = plain.max_hp - plain.hp
+	horde.server_clear()
+	world.shop_buy("up:%d" % ModeMegaYeet.Up.TRAPS) # (not first in the list: any order)
+	await _wait(0.2)
+	var sharp = horde.server_spawn(spot.global_position, "brute")
+	sharp.speed = 0.0
+	await _wait(1.0)
+	var lost2: float = sharp.max_hp - sharp.hp
+	horde.server_clear()
+	spot.server_clear()
+	_check("team upgrades in any order: Sharper traps first, traps hurt half as much again", mode.has_up(ModeMegaYeet.Up.TRAPS) and not mode.has_up(ModeMegaYeet.Up.PUSHES) and lost2 > lost * 1.25, "%.0f -> %.0f in a second" % [lost, lost2])
+	# Heart armour: a monster reaching the Heart bites half as hard.
+	var before := mode.meter
+	horde._reached(horde.server_spawn(mode.heart.global_position, "shambler"))
+	var full_bite: float = before - mode.meter
+	world.shop_buy("up:%d" % ModeMegaYeet.Up.HEART)
+	await _wait(0.2)
+	before = mode.meter
+	horde._reached(horde.server_spawn(mode.heart.global_position, "shambler"))
+	var half_bite: float = before - mode.meter
+	_check("Heart armour: a bite on the Heart is half as hard", is_equal_approx(half_bite, full_bite * 0.5), "%.0f -> %.0f" % [full_bite, half_bite])
+	# Stronger gates.
+	world.shop_buy("up:%d" % ModeMegaYeet.Up.GATES)
+	await _wait(0.2)
+	_check("Stronger gates: monsters batter gates 40% less", is_equal_approx(horde._up("gate_scale"), 0.6), "%.2f" % horde._up("gate_scale"))
+	# Field medics: nothing yet, a hurt Yeet heals once left alone a while.
+	pl.hp = 50.0
+	await _wait(0.7)
+	var without := pl.hp
+	world.shop_buy("up:%d" % ModeMegaYeet.Up.MEDICS)
+	await _wait(0.7)
+	var recent := pl.hp
+	mode._hurt_at[pl.player_id] = world.now() - ModeMegaYeet.MEDIC_WAIT
+	await _wait(1.2)
+	_check("Field medics: a hurt Yeet heals, but not just after being hurt", without == 50.0 and recent == 50.0 and pl.hp > 52.0, "%.0f, %.0f, then %.0f" % [without, recent, pl.hp])
+	pl.hp = 100.0
+	var cards: Array = ModeMegaYeet.shop_items(world, pl).filter(func(it): return it.tab == 2)
+	_check("the Team tab: all seven, the bought ones marked", cards.size() == 7 and cards.filter(func(it): return it.owned).size() == 4, "%d cards" % cards.size())
+	mode.ups = 0
+	mode._send_state()
+	await _wait(0.2)
 
 
 func f_dist(m) -> int:

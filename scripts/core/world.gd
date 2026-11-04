@@ -2742,6 +2742,23 @@ func _s_trap_gone(index: int) -> void:
 		(arena.puzzle[index] as TrapSpot).remove()
 
 
+## Server: a Yeet's health set outright (Field medics).
+func server_set_hp(pl: Player, hp: float) -> void:
+	pl.hp = hp
+	_bc_all("_s_hp", [pl.player_id, hp])
+
+
+## Server: this Yeet's shop window opens on a tab (Use on the Heart).
+func server_open_shop(pl: Player, tab: int) -> void:
+	if not pl.is_bot or pl == local_player:
+		_to_owner(pl, "_s_open_shop", [tab])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_open_shop(tab: int) -> void:
+	hud.open_shop(tab)
+
+
 ## MegaYeet's shop window: buy something (the server checks it: ModeMegaYeet.shop_buy).
 func shop_buy(id: String) -> void:
 	if is_server:

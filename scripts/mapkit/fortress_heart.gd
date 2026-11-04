@@ -48,8 +48,12 @@ extends Node3D
 @export_range(10, 400, 5) var max_monsters := 220
 ## How many traps players can put down anywhere (on top of the map's own trap spots).
 @export_range(0, 100, 1) var max_traps := 12
-## A boss wave every this many waves (0: never): the Siege Golem leads it in.
+## A boss wave every this many waves (0: never): a boss from Bosses leads it in.
 @export_range(0, 50, 1) var boss_every := 5
+## Which bosses come, in turn: the Siege Golem (slow, stomps, throws boulders) and the Wrecking
+## Ram (charges; dazed when it hits a wall). Empty: no bosses. The same one twice in the list
+## comes twice as often.
+@export_enum("golem", "ram") var bosses: Array[String] = ["golem", "ram"]
 ## Its hit points (more with more Yeets playing, and each time it comes back), and what
 ## bringing it down puts back in the meter.
 @export_range(200.0, 50000.0, 50.0) var boss_health := 3000.0

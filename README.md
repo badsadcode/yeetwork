@@ -265,10 +265,11 @@ it down and pays, right click cancels; anywhere the monsters walk, not on the He
 another trap, up to the fortress's Max Traps; aimed into a map's trap spot of its kind it
 goes on the spot. Use on a built trap between waves picks it up: put it down somewhere else
 for free, or right click to sell it for half), **power-ups** for yourself (first aid, speed, feather, Super Yeet, Iron Yeet:
-they last 45 s into the wave), **team upgrades** (stronger pushes and throws for everyone,
-softer bites, quicker respawns, in that order), **repairs** (the nearest broken gate, or all
+they last 45 s into the wave), **team upgrades** for everyone, in any order (stronger pushes
+and throws, softer bites, quicker respawns, gates that hold longer, sharper traps, an armoured
+Heart, field medics who heal you when you've not been hurt for a while), **repairs** (the nearest broken gate, or all
 of them) and, with personal Y$, **the Heart** (heal it, dearly). Use works too: on a broken
-gate, a trap spot, a built trap (to move or sell it), the Heart. What pays is the match's **Economy**: *Shared* (the default:
+gate, a trap spot, a built trap (to move or sell it), the Heart (the Team tab). What pays is the match's **Economy**: *Shared* (the default:
 the Fortress meter is money as well as life, and a tenth of it is never spent) or *Personal
 Y$* (every Yeet earns their own Y$, shown by the meter: 5 a kill, 5 more for style, the
 combos, 30 and more for every wave held, 150 for bringing the boss down and 75 for everyone
@@ -280,7 +281,12 @@ wave is a **boss wave**: **the Siege Golem**, three times a Yeet's height, leads
 health bar on the HUD). Gates crumble under it; pushes, grabs, falls and water do nothing; it
 stomps anyone close (and flattens its own minions), hurls boulders at Yeets up on the walls
 (catch one and throw it back), and calls packs out of the ground. Blasts, fire and heavy
-things hurt it, the iron ball most of all; bringing it down tops the meter up (or pays Y$). Monsters walk the ways to the Heart, batter gates down and hit any Yeet they reach; a
+things hurt it, the iron ball most of all; bringing it down tops the meter up (or pays Y$).
+The next boss wave brings **the Wrecking Ram**, and they take turns (a map's FortressHeart
+can choose its Bosses): it picks a Yeet, paws the ground and charges in a straight line,
+smashing gates, scattering props, bowling over its own kind and flinging anyone in the way.
+Step aside at the last moment and let it hit a wall: it's dazed for 5 seconds, and everything
+hurts it double. Monsters walk the ways to the Heart, batter gates down and hit any Yeet they reach; a
 gravity-gun push and blasts send them flying, flung props crush them, they die from falls,
 lava, acid and deep water, and fire spreads through a crowd. Grab one with the gun and
 throw it, or swing it into the others. Waves mix the kinds as they go on, each announced
@@ -599,8 +605,9 @@ godot --headless --path . -- --host --map res://maps/fortress.tscn --bots 0 --to
 # MegaYeet: waves, the ways to the Heart, a gate battered down, the meter, kills, bots, the
 # time 200 monsters take a tick, the fall and a fresh start, the shop window and personal Y$,
 # traps put down anywhere (the preview, paid when down, not on the Heart or another trap, Max
-# Traps, picked up and put down again, sold for half, sold when the wave comes)
-# (screenshots with a folder)
+# Traps, picked up and put down again, sold for half, sold when the wave comes), the bosses
+# taking turns, the Wrecking Ram's charge (a Yeet flung, a dodge, a gate, a wall and its daze),
+# team upgrades in any order and what each does (screenshots with a folder)
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --tour /tmp/shots --tour-mode megayeet
 # Make your own versions: a pipe pouring from its model's Spout, a drain's Intake, oil drums
 # (a PropType), a thorn bed trap of your own in the shop and at work, an energy drink (a

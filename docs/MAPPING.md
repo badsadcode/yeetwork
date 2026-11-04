@@ -486,7 +486,10 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
   60), **First Break** and **Break Time** (seconds, 12 and 25), **Wave Size** (times the
   usual: 24 in wave 1, ten more each wave) and **Max Monsters** (at once, 220; fewer for the
   Steam Deck), **Max Traps** (how many traps players can put down anywhere, 12; the map's
-  trap spots don't count), **Boss Every** (a boss wave every this many, 5; 0: none), **Boss Health**
+  trap spots don't count), **Boss Every** (a boss wave every this many, 5; 0: none), **Bosses**
+  (which come, in turn: `golem`, the Siege Golem, and `ram`, the Wrecking Ram, which charges
+  in straight lines and is dazed by whatever solid it hits: so leave it walls to hit and room
+  to dodge; the same one twice comes twice as often; empty: no bosses), **Boss Health**
   (3000; more with more players and each time it returns) and **Boss Reward** (300).
 - **TrapSpot**: a place for a trap (a box, **Size**, its bottom on the node), built between
   waves by a player with Use or from the shop window (which builds the free spot of that kind
@@ -503,8 +506,8 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
   its name, model and numbers (damage, slowing, burning, blast): see *Make your own
   versions*.
 - Between waves players also **repair gates** (Use on a broken one; the more is gone, the
-  more it costs) and buy **team upgrades** at the Heart (Use on it: Mighty pushes, Thick
-  skin, Quick return, in that order). Spending never takes the meter below a tenth of it.
+  more it costs) and buy **team upgrades** at the Heart (Use on it opens the shop's Team
+  tab: any of the seven, in any order). Spending never takes the meter below a tenth of it.
 - **Iron ball** (PropSpawn kind `iron_ball`): a team lift, too heavy for one gun; two
   lift it together and throw it (any mode, not just MegaYeet).
 - **Gates**: any BreakableSlab. Its **material** and **Hp Scale** (toughness: 0.5 half as
@@ -583,7 +586,7 @@ models (`.glb`, `.gltf`, `.blend`, `.fbx` or a `.tscn`) onto its slots. Pick it 
 | volley_net | `Net` | rises with the net (TOTAL YEET) |
 | fan (prop) | `Rotor` | spins |
 | door | (the whole model) | slides open like the built-in door |
-| monster_shambler ... monster_golem | `Torso`, `Leg_L`, `Leg_R`, `Arm_L`, `Arm_R`, `Head` (each origin at its joint) | swing like the built-in monster's (see *Monsters of your own* above): a theme's mummies for shamblers |
+| monster_shambler ... monster_golem, monster_ram | `Torso`, `Leg_L`, `Leg_R`, `Arm_L`, `Arm_R`, `Head` (each origin at its joint) | swing like the built-in monster's (see *Monsters of your own* above): a theme's mummies for shamblers |
 | turntable, lift | (the whole model) | turns / rides along |
 
 **Slots**: *Lights* light_bulb, light_lamp_post, light_wall_lamp, light_candle,

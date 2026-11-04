@@ -90,7 +90,8 @@ A map's look in one file: a model for each kind of Map Kit piece and prop. Pick 
 | **Monster Ghost** | (none) | The ghosts (drawn see-through and glowing). |
 | **Monster Climber** | (none) | The climbers. |
 | **Monster Bomber** | (none) | The bombers (drawn small). |
-| **Monster Golem** | (none) | The boss (the Siege Golem): drawn three times a Yeet's height. |
+| **Monster Golem** | (none) | A boss, the Siege Golem: drawn three times a Yeet's height. |
+| **Monster Ram** | (none) | A boss, the Wrecking Ram: drawn 2.4 times a Yeet's height. |
 
 ### Pickups
 

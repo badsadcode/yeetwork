@@ -28,7 +28,8 @@ MegaYeet: what the players defend (put one at the fortress's centre). Monsters h
 | **Wave Size** | `1` | How many monsters a wave brings, times this (1: 24 in wave 1, ten more each wave). *(0.2 to 5)* |
 | **Max Monsters** | `220` | The most monsters at once (the rest of a wave waits for room). Mind the Steam Deck. *(10 to 400)* |
 | **Max Traps** | `12` | How many traps players can put down anywhere (on top of the map's own trap spots). *(0 to 100)* |
-| **Boss Every** | `5` | A boss wave every this many waves (0: never): the Siege Golem leads it in. *(0 to 50)* |
+| **Boss Every** | `5` | A boss wave every this many waves (0: never): a boss from Bosses leads it in. *(0 to 50)* |
+| **Bosses** | `["golem", "ram"]` | Which bosses come, in turn: the Siege Golem (slow, stomps, throws boulders) and the Wrecking Ram (charges; dazed when it hits a wall). Empty: no bosses. The same one twice in the list comes twice as often. Choices: `golem`, `ram`. |
 | **Boss Health** | `3000` | Its hit points (more with more Yeets playing, and each time it comes back), and what bringing it down puts back in the meter. *(200 to 50000)* |
 | **Boss Reward** | `300` | What bringing the boss down puts back in the meter. *(0 to 5000)* |
 

@@ -20,6 +20,11 @@ extends Node3D
 ##   its own minions get flattened), hurls boulders at anyone up on the walls (real props:
 ##   throw them back), and now and then calls a pack out of the ground round it. Blasts,
 ##   fire and heavy things hurt it: the iron ball most of all.
+## - ram (the other boss, taking turns with the golem: the Heart's Bosses): picks a Yeet it can
+##   see, paws the ground, and charges in a straight line, smashing gates, scattering props,
+##   bowling over its own and flinging any Yeet in the way. Into something solid, it's dazed
+##   for a while, and everything hurts it double. Otherwise as the golem: pushes, grabs, falls
+##   and water do nothing.
 ## Monsters of your own (MonsterType, on the map's FortressHeart) join them as kinds of their
 ## own (kind_ids: the built-in ones, then the map's, the same on every peer: they all load
 ## the same map), behaving like the built-in kind they pick; a map theme's monster slots give
@@ -54,14 +59,28 @@ const KINDS := {
 	"bomber": {"hp": 16.0, "speed": 2.9, "bite": 0.0, "bash": 0.0, "knock": 1.2, "grab": true, "size": 0.8, "radius": 0.32, "burn": 1.5, "bomb": true},
 	# The boss: hp is ModeMegaYeet's to set (how many Yeets, which time it comes).
 	"golem": {"hp": 3000.0, "speed": 1.0, "bite": 30.0, "bash": 400.0, "knock": 0.0, "grab": false, "size": 3.0, "radius": 1.5, "burn": 0.5, "boss": true},
+	"ram": {"hp": 2250.0, "speed": 1.4, "bite": 26.0, "bash": 320.0, "knock": 0.0, "grab": false, "size": 2.4, "radius": 1.2, "burn": 0.5, "boss": true, "charges": true},
 }
-const KIND_IDS := ["shambler", "runner", "brute", "ghost", "climber", "bomber", "golem"]
+const KIND_IDS := ["shambler", "runner", "brute", "ghost", "climber", "bomber", "golem", "ram"]
 ## A MonsterType's kind id: CUSTOM and its place in the Heart's list ("custom0").
 const CUSTOM := "custom"
-const BOSS_NAME := "THE SIEGE GOLEM"
+## The bosses: the name on the HUD, what its wave says, its health against the Heart's Boss
+## Health. Boss waves take turns through the Heart's Bosses.
+const BOSSES := {
+	"golem": {"name": "THE SIEGE GOLEM", "hint": "Blast it, burn it, throw the iron ball at it", "health": 1.0},
+	"ram": {"name": "THE WRECKING RAM", "hint": "Dodge its charge: into a wall, it's dazed and hurts double", "health": 0.75},
+}
+const WINDUP_TIME := 1.3 # (the ram paws the ground, turning to its Yeet...)
+const AIM_LOCK := 0.35 # (...for all but the end of that: time to dodge)
+const CHARGE_SPEED := 13.0
+const CHARGE_TIME := 3.0 # (the longest it runs)
+const CHARGE_EVERY := 7.0
+const CHARGE_DAMAGE := 30.0
+const DAZE_TIME := 5.0
+const DAZE_HURTS := 2.0
 const CAUSES := ["", "punt", "blast", "crushed", "fall", "lava", "acid", "drowned", "bowled", "wall", "heart", "hit", "fire", "light", "bomb", "spikes"]
 
-enum State { WALK, FLY, STUN, CLIMB, HELD }
+enum State { WALK, FLY, STUN, CLIMB, HELD, WINDUP, CHARGE }
 
 
 class Monster:
@@ -95,6 +114,14 @@ class Monster:
 	var stomp_cd := 3.0 # (the boss's: stomp, throw, call)
 	var throw_cd := 5.0
 	var call_cd := 12.0
+	var charge_cd := 4.0 # (the ram's)
+	var windup := 0.0
+	var charge_left := 0.0
+	var charge_dir := Vector3.FORWARD
+	var charge_at: Player
+	var charge_hits := {} # (the Yeets this charge has flung)
+	var smash_cd := 0.0
+	var daze := 0.0
 
 
 var world: Node
@@ -387,6 +414,8 @@ func _damage(m: Monster, amount: float, cause: String) -> void:
 		return
 	if m.def.has("boss") and cause in ["fall", "bowled", "wall", "light", "drowned"]:
 		return # (it doesn't care)
+	if m.daze > 0.0:
+		amount *= DAZE_HURTS
 	m.hp -= amount
 	m.cause = cause
 	if m.hp <= 0.0:
@@ -449,6 +478,10 @@ func _physics_process(delta: float) -> void:
 		m.flash = maxf(m.flash - delta * 4.0, 0.0)
 		m.attack_cd -= delta
 		m.slow = maxf(m.slow - delta, 0.0)
+		if m.daze > 0.0:
+			m.daze -= delta
+			if fmod(m.daze, 0.5) < 0.2: # (it blinks: now's the time)
+				m.flash = maxf(m.flash, 0.6)
 		if m.burn > 0.0:
 			m.burn -= delta
 			_damage(m, FIRE_BURN * float(m.def.burn) * delta, "fire")
@@ -470,6 +503,10 @@ func _physics_process(delta: float) -> void:
 				_climb(m, delta)
 			State.HELD:
 				_held(m, delta)
+			State.WINDUP:
+				_windup(m, delta)
+			State.CHARGE:
+				_charge(m, delta)
 			_:
 				if m.def.has("ghost"):
 					_ghost(m, delta)
@@ -630,7 +667,7 @@ func _bash(m: Monster) -> void:
 	var at := Vector3(c.x, field.height[m.bash_at] + 1.0, c.y)
 	var dir := (at - m.pos).normalized()
 	var reach := 1.8 if m.def.has("boss") else (0.9 if m.def.like == "brute" else 0.7)
-	world.server_damage_destructible(wall, at, reach, m.def.bash, dir * 3.0, 0, 1.0)
+	world.server_damage_destructible(wall, at, reach, m.def.bash * _up("gate_scale"), dir * 3.0, 0, 1.0)
 	if m.def.like == "brute" or m.def.has("boss"):
 		world.server_fx("impact:metal", at, dir * 6.0, 1.5, -dir)
 	_gates_hit = true
@@ -639,6 +676,9 @@ func _bash(m: Monster) -> void:
 ## The boss's moves: a stomp when Yeets come close, a boulder at anyone it can see up on the
 ## walls (or out of reach), a pack called out of the ground now and then.
 func _boss(m: Monster, delta: float) -> void:
+	if m.def.has("charges"):
+		_ram(m, delta)
+		return
 	m.stomp_cd -= delta
 	m.throw_cd -= delta
 	m.call_cd -= delta
@@ -671,6 +711,134 @@ func _boss(m: Monster, delta: float) -> void:
 			server_spawn(m.pos + Vector3(cos(a), 0, sin(a)) * 3.5, "shambler")
 		world.server_fx("crack", m.pos, Vector3.UP, 2.0)
 		world.server_fx("horn", m.pos, Vector3.UP, 1.0)
+
+
+## The ram: now and then it picks the nearest Yeet it can see on its own level (a gate doesn't
+## hide them: it goes through gates) and winds up.
+func _ram(m: Monster, delta: float) -> void:
+	m.charge_cd -= delta
+	if m.charge_cd > 0.0:
+		return
+	var best: Player = null
+	var best_d := 30.0
+	var space := get_world_3d().direct_space_state
+	var from := m.pos + Vector3.UP * 2.0
+	for pl: Player in world.players.values():
+		if not pl.is_alive() or absf(pl.global_position.y - m.pos.y) > 3.0:
+			continue
+		var flat := Vector2(pl.global_position.x - m.pos.x, pl.global_position.z - m.pos.z).length()
+		if flat < 4.0 or flat >= best_d:
+			continue
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, pl.body_center(), Game.L_WORLD))
+		if hit.is_empty() or hit.collider.has_meta("destructible"):
+			best = pl
+			best_d = flat
+	if best == null:
+		m.charge_cd = 0.5
+		return
+	m.charge_at = best
+	m.windup = WINDUP_TIME
+	m.state = State.WINDUP
+	world.server_fx("horn", m.pos, Vector3.UP, 1.0)
+
+
+## Pawing the ground, turning to its Yeet; the last moment it's set on where it's going.
+func _windup(m: Monster, delta: float) -> void:
+	var before := m.windup
+	m.windup -= delta
+	m.walk = 0.4
+	if m.charge_at and is_instance_valid(m.charge_at) and m.windup > AIM_LOCK:
+		var to := m.charge_at.global_position - m.pos
+		m.yaw = lerp_angle(m.yaw, atan2(-to.x, -to.z), 1.0 - exp(-8.0 * delta))
+	if int(before / 0.3) != int(m.windup / 0.3):
+		world.server_fx("impact:concrete", m.pos + Vector3.UP * 0.2, Vector3.UP * 3.0, 1.0)
+	if m.windup > 0.0:
+		return
+	m.charge_dir = Vector3(-sin(m.yaw), 0, -cos(m.yaw))
+	m.charge_left = CHARGE_TIME
+	m.charge_hits.clear()
+	m.smash_cd = 0.0
+	m.vel = m.charge_dir * CHARGE_SPEED
+	m.state = State.CHARGE
+	world.server_fx("throw", m.pos + Vector3.UP * 2.0, m.charge_dir, 2.0)
+
+
+## Flat out, in a straight line: through gates, over whatever's in the way; into anything
+## solid, it's dazed; run out of breath, it stops a moment.
+func _charge(m: Monster, delta: float) -> void:
+	var dir := m.charge_dir
+	var reach := float(m.def.radius)
+	m.walk = 1.0
+	m.charge_left -= delta
+	m.smash_cd -= delta
+	if Vector2(_heart.x - m.pos.x, _heart.z - m.pos.z).length() < _heart_r + reach * 0.5:
+		_reached(m)
+		return
+	var ahead := field.cell_of(m.pos + dir * (CHARGE_SPEED * delta + reach * 0.7))
+	var ground: float = field.height[ahead] if ahead >= 0 else INF
+	var gate: Variant = field.gate_wall.get(ahead)
+	if gate != null and is_instance_valid(gate):
+		if m.smash_cd <= 0.0:
+			m.smash_cd = 0.25
+			var at := m.pos + dir * reach + Vector3.UP * 2.0
+			world.server_damage_destructible(gate, at, 2.6, m.def.bash * 3.0 * _up("gate_scale"), dir * 14.0, 0, 3.0)
+			world.server_fx("impact:metal", at, dir * 6.0, 2.0, -dir)
+			_gates_hit = true
+	elif ahead < 0 or ground == INF or field.walk[ahead] == 0 or ground - m.pos.y > FlowField.STEP_UP * 2.0:
+		_crash(m)
+		return
+	_trample(m, dir, reach)
+	m.pos += dir * CHARGE_SPEED * delta
+	var here := field.cell_of(m.pos)
+	if here >= 0 and field.height[here] != INF:
+		m.pos.y = move_toward(m.pos.y, field.height[here], 16.0 * delta)
+	if m.charge_left <= 0.0:
+		m.vel = Vector3.ZERO
+		m.charge_cd = CHARGE_EVERY
+		m.stun = 1.0
+		m.state = State.STUN
+
+
+## What a charge runs into: Yeets flung (each once a charge), its own bowled over, props
+## scattered.
+func _trample(m: Monster, dir: Vector3, reach: float) -> void:
+	for pl: Player in world.players.values():
+		if not pl.is_alive() or m.charge_hits.has(pl.player_id):
+			continue
+		var to := pl.global_position - m.pos
+		if Vector2(to.x, to.z).length() > reach + 0.8 or absf(to.y) > 3.5:
+			continue
+		m.charge_hits[pl.player_id] = true
+		world.server_damage_player(pl, CHARGE_DAMAGE * _up("bite_scale"), 0, "monster", pl.body_center(), dir)
+		if pl.is_alive():
+			world.server_launch_player(pl, dir * 20.0 + Vector3.UP * 8.0, false, 1.2, 0)
+	for o: Monster in _near(m.pos, reach + 1.0):
+		if o != m and not o.def.has("boss") and o.state != State.FLY:
+			_hit(o, 50.0, dir * 14.0 + Vector3.UP * 6.0, 0, "bowled")
+	for p: Prop in world.props.values():
+		if is_instance_valid(p) and not p.freeze and p.held_by == 0 and p.linear_velocity.length() < 12.0 and p.global_position.distance_to(m.pos + Vector3.UP) < reach + 1.5:
+			p.linear_velocity += dir * 16.0 + Vector3.UP * 5.0
+			p.sleeping = false
+
+
+## Head first into something solid: dazed, and everything hurts it double for a while.
+func _crash(m: Monster) -> void:
+	m.vel = Vector3.ZERO
+	m.charge_cd = CHARGE_EVERY
+	m.stun = DAZE_TIME
+	m.daze = DAZE_TIME
+	m.state = State.STUN
+	var at := m.pos + m.charge_dir * float(m.def.radius) + Vector3.UP * 2.0
+	world.server_fx("impact:concrete", at, -m.charge_dir * 8.0, 3.0)
+	world.server_fx("crack", at, -m.charge_dir, 2.0)
+	var boss_name: String = BOSSES[m.kind].name if BOSSES.has(m.kind) else "IT"
+	world.server_message("%s IS DAZED!
+Everything hurts it double" % boss_name, Color(1.0, 0.85, 0.3), true)
+
+
+## A team upgrade's effect (ModeMegaYeet's): how much of something to apply.
+func _up(method: String) -> float:
+	return float(world.mode_logic.call(method)) if world.mode_logic and world.mode_logic.has_method(method) else 1.0
 
 
 ## The ground shakes: Yeets near it go flying, its own minions get flattened, things fly.
@@ -890,10 +1058,11 @@ func _trap_tick(dt: float) -> void:
 		if not t.built:
 			continue
 		var c := t.global_position
-		var hurt := t.stat("damage")
+		var sharper := _up("trap_scale")
+		var hurt := t.stat("damage") * sharper
 		var slows := t.stat("slows_to")
-		var burns := t.stat("burn")
-		var blast := t.stat("blast")
+		var burns := t.stat("burn") * sharper
+		var blast := t.stat("blast") * (1.0 + (sharper - 1.0) * 0.6)
 		for m: Monster in _near(c, Vector2(t.size.x, t.size.z).length() * 0.5 + 1.0):
 			if m.hp <= 0.0 or m.state == State.FLY or m.state == State.HELD:
 				continue
@@ -1027,7 +1196,7 @@ func _near(p: Vector3, r: float) -> Array:
 
 func _flags(m: Monster) -> int:
 	var flying := m.state == State.FLY or m.state == State.HELD
-	return (1 if flying else 0) | (2 if m.flash > 0.3 else 0) | (int(m.walk * 7.0) << 2) | (32 if m.burn > 0.0 else 0) | (64 if m.state == State.CLIMB else 0)
+	return (1 if flying else 0) | (2 if m.flash > 0.3 else 0) | (int(m.walk * 7.0) << 2) | (32 if m.burn > 0.0 else 0) | (64 if m.state == State.CLIMB else 0) | (128 if m.state == State.CHARGE else 0)
 
 
 func _send_snapshot() -> void:
@@ -1121,7 +1290,7 @@ func _process(delta: float) -> void:
 			var k: int = counts[m.kind]
 			if k >= MAX_DRAWN:
 				continue
-			_put(_draw[m.kind][1], k, m.pos, m.yaw, m.id, m.walk, m.flash, m.state == State.FLY or m.state == State.HELD, m.def.size)
+			_put(_draw[m.kind][1], k, m.pos, m.yaw, m.id, m.walk, m.flash, m.state == State.FLY or m.state == State.HELD, m.def.size, m.state == State.CHARGE)
 			counts[m.kind] = k + 1
 			if flames and m.burn > 0.0 and lit < 30:
 				lit += 1
@@ -1142,7 +1311,7 @@ func _process(delta: float) -> void:
 				continue
 			var flags: int = v[4]
 			var size: float = defs[kind].size
-			_put(_draw[kind][1], k, v[0], v[3], id, ((flags >> 2) & 7) / 7.0, 1.0 if flags & 2 else 0.0, flags & 1 != 0, size)
+			_put(_draw[kind][1], k, v[0], v[3], id, ((flags >> 2) & 7) / 7.0, 1.0 if flags & 2 else 0.0, flags & 1 != 0, size, flags & 128 != 0)
 			counts[kind] = k + 1
 			if flames and flags & 32 and lit < 30:
 				lit += 1
@@ -1162,10 +1331,12 @@ func _flame(pos: Vector3, size: float) -> void:
 	world.fx.puffs(pos + Vector3.UP * 1.1 * size, Vector3.UP, 2, [Color(1.0, 0.6, 0.15, 0.9), Color(1.0, 0.25, 0.05, 0.5), Color(0.2, 0.2, 0.2, 0.0)], 0.25 * size, 0.5 * size, 1.0, 2.2, 0.55, 30.0, Vector3(0, 2.0, 0), 1.0, 1.0, 0.3)
 
 
-func _put(buf: PackedFloat32Array, k: int, pos: Vector3, yaw: float, id: int, walk: float, flash: float, flying: bool, size: float) -> void:
+func _put(buf: PackedFloat32Array, k: int, pos: Vector3, yaw: float, id: int, walk: float, flash: float, flying: bool, size: float, charging := false) -> void:
 	var b := Basis(Vector3.UP, yaw)
 	if flying:
 		b = b * Basis(Vector3.RIGHT, sin(Time.get_ticks_msec() * 0.006 + id) * 0.9)
+	elif charging:
+		b = b * Basis(Vector3.RIGHT, -0.3) # (head down)
 	b = b.scaled(Vector3.ONE * size)
 	var o := k * 16
 	buf[o] = b.x.x
@@ -1183,7 +1354,7 @@ func _put(buf: PackedFloat32Array, k: int, pos: Vector3, yaw: float, id: int, wa
 	buf[o + 12] = fmod(id * 0.618034, 1.0)
 	buf[o + 13] = walk
 	buf[o + 14] = flash
-	buf[o + 15] = 1.0 if flying else 0.0
+	buf[o + 15] = 1.0 if flying or charging else 0.0 # (limbs going like mad)
 
 
 ## Now and then one of them moans (somewhere near the local Yeet).
@@ -1225,7 +1396,7 @@ func _death_fx(pos: Vector3, vel: Vector3, yaw: float, cause: int, kind: String)
 		return
 	if like == "bomber":
 		return # (the blast says it all)
-	if like == "golem": # (it comes down in a cloud of rock)
+	if defs[kind].has("boss"): # (it comes down in a cloud of rock)
 		world.fx.explosion(pos + Vector3.UP * 2.5, 4.0)
 		world.fx.puffs(pos + Vector3.UP * 2.0, Vector3.UP, 30, [Color(0.5, 0.48, 0.45, 0.9), Color(0.4, 0.38, 0.36, 0.0)], 1.0, 2.2, 2.0, 6.0, 2.5)
 		Sfx.play3d("boom", pos, 8.0, 0.5)

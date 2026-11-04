@@ -30,12 +30,19 @@ const COMBOS := [[3, "TRIPLE SPLAT", 10.0], [5, "MONSTER MASH", 20.0], [10, "MEG
 ## [kind, from wave, share of the wave]; the rest are shamblers.
 const KIND_MIX := [["runner", 2, 0.18], ["bomber", 2, 0.07], ["climber", 4, 0.14], ["ghost", 5, 0.1]]
 const BRUTES_FROM := 3
-## Team upgrades at the Heart, bought in this order: [name, cost, what it does].
+## Team upgrades, bought in any order in the shop's Team tab: [name, cost, what it does].
 const UPGRADES := [
 	["Mighty pushes", 150, "Everyone's pushes and throws 30% stronger"],
 	["Thick skin", 200, "Monster bites hurt 35% less"],
 	["Quick return", 120, "Back in the fight twice as fast"],
+	["Stronger gates", 140, "Monsters batter gates 40% less"],
+	["Sharper traps", 160, "Traps hurt 50% more, mines blast wider"],
+	["Heart armour", 220, "A monster reaching the Heart bites half as hard"],
+	["Field medics", 180, "Yeets heal slowly once they've not been hurt for 6 s"],
 ]
+enum Up { PUSHES, SKIN, RETURN, GATES, TRAPS, HEART, MEDICS }
+const MEDIC_WAIT := 6.0
+const MEDIC_RATE := 5.0 # (health a second)
 const KEEP := 0.1 # (spending never takes the meter below this much of it)
 const SELL_BACK := 0.5 # (a trap picked up and sold: this much of its price back)
 const PLACE_REACH := 12.0 # (how far off a Yeet can put a trap down)
@@ -80,7 +87,10 @@ var phase_end := 0.0
 var started := 0.0
 var kills := 0
 var heart_hits := 0
-var ups := 0 # team upgrades bought
+var ups := 0 # team upgrades bought (a bit each: Up)
+var _last_hp := {} # player id -> health (Field medics: who's been hurt, and when)
+var _hurt_at := {}
+var _medic_t := 0.0
 var personal := false # (the Economy: each Yeet's own Y$)
 var cash := {} # player id -> Y$
 var boss # (Horde.Monster) the boss while it lives
@@ -211,6 +221,7 @@ func tick(delta: float) -> void:
 		_build_field()
 		_ready_to_play = true
 	var now: float = world.now()
+	_medics(delta, now)
 	match phase:
 		Phase.BREAK:
 			if now >= phase_end:
@@ -347,19 +358,23 @@ func _pick_kind() -> String:
 	return "shambler"
 
 
-## The Siege Golem, at a rift: tougher with more Yeets playing and each time it comes back.
+## The next boss, in turn from the Heart's Bosses, at a rift: tougher with more Yeets playing
+## and with each one that comes.
 func _spawn_boss() -> void:
-	if _spots.is_empty():
+	var kinds: Array = Array(heart.bosses).filter(func(k): return Horde.BOSSES.has(k))
+	if _spots.is_empty() or kinds.is_empty():
 		return
 	var s = _spots[0]
 	var at: Vector3 = (s as MonsterSpawn).spot(world.rng) if s is MonsterSpawn else s
-	var m = horde.server_spawn(at, "golem")
+	var kind: String = kinds[_bosses % kinds.size()]
+	var info: Dictionary = Horde.BOSSES[kind]
+	var m = horde.server_spawn(at, kind)
 	var yeets: int = world.players.size()
-	m.max_hp = heart.boss_health * (1.0 + 0.35 * maxi(yeets - 1, 0)) * (1.0 + 0.5 * _bosses)
+	m.max_hp = heart.boss_health * float(info.health) * (1.0 + 0.35 * maxi(yeets - 1, 0)) * (1.0 + 0.5 * _bosses)
 	m.hp = m.max_hp
 	_bosses += 1
 	boss = m
-	world.server_message("WAVE %d: %s!\nBlast it, burn it, throw the iron ball at it" % [wave, Horde.BOSS_NAME], Color(1.0, 0.35, 0.2), true)
+	world.server_message("WAVE %d: %s!\n%s" % [wave, info.name, info.hint], Color(1.0, 0.35, 0.2), true)
 	world.server_fx("horn", heart.global_position, Vector3.UP, 1.0)
 
 
@@ -410,15 +425,16 @@ func on_monster_killed(m, cause: String, attacker: int) -> void:
 	if phase == Phase.OVER or cause == "heart":
 		return
 	var pl: Player = world.get_player(attacker) if attacker != 0 else null
-	if m.kind == "golem":
+	if m.def.has("boss"):
 		var by := ("  (" + pl.display_name + ")") if pl else ""
+		var boss_name: String = Horde.BOSSES[m.kind].name
 		if personal:
 			for p: Player in world.players.values():
 				_earn(p, CASH_BOSS if p == pl else CASH_BOSS / 2)
-			world.server_message("%s FALLS!  +%d Y$%s, +%d Y$ everyone else" % [Horde.BOSS_NAME, CASH_BOSS, by, CASH_BOSS / 2], Color(1.0, 0.85, 0.3), true)
+			world.server_message("%s FALLS!  +%d Y$%s, +%d Y$ everyone else" % [boss_name, CASH_BOSS, by, CASH_BOSS / 2], Color(1.0, 0.85, 0.3), true)
 		else:
 			meter = minf(meter + heart.boss_reward, max_meter)
-			world.server_message("%s FALLS!  +%d%s" % [Horde.BOSS_NAME, int(heart.boss_reward), by], Color(1.0, 0.85, 0.3), true)
+			world.server_message("%s FALLS!  +%d%s" % [boss_name, int(heart.boss_reward), by], Color(1.0, 0.85, 0.3), true)
 	kills += 1
 	var style := cause in STYLE
 	if not personal:
@@ -448,7 +464,7 @@ func _earn(pl: Player, y: int) -> void:
 
 
 func on_monster_reached(m) -> void:
-	meter -= heart.bite * (5.0 if m.kind == "golem" else 1.0)
+	meter -= heart.bite * (5.0 if m.def.has("boss") else 1.0) * heart_scale()
 	heart_hits += 1
 	world.server_heart_hurt()
 	var now: float = world.now()
@@ -528,12 +544,12 @@ func buy(pl: Player, cost: float, what: String) -> bool:
 	return true
 
 
-func buy_upgrade(pl: Player) -> void:
-	if ups >= UPGRADES.size():
+func buy_upgrade(pl: Player, i: int) -> void:
+	if i < 0 or i >= UPGRADES.size() or has_up(i):
 		return
-	var up: Array = UPGRADES[ups]
+	var up: Array = UPGRADES[i]
 	if buy(pl, up[1], "bought %s for the team (%s)" % [up[0], up[2].to_lower()]):
-		ups += 1
+		ups |= 1 << i
 		_send_state()
 
 
@@ -554,7 +570,7 @@ func shop_buy(pl: Player, id: String) -> void:
 				var until: float = world.net_time() + maxf(phase_end - world.now(), 0.0) + POWER_LASTS
 				world.server_shop_power(pl, parts[1], until)
 		"up":
-			buy_upgrade(pl)
+			buy_upgrade(pl, int(parts[1]))
 		"fix":
 			var walls := _broken_walls(world, pl)
 			if parts[1] == "near":
@@ -604,8 +620,9 @@ static func shop_items(w: Node, pl: Player) -> Array:
 	var ups := int(s.get("ups", 0))
 	for i in UPGRADES.size():
 		var up: Array = UPGRADES[i]
+		var owned := ups & (1 << i) != 0
 		out.append({"id": "up:%d" % i, "tab": 2, "name": up[0], "look": "up:%d" % i, "cost": up[1], "about": up[2] + "; for everyone",
-			"owned": i < ups, "why": "Bought" if i < ups else ("" if i == ups else "After " + String(UPGRADES[i - 1][0]))})
+			"owned": owned, "why": "Bought" if owned else ""})
 	var walls := _broken_walls(w, pl)
 	var near := 0.0
 	var every := 0.0
@@ -829,17 +846,49 @@ func _tell(pl: Player, text: String) -> void:
 	world.server_message_to(pl, text, Color(1.0, 0.5, 0.4))
 
 
+## Bought this team upgrade (Up)?
+func has_up(i: int) -> bool:
+	return ups & (1 << i) != 0
+
+
 ## Upgrades at work (World, the gun, the Horde ask).
 func gun_power(_pl: Player) -> float:
-	return 1.3 if ups >= 1 else 1.0
+	return 1.3 if has_up(Up.PUSHES) else 1.0
 
 
 func bite_scale() -> float:
-	return 0.65 if ups >= 2 else 1.0
+	return 0.65 if has_up(Up.SKIN) else 1.0
 
 
 func respawn_scale() -> float:
-	return 0.5 if ups >= 3 else 1.0
+	return 0.5 if has_up(Up.RETURN) else 1.0
+
+
+func gate_scale() -> float:
+	return 0.6 if has_up(Up.GATES) else 1.0
+
+
+func trap_scale() -> float:
+	return 1.5 if has_up(Up.TRAPS) else 1.0
+
+
+func heart_scale() -> float:
+	return 0.5 if has_up(Up.HEART) else 1.0
+
+
+## Field medics: a Yeet not hurt for a while heals slowly.
+func _medics(delta: float, now: float) -> void:
+	_medic_t -= delta
+	if _medic_t > 0.0:
+		return
+	_medic_t = 0.5
+	for pl: Player in world.players.values():
+		var id: int = pl.player_id
+		if pl.hp < float(_last_hp.get(id, pl.hp)):
+			_hurt_at[id] = now
+		if has_up(Up.MEDICS) and pl.is_alive() and pl.hp < 100.0 and now - float(_hurt_at.get(id, -100.0)) >= MEDIC_WAIT:
+			world.server_set_hp(pl, minf(pl.hp + MEDIC_RATE * 0.5, 100.0))
+		_last_hp[id] = pl.hp
 
 
 func _send_state() -> void:
@@ -847,7 +896,7 @@ func _send_state() -> void:
 		"meter": int(ceil(meter)), "max": int(max_meter), "wave": wave, "phase": phase,
 		"next": phase_end if phase != Phase.WAVE else -1.0, "left": _to_spawn + horde.count(),
 		"zones": _zone_counts.slice(1), "best": best, "kills": kills, "ups": ups,
-		"boss": [Horde.BOSS_NAME, boss.hp / boss.max_hp] if boss and boss.hp > 0.0 else [],
+		"boss": [Horde.BOSSES[boss.kind].name, boss.hp / boss.max_hp] if boss and boss.hp > 0.0 else [],
 		"eco": 1 if personal else 0, "cash": _cash_state(),
 	})
 

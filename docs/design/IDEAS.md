@@ -110,8 +110,11 @@ and throwing monsters; fire burns and spreads through them.
 Step 3 done: the break between waves (repair gates, build traps at TrapSpots: spikes,
 fire, mines; team upgrades at the Heart; the meter as money, a tenth always kept).
 Step 5 begun: the boss, the Siege Golem (every fifth wave; stomps, throws boulders, calls
-packs; the iron ball is its bane). Next: more upgrades and traps players place anywhere;
-(4) more maps (a factory); more bosses, polish and tuning for the Steam Deck.
+packs; the iron ball is its bane). Done since: traps placed anywhere; **the Wrecking Ram**,
+the second boss, taking turns with the Golem (the Heart's Bosses list), charging in straight
+lines, dazed and hurting double when it hits a wall; four more team upgrades (Stronger
+gates, Sharper traps, Heart armour, Field medics), all seven bought in any order. Next: (4)
+more maps (a factory); polish and tuning for the Steam Deck.
 
 Co-op survival: endless waves of NPC monsters (zombies, Frankenstein's monsters, ghosts and
 the like) come for the players, who work together and use everything the game has (the

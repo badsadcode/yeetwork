@@ -665,8 +665,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
-## MegaYeet: the shop window (between waves only).
-func open_shop() -> void:
+## MegaYeet: the shop window (between waves only), on a tab if one's asked for.
+func open_shop(tab := -1) -> void:
 	if int(world.mode_state.get("phase", -1)) != ModeMegaYeet.Phase.BREAK:
 		show_message("The shop opens between waves", Color(1.0, 0.7, 0.4), false)
 		return
@@ -676,6 +676,8 @@ func open_shop() -> void:
 		_root.add_child(_shop)
 	_shop._pad = _pad_used # (a pad: the first card takes the focus)
 	_shop.open()
+	if tab >= 0:
+		_shop._set_tab(tab)
 
 
 func _shop_closed() -> void:

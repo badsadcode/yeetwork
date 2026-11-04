@@ -305,8 +305,16 @@ static func build_look(look: String, w: Node = null) -> Node3D:
 					return _arrow_look()
 				1:
 					return _shield_look()
-				_:
+				2:
 					return _hourglass_look()
+				3:
+					return _wall_look(4, 3)
+				4:
+					return build_look("trap:spikes")
+				5:
+					return build_look("heal")
+				_:
+					return Pickups.build_model("health")
 	return Node3D.new()
 
 
