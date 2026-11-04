@@ -39,4 +39,4 @@ It has every [PuzzleNode](PuzzleNode.md) setting too (they're listed there).
 
 ## Used in
 
-[Thorn Trap](../../custom/make_your_own/thorn_trap.tscn), [Make Your Own Workshop](../../custom/make_your_own/workshop.tscn), [The Fortress](../../maps/fortress.tscn) (8)
+[Thorn Trap](../../custom/make_your_own/thorn_trap.tscn), [Make Your Own Workshop](../../custom/make_your_own/workshop.tscn), [The Fortress](../../maps/fortress.tscn) (8), [The Foundry](../../maps/foundry.tscn) (9)

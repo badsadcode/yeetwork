@@ -84,4 +84,4 @@ Name these parts (or empties, for places) in your model exactly so: the map chec
 
 ## Used in
 
-[Lighthouse Point](../../custom/lighthouse_point/lighthouse_point.tscn), [High Seas](../../maps/high_seas.tscn) (13), [The Pump House](../../maps/pump_house.tscn) (6)
+[Lighthouse Point](../../custom/lighthouse_point/lighthouse_point.tscn), [The Foundry](../../maps/foundry.tscn) (11), [High Seas](../../maps/high_seas.tscn) (13), [The Pump House](../../maps/pump_house.tscn) (6)

@@ -14,4 +14,4 @@ MegaYeet: where monsters come from (a rift in the ground, Radius across). Put se
 
 ## Used in
 
-[Make Your Own Workshop](../../custom/make_your_own/workshop.tscn), [The Fortress](../../maps/fortress.tscn) (6)
+[Make Your Own Workshop](../../custom/make_your_own/workshop.tscn), [The Fortress](../../maps/fortress.tscn) (6), [The Foundry](../../maps/foundry.tscn) (5)

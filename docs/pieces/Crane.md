@@ -40,4 +40,4 @@ Name these parts (or empties, for places) in your model exactly so: the map chec
 
 ## Used in
 
-[Lighthouse Point](../../custom/lighthouse_point/lighthouse_point.tscn), [Make Your Own Boat](../../custom/make_your_own/boat.tscn), [Make Your Own Workshop](../../custom/make_your_own/workshop.tscn), [High Seas](../../maps/high_seas.tscn)
+[Lighthouse Point](../../custom/lighthouse_point/lighthouse_point.tscn), [Make Your Own Boat](../../custom/make_your_own/boat.tscn), [Make Your Own Workshop](../../custom/make_your_own/workshop.tscn), [The Foundry](../../maps/foundry.tscn), [High Seas](../../maps/high_seas.tscn)

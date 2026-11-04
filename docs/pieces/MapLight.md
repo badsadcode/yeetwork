@@ -34,4 +34,4 @@ Name these parts (or empties, for places) in your model exactly so: the map chec
 
 ## Used in
 
-[Lighthouse Point](../../custom/lighthouse_point/lighthouse_point.tscn) (6), [Haunted Yard](../../maps/haunted_yard.tscn) (36)
+[Lighthouse Point](../../custom/lighthouse_point/lighthouse_point.tscn) (6), [The Foundry](../../maps/foundry.tscn) (11), [Haunted Yard](../../maps/haunted_yard.tscn) (36)

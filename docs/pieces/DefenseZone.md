@@ -17,4 +17,4 @@ MegaYeet: a zone of the fortress (a box, Size, its bottom on the node). Every mo
 
 ## Used in
 
-[The Fortress](../../maps/fortress.tscn) (3)
+[The Fortress](../../maps/fortress.tscn) (3), [The Foundry](../../maps/foundry.tscn) (8)

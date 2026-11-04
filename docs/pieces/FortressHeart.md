@@ -39,4 +39,4 @@ MegaYeet: what the players defend (put one at the fortress's centre). Monsters h
 
 ## Used in
 
-[Make Your Own Workshop](../../custom/make_your_own/workshop.tscn), [The Fortress](../../maps/fortress.tscn)
+[Make Your Own Workshop](../../custom/make_your_own/workshop.tscn), [The Fortress](../../maps/fortress.tscn), [The Foundry](../../maps/foundry.tscn)

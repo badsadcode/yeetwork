@@ -553,6 +553,15 @@ over still does; anything a monster fits under (a gate under a lintel) is a way 
   rings of zones round it, rifts at the farthest ground monsters can walk from).
 - `maps/fortress.tscn` is the example (built by `tools/make_fortress.py`, plain Map Kit
   afterwards). A track named `fortress.ogg` in `assets/music/` plays there.
+- `maps/foundry.tscn` (`tools/make_foundry.py`) shows a fortress needn't be rings round a
+  middle: the Heart at one end, three ways in that play differently. A map's first
+  **MonsterSpawn** is where its bosses come from. To have monsters keep to a bridge, make the
+  canal `acid` or `lava` (they don't path into it; thrown in, that's the end of them), and
+  build the bridge solid from the bed up: they take the lowest floor they fit on, so under a
+  thin deck they'd count the bed as theirs (that's what lets them walk under catwalks). Thin
+  walls between the parts of a fortress need **jump pads** over them, floor to floor, with the
+  top of the arc over the wall (Target on the far floor, Arc Height above the wall): bots only
+  reach monsters behind a closed gate that way (catwalks aren't on their map).
 
 ### Themes (a look for a whole map)
 A **MapTheme** gives every piece and prop on a map the look of its theme (haunted, foundry,

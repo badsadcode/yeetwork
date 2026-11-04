@@ -135,8 +135,8 @@ func think(delta: float) -> void:
 
 ## MegaYeet: follow the bots' shared map (Horde.bot_field: downhill to the monster most worth
 ## going for, hopping walls, riding jump pads, round big props) until one is close and in
-## sight; then push it away, or throw a prop grabbed on the way. Nothing to get to: back to
-## the Heart.
+## sight; then push it away, or throw a prop grabbed on the way. No monsters about: the same
+## map leads back to the Heart.
 func _think_megayeet(delta: float) -> void:
 	var mode := world.mode_logic as ModeMegaYeet
 	if mode == null or mode.heart == null or world.horde == null:
@@ -166,7 +166,7 @@ func _think_megayeet(delta: float) -> void:
 	var want_move := true
 	var next := horde.bot_field.next_point(field, pl.global_position) if field else Vector3.INF
 	_on_route = next != Vector3.INF
-	_goal = next if _on_route else heart
+	_goal = next if _on_route else _toward_heart(field, heart)
 	if _monster != null and _monster.hp > 0.0:
 		var mp: Vector3 = _monster.pos + Vector3.UP * 0.9
 		var d := eye.distance_to(mp)
@@ -191,7 +191,8 @@ func _think_megayeet(delta: float) -> void:
 			_punt_cd = PUNT_REST[_skill()] * 0.6 + _rng.randf() * 0.5
 	else:
 		if not _on_route:
-			want_move = pl.global_position.distance_to(heart) > 6.0
+			# (high up off a pad, off the map for a moment: let the jump land, don't steer it home)
+			want_move = pl.is_on_floor() and pl.global_position.distance_to(heart) > 6.0
 		else:
 			look_at = _goal + Vector3.UP * 1.5
 		if holding:
@@ -208,6 +209,16 @@ func _think_megayeet(delta: float) -> void:
 	# Up a step on the way: hop (a pad does its own lifting).
 	if _on_route and pl.is_on_floor() and horde.bot_field.step_up(field, pl.global_position):
 		pl.cmd.jump_pressed = true
+
+
+## No way to anything on the bots' map: a step along the monsters' way to the Heart (round the
+## walls, not straight into them).
+func _toward_heart(field: FlowField, heart: Vector3) -> Vector3:
+	var c := field.cell_of(pl.global_position) if field else -1
+	if c < 0 or field.toward[c] == Vector2.ZERO:
+		return heart
+	var at: Vector2 = field.center(c) + field.toward[c] * 2.0
+	return Vector3(at.x, pl.global_position.y, at.y)
 
 
 ## Yeetball: get behind the ball (on the far side from the goal we attack) and punt it at

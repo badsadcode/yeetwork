@@ -282,6 +282,9 @@ func _update_bot_field() -> void:
 		var start: int = (field.dist[here] / 2) if here >= 0 and field.dist[here] < FlowField.INF_COST else 2000
 		if not sources.has(c) or start < int(sources[c]):
 			sources[c] = start
+	if sources.is_empty(): # (no monsters about: the way back to the Heart, round the walls)
+		for c in field.targets:
+			sources[c] = 0
 	bot_field.update(field, world.arena.jump_links, sources, _prop_cells())
 
 

@@ -282,6 +282,11 @@ health bar on the HUD). Gates crumble under it; pushes, grabs, falls and water d
 stomps anyone close (and flattens its own minions), hurls boulders at Yeets up on the walls
 (catch one and throw it back), and calls packs out of the ground. Blasts, fire and heavy
 things hurt it, the iron ball most of all; bringing it down tops the meter up (or pays Y$).
+**The Foundry** is MegaYeet's second map, a sprawling old works with the Heart off at one end
+in its furnace hall and three ways in: the long assembly hall with catwalks overhead, the
+narrow, twisting pipe alley (its rift opens on wave 3), and the bridge over a chemical canal
+(shove them off it) past the docks' crane and containers. Jump pads carry you over the walls
+between the parts of the works.
 The next boss wave brings **the Wrecking Ram**, and they take turns (a map's FortressHeart
 can choose its Bosses): it picks a Yeet, paws the ground and charges in a straight line,
 smashing gates, scattering props, bowling over its own kind and flinging anyone in the way.
@@ -515,6 +520,7 @@ scripts/ui/       hud.gd, main_menu.gd, settings_form.gd, ui_theme.gd, character
 tests/            test_runner.gd (gameplay smoke tests)
 tools/            make_ui_art.py (menu button/frame art), glb_to_blend.py (characters .blend),
                   make_gravity_gun.py (the gun model: .blend and assets/models/gravity_gun.glb)
+                  make_foundry.py (The Foundry, MegaYeet's second map: maps/foundry.tscn)
 art/              source art for Blender (ignored by Godot)
 ```
 
@@ -609,6 +615,9 @@ godot --headless --path . -- --host --map res://maps/fortress.tscn --bots 0 --to
 # taking turns, the Wrecking Ram's charge (a Yeet flung, a dodge, a gate, a wall and its daze),
 # team upgrades in any order and what each does (screenshots with a folder)
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --tour /tmp/shots --tour-mode megayeet
+# The Foundry: from every rift a way to the Heart, the way the map means it, the canal, the
+# bridge, the control room, the Ram down the hall (screenshots with a folder)
+godot --path . -- --host --map res://maps/foundry.tscn --mode megayeet --bots 0 --tour /tmp/shots --tour-mode foundry
 # Make your own versions: a pipe pouring from its model's Spout, a drain's Intake, oil drums
 # (a PropType), a thorn bed trap of your own in the shop and at work, an energy drink (a
 # PickupType), a fan and flag stands of your own, a brick wall and its pieces, a ladder out of

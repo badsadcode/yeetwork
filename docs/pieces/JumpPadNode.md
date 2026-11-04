@@ -16,4 +16,4 @@ A pad that throws players and props through the air to a spot: up to a ledge, ac
 
 ## Used in
 
-[Example Garden](../../custom/example_garden/example_garden.tscn), [Lighthouse Point](../../custom/lighthouse_point/lighthouse_point.tscn) (2), [Make Your Own Boat](../../custom/make_your_own/boat.tscn), [Courtyard](../../maps/courtyard.tscn) (3), [Facing Yeets](../../maps/facing.tscn) (10), [The Fortress](../../maps/fortress.tscn) (8), [High Seas](../../maps/high_seas.tscn) (8), [Hoops Court](../../maps/hoops_court.tscn) (4), [Lagoon](../../maps/lagoon.tscn) (3), [Yeetwork Prime](../../maps/prime.tscn) (8)
+[Example Garden](../../custom/example_garden/example_garden.tscn), [Lighthouse Point](../../custom/lighthouse_point/lighthouse_point.tscn) (2), [Make Your Own Boat](../../custom/make_your_own/boat.tscn), [Courtyard](../../maps/courtyard.tscn) (3), [Facing Yeets](../../maps/facing.tscn) (10), [The Fortress](../../maps/fortress.tscn) (8), [The Foundry](../../maps/foundry.tscn) (17), [High Seas](../../maps/high_seas.tscn) (8), [Hoops Court](../../maps/hoops_court.tscn) (4), [Lagoon](../../maps/lagoon.tscn) (3), [Yeetwork Prime](../../maps/prime.tscn) (8)

@@ -17,4 +17,4 @@ A box that does something to whatever is in it, by Kind: acid or lava (a glowing
 
 ## Used in
 
-[Lighthouse Point](../../custom/lighthouse_point/lighthouse_point.tscn), [Courtyard](../../maps/courtyard.tscn) (2), [Lagoon](../../maps/lagoon.tscn) (2), [Moving Day](../../maps/moving_day.tscn), [Yeetwork Prime](../../maps/prime.tscn), [The Scrapyard](../../maps/scrapyard.tscn), [Test Chambers](../../maps/test_chambers.tscn) (4)
+[Lighthouse Point](../../custom/lighthouse_point/lighthouse_point.tscn), [Courtyard](../../maps/courtyard.tscn) (2), [The Foundry](../../maps/foundry.tscn) (2), [Lagoon](../../maps/lagoon.tscn) (2), [Moving Day](../../maps/moving_day.tscn), [Yeetwork Prime](../../maps/prime.tscn), [The Scrapyard](../../maps/scrapyard.tscn), [Test Chambers](../../maps/test_chambers.tscn) (4)

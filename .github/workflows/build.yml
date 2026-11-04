@@ -24,7 +24,7 @@ jobs:
         run: godot --headless -- --host --map prime --mode ctf --bots 0 --spooky off --test
       - name: Validate maps
         run: |
-          for m in prime facing courtyard lagoon highseas moving_day test_chambers warehouse pump_house scrapyard yeetball_stadium res://maps/fortress.tscn res://custom/example_garden/example_garden.tscn res://custom/make_your_own/workshop.tscn res://custom/make_your_own/boat.tscn res://custom/lighthouse_point/lighthouse_point.tscn; do
+          for m in prime facing courtyard lagoon highseas moving_day test_chambers warehouse pump_house scrapyard yeetball_stadium res://maps/fortress.tscn res://maps/foundry.tscn res://custom/example_garden/example_garden.tscn res://custom/make_your_own/workshop.tscn res://custom/make_your_own/boat.tscn res://custom/lighthouse_point/lighthouse_point.tscn; do
             godot --headless -- --map "$m" --validate
           done
       - name: Piece pages up to date (docs/pieces/, every setting described; the walkthroughs' tables match their maps)
@@ -83,6 +83,9 @@ jobs:
       - name: Shop window check (every tab of MegaYeet's shop shows its wares)
         timeout-minutes: 2
         run: timeout 70 godot --headless -- --host --map res://maps/fortress.tscn --mode megayeet --bots 0 --spooky off --tour x --tour-mode shop
+      - name: Foundry check (from every rift a way to the Heart, the way the map means it; the canal, the bridge, the control room, the Ram down the hall)
+        timeout-minutes: 3
+        run: timeout 130 godot --headless -- --host --map res://maps/foundry.tscn --mode megayeet --bots 0 --spooky off --tour x --tour-mode foundry
       - name: Make your own check (a pipe's Spout, a drain's Intake, a PropType, a trap of your own in the shop and at work, breakable models and props, models playing their own animations, monsters of your own; a client sees them and a player's own gun)
         timeout-minutes: 4
         run: |
