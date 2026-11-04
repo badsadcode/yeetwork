@@ -60,14 +60,14 @@ func finish() -> void:
 
 ## Where a bot at `pos` heads next (a point a few steps down the map, or across a pad's
 ## middle when that's the way); INF: no monster it can get to from here.
-func next_point(field: FlowField, pos: Vector3) -> Vector3:
+func next_point(field: FlowField, pos: Vector3, steps := 3) -> Vector3:
 	if dist.size() != field.nx * field.nz:
 		return Vector3.INF
 	var i := standable(field, pos)
 	if i < 0 or dist[i] >= INF_COST:
 		return Vector3.INF
 	var at := i
-	for k in 3: # (a little way down the map, not past a step up or a pad)
+	for k in steps: # (a little way down the map, not past a step up or a pad)
 		var j := _downhill(field, at)
 		if j < 0:
 			break

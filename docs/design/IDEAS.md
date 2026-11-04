@@ -114,7 +114,10 @@ packs; the iron ball is its bane). Done since: traps placed anywhere; **the Wrec
 the second boss, taking turns with the Golem (the Heart's Bosses list), charging in straight
 lines, dazed and hurting double when it hits a wall; four more team upgrades (Stronger
 gates, Sharper traps, Heart armour, Field medics), all seven bought in any order; **The Foundry**, the second map (not rings: the Heart at one
-end, three ways in). Next: polish and tuning for the Steam Deck.
+end, three ways in). Tuned for the Steam Deck (2026-11-04, measured on a desktop at the Low
+preset, `--tour-mode deckperf`; not yet on a real Deck): a warm-up as a match starts so effects
+don't hitch the first time they're drawn, a blast's deaths capped to a few bodies, bots that
+step aside from the Ram and don't press into walls.
 
 Co-op survival: endless waves of NPC monsters (zombies, Frankenstein's monsters, ghosts and
 the like) come for the players, who work together and use everything the game has (the

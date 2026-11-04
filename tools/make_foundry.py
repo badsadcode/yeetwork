@@ -28,7 +28,7 @@ map_name = "The Foundry"
 author = "Yeetwork"
 description = "A sprawling old works, the Heart in its furnace hall. Three ways in: the long assembly hall, the twisting pipe alley, and the bridge over the chemical canal."
 sky = "sunset"
-ambient_scale = 1.6
+ambient_scale = 1.9
 kill_height = -20.0
 avoid_areas = Array[Rect2]([Rect2(-96, 37.5, 96.5, 13), Rect2(5.5, 37.5, 90.5, 13)])
 playtest_mode = 8
@@ -273,10 +273,12 @@ for name, x, z, x2, z2 in over:
 # --- Lights: glows that say where you are -------------------------------------------------------
 lamps = [("wall_lamp", -10, 3.2, -35.2, "Color(1, 0.82, 0.55, 1)"), ("wall_lamp", 2, 3.2, -35.2, "Color(1, 0.82, 0.55, 1)"), ("wall_lamp", 14, 3.2, -35.2, "Color(1, 0.82, 0.55, 1)"),
          ("lamp_post", -24, 0, -41, "Color(1, 0.82, 0.55, 1)"), ("lamp_post", 8, 0, 34, "Color(1, 0.82, 0.55, 1)"), ("lamp_post", 50, 0, 20, "Color(1, 0.82, 0.55, 1)"),
-         ("bulb", -30, 8, -15.5, "Color(1, 0.86, 0.65, 1)"), ("bulb", -8, 8, -15.5, "Color(1, 0.86, 0.65, 1)"), ("bulb", 14, 8, -15.5, "Color(1, 0.86, 0.65, 1)"),
+         ("bulb", -30, 8, -15.5, "Color(1, 0.86, 0.65, 1)", 2.2), ("bulb", -8, 8, -15.5, "Color(1, 0.86, 0.65, 1)", 2.2), ("bulb", 14, 8, -15.5, "Color(1, 0.86, 0.65, 1)", 2.2),
          ("bulb", 45, 4.5, -36, "Color(1, 0.6, 0.3, 1)"), ("bulb", 45, 4.5, -6, "Color(1, 0.6, 0.3, 1)")]
-for k, (kind, x, y, z, col) in enumerate(lamps):
-    node("Lights", "Lamp%d" % k, "light", x, y, z, 'kind = "%s"\ncolor = %s\n' % (kind, col))
+for k, lamp in enumerate(lamps):
+    kind, x, y, z, col = lamp[:5]
+    energy = "energy = %g\nreach = 22.0\n" % lamp[5] if len(lamp) > 5 else ""
+    node("Lights", "Lamp%d" % k, "light", x, y, z, 'kind = "%s"\ncolor = %s\n%s' % (kind, col, energy))
 
 # --- Props: things to drop off the catwalks, throw, push folk into the canal with ---------------
 props = []

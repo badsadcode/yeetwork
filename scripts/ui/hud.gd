@@ -33,6 +33,7 @@ var _cash: Label # MegaYeet with personal Y$: what you have
 var _shop: ShopWindow # MegaYeet: the break's shop (the shop key)
 var _boss_bar: HudPlate # MegaYeet: the boss's health while it lives
 var _boss_label: Label
+var _getting_ready: ColorRect
 var _speed_plate: HudPlate
 var _slot_plates: Array[PanelContainer] = []
 var _speed_label: Label
@@ -663,6 +664,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		open_shop()
 	elif event is InputEventMouseButton and event.pressed and not _paused and not shop_open() and _match_end == null and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## A moment's cover over the screen as a match starts (Effects.warm_up).
+func show_getting_ready(on: bool) -> void:
+	if on and _getting_ready == null:
+		_getting_ready = ColorRect.new()
+		_getting_ready.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_getting_ready.color = Color(0.06, 0.05, 0.1)
+		_getting_ready.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_getting_ready)
+		var l := _label(30, Color.WHITE)
+		l.text = "Getting ready..."
+		l.set_anchors_preset(Control.PRESET_FULL_RECT)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_getting_ready.add_child(l)
+	elif not on and _getting_ready:
+		_getting_ready.queue_free()
+		_getting_ready = null
 
 
 ## MegaYeet: the shop window (between waves only), on a tab if one's asked for.

@@ -30,6 +30,9 @@ var _on_route := false # (following the bots' map: dropping off an edge is meant
 # Per Game.bot_skill (easy, normal, hard). Hard is the original, merciless bot.
 const TURN_RATE := [2.5, 4.0, 7.0]
 const AIM_SLOP := [3.2, 1.8, 0.0] # metres of miss at the target
+var _no_headway := 0.0 # (MegaYeet: seconds on the spot, on the way somewhere)
+## How long before the Ram sets off a bot steps aside, by skill.
+const DODGE_WINDUP := [0.0, 0.5, 0.9]
 const LEAD := [0.0, 0.5, 1.0]
 const THROW_DELAY := [1.6, 1.0, 0.4]
 const SIGHT := [28.0, 42.0, 60.0]
@@ -164,7 +167,9 @@ func _think_megayeet(delta: float) -> void:
 	var eye := pl.eye_position()
 	var look_at := heart + Vector3.UP * 1.5
 	var want_move := true
-	var next := horde.bot_field.next_point(field, pl.global_position) if field else Vector3.INF
+	# (aiming a few cells ahead can cut a door's corner: getting nowhere, just the next cell)
+	_no_headway = _no_headway + delta if pl.horizontal_speed() < 1.0 and pl.is_on_floor() else maxf(_no_headway - delta * 0.5, 0.0)
+	var next := horde.bot_field.next_point(field, pl.global_position, 1 if _no_headway > 0.4 else 3) if field else Vector3.INF
 	_on_route = next != Vector3.INF
 	_goal = next if _on_route else _toward_heart(field, heart)
 	if _monster != null and _monster.hp > 0.0:
@@ -204,11 +209,43 @@ func _think_megayeet(delta: float) -> void:
 		_grabbing = false
 	if holding:
 		_target_prop = null
+	var dodge := _dodge_charge(mode, field)
+	if dodge != Vector3.INF:
+		_goal = dodge
+		_on_route = false
+		want_move = true
 	_aim(look_at, delta)
 	_steer(delta, want_move)
 	# Up a step on the way: hop (a pad does its own lifting).
 	if _on_route and pl.is_on_floor() and horde.bot_field.step_up(field, pl.global_position):
 		pl.cmd.jump_pressed = true
+
+
+## The boss charging, or about to, with this bot in its way: where to step aside to (the side
+## with floor), or INF. A better bot moves sooner; an easy one only once it's coming.
+func _dodge_charge(mode: ModeMegaYeet, field: FlowField) -> Vector3:
+	var m = mode.boss
+	if m == null or field == null or not m.def.has("charges"):
+		return Vector3.INF
+	if m.state != Horde.State.CHARGE and not (m.state == Horde.State.WINDUP and m.windup < DODGE_WINDUP[_skill()]):
+		return Vector3.INF
+	var to: Vector3 = pl.global_position - m.pos
+	to.y = 0.0
+	if to.length() > 16.0:
+		return Vector3.INF
+	var ahead := Vector3(-sin(m.yaw), 0, -cos(m.yaw))
+	var side := ahead.cross(Vector3.UP)
+	var off := to.dot(side)
+	if to.dot(ahead) < 0.0 or absf(off) > float(m.def.radius) + 2.0:
+		return Vector3.INF
+	if off == 0.0:
+		off = 1.0
+	for s in [signf(off), -signf(off)]:
+		var there: Vector3 = pl.global_position + side * s * 5.0
+		var c := field.cell_of(there)
+		if c >= 0 and field.walk[c] == 1:
+			return there
+	return Vector3.INF
 
 
 ## No way to anything on the bots' map: a step along the monsters' way to the Heart (round the
@@ -750,10 +787,10 @@ func _overboard(delta: float) -> bool:
 func _steer(delta: float, want_move: bool) -> void:
 	var cmd := pl.cmd
 	var pos := pl.global_position
-	var goal := _route(pos, _goal)
+	var goal := _goal if _on_route else _route(pos, _goal) # (the bots' map already keeps out of pits)
 	var to := goal - pos
 	to.y = 0.0
-	if not want_move or to.length() < 1.5:
+	if not want_move or to.length() < (0.6 if _on_route else 1.5):
 		cmd.move = Vector2.ZERO
 		cmd.jump = false
 		return

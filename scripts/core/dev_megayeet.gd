@@ -648,6 +648,9 @@ func _placing() -> void:
 	var placer: TrapPlacer = world.trap_placer
 	var previewed := placer != null and placer.active and placer.ok and placer._at.distance_to(spot) < 0.6
 	_check("... the shop's trap follows your aim, green where it fits", previewed, "active %s, ok %s (%s), at %s" % [placer.active, placer.ok, placer.why, placer._at])
+	var unbound: Array = ["gun_grab", "gun_throw", "hold_farther", "hold_closer"].filter(func(a): return Controls.pad_of(a) == "-")
+	var pad_prompt: String = placer.prompt(true) if placer else ""
+	_check("... on a pad too: its buttons put it down, turn it and cancel, and the prompt says which", unbound.is_empty() and pad_prompt.contains(Controls.pad_of("gun_grab")) and pad_prompt.contains(Controls.pad_of("hold_farther")) and not pad_prompt.contains("Wheel"), "unbound %s: %s" % [unbound, pad_prompt.replace("\n", " / ")])
 	if pl.camera:
 		pl.camera.make_current()
 	await _wait(0.2)

@@ -21,6 +21,8 @@ const PUSH_NEUTRAL := Color(0.72, 0.88, 1.0)
 static var _noise_tex: NoiseTexture2D
 static var _noise3d: NoiseTexture3D
 var _ball: SphereMesh
+static var _warmed := false
+var _warming := false
 
 
 func _ready() -> void:
@@ -54,6 +56,59 @@ func _ready() -> void:
 		_noise_tex.height = 256
 		_noise_tex.seamless = true
 		_noise_tex.noise = n
+
+
+## The first time an effect is drawn, the graphics card has to get ready for it: a hitch in the
+## middle of a fight, worse on a Steam Deck. So once a run, as a match starts, behind the HUD's
+## "Getting ready" with the sound off: everything that goes off in a fight, once, in front of
+## the camera (no marks left behind).
+func warm_up(world: Node) -> void:
+	if _warmed or DisplayServer.get_name() == "headless":
+		return
+	_warmed = true
+	_warming = true
+	world.hud.show_getting_ready(true)
+	var sfx := AudioServer.get_bus_index("SFX")
+	var was_muted := AudioServer.is_bus_mute(sfx)
+	AudioServer.set_bus_mute(sfx, true)
+	await get_tree().process_frame
+	var cam := get_viewport().get_camera_3d()
+	if cam:
+		var p := cam.global_position - cam.global_basis.z * 6.0
+		blood(p, Vector3.UP, Vector3.FORWARD, 1.0)
+		_confetti(p, Vector3.UP, 1.0)
+		for m in ["wood", "metal", "stone", "concrete", "glass", "body", "ice"]:
+			impact(p, Vector3.UP, 1.5, m, 1.0)
+		var square := PackedVector2Array([Vector2(-0.3, -0.3), Vector2(0.3, -0.3), Vector2(0.3, 0.3), Vector2(-0.3, 0.3)])
+		for m in ["wood", "metal", "stone", "glass"]:
+			shard(square, 0.1, Transform3D(Basis.IDENTITY, p), Vector3.UP, Vector3.ONE, Color(0.6, 0.5, 0.4), m)
+		_chunk(p, Vector3.ONE * 0.3, Color(0.5, 0.5, 0.5), Vector3.UP, 0.4)
+		explosion(p + Vector3.UP, 2.0)
+		shockwave(p, Vector3.FORWARD)
+		spark(p, Color.WHITE)
+		dust(p, Color.GRAY, 1.0)
+		zap(p)
+		puff(p, Vector3.UP)
+		dust_ring(p, Vector3.UP, 1.0, Color.GRAY)
+		ground_dust(p, 1.0)
+		splash(p, 1.0, Color(0.5, 0.7, 0.9))
+		splash(p, 1.0, Color(0.4, 1.0, 0.3), "acid")
+		spray(p, Vector3.ONE, 1.0)
+		var thing := MeshInstance3D.new()
+		thing.mesh = _chunk_mesh
+		add_child(thing)
+		thing.global_position = p
+		Burning.on(thing, 0.0, AABB(Vector3.ONE * -0.5, Vector3.ONE))
+		var fire := Burning.area(self, Transform3D(Basis.IDENTITY, p), Vector3(2, 1, 2))
+		if world.horde:
+			world.horde.warm_at(p)
+		await get_tree().create_timer(0.8).timeout
+		thing.queue_free()
+		fire.queue_free()
+		clear_chunks_near(p, 40.0)
+	AudioServer.set_bus_mute(sfx, was_muted)
+	_warming = false
+	world.hud.show_getting_ready(false)
 
 
 func _space() -> PhysicsDirectSpaceState3D:
@@ -100,6 +155,8 @@ func _confetti(pos: Vector3, normal: Vector3, amount: float) -> void:
 
 
 func _decal(pos: Vector3, normal: Vector3, travel: Vector3, size: float, tint: Color, stretch := 1.0) -> void:
+	if _warming:
+		return
 	var d := Decal.new()
 	var tex := Mats.splat_textures()
 	d.texture_albedo = tex[_rng.randi() % tex.size()]

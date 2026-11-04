@@ -37,6 +37,9 @@ const SNAP_RATE := 0.1
 const PER_PACKET := 90
 const MAX_DRAWN := 600
 const MAX_CORPSES := 40
+const MAX_CORPSES_LOW := 16 # (the Low graphics preset: the Steam Deck)
+const BURST_BODIES := 5 # (deaths at once that get a body: the rest of a blast's just go up in dust)
+const BURST_BODIES_LOW := 2
 const GRAVITY := 22.0
 const HEIGHT := 1.8
 const POS_SCALE := 32.0
@@ -158,6 +161,8 @@ var kind_ids: Array = KIND_IDS.duplicate()
 var defs := {}
 var _models := {} # kind -> PackedScene
 var types := {} # kind -> MonsterType
+var _warm_spot := Vector3.ZERO
+var _warm_t := 0.0
 
 
 func _ready() -> void:
@@ -214,6 +219,12 @@ func _setup_kinds() -> void:
 
 
 ## A kind's mesh: its model of your own, else the built-in look (of the kind it behaves like).
+## The warm-up (Effects.warm_up): one of each kind drawn here for a moment.
+func warm_at(p: Vector3) -> void:
+	_warm_spot = p
+	_warm_t = 0.6
+
+
 func mesh_of(kind: String) -> Mesh:
 	if _models.has(kind):
 		return MonsterLook.from_model(_models[kind], defs[kind].has("ghost"))
@@ -1262,6 +1273,7 @@ func monster_point(id: int) -> Vector3:
 ## Deaths: [id, x, y, z, vx, vy, vz, cause + kind * 32] each (every peer).
 func apply_deaths(buf: PackedFloat32Array) -> void:
 	var i := 0
+	var bodies: int = BURST_BODIES_LOW if Game.graphics == 0 else BURST_BODIES
 	while i + 7 < buf.size():
 		var id := int(buf[i])
 		var pos := Vector3(buf[i + 1], buf[i + 2], buf[i + 3])
@@ -1274,7 +1286,12 @@ func apply_deaths(buf: PackedFloat32Array) -> void:
 			pos = _views[id][0]
 			yaw = _views[id][3]
 			_views.erase(id)
-		_death_fx(pos, vel, yaw, cause, kind)
+		var size: float = defs[kind].size
+		if bodies > 0 or defs[kind].has("boss") or cause == 10 or defs[kind].like in ["ghost", "bomber"]:
+			bodies -= 1
+			_death_fx(pos, vel, yaw, cause, kind)
+		else:
+			world.fx.puffs(pos + Vector3.UP * size, Vector3.UP, 4, [Color(0.5, 0.45, 0.4, 0.7), Color(0.4, 0.38, 0.36, 0.0)], 0.3 * size, 0.7 * size, 1.0, 2.5, 0.7)
 		i += 8
 
 
@@ -1324,9 +1341,13 @@ func _process(delta: float) -> void:
 	for kind in kind_ids:
 		var mm: MultiMesh = _draw[kind][0].multimesh
 		var n: int = counts[kind]
+		if _warm_t > 0.0 and n == 0:
+			_put(_draw[kind][1], 0, _warm_spot, 0.0, 1, 1.0, 0.0, false, 1.0)
+			n = 1
 		if n > 0:
 			mm.buffer = _draw[kind][1] # (all at once; past the count they're hidden)
 		mm.visible_instance_count = n
+	_warm_t -= delta
 	_groans(delta)
 
 
@@ -1409,7 +1430,7 @@ func _death_fx(pos: Vector3, vel: Vector3, yaw: float, cause: int, kind: String)
 	else:
 		world.fx.confetti(pos + Vector3.UP * size, Vector3.UP, 0.6)
 	Sfx.play3d("metal" if like == "climber" else "smack", pos + Vector3.UP, -2.0, randf_range(0.7, 0.9) / size)
-	while _corpses.size() >= MAX_CORPSES:
+	while _corpses.size() >= (MAX_CORPSES_LOW if Game.graphics == 0 else MAX_CORPSES):
 		var old: Node3D = _corpses.pop_front()
 		if is_instance_valid(old):
 			old.queue_free()

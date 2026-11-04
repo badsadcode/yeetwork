@@ -413,6 +413,9 @@ picks Easy, Normal (default) or Hard. Hard is the original sharpshooter.
 more at grazing angles, reflect the world and the sky, and show white cracks as they take
 damage.
 
+**Smooth from the start.** As a match starts, a moment's "Getting ready" has the graphics card
+prepare the game's effects, so they don't hitch the first time they go off in a fight.
+
 **Graphics options.** Low (Steam Deck), Medium and High presets, plus every detail on its
 own: resolution, upscaler (FSR 1 / FSR 2), anti-aliasing, shadows, lighting (SSIL, SDFGI),
 ambient occlusion, volumetric fog, bloom, water quality, glass quality, explosions, clouds,
@@ -617,7 +620,9 @@ godot --headless --path . -- --host --map res://maps/fortress.tscn --bots 0 --to
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --tour /tmp/shots --tour-mode megayeet
 # The Foundry: from every rift a way to the Heart, the way the map means it, the canal, the
 # bridge, the control room, the Ram down the hall (screenshots with a folder)
-godot --path . -- --host --map res://maps/foundry.tscn --mode megayeet --bots 0 --tour /tmp/shots --tour-mode foundry
+godot --path . -- --host --map res://maps/foundry.tscn --mode megayeet --bots 1 --tour /tmp/shots --tour-mode foundry
+# What a MegaYeet map costs at the Steam Deck's settings (frame times, draw calls, triangles)
+godot --path . -- --host --map res://maps/foundry.tscn --mode megayeet --bots 3 --graphics 0 --tour x --tour-mode deckperf
 # Make your own versions: a pipe pouring from its model's Spout, a drain's Intake, oil drums
 # (a PropType), a thorn bed trap of your own in the shop and at work, an energy drink (a
 # PickupType), a fan and flag stands of your own, a brick wall and its pieces, a ladder out of

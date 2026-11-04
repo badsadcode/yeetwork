@@ -23,7 +23,7 @@ map_name = "The Foundry"
 author = "Yeetwork"
 description = "A sprawling old works, the Heart in its furnace hall. Three ways in: the long assembly hall, the twisting pipe alley, and the bridge over the chemical canal."
 sky = "sunset"
-ambient_scale = 1.6
+ambient_scale = 1.9
 kill_height = -20.0
 avoid_areas = Array[Rect2]([Rect2(-96, 37.5, 96.5, 13), Rect2(5.5, 37.5, 90.5, 13)])
 playtest_mode = 8
@@ -1160,18 +1160,24 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -30, 8, -15.5)
 script = ExtResource("light")
 kind = "bulb"
 color = Color(1, 0.86, 0.65, 1)
+energy = 2.2
+reach = 22.0
 
 [node name="Lamp7" type="Node3D" parent="Lights"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 8, -15.5)
 script = ExtResource("light")
 kind = "bulb"
 color = Color(1, 0.86, 0.65, 1)
+energy = 2.2
+reach = 22.0
 
 [node name="Lamp8" type="Node3D" parent="Lights"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 14, 8, -15.5)
 script = ExtResource("light")
 kind = "bulb"
 color = Color(1, 0.86, 0.65, 1)
+energy = 2.2
+reach = 22.0
 
 [node name="Lamp9" type="Node3D" parent="Lights"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 45, 4.5, -36)

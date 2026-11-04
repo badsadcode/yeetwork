@@ -504,6 +504,7 @@ func _create_player(info: Dictionary) -> Player:
 		pl.die(Vector3.ZERO)
 	if pl.is_local_human():
 		local_player = pl
+		fx.warm_up.call_deferred(self)
 	hud.on_players_changed()
 	return pl
 

@@ -4,9 +4,9 @@ extends Node
 ## hall, the alley's rift by the pipe alley, the far bank over the bridge and along the yard;
 ## the canal isn't walked in, the bridge is; every jump pad over a wall lands on walkable
 ## ground, on the far side; runners from every rift make their way to the gates; a Yeet gets
-## out of the control room over its low wall; the Ram's charge runs the length of the hall.
-## Screenshots. Exits 1 if a step fails.
-## Usage: godot -- --host --map res://maps/foundry.tscn --mode megayeet --bots 0 --port 24650 --tour <dir> --tour-mode foundry
+## out of the control room over its low wall; the Ram's charge runs the length of the hall,
+## and a bot in its way steps aside. Screenshots. Exits 1 if a step fails.
+## Usage: godot -- --host --map res://maps/foundry.tscn --mode megayeet --bots 1 --port 24650 --tour <dir> --tour-mode foundry
 
 var world: Node
 var out_dir := ""
@@ -25,6 +25,14 @@ func _ready() -> void:
 	var pl: Player = world.local_player
 	pl.is_bot = true
 	pl.bot_brain = null
+	var bot: Player = null
+	var brain = null
+	for q: Player in world.players.values():
+		if q != pl:
+			bot = q
+			brain = q.bot_brain
+			q.bot_brain = null # (still, until its turn with the Ram)
+			q.respawn(Vector3(52, 0.2, -30), 0.0)
 	mode.phase_end = world.now() + 999.0
 	mode._send_state()
 	# Which way each rift goes, and which gates are on it.
@@ -85,13 +93,17 @@ func _ready() -> void:
 	pl.cmd.jump = false
 	pl.cmd.move = Vector2.ZERO
 	_check("a Yeet hops out of the control room, over its low wall", pl.global_position.z > 15.5, "at %s" % pl.global_position)
-	# The Ram: the length of the hall.
-	pl.respawn(Vector3(-12, 0.2, -15.5), 0.0) # (within its 30 m)
+	# The Ram: the length of the hall, a bot in its way (the Yeet well out of it).
+	pl.respawn(Vector3(43, 0.2, 9), 0.0)
+	if bot:
+		bot.respawn(Vector3(-12, 0.2, -15.5), 0.0) # (within its 30 m)
+		bot.bot_brain = brain
 	await _wait(0.3)
 	var ram = horde.server_spawn(Vector3(-36, 0, -15.5), "ram")
 	ram.speed = 0.0
 	ram.yaw = -PI * 0.5
 	ram.charge_cd = 0.0
+	mode.boss = ram
 	var ran := false
 	for k in 50:
 		await _wait(0.1)
@@ -104,6 +116,8 @@ func _ready() -> void:
 		if ram.state == Horde.State.STUN:
 			break
 	_check("the Ram sees down the hall and charges along it", ran and ram.pos.x > -20.0, "ran %s, got to %s" % [ran, ram.pos])
+	if bot:
+		_check("a bot in its way steps aside", not ram.charge_hits.has(bot.player_id), "bot at %s, Ram at %s" % [bot.global_position, ram.pos])
 	print("FOUNDRY CHECK ", "OK" if _failed == 0 else "FAILED (%d)" % _failed)
 	get_tree().quit(0 if _failed == 0 else 1)
 
