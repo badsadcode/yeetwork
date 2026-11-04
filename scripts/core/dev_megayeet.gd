@@ -397,7 +397,7 @@ func _way_out(brains: Dictionary) -> void:
 				break
 	if not reached:
 		var br = bot.bot_brain
-		print("WAYOUT alive %s state %d at %s path %d/%d monster %s held %d" % [bot.is_alive(), bot.state, bot.global_position.snapped(Vector3.ONE * 0.1), br._path_i, br._path.size(), br._monster != null, bot.gun.held_kind])
+		print("WAYOUT alive %s state %d at %s goal %s on_route %s no_headway %.1f next %s move %s monster %s" % [bot.is_alive(), bot.state, bot.global_position.snapped(Vector3.ONE * 0.1), br._goal, br._on_route, br._no_headway, horde.bot_field.next_point(horde.field, bot.global_position), bot.cmd.move, target.pos])
 	_check("... and a bot gets there by itself", reached, "closest %.1f m, %d go%s" % [best, tries, "" if tries == 1 else "es"])
 	bot.bot_brain = null
 	bot.cmd.move = Vector2.ZERO

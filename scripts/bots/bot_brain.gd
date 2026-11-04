@@ -254,8 +254,8 @@ func _toward_heart(field: FlowField, heart: Vector3) -> Vector3:
 	var c := field.cell_of(pl.global_position) if field else -1
 	if c < 0 or field.toward[c] == Vector2.ZERO:
 		return heart
-	var at: Vector2 = field.center(c) + field.toward[c] * 2.0
-	return Vector3(at.x, pl.global_position.y, at.y)
+	# (from where it stands, and past _steer's "arrived": it mustn't stop short on the way)
+	return pl.global_position + Vector3(field.toward[c].x, 0, field.toward[c].y) * 3.0
 
 
 ## Yeetball: get behind the ball (on the far side from the goal we attack) and punt it at
