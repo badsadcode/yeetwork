@@ -74,6 +74,9 @@ var puzzle_finish := -1.0
 var puzzle_results := {} # the end screen (Puzzle mode), the same on every peer
 ## What the HUD shows of a mode's state (Yeetball: rules, clock, overtime), set by the server.
 var mode_state := {}
+## Adventure mode: everyone moves on to the next chapter (Main starts a new World, here too).
+signal next_chapter_requested
+var adventure_info := {} # (Adventure mode, every peer: AdventureRun.info)
 var horde: Horde # MegaYeet's monsters (every peer)
 var trap_placer: TrapPlacer # MegaYeet: putting a trap down (the local player)
 var _pickups: Array = [] # server: per arena.pickups entry [0 off / 1 taken / 2 there, kind, back at]
@@ -112,7 +115,17 @@ func start(server: bool) -> void:
 		mode = Game.mode
 		Game.spooky = Game.halloween_active()
 		Liquid.style = Game.water_style
-		_build_arena(Game.map)
+		if mode == Game.Mode.ADVENTURE:
+			var wrong := AdventureRun.begin(Game.map)
+			if wrong != "":
+				leave_reason = wrong
+				leave_requested.emit.call_deferred()
+				set_physics_process(false)
+				set_process(false)
+				return
+			_build_arena(AdventureRun.map_now())
+		else:
+			_build_arena(Game.map)
 		mode_logic = _make_mode(mode)
 		mode_logic.setup(self)
 		if Game.spooky:
@@ -221,6 +234,8 @@ func _make_mode(m: int) -> ModeBase:
 			return ModePumpkin.new()
 		Game.Mode.PUZZLE:
 			return ModePuzzle.new()
+		Game.Mode.ADVENTURE:
+			return ModeAdventure.new()
 		Game.Mode.YEETBALL:
 			return ModeYeetball.new()
 		Game.Mode.HOOPS:
@@ -233,6 +248,8 @@ func _make_mode(m: int) -> ModeBase:
 
 
 func mode_name() -> String:
+	if not adventure_info.is_empty():
+		return "%s · %s" % [adventure_info.name, adventure_info.title]
 	var name: String = Game.MODE_NAMES[mode]
 	if Game.is_sport(mode) and mode_state.get("rules", 0) == 1:
 		name = "TOTAL " + name.to_upper()
@@ -343,6 +360,7 @@ func _build_init_state() -> Dictionary:
 		"water_style": Liquid.style,
 		"sky": Game.sky_override,
 		"map": map_key,
+		"adventure": adventure_info,
 		"time": net_time(),
 		"players": pl_list,
 		"props": pr_list,
@@ -381,6 +399,7 @@ func _s_init(state: Dictionary) -> void:
 		leave_requested.emit()
 		return
 	mode = state.mode
+	adventure_info = state.get("adventure", {})
 	Game.spooky = state.get("spooky", false)
 	Liquid.style = state.get("water_style", "classic")
 	Game.sky_override = state.get("sky", "")
@@ -429,6 +448,8 @@ func _s_init(state: Dictionary) -> void:
 	puzzle_start = pt[0]
 	puzzle_finish = pt[1]
 	hud.on_mode_changed()
+	if not adventure_info.is_empty():
+		hud.show_chapter_card(adventure_info)
 
 
 ## look: the player's character choices (Game.look()); empty for bots, -1 means random.
@@ -2652,6 +2673,17 @@ func _c_use() -> void:
 		_server_use(pl)
 
 
+## Server (Adventure mode): everyone on to the next chapter.
+func server_next_chapter() -> void:
+	_bc("_s_next_chapter", [])
+	next_chapter_requested.emit()
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_next_chapter() -> void:
+	next_chapter_requested.emit()
+
+
 ## MegaYeet: put a trap down (TrapPlacer; the server checks it: ModeMegaYeet.server_place).
 func place_trap(key: String, at: Vector3, yaw: float) -> void:
 	if is_server:
@@ -2982,7 +3014,9 @@ func puzzle_objective() -> String:
 				break
 	if not lines.is_empty():
 		return "\n".join(lines)
-	return "Level complete!" if puzzle_finish >= 0.0 else ""
+	if puzzle_finish < 0.0:
+		return ""
+	return "Adventure complete!" if not adventure_info.is_empty() else "Level complete!"
 
 
 # --- Effects & messages -----------------------------------------------------------

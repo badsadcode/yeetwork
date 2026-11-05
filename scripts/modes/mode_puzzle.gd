@@ -94,10 +94,15 @@ func on_puzzle_changed(n: PuzzleNode) -> void:
 		world.server_message("Checkpoint!", Color(0.4, 1.0, 0.5))
 	elif n is PuzzleExit and n.active and not _finished:
 		_finished = true
-		var t: float = world.net_time() - world.puzzle_start
-		world.server_puzzle_time(world.puzzle_start, world.net_time())
-		world.server_fx("score", n.global_position, Vector3.UP, 1.0)
-		world.server_puzzle_results(results(t))
+		_level_done(n)
+
+
+## Everyone's at the exit: the clock stops, the end screen.
+func _level_done(n: PuzzleExit) -> void:
+	var t: float = world.net_time() - world.puzzle_start
+	world.server_puzzle_time(world.puzzle_start, world.net_time())
+	world.server_fx("score", n.global_position, Vector3.UP, 1.0)
+	world.server_puzzle_results(results(t))
 
 
 # --- Keeping score -------------------------------------------------------------------

@@ -34,6 +34,7 @@ var _shop: ShopWindow # MegaYeet: the break's shop (the shop key)
 var _boss_bar: HudPlate # MegaYeet: the boss's health while it lives
 var _boss_label: Label
 var _getting_ready: ColorRect
+const CHAPTER_CARD_TIME := 3.0
 var _speed_plate: HudPlate
 var _slot_plates: Array[PanelContainer] = []
 var _speed_label: Label
@@ -510,7 +511,7 @@ func show_puzzle_results(r: Dictionary) -> void:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		v.add_child(l)
 		return l
-	centred.call(_label(38, Color(0.45, 1.0, 0.55))).text = "LEVEL COMPLETE"
+	centred.call(_label(38, Color(0.45, 1.0, 0.55))).text = r.get("title", "LEVEL COMPLETE")
 	centred.call(_label(56, Color.WHITE)).text = ModePuzzle.clock_text(r.get("time", 0.0))
 	var medal: String = r.get("medal", "")
 	var times: Array = r.get("medal_times", [0.0, 0.0, 0.0])
@@ -666,6 +667,36 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
+## Adventure mode: the card as a chapter starts (a moment, then it fades).
+func show_chapter_card(info: Dictionary) -> void:
+	var card := ColorRect.new()
+	card.set_anchors_preset(Control.PRESET_FULL_RECT)
+	card.color = Color(0.05, 0.04, 0.09, 0.96)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(card)
+	var v := VBoxContainer.new()
+	v.set_anchors_preset(Control.PRESET_FULL_RECT)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", 14)
+	card.add_child(v)
+	var line := func(text: String, px: int, col: Color) -> void:
+		var l := _label(px, col)
+		l.text = text
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(900, 0)
+		l.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		v.add_child(l)
+	line.call(info.get("name", ""), 26, Color(0.8, 0.82, 0.95))
+	line.call("Chapter %d of %d" % [int(info.get("chapter", 0)) + 1, int(info.get("total", 1))], 22, Color(1.0, 0.8, 0.25))
+	line.call(info.get("title", ""), 50, Color.WHITE)
+	line.call(info.get("intro", ""), 24, Color(0.85, 0.85, 0.95))
+	var tw := card.create_tween()
+	tw.tween_interval(CHAPTER_CARD_TIME)
+	tw.tween_property(card, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(card.queue_free)
+
+
 ## A moment's cover over the screen as a match starts (Effects.warm_up).
 func show_getting_ready(on: bool) -> void:
 	if on and _getting_ready == null:
@@ -740,7 +771,7 @@ func _process(delta: float) -> void:
 		_use_prompt.text = "[%s]  %s" % [Controls.pad_of("use") if _pad_used else Controls.key_of("use"), usable.use_label()]
 	if world and Game.is_sport(world.mode):
 		_ball_marks.queue_redraw()
-	if world and (world.mode == Game.Mode.PUZZLE or world.mode == Game.Mode.MEGAYEET or Game.is_sport(world.mode)):
+	if world and (Game.is_level_mode(world.mode) or world.mode == Game.Mode.MEGAYEET or Game.is_sport(world.mode)):
 		_clock_t -= delta
 		if _clock_t <= 0.0:
 			_clock_t = 0.25
@@ -832,9 +863,9 @@ func on_mode_changed() -> void:
 func on_players_changed() -> void:
 	if world == null or _score_label == null:
 		return
-	_objective.visible = world.mode == Game.Mode.PUZZLE
+	_objective.visible = Game.is_level_mode(world.mode)
 	_objective_plate.visible = _objective.visible
-	if world.mode == Game.Mode.PUZZLE:
+	if Game.is_level_mode(world.mode):
 		var end: float = world.puzzle_finish if world.puzzle_finish >= 0.0 else world.net_time()
 		var clock := ModePuzzle.clock_text(end - world.puzzle_start) if world.puzzle_start >= 0.0 else "0:00"
 		_score_label.text = "%s     %s" % [world.mode_name(), clock]

@@ -14,8 +14,8 @@ const L_PROPS := 4
 const L_LIMBS := 8
 const L_TRIGGERS := 16
 
-enum Mode { SANDBOX, CTF, DODGEBALL, PUMPKIN, PUZZLE, YEETBALL, HOOPS, VOLLEY, MEGAYEET }
-const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash", "Puzzle (co-op)", "Yeetball", "YeetHoops", "YeetVolley", "MegaYeet (co-op)"]
+enum Mode { SANDBOX, CTF, DODGEBALL, PUMPKIN, PUZZLE, YEETBALL, HOOPS, VOLLEY, MEGAYEET, ADVENTURE }
+const MODE_NAMES := ["Sandbox", "Capture the Flag", "Dodgeball", "Pumpkin Smash", "Puzzle (co-op)", "Yeetball", "YeetHoops", "YeetVolley", "MegaYeet (co-op)", "Adventure (co-op)"]
 ## The code-built maps (the High Seas variants); Prime and Facing are Map Kit scenes now, read
 ## like the others (their features and descriptions from their pieces and MapSettings).
 const BUILTIN_MAPS := [
@@ -27,7 +27,7 @@ const BUILTIN_MAPS := [
 	{"key": "highseas_extreme", "name": "High Seas: Hurricane", "features": {"ctf": true}, "description": "The container ship MV Bad Decisions on the open ocean: she rolls with the swell, cargo slides, the sea is swimmable."},
 ]
 ## What a mode needs of a map (a map's features: Game.map_info): "" any map.
-const MODE_NEEDS := ["", "ctf", "", "", "puzzle", "yeetball", "hoops", "volley", ""]
+const MODE_NEEDS := ["", "ctf", "", "", "puzzle", "yeetball", "hoops", "volley", "", "adventure"]
 ## A line for each mode in the match setup.
 const MODE_ABOUT := [
 	"Free-for-all: yeet everyone, build with props. Any map.",
@@ -39,8 +39,14 @@ const MODE_ABOUT := [
 	"Basketball with gravity guns. Maps with two hoops.",
 	"Volleyball with gravity guns, over a net that can rise. Maps with a net.",
 	"Co-op survival: hold the fortress against waves of monsters. Any map (fortresses are best).",
+	"A few maps linked by a story, played together. Pick an adventure.",
 ]
 const MAPS_DIR := "res://maps"
+
+
+## Levels got through together (objectives, a clock, an exit): Puzzle and Adventure.
+static func is_level_mode(m: int) -> bool:
+	return m == Mode.PUZZLE or m == Mode.ADVENTURE
 
 
 ## The sports (a ball, two goals, hoops or a net, a clock): Yeetball, YeetHoops, YeetVolley.
@@ -405,6 +411,11 @@ func list_maps() -> Array:
 		var info := _scene_info(path, true)
 		if info.name != "":
 			out.append({"key": path, "name": info.name + "  (custom)", "custom": true, "features": info.features, "description": info.description})
+	# Adventures: picked in the map list, in their mode only (Game.map is then the Adventure file).
+	for path in Adventure.list():
+		var a := load(path) as Adventure
+		if a:
+			out.append({"key": path, "name": a.title(), "features": {"adventure": true}, "description": "%s\n%d chapter%s" % [a.description, a.chapters.size(), "" if a.chapters.size() == 1 else "s"]})
 	for m: Dictionary in out: # (Prime and Facing: listed as built-ins, read from their scenes)
 		if not m.has("features") and Arena.MAPKIT_SCENES.has(m.key):
 			var info := _scene_info(Arena.MAPKIT_SCENES[m.key])
@@ -478,6 +489,8 @@ func _scan_features(n: Node, found: Dictionary, out: Dictionary) -> void:
 ## Does this map suit this mode (MODE_NEEDS)? m: an entry of list_maps().
 static func mode_fits(m: int, map_entry: Dictionary) -> bool:
 	var need: String = MODE_NEEDS[m] if m < MODE_NEEDS.size() else ""
+	if map_entry.get("features", {}).get("adventure", false):
+		return m == Mode.ADVENTURE
 	if need == "":
 		return not map_entry.get("features", {}).get("puzzle", false) or m == Mode.SANDBOX
 	return map_entry.get("features", {}).get(need, false)

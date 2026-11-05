@@ -85,6 +85,15 @@ The fortress, the monsters' rifts, its zones and traps.
 | [DefenseZone](DefenseZone.md) | MegaYeet: a zone of the fortress (a box, Size, its bottom on the node). |
 | [TrapSpot](TrapSpot.md) | MegaYeet: a place for a trap (a box, Size, its bottom on the node). |
 
+## Adventure
+
+The Adventure mode: a few maps linked by a story (files, no code).
+
+| Piece | What it is |
+|---|---|
+| [Adventure](Adventure.md) | An adventure for the Adventure mode: a few maps linked by a story, played together, each chapter's PuzzleExit leading everyone on to the next (progress is saved on the host). |
+| [AdventureChapter](AdventureChapter.md) | One chapter of an Adventure: a map (a Puzzle level: Map Kit pieces and a PuzzleExit), and what the card says as it starts. |
+
 ## Puzzles
 
 Pieces that switch on and off and wire up (every one has PuzzleNode's settings).

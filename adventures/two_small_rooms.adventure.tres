@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="Adventure" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/mapkit/adventure.gd" id="adventure"]
+[ext_resource type="Script" path="res://scripts/mapkit/adventure_chapter.gd" id="chapter"]
+
+[sub_resource type="Resource" id="one"]
+script = ExtResource("chapter")
+map = "res://adventures/two_small_rooms/room1.tscn"
+title = "The Button"
+intro = "There's a button. It's probably fine."
+
+[sub_resource type="Resource" id="two"]
+script = ExtResource("chapter")
+map = "res://adventures/two_small_rooms/room2.tscn"
+title = "The Plate"
+intro = "No button this time. Someone's taken it. There's a crate, though."
+
+[resource]
+script = ExtResource("adventure")
+display_name = "Two Small Rooms (test)"
+description = "The smallest adventure there is: it shows how one's put together."
+chapters = Array[ExtResource("chapter")]([SubResource("one"), SubResource("two")])

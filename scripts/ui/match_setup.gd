@@ -13,6 +13,7 @@ signal back_pressed
 var _modes: ItemList
 var _mode_about: Label
 var _maps: ItemList
+var _adventure_start: OptionButton
 var _map_about: Label
 var _grid: GridContainer
 var _rows: Array = [] # [label, control, modes it shows for ([]: all)]
@@ -160,7 +161,11 @@ func _build_options() -> void:
 	_bots.min_value = 0
 	_bots.max_value = 11
 	_bots.value = Game.bot_count
-	_row("Bots", _bots, [])
+	_adventure_start = OptionButton.new()
+	_adventure_start.add_item("Start over")
+	_adventure_start.add_item("Continue")
+	_row("Adventure", _adventure_start, [Game.Mode.ADVENTURE])
+	_row("Bots", _bots, [Game.Mode.SANDBOX, Game.Mode.CTF, Game.Mode.DODGEBALL, Game.Mode.PUMPKIN, Game.Mode.PUZZLE, Game.Mode.YEETBALL, Game.Mode.HOOPS, Game.Mode.VOLLEY, Game.Mode.MEGAYEET])
 	_pickups = _options(["First aid + power-ups", "First aid only", "None"], clampi(Game.pickups, 0, 2))
 	_row("Pickups", _pickups, [])
 	_rules = _options(["Classic Chaos", "TOTAL YEET"], clampi(Game.yeetball_rules, 0, 1))
@@ -283,6 +288,12 @@ func _show_map() -> void:
 		if f.get(pair[0], false):
 			good.append(pair[1])
 	var text: String = e.get("description", "")
+	if f.get("adventure", false):
+		# Continue is there if it's been started, and it's what you'll want.
+		var saved := AdventureRun.saved_chapter(e.key)
+		_adventure_start.set_item_text(1, "Continue from chapter %d" % (saved + 1) if saved >= 0 else "Continue")
+		_adventure_start.set_item_disabled(1, saved < 0)
+		_adventure_start.select(1 if saved >= 0 else 0)
 	if not good.is_empty():
 		text += ("\n" if text != "" else "") + "Made for: " + ", ".join(good)
 	_map_about.text = text
@@ -291,6 +302,7 @@ func _show_map() -> void:
 ## Everything picked, into Game (and saved).
 func store() -> void:
 	Game.mode = mode()
+	AdventureRun.want_continue = mode() == Game.Mode.ADVENTURE and _adventure_start.selected == 1
 	var sel := _maps.get_selected_items()
 	if not sel.is_empty():
 		Game.map = _maps.get_item_metadata(sel[0])

@@ -679,6 +679,20 @@ piece a click shape, so clicking a block, a slab, a prop or a puzzle piece selec
 also puts resize handles on boxes (blocks, hazard volumes, doors, lifts) and turns a Scale
 tool drag on any sized piece into its Size.
 
+### Adventures (a few maps linked by a story)
+An adventure is a file and some maps, no code:
+1. Build each chapter as a Puzzle level: **MapSettings** with **Puzzle** on, a **PuzzleExit**,
+   spawn points; test it in Puzzle mode.
+2. Right-click a folder > **Create New > Resource > Adventure**, and save it as
+   `<name>.adventure.tres` in `adventures/` (or your custom map's folder).
+3. Fill in its **Display Name** and **Description**, and add its **Chapters**: each a new
+   **AdventureChapter** with its **Map**, a **Title** and an **Intro** for the card.
+
+It's in the match setup under **Adventure (co-op)**. When every living Yeet is at a chapter's
+exit, everyone moves on to the next map; Yeets start each chapter fresh, and the clock and the
+end screen's counts carry over. The host's progress is saved as each chapter starts. Medal
+times in a chapter's MapSettings don't count here. Example: `adventures/two_small_rooms.adventure.tres`.
+
 ### Custom maps (map packs)
 Maps don't have to live in the game: make them in `custom/<your_map>/` (with their own
 textures, materials, models, sounds and even scripts), export them with

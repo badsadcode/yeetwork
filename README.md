@@ -178,6 +178,12 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
 - **Pumpkin Smash** (Halloween): free-for-all candy grab. Smash jack-o'-lanterns
   (golden ones are worth more) to spill candy, then walk over candy to collect it. Getting
   killed spills everything you carry, so yeet the leader. First to 40 wins the round.
+- **Adventure (co-op)**: a few maps linked by a story, played together. Puzzle mode's rules
+  (no bots, no frags, checkpoints), but a chapter's exit moves everyone on to the next map with
+  a chapter card; the clock and the end screen carry through, a host's progress is saved
+  (**Continue** in the match setup). Only a tiny test adventure so far, *Two Small Rooms*: the
+  plan's in [docs/design/ADVENTURE.md](docs/design/ADVENTURE.md). Adventures are files and
+  maps, no code: [docs/pieces/Adventure.md](docs/pieces/Adventure.md).
 - **Puzzle (co-op)** (first step, see [the proposal](docs/design/PUZZLE_COOP.md)): no
   bots, no frags. Get through a puzzle level together: pressure plates that need a crate,
   an anvil or a friend; gates that open from them; checkpoints you respawn at; an exit that
@@ -524,6 +530,7 @@ tests/            test_runner.gd (gameplay smoke tests)
 tools/            make_ui_art.py (menu button/frame art), glb_to_blend.py (characters .blend),
                   make_gravity_gun.py (the gun model: .blend and assets/models/gravity_gun.glb)
                   make_foundry.py (The Foundry, MegaYeet's second map: maps/foundry.tscn)
+                  make_adventure_test.py (Two Small Rooms, the test adventure: adventures/)
 art/              source art for Blender (ignored by Godot)
 ```
 
@@ -618,6 +625,13 @@ godot --headless --path . -- --host --map res://maps/fortress.tscn --bots 0 --to
 # taking turns, the Wrecking Ram's charge (a Yeet flung, a dodge, a gate, a wall and its daze),
 # team upgrades in any order and what each does (screenshots with a folder)
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --tour /tmp/shots --tour-mode megayeet
+# Adventure mode: moving on between chapters, what carries over, saving, Continue, the end
+godot --path . -- --host --map res://adventures/two_small_rooms.adventure.tres --mode adventure --tour /tmp/shots --tour-mode adventure
+# ... and over the network: a client following the host to the next map, then one joining late
+godot --headless --path . -- --host --map res://adventures/two_small_rooms.adventure.tres --mode adventure --port 24795 --tour x --tour-mode adventure --with-client
+godot --headless --path . -- --join 127.0.0.1 --port 24795 --tour x --tour-mode adventureclient
+# Play an adventure from its saved chapter
+godot --path . -- --host --map res://adventures/two_small_rooms.adventure.tres --mode adventure --continue
 # The Foundry: from every rift a way to the Heart, the way the map means it, the canal, the
 # bridge, the control room, the Ram down the hall (screenshots with a folder)
 godot --path . -- --host --map res://maps/foundry.tscn --mode megayeet --bots 1 --tour /tmp/shots --tour-mode foundry

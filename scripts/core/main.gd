@@ -9,6 +9,7 @@ extends Node
 ##   --graphics 0|1|2 (quality preset for this run: low / medium / high)  --paused (open the pause menu)
 ##   --faces expressive|classic (character faces on this screen)
 ##   --gun <name> (carry a gun from assets/characters/guns/ this time: scrap_gun, default...)
+##   --mode adventure --map res://adventures/<name>.adventure.tres [--continue] (from its saved chapter)
 ##   --sky sunset|day|tropical|desert|snow|volcano|night|space (environment for this match)
 ##   --water-style classic|sculpted  --sea calm|lake|ocean|stormy (ocean sea state, sculpted water)
 ##   --map-source code  (Prime and Facing from their code builders, not their Map Kit scenes)
@@ -23,6 +24,7 @@ var _test := false
 var _validate := false
 var _shot_path := ""
 var _shot_time := 0.0
+var _tour_node: Node # (the dev check: it stays through an Adventure's chapters)
 
 
 func _ready() -> void:
@@ -53,7 +55,7 @@ func _handle_cmdline(execute := true) -> bool:
 				Game.join_address = next
 				i += 1
 			"--mode":
-				Game.mode = {"sandbox": Game.Mode.SANDBOX, "ctf": Game.Mode.CTF, "dodgeball": Game.Mode.DODGEBALL, "pumpkin": Game.Mode.PUMPKIN, "puzzle": Game.Mode.PUZZLE, "yeetball": Game.Mode.YEETBALL, "hoops": Game.Mode.HOOPS, "volley": Game.Mode.VOLLEY, "megayeet": Game.Mode.MEGAYEET}.get(next, Game.Mode.SANDBOX)
+				Game.mode = {"sandbox": Game.Mode.SANDBOX, "ctf": Game.Mode.CTF, "dodgeball": Game.Mode.DODGEBALL, "pumpkin": Game.Mode.PUMPKIN, "puzzle": Game.Mode.PUZZLE, "yeetball": Game.Mode.YEETBALL, "hoops": Game.Mode.HOOPS, "volley": Game.Mode.VOLLEY, "megayeet": Game.Mode.MEGAYEET, "adventure": Game.Mode.ADVENTURE}.get(next, Game.Mode.SANDBOX)
 				i += 1
 			"--rules":
 				Game.yeetball_rules = 1 if next == "total" else 0
@@ -128,6 +130,8 @@ func _handle_cmdline(execute := true) -> bool:
 			"--faces":
 				Game.expressive_faces = next != "classic"
 				i += 1
+			"--continue":
+				AdventureRun.want_continue = true
 			"--gun":
 				Game.look_gun = next
 				i += 1
@@ -144,6 +148,8 @@ func _handle_cmdline(execute := true) -> bool:
 		i += 1
 	# Checks, tests and validation run in Sandbox unless told a mode (never in whatever mode the
 	# player last saved: MegaYeet's bots, say, would hunt monsters instead of fetching first aid).
+	if _tour_dir != "":
+		AdventureRun.path = "user://adventures_check.cfg" # (checks leave the real saves alone)
 	if (_test or _validate or _tour_dir != "") and not args.has("--mode"):
 		Game.mode = Game.Mode.SANDBOX
 	if _test or _validate or _tour_dir != "":
@@ -269,6 +275,7 @@ func _start_world(server: bool) -> void:
 	world = World.new()
 	add_child(world)
 	world.leave_requested.connect(func(): leave(world.leave_reason))
+	world.next_chapter_requested.connect(func(): _next_chapter.call_deferred())
 	world.start(server)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if _validate:
@@ -279,7 +286,9 @@ func _start_world(server: bool) -> void:
 		var t: Node = load("res://tests/test_runner.gd").new()
 		t.set("world", world)
 		add_child(t)
-	if _tour_dir != "":
+	if _tour_node:
+		_tour_node.set("world", world)
+	elif _tour_dir != "":
 		var script_path := "res://scripts/core/dev_%s.gd" % _tour_mode if _tour_mode != "" else "res://scripts/core/dev_tour.gd"
 		var gs := load(script_path) as Script
 		if gs == null or not gs.can_instantiate():
@@ -289,7 +298,20 @@ func _start_world(server: bool) -> void:
 		var tour: Node = gs.new()
 		tour.set("world", world)
 		tour.set("out_dir", _tour_dir)
+		_tour_node = tour
 		add_child(tour)
+
+
+## Adventure mode: the next chapter: a new World (its map from AdventureRun on the host, from
+## the host's hello on a client), the connection staying up.
+func _next_chapter() -> void:
+	if world == null:
+		return
+	var server: bool = world.is_server
+	var old := world
+	remove_child(old)
+	old.queue_free()
+	_start_world(server)
 
 
 func leave(status: String) -> void:

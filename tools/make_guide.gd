@@ -52,6 +52,8 @@ const PIECES := [
 	["Hoop", "res://scripts/mapkit/hoop.gd", "Modes"],
 	["VolleyNet", "res://scripts/mapkit/volley_net.gd", "Modes"],
 	["FortressHeart", "res://scripts/mapkit/fortress_heart.gd", "MegaYeet"],
+	["Adventure", "res://scripts/mapkit/adventure.gd", "Adventure"],
+	["AdventureChapter", "res://scripts/mapkit/adventure_chapter.gd", "Adventure"],
 	["MonsterSpawn", "res://scripts/mapkit/monster_spawn.gd", "MegaYeet"],
 	["MonsterType", "res://scripts/horde/monster_type.gd", "MegaYeet"],
 	["DefenseZone", "res://scripts/mapkit/defense_zone.gd", "MegaYeet"],
@@ -87,6 +89,7 @@ const GROUPS := {
 	"Water and ships": "Water that floods and drains, and ships riding the sea.",
 	"Modes": "What Capture the Flag and the sports need.",
 	"MegaYeet": "The fortress, the monsters' rifts, its zones and traps.",
+	"Adventure": "The Adventure mode: a few maps linked by a story (files, no code).",
 	"Puzzles": "Pieces that switch on and off and wire up (every one has PuzzleNode's settings).",
 }
 
@@ -127,6 +130,8 @@ const STARTERS := {
 	"BreakableModel": [["custom/make_your_own/models/door.glb", "a door of planks in a Fixed frame"], ["custom/make_your_own/models/window.glb", "a window: a Fixed frame, glass, a wooden mullion"], ["custom/make_your_own/models/fence.glb", "a fence: posts and rails"]],
 	"BreakableSlab": [["custom/make_your_own/bricks.tres", "a brick material for Custom Material"]],
 	"Vessel": [["custom/make_your_own/boat.tscn", "Make Your Own Boat: a boat beside an island"]],
+	"Adventure": [["adventures/two_small_rooms.adventure.tres", "the smallest adventure there is: two chapters"]],
+	"AdventureChapter": [["adventures/two_small_rooms/room1.tscn", "a chapter's map: Puzzle on, and a PuzzleExit"]],
 	"MonsterType": [["custom/make_your_own/scarecrow.tres", "a scarecrow come alive (behaves like a shambler; straw burns)"], ["custom/make_your_own/models/scarecrow.glb", "its model, its parts named, each origin at its joint"]],
 	"FortressHeart": [["custom/make_your_own/scarecrow.tres", "a monster of your own for Monster Types (see MonsterType)"]],
 	"AnimatedModel": [["custom/make_your_own/models/windmill.glb", "a windmill, its sails turning (loop)"], ["custom/make_your_own/models/sign.glb", "an inn sign swinging (ping pong)"], ["custom/make_your_own/models/platform.glb", "a platform sliding 6 m and back, carrying riders (ping pong)"], ["custom/make_your_own/models/drawbridge.glb", "a drawbridge lowering (once: wire it to a button)"]],
