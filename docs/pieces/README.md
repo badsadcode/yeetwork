@@ -87,12 +87,17 @@ The fortress, the monsters' rifts, its zones and traps.
 
 ## Adventure
 
-The Adventure mode: a few maps linked by a story (files, no code).
+The Adventure mode: a few maps linked by a story (files, no code), and the pieces that tell it (they work on any map).
 
 | Piece | What it is |
 |---|---|
 | [Adventure](Adventure.md) | An adventure for the Adventure mode: a few maps linked by a story, played together, each chapter's PuzzleExit leading everyone on to the next (progress is saved on the host). |
 | [AdventureChapter](AdventureChapter.md) | One chapter of an Adventure: a map (a Puzzle level: Map Kit pieces and a PuzzleExit), and what the card says as it starts. |
+| [StoryNote](StoryNote.md) | A thing to read: a note, a diary, a sign, a clue. |
+| [StoryLine](StoryLine.md) | A line of story: a speaker's name and their words as a subtitle for everyone, with Yeetish babble as the voice, when its Inputs come on (a StoryZone walked into, a note read, a door opened). |
+| [StoryZone](StoryZone.md) | A place that notices you: on when a Yeet walks into its box (its bottom on the node). |
+| [StoryFlag](StoryFlag.md) | A story's memory, across an Adventure's chapters: "found the diary", "met Bob". |
+| [TalkingYeet](TalkingYeet.md) | A Yeet who stands there and talks: walk up and press Use, and they say their next line as a subtitle for everyone, with Yeetish babble as the voice; at the last one they keep repeating it. |
 
 ## Puzzles
 

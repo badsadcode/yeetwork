@@ -54,6 +54,11 @@ const PIECES := [
 	["FortressHeart", "res://scripts/mapkit/fortress_heart.gd", "MegaYeet"],
 	["Adventure", "res://scripts/mapkit/adventure.gd", "Adventure"],
 	["AdventureChapter", "res://scripts/mapkit/adventure_chapter.gd", "Adventure"],
+	["StoryNote", "res://scripts/mapkit/story_note.gd", "Adventure"],
+	["StoryLine", "res://scripts/mapkit/story_line.gd", "Adventure"],
+	["StoryZone", "res://scripts/mapkit/story_zone.gd", "Adventure"],
+	["StoryFlag", "res://scripts/mapkit/story_flag.gd", "Adventure"],
+	["TalkingYeet", "res://scripts/mapkit/talking_yeet.gd", "Adventure"],
 	["MonsterSpawn", "res://scripts/mapkit/monster_spawn.gd", "MegaYeet"],
 	["MonsterType", "res://scripts/horde/monster_type.gd", "MegaYeet"],
 	["DefenseZone", "res://scripts/mapkit/defense_zone.gd", "MegaYeet"],
@@ -89,7 +94,7 @@ const GROUPS := {
 	"Water and ships": "Water that floods and drains, and ships riding the sea.",
 	"Modes": "What Capture the Flag and the sports need.",
 	"MegaYeet": "The fortress, the monsters' rifts, its zones and traps.",
-	"Adventure": "The Adventure mode: a few maps linked by a story (files, no code).",
+	"Adventure": "The Adventure mode: a few maps linked by a story (files, no code), and the pieces that tell it (they work on any map).",
 	"Puzzles": "Pieces that switch on and off and wire up (every one has PuzzleNode's settings).",
 }
 

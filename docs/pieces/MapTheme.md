@@ -93,6 +93,12 @@ A map's look in one file: a model for each kind of Map Kit piece and prop. Pick 
 | **Monster Golem** | (none) | A boss, the Siege Golem: drawn three times a Yeet's height. |
 | **Monster Ram** | (none) | A boss, the Wrecking Ram: drawn 2.4 times a Yeet's height. |
 
+### Story
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Story Note** | (none) | A StoryNote's look (a page, a tablet, a ghostly letter): its origin on the ground. |
+
 ### Pickups
 
 | Setting | Default | What it does |

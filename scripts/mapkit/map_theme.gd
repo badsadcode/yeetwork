@@ -82,6 +82,10 @@ extends Resource
 ## A boss, the Wrecking Ram: drawn 2.4 times a Yeet's height.
 @export var monster_ram: PackedScene
 
+@export_group("Story")
+## A StoryNote's look (a page, a tablet, a ghostly letter): its origin on the ground.
+@export var story_note: PackedScene
+
 @export_group("Pickups")
 @export var pickup_pad: PackedScene
 @export var pickup_health: PackedScene

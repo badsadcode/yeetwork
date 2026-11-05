@@ -23,6 +23,15 @@ func _ready() -> void:
 	var chapter: int = world.adventure_info.get("chapter", -1)
 	if chapter == 0:
 		_check("a client joins in chapter 1: its map, its name", world.map_key.ends_with("room1.tscn") and world.adventure_info.title == "The Button", "%s" % [world.adventure_info])
+		# A story line: the host's Bob talks, the subtitle's here too.
+		var said := false
+		for k in 80:
+			await get_tree().create_timer(0.1).timeout
+			if world.hud.story_line_now().begins_with("Oh! Visitors"):
+				said = true
+				break
+		_check("... the host's Talking Yeet: the line shows here too", said, world.hud.story_line_now())
+		first = world
 		for k in 150:
 			await get_tree().create_timer(0.1).timeout
 			if world != first and world.local_player != null and world.players.size() >= 2:

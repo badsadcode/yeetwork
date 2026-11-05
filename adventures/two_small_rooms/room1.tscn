@@ -8,6 +8,11 @@
 [ext_resource type="Script" path="res://scripts/mapkit/pressure_plate.gd" id="plate"]
 [ext_resource type="Script" path="res://scripts/mapkit/puzzle_door.gd" id="door"]
 [ext_resource type="Script" path="res://scripts/mapkit/puzzle_exit.gd" id="exit"]
+[ext_resource type="Script" path="res://scripts/mapkit/story_note.gd" id="note"]
+[ext_resource type="Script" path="res://scripts/mapkit/story_line.gd" id="line"]
+[ext_resource type="Script" path="res://scripts/mapkit/story_zone.gd" id="zone"]
+[ext_resource type="Script" path="res://scripts/mapkit/story_flag.gd" id="flag"]
+[ext_resource type="Script" path="res://scripts/mapkit/talking_yeet.gd" id="talker"]
 
 [node name="TwoSmallRooms:theButton" type="Node3D"]
 
@@ -89,6 +94,38 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -4)
 script = ExtResource("button")
 press = "use key"
 label = "Open the door"
+
+[node name="Note" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -6)
+script = ExtResource("note")
+title = "A Note"
+text = "Whoever finds this: DO NOT press the button.\n\nActually, do. Otherwise you're stuck in here."
+
+[node name="Bob" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 4)
+script = ExtResource("talker")
+display_name = "Bob"
+lines = PackedStringArray("Oh! Visitors. Nobody ever visits.", "The button? Over there. I would not know why.")
+shirt = Color(0.85, 0.45, 0.2, 1)
+
+[node name="MetBob" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 6)
+script = ExtResource("flag")
+flag = "met_bob"
+inputs = Array[NodePath]([NodePath("../Bob")])
+
+[node name="NearDoor" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0, 0)
+script = ExtResource("zone")
+size = Vector3(3, 3, 8)
+
+[node name="DoorLine" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0, 0)
+script = ExtResource("line")
+speaker = "Bob"
+text = "Mind the door. It sticks."
+voice = "excited"
+inputs = Array[NodePath]([NodePath("../NearDoor")])
 
 [node name="Door" type="Node3D" parent="."]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 4, 0, 0)

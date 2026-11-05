@@ -8,6 +8,11 @@
 [ext_resource type="Script" path="res://scripts/mapkit/pressure_plate.gd" id="plate"]
 [ext_resource type="Script" path="res://scripts/mapkit/puzzle_door.gd" id="door"]
 [ext_resource type="Script" path="res://scripts/mapkit/puzzle_exit.gd" id="exit"]
+[ext_resource type="Script" path="res://scripts/mapkit/story_note.gd" id="note"]
+[ext_resource type="Script" path="res://scripts/mapkit/story_line.gd" id="line"]
+[ext_resource type="Script" path="res://scripts/mapkit/story_zone.gd" id="zone"]
+[ext_resource type="Script" path="res://scripts/mapkit/story_flag.gd" id="flag"]
+[ext_resource type="Script" path="res://scripts/mapkit/talking_yeet.gd" id="talker"]
 
 [node name="TwoSmallRooms:thePlate" type="Node3D"]
 
@@ -94,6 +99,21 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0.6, 0)
 script = ExtResource("prop")
 kind = "crate"
 key_prop = true
+
+[node name="YouMetBob" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -6)
+script = ExtResource("flag")
+flag = "met_bob"
+action = "check"
+
+[node name="BobRemembers" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -6)
+script = ExtResource("line")
+speaker = "A voice"
+text = "Bob says hello. He says you were very polite."
+voice = "tired"
+delay = 1.0
+inputs = Array[NodePath]([NodePath("../YouMetBob")])
 
 [node name="Door" type="Node3D" parent="."]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 4, 0, 0)

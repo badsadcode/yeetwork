@@ -181,9 +181,11 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
 - **Adventure (co-op)**: a few maps linked by a story, played together. Puzzle mode's rules
   (no bots, no frags, checkpoints), but a chapter's exit moves everyone on to the next map with
   a chapter card; the clock and the end screen carry through, a host's progress is saved
-  (**Continue** in the match setup). Only a tiny test adventure so far, *Two Small Rooms*: the
-  plan's in [docs/design/ADVENTURE.md](docs/design/ADVENTURE.md). Adventures are files and
-  maps, no code: [docs/pieces/Adventure.md](docs/pieces/Adventure.md).
+  (**Continue** in the match setup). The story's told with notes to read, subtitled lines with
+  Yeetish babble as the voice, Yeets you can talk to, and flags that let a later chapter remember
+  what you did. Only a tiny test adventure so far, *Two Small Rooms*: the plan's in
+  [docs/design/ADVENTURE.md](docs/design/ADVENTURE.md). Adventures are files and maps, no code:
+  [docs/pieces/Adventure.md](docs/pieces/Adventure.md).
 - **Puzzle (co-op)** (first step, see [the proposal](docs/design/PUZZLE_COOP.md)): no
   bots, no frags. Get through a puzzle level together: pressure plates that need a crate,
   an anvil or a friend; gates that open from them; checkpoints you respawn at; an exit that
@@ -625,9 +627,11 @@ godot --headless --path . -- --host --map res://maps/fortress.tscn --bots 0 --to
 # taking turns, the Wrecking Ram's charge (a Yeet flung, a dodge, a gate, a wall and its daze),
 # team upgrades in any order and what each does (screenshots with a folder)
 godot --path . -- --host --map res://maps/fortress.tscn --mode megayeet --bots 3 --tour /tmp/shots --tour-mode megayeet
-# Adventure mode: moving on between chapters, what carries over, saving, Continue, the end
+# Adventure mode: moving on between chapters, what carries over, saving, Continue, the end,
+# and the story pieces (a note, a line a zone sets off, a Talking Yeet, a flag across chapters)
 godot --path . -- --host --map res://adventures/two_small_rooms.adventure.tres --mode adventure --tour /tmp/shots --tour-mode adventure
-# ... and over the network: a client following the host to the next map, then one joining late
+# ... and over the network: a client following the host to the next map and seeing a story line,
+# then one joining late
 godot --headless --path . -- --host --map res://adventures/two_small_rooms.adventure.tres --mode adventure --port 24795 --tour x --tour-mode adventure --with-client
 godot --headless --path . -- --join 127.0.0.1 --port 24795 --tour x --tour-mode adventureclient
 # Play an adventure from its saved chapter

@@ -149,7 +149,7 @@ func _handle_cmdline(execute := true) -> bool:
 	# Checks, tests and validation run in Sandbox unless told a mode (never in whatever mode the
 	# player last saved: MegaYeet's bots, say, would hunt monsters instead of fetching first aid).
 	if _tour_dir != "":
-		AdventureRun.path = "user://adventures_check.cfg" # (checks leave the real saves alone)
+		AdventureRun.path = "user://adventures_check_%d.cfg" % Game.port # (checks leave the real saves alone, and each other's)
 	if (_test or _validate or _tour_dir != "") and not args.has("--mode"):
 		Game.mode = Game.Mode.SANDBOX
 	if _test or _validate or _tour_dir != "":

@@ -2,7 +2,9 @@ extends Node
 ## Developer check for the Adventure mode, on the test adventure Two Small Rooms: it's listed for
 ## its own mode only; a chapter's exit moves on to the next map (a new World), flags, the clock
 ## and the counts carried over; it's saved, Continue finds it, Start over doesn't; the last exit
-## brings the end screen and clears the save; a broken adventure says what's wrong. With
+## brings the end screen and clears the save; a broken adventure says what's wrong. The story
+## pieces: a note read, a line set off by a zone, a Talking Yeet's lines (their flag remembered,
+## and checked in the next chapter). With
 ## --with-client: waits for a client, moves on with it (after the move, a door it must see open,
 ## and the client's own moves must reach here), then for a second (a late joiner: run
 ## dev_adventureclient on each). Screenshots. Exits 1 if a step fails.
@@ -33,6 +35,7 @@ func _ready() -> void:
 	await _shot("a01_card")
 	await _wait(3.8)
 	await _shot("a02_chapter1")
+	await _story_pieces(world.local_player)
 	# Through it: press the button, to the exit.
 	var door: PuzzleDoor = _piece(PuzzleDoor)
 	var exit: PuzzleExit = _piece(PuzzleExit)
@@ -42,7 +45,7 @@ func _ready() -> void:
 	_piece(PuzzleButton).server_used(pl)
 	await _wait(0.6)
 	_check("... the button opens the door", door.active, "")
-	AdventureRun.flags["met_the_button"] = true
+	AdventureRun.flags["met_the_button"] = true # (and "met_bob": _story_pieces, for real)
 	mode._destroyed = 3
 	mode._deaths = {pl.player_id: 2}
 	await _wait(1.0)
@@ -69,7 +72,9 @@ func _ready() -> void:
 	AdventureRun.begin(Game.map)
 	AdventureRun.want_continue = false
 	_check("Start over begins at chapter 1; Continue finds chapter 2, the flags too", fresh and AdventureRun.chapter == 1 and AdventureRun.flags.has("met_the_button"), "fresh %s, then chapter %d" % [fresh, AdventureRun.chapter + 1])
-	await _wait(3.8)
+	await _wait(1.2) # (A voice's line: a second after the chapter starts)
+	_check("a story flag from chapter 1 is checked in chapter 2: a line says so", _named("YouMetBob").active and world.hud.story_line_now().contains("Bob says hello"), "flag %s, now saying \"%s\"" % [_named("YouMetBob").active, world.hud.story_line_now()])
+	await _wait(2.6)
 	await _shot("a03_chapter2")
 	# The plate: a crate on it.
 	door = _piece(PuzzleDoor)
@@ -88,6 +93,61 @@ func _ready() -> void:
 	get_tree().quit(0 if _failed == 0 else 1)
 
 
+## In chapter 1: a note read (on from then on; walking off closes it), Bob's lines one by one
+## (the flag once he's said them all), a zone setting off a line, the next waiting its turn.
+func _story_pieces(pl: Player) -> void:
+	pl.is_bot = true
+	pl.bot_brain = null
+	var note: StoryNote = _named("Note")
+	_check("a story note: not read yet, not on", not note.active and note.usable(), "")
+	note.server_used(pl)
+	await _wait(0.3)
+	_check("... read: on, and open on the reader's screen", note.active and world.hud.note_open(), "")
+	await _shot("a05_note")
+	world.use_pressed(pl)
+	_check("... Use closes it", not world.hud.note_open(), "")
+	note.server_used(pl)
+	await _wait(0.2)
+	pl.respawn(Vector3(-2, 0.2, 7), 0.0) # (in the room, far from the note, looking at Bob)
+	await _wait(0.2)
+	_check("... walking off closes it too", not world.hud.note_open(), "")
+	var bob: TalkingYeet = _named("Bob")
+	var met: StoryFlag = _named("MetBob")
+	_check("a Talking Yeet: their name on the prompt, built with a body", bob.usable() and bob.use_label() == "Talk to Bob" and bob._model != null, bob.use_label())
+	bob.server_used(pl)
+	await _wait(0.2)
+	var first_said: String = world.hud.story_line_now()
+	bob.server_used(pl) # (too soon: they're still saying it)
+	await _wait(0.3)
+	_check("... the first line, for everyone, not cut short", first_said.begins_with("Oh! Visitors") and bob._said == 1, "\"%s\", %d said" % [first_said, bob._said])
+	await _shot("a06_talking")
+	_check("... not on until they've said it all, nor the flag", not bob.active and not met.active, "")
+	await _wait(StoryLine.seconds_for(bob.lines[0]) * 0.6)
+	bob.server_used(pl)
+	await _wait(0.4)
+	_check("... all said: on, and StoryFlag remembers", bob.active and met.active and world.story_flag("met_bob"), "on %s, flag %s" % [bob.active, world.story_flag("met_bob")])
+	var zone: StoryZone = _named("NearDoor")
+	var line: StoryLine = _named("DoorLine")
+	_check("a story zone: nobody in it, off; the line it sets off, silent", not zone.active and line._done_at < 0.0, "")
+	pl.respawn(zone.global_position + Vector3.UP * 0.2, 0.0)
+	await _wait(0.5)
+	_check("... a Yeet walks in: on for good, and the line's said", zone.active and line._done_at >= 0.0, "")
+	pl.respawn(Vector3(-10, 0.2, 0), 0.0)
+	await _wait(0.3)
+	_check("... gone again, it stays on", zone.active, "")
+	var bad := StoryLine.new()
+	bad.name = "Silent"
+	_check("the map check notes a line with no words and no Inputs", bad.problems().size() == 2, "%s" % [bad.problems()])
+	bad.free()
+
+
+func _named(n: String) -> Variant:
+	for p in world.arena.puzzle:
+		if String(p.name) == n:
+			return p
+	return null
+
+
 ## The host's side of the network check: moves on with one client, then waits for another to
 ## join late, in chapter 2.
 func _with_client() -> void:
@@ -95,6 +155,8 @@ func _with_client() -> void:
 		await _wait(0.1)
 		if world.players.size() >= 2:
 			break
+	await _wait(2.0)
+	_named("Bob").server_used(world.local_player)
 	await _wait(2.0)
 	var first := world
 	(world.mode_logic as ModeAdventure)._level_done(_piece(PuzzleExit))

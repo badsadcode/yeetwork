@@ -77,6 +77,7 @@ var mode_state := {}
 ## Adventure mode: everyone moves on to the next chapter (Main starts a new World, here too).
 signal next_chapter_requested
 var adventure_info := {} # (Adventure mode, every peer: AdventureRun.info)
+var _story_flags := {} # (StoryFlag, outside an adventure: this level's)
 var horde: Horde # MegaYeet's monsters (every peer)
 var trap_placer: TrapPlacer # MegaYeet: putting a trap down (the local player)
 var _pickups: Array = [] # server: per arena.pickups entry [0 off / 1 taken / 2 there, kind, back at]
@@ -2660,6 +2661,9 @@ func usable_for(pl: Player) -> PuzzleNode:
 
 
 func use_pressed(pl: Player) -> void:
+	if pl == local_player and hud.note_open(): # (Use closes what you're reading)
+		hud.close_note()
+		return
 	if is_server:
 		_server_use(pl)
 	else:
@@ -2671,6 +2675,39 @@ func _c_use() -> void:
 	var pl := get_player(multiplayer.get_remote_sender_id())
 	if pl:
 		_server_use(pl)
+
+
+## Is a story flag set (StoryFlag)? An adventure's carry over its chapters; otherwise they're
+## this level's.
+func story_flag(flag: String) -> bool:
+	return (AdventureRun.flags if mode == Game.Mode.ADVENTURE else _story_flags).has(flag)
+
+
+func server_set_story_flag(flag: String) -> void:
+	(AdventureRun.flags if mode == Game.Mode.ADVENTURE else _story_flags)[flag] = true
+
+
+## Server: a story piece (StoryLine, TalkingYeet) says its line `i`, for everyone.
+func server_story_speak(index: int, i: int) -> void:
+	_bc_all("_s_story_speak", [index, i])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_story_speak(index: int, i: int) -> void:
+	if index >= 0 and index < arena.puzzle.size() and arena.puzzle[index].has_method("speak"):
+		arena.puzzle[index].speak(i)
+
+
+## Server: this Yeet reads a StoryNote.
+func server_show_note(pl: Player, index: int) -> void:
+	if not pl.is_bot or pl == local_player:
+		_to_owner(pl, "_s_show_note", [index])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _s_show_note(index: int) -> void:
+	if index >= 0 and index < arena.puzzle.size() and arena.puzzle[index] is StoryNote:
+		hud.show_note(arena.puzzle[index])
 
 
 ## Server (Adventure mode): everyone on to the next chapter.

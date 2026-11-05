@@ -693,6 +693,22 @@ exit, everyone moves on to the next map; Yeets start each chapter fresh, and the
 end screen's counts carry over. The host's progress is saved as each chapter starts. Medal
 times in a chapter's MapSettings don't count here. Example: `adventures/two_small_rooms.adventure.tres`.
 
+**Telling the story** (these pieces work on any map, wired like other puzzle pieces):
+- **StoryNote**: a thing to read (**Title**, **Text**, a **Picture**). Use opens it on the
+  reader's screen. On once read: so it can open a door or count as a clue.
+- **StoryLine**: a subtitle for everyone, a **Speaker** and their **Text**, with Yeetish babble as
+  the **Voice**, when its **Inputs** come on. On once it's finished, so a conversation is a chain:
+  each line's Input is the line before it. Lines never talk over each other.
+- **StoryZone**: on when a Yeet walks in (**Stays**: once, or while inside; **Who**: anyone or
+  everyone). What sets off a line as you enter a room, or a door slamming behind you.
+- **StoryFlag**: the story's memory across chapters. **Action** `remember` sets its **Flag** when
+  its Inputs come on; `check` is on when the flag is set, even from an earlier chapter, so a later
+  map can react to what you did. Saved with the adventure.
+- **TalkingYeet**: a Yeet who stands there and talks. Use says their next line; on once they've
+  said them all. **Display Name**, **Lines**, **Voice**, **Shirt**, **Hat**, **Face**, **Character**.
+- The map itself changing is ordinary wiring: an **AnimatedModel** with Inputs, a **PuzzleDoor**, a
+  **Fixture** switching on.
+
 ### Custom maps (map packs)
 Maps don't have to live in the game: make them in `custom/<your_map>/` (with their own
 textures, materials, models, sounds and even scripts), export them with

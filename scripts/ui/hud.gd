@@ -34,6 +34,15 @@ var _shop: ShopWindow # MegaYeet: the break's shop (the shop key)
 var _boss_bar: HudPlate # MegaYeet: the boss's health while it lives
 var _boss_label: Label
 var _getting_ready: ColorRect
+var _story_box: PanelContainer # (StoryLine, TalkingYeet: the subtitle)
+var _story_name: Label
+var _story_text: Label
+var _story_queue: Array = []
+var _story_now: Array = []
+var _story_t := 0.0
+var _story_babble := 0.0
+var _note: PanelContainer # (StoryNote: what's being read)
+var _note_at := Vector3.ZERO
 const CHAPTER_CARD_TIME := 3.0
 var _speed_plate: HudPlate
 var _slot_plates: Array[PanelContainer] = []
@@ -667,6 +676,127 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
+## A line of story (StoryLine, TalkingYeet): a subtitle and Yeetish babble; lines wait their
+## turn. from: where the voice comes from (INF: everywhere).
+func show_story_line(speaker: String, text: String, voice: String, from: Vector3) -> void:
+	_story_queue.append([speaker, text, voice, from])
+	if _story_box == null:
+		_story_box = PanelContainer.new()
+		_story_box.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+		_story_box.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_story_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		_story_box.position.y = -126
+		_story_box.custom_minimum_size = Vector2(760, 0)
+		_story_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_story_box.add_theme_stylebox_override("panel", _panel_style(0.82))
+		var v := VBoxContainer.new()
+		_story_box.add_child(v)
+		_story_name = _label(20, Color(1.0, 0.8, 0.25))
+		v.add_child(_story_name)
+		_story_text = _label(24, Color.WHITE)
+		_story_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_story_text.custom_minimum_size = Vector2(740, 0)
+		v.add_child(_story_text)
+		_story_box.visible = false
+		_root.add_child(_story_box)
+
+
+func _update_story(delta: float) -> void:
+	if _story_box == null:
+		return
+	_story_t -= delta
+	if _story_t <= 0.0:
+		if _story_queue.is_empty():
+			_story_box.visible = false
+			_story_now = []
+			return
+		_story_now = _story_queue.pop_front()
+		_story_name.text = _story_now[0]
+		_story_name.visible = _story_now[0] != ""
+		_story_text.text = _story_now[1]
+		_story_box.visible = true
+		_story_t = StoryLine.seconds_for(_story_now[1])
+		_story_babble = 0.0
+	# The babble, a burst at a time, while the line's up (each speaker their own pitch).
+	var words: String = StoryLine.VOICES.get(_story_now[2], "")
+	if words == "" or _story_t < 0.5:
+		return
+	_story_babble -= delta
+	if _story_babble <= 0.0:
+		_story_babble = randf_range(0.7, 1.0)
+		var pl: Player = world.local_player if world else null
+		var at: Vector3 = _story_now[3]
+		if at == Vector3.INF:
+			at = pl.body_center() if pl else Vector3.ZERO
+		Sfx.voice(words, at, 0.8 + (hash(_story_now[0]) % 50) / 100.0, -6.0)
+
+
+## What's being said now ("": nothing).
+func story_line_now() -> String:
+	return _story_now[1] if not _story_now.is_empty() else ""
+
+
+## Something to read (StoryNote): over the middle of the screen until Use, or until you walk off.
+func show_note(note: StoryNote) -> void:
+	close_note()
+	_note = PanelContainer.new()
+	_note.set_anchors_preset(Control.PRESET_CENTER)
+	_note.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_note.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_note.custom_minimum_size = Vector2(640, 0)
+	_note.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var paper := StyleBoxFlat.new()
+	paper.bg_color = Color(0.95, 0.91, 0.78, 0.98)
+	paper.set_corner_radius_all(6)
+	paper.set_content_margin_all(26)
+	_note.add_theme_stylebox_override("panel", paper)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 12)
+	_note.add_child(v)
+	var dark := Color(0.16, 0.12, 0.1)
+	var head := Label.new()
+	head.text = note.title
+	head.add_theme_font_override("font", UiTheme.FONT)
+	head.add_theme_font_size_override("font_size", 32)
+	head.add_theme_color_override("font_color", dark)
+	v.add_child(head)
+	if note.picture:
+		var tex := TextureRect.new()
+		tex.texture = note.picture
+		tex.custom_minimum_size = Vector2(0, 220)
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		v.add_child(tex)
+	var body := Label.new()
+	body.text = note.text
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.custom_minimum_size = Vector2(588, 0)
+	body.add_theme_font_override("font", UiTheme.FONT)
+	body.add_theme_font_size_override("font_size", 22)
+	body.add_theme_color_override("font_color", dark)
+	v.add_child(body)
+	var hint := Label.new()
+	hint.text = "[%s]  Close" % (Controls.pad_of("use") if _pad_used else Controls.key_of("use"))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hint.add_theme_font_override("font", UiTheme.FONT)
+	hint.add_theme_font_size_override("font_size", 18)
+	hint.add_theme_color_override("font_color", Color(0.4, 0.33, 0.28))
+	v.add_child(hint)
+	_root.add_child(_note)
+	var pl: Player = world.local_player
+	_note_at = pl.global_position if pl else Vector3.ZERO
+
+
+func note_open() -> bool:
+	return _note != null
+
+
+func close_note() -> void:
+	if _note:
+		_note.queue_free()
+		_note = null
+
+
 ## Adventure mode: the card as a chapter starts (a moment, then it fades).
 func show_chapter_card(info: Dictionary) -> void:
 	var card := ColorRect.new()
@@ -763,8 +893,11 @@ func _process(delta: float) -> void:
 		_help.text = _help_text(_pad_used)
 	_vignette.color.a = maxf(_vignette.color.a - delta * 0.8, 0.0)
 	var usable: PuzzleNode = world.usable_for(pl) if world and pl and pl.is_alive() and pl.gun and pl.gun.vis_kind == GravityGun.Kind.NONE else null
+	_update_story(delta)
+	if _note and (pl == null or not pl.is_alive() or pl.global_position.distance_to(_note_at) > 5.0):
+		close_note() # (walked off)
 	var placing: bool = world != null and world.trap_placer != null and world.trap_placer.active
-	_use_prompt.visible = (usable != null or placing) and not _paused and not shop_open()
+	_use_prompt.visible = (usable != null or placing) and not _paused and not shop_open() and _note == null
 	if placing:
 		_use_prompt.text = world.trap_placer.prompt(_pad_used)
 	elif usable:

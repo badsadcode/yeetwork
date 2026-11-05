@@ -8,8 +8,10 @@ top of Puzzle mode), moving on between chapters (Main swaps the World on every p
 connection staying up; each says hello again, so a late joiner lands in the right chapter),
 chapter cards, the save and Continue (AdventureRun), the test adventure *Two Small Rooms*
 (`tools/make_adventure_test.py`), checks (solo, a client following, a client joining late).
-Story flags are saved and carried over, but nothing sets or reads them yet: that's A2.
-Next: A2, the story pieces.
+
+**A2 done** (2026-11-05): StoryNote, StoryLine, StoryZone, StoryFlag, TalkingYeet: their piece
+pages, MapTheme's `story_note` slot, the subtitle and the reading panel on the HUD; all five in
+Two Small Rooms; checks. Next: A3, the fights.
 
 ## Decided
 

@@ -83,7 +83,7 @@ jobs:
       - name: Shop window check (every tab of MegaYeet's shop shows its wares)
         timeout-minutes: 2
         run: timeout 70 godot --headless -- --host --map res://maps/fortress.tscn --mode megayeet --bots 0 --spooky off --tour x --tour-mode shop
-      - name: Adventure check (chapters moving on to the next map, flags and the clock carried over, saving and Continue; a client following, a client joining late)
+      - name: Adventure check (chapters moving on to the next map, flags and the clock carried over, saving and Continue, the story pieces; a client following, a client joining late)
         timeout-minutes: 5
         run: |
           timeout 110 godot --headless -- --host --map res://adventures/two_small_rooms.adventure.tres --mode adventure --spooky off --tour x --tour-mode adventure

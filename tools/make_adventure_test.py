@@ -8,7 +8,8 @@ import os
 
 OUT = "adventures/two_small_rooms"
 EXT = [("settings", "map_settings"), ("block", "arena_block"), ("spawn", "spawn_point"), ("prop", "prop_spawn"), ("button", "puzzle_button"),
-       ("plate", "pressure_plate"), ("door", "puzzle_door"), ("exit", "puzzle_exit")]
+       ("plate", "pressure_plate"), ("door", "puzzle_door"), ("exit", "puzzle_exit"),
+       ("note", "story_note"), ("line", "story_line"), ("zone", "story_zone"), ("flag", "story_flag"), ("talker", "talking_yeet")]
 FLOOR = "Color(0.52, 0.5, 0.48, 1)"
 WALL = "Color(0.45, 0.5, 0.62, 1)"
 
@@ -47,15 +48,23 @@ inputs = Array[NodePath]([NodePath("../%s")])
 objective = "%s"
 '''
 
+PIECE = '[node name="%s" type="Node3D" parent="."]\ntransform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, %g, 0, %g)\nscript = ExtResource("%s")\n%s\n'
 os.makedirs(OUT, exist_ok=True)
 open(OUT + "/room1.tscn", "w", encoding="utf-8", newline="\n").write(room(
     "Two Small Rooms: the Button", "Press the button; through the door.",
     '[node name="Button" type="Node3D" parent="."]\ntransform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -4)\nscript = ExtResource("button")\npress = "use key"\nlabel = "Open the door"\n\n'
+    + PIECE % ("Note", -6, -6, "note", 'title = "A Note"\ntext = "Whoever finds this: DO NOT press the button.\\n\\nActually, do. Otherwise you\'re stuck in here."\n')
+    + PIECE % ("Bob", -2, 4, "talker", 'display_name = "Bob"\nlines = PackedStringArray("Oh! Visitors. Nobody ever visits.", "The button? Over there. I would not know why.")\nshirt = Color(0.85, 0.45, 0.2, 1)\n')
+    + PIECE % ("MetBob", -2, 6, "flag", 'flag = "met_bob"\ninputs = Array[NodePath]([NodePath("../Bob")])\n')
+    + PIECE % ("NearDoor", 1.5, 0, "zone", 'size = Vector3(3, 3, 8)\n')
+    + PIECE % ("DoorLine", 1.5, 0, "line", 'speaker = "Bob"\ntext = "Mind the door. It sticks."\nvoice = "excited"\ninputs = Array[NodePath]([NodePath("../NearDoor")])\n')
     + DOOR % ("Button", "Open the door")))
 open(OUT + "/room2.tscn", "w", encoding="utf-8", newline="\n").write(room(
     "Two Small Rooms: the Plate", "Weigh the plate down; through the door.",
     '[node name="Plate" type="Node3D" parent="."]\ntransform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 4)\nscript = ExtResource("plate")\nrequired_mass = 20.0\n\n'
     '[node name="Crate" type="Node3D" parent="."]\ntransform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0.6, 0)\nscript = ExtResource("prop")\nkind = "crate"\nkey_prop = true\n\n'
+    + PIECE % ("YouMetBob", -6, -6, "flag", 'flag = "met_bob"\naction = "check"\n')
+    + PIECE % ("BobRemembers", -6, -6, "line", 'speaker = "A voice"\ntext = "Bob says hello. He says you were very polite."\nvoice = "tired"\ndelay = 1.0\ninputs = Array[NodePath]([NodePath("../YouMetBob")])\n')
     + DOOR % ("Plate", "Weigh the plate down")))
 open("adventures/two_small_rooms.adventure.tres", "w", encoding="utf-8", newline="\n").write('''[gd_resource type="Resource" script_class="Adventure" load_steps=5 format=3]
 
