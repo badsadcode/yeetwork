@@ -25,6 +25,7 @@ func setup(p_world: Node) -> void:
 	_longest = float(s.get("longest", 0.0))
 	_longest_by = String(s.get("longest_by", ""))
 	_flags = s.get("awards", {})
+	_monsters = int(s.get("monsters", 0))
 	world.adventure_info = AdventureRun.info()
 	world.hud.show_chapter_card(world.adventure_info)
 	AdventureRun.save()
@@ -33,7 +34,7 @@ func setup(p_world: Node) -> void:
 ## Everyone's at the exit: on to the next chapter, or the end of the adventure.
 func _level_done(n: PuzzleExit) -> void:
 	AdventureRun.time = world.net_time() - world.puzzle_start
-	AdventureRun.stats = {"destroyed": _destroyed, "deaths": _deaths, "yeeted": _yeeted, "longest": _longest, "longest_by": _longest_by, "awards": _flags}
+	AdventureRun.stats = {"destroyed": _destroyed, "deaths": _deaths, "yeeted": _yeeted, "longest": _longest, "longest_by": _longest_by, "awards": _flags, "monsters": _monsters}
 	if AdventureRun.is_last():
 		AdventureRun.erase()
 		super._level_done(n)
@@ -43,7 +44,8 @@ func _level_done(n: PuzzleExit) -> void:
 	_next_at = world.now() + NEXT_AFTER
 
 
-func tick(_delta: float) -> void:
+func tick(delta: float) -> void:
+	super(delta)
 	if _next_at >= 0.0 and world.now() >= _next_at:
 		_next_at = -1.0
 		AdventureRun.next()

@@ -22,6 +22,7 @@ static var _noise_tex: NoiseTexture2D
 static var _noise3d: NoiseTexture3D
 var _ball: SphereMesh
 static var _warmed := false
+static var _warmed_horde := false
 var _warming := false
 
 
@@ -63,9 +64,11 @@ func _ready() -> void:
 ## "Getting ready" with the sound off: everything that goes off in a fight, once, in front of
 ## the camera (no marks left behind).
 func warm_up(world: Node) -> void:
-	if _warmed or DisplayServer.get_name() == "headless":
+	# (a level with fights may come after ones without: the monsters still want warming up)
+	if (_warmed and (world.horde == null or _warmed_horde)) or DisplayServer.get_name() == "headless":
 		return
 	_warmed = true
+	_warmed_horde = world.horde != null
 	_warming = true
 	world.hud.show_getting_ready(true)
 	var sfx := AudioServer.get_bus_index("SFX")

@@ -1,9 +1,10 @@
 @tool
 class_name MonsterSpawn
 extends Node3D
-## MegaYeet: where monsters come from (a rift in the ground, Radius across). Put several round
-## the fortress, outside its walls; each wave's monsters share them out. From Wave: this one
-## opens from that wave on (a surprise rift later in the game).
+## Where monsters come from (a rift in the ground, Radius across). In MegaYeet: put several round
+## the fortress, outside its walls; each wave's monsters share them out. For an Encounter: out of
+## sight until the fight starts. From Wave: this one opens from that wave on (a surprise rift
+## later on).
 
 ## How big the rift is, metres.
 @export var radius := 3.0:

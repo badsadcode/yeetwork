@@ -183,7 +183,9 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   a chapter card; the clock and the end screen carry through, a host's progress is saved
   (**Continue** in the match setup). The story's told with notes to read, subtitled lines with
   Yeetish babble as the voice, Yeets you can talk to, and flags that let a later chapter remember
-  what you did. Only a tiny test adventure so far, *Two Small Rooms*: the plan's in
+  what you did. Fights too: an Encounter sends monsters through rifts in waves, with a boss if you
+  like, and if everyone falls it's back to the checkpoint and it starts again. Only tiny test
+  adventures so far, *Two Small Rooms* and *The Cellar*: the plan's in
   [docs/design/ADVENTURE.md](docs/design/ADVENTURE.md). Adventures are files and maps, no code:
   [docs/pieces/Adventure.md](docs/pieces/Adventure.md).
 - **Puzzle (co-op)** (first step, see [the proposal](docs/design/PUZZLE_COOP.md)): no
@@ -634,6 +636,11 @@ godot --path . -- --host --map res://adventures/two_small_rooms.adventure.tres -
 # then one joining late
 godot --headless --path . -- --host --map res://adventures/two_small_rooms.adventure.tres --mode adventure --port 24795 --tour x --tour-mode adventure --with-client
 godot --headless --path . -- --join 127.0.0.1 --port 24795 --tour x --tour-mode adventureclient
+# Encounter (fights): hunting, a boss, a Goal, everyone down and back to the checkpoint, waves, the door
+godot --path . -- --host --map res://adventures/the_cellar.adventure.tres --mode adventure --tour /tmp/shots --tour-mode encounter
+# ... and over the network: two clients, the second joining mid-fight (host first)
+godot --headless --path . -- --host --map res://adventures/the_cellar.adventure.tres --mode adventure --port 24796 --tour x --tour-mode encounter --with-client
+godot --headless --path . -- --join 127.0.0.1 --port 24796 --tour x --tour-mode encounterclient
 # Play an adventure from its saved chapter
 godot --path . -- --host --map res://adventures/two_small_rooms.adventure.tres --mode adventure --continue
 # The Foundry: from every rift a way to the Heart, the way the map means it, the canal, the

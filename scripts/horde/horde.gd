@@ -29,6 +29,8 @@ extends Node3D
 ## own (kind_ids: the built-in ones, then the map's, the same on every peer: they all load
 ## the same map), behaving like the built-in kind they pick; a map theme's monster slots give
 ## the built-in kinds new looks (MonsterLook.from_model).
+## An Encounter (the Adventure and Puzzle modes) runs them too (begin_fight): they go for its Goal,
+## or hunt the Yeets, reaching it doesn't use them up, and they only chase a Yeet they can see.
 ## Every peer draws them from compact snapshots (10 a second, 12 bytes a monster) in one
 ## MultiMesh per kind, the shader making them shamble; deaths go out reliably (a tumbling
 ## body). World holds the RPCs (_s_horde, _s_horde_deaths) and calls in here.
@@ -81,6 +83,8 @@ const CHARGE_EVERY := 7.0
 const CHARGE_DAMAGE := 30.0
 const DAZE_TIME := 5.0
 const DAZE_HURTS := 2.0
+const RESCAN_CELLS := 60 # (an Encounter's map of the ground, looked at again, a physics tick)
+const LOST_AFTER := 30.0
 const CAUSES := ["", "punt", "blast", "crushed", "fall", "lava", "acid", "drowned", "bowled", "wall", "heart", "hit", "fire", "light", "bomb", "spikes"]
 
 enum State { WALK, FLY, STUN, CLIMB, HELD, WINDUP, CHARGE }
@@ -125,6 +129,7 @@ class Monster:
 	var charge_hits := {} # (the Yeets this charge has flung)
 	var smash_cd := 0.0
 	var daze := 0.0
+	var lost := 0.0 # (an Encounter's: seconds with no way to go)
 
 
 var world: Node
@@ -163,6 +168,8 @@ var _models := {} # kind -> PackedScene
 var types := {} # kind -> MonsterType
 var _warm_spot := Vector3.ZERO
 var _warm_t := 0.0
+var fight := false # (an Encounter's on, or has been: no Heart here)
+var _chase_range := 0.0 # (a fight's: how near a Yeet it can see gets chased)
 
 
 func _ready() -> void:
@@ -203,11 +210,9 @@ func _setup_kinds() -> void:
 		var slot := theme.monster_model(k) if theme else null
 		if slot:
 			_models[k] = slot
-	var heart: FortressHeart = world.arena.heart if world and world.arena else null
-	if heart == null:
-		return
-	for i in heart.monster_types.size():
-		var t: MonsterType = heart.monster_types[i]
+	var own := _own_types()
+	for i in own.size():
+		var t: MonsterType = own[i]
 		if t == null:
 			continue
 		var k := CUSTOM + str(i)
@@ -216,6 +221,51 @@ func _setup_kinds() -> void:
 		defs[k] = t.def()
 		if t.model:
 			_models[k] = t.model
+
+
+## The map's own monsters, in the same order on every peer: the Heart's in MegaYeet, else what
+## its Encounters bring.
+func _own_types() -> Array[MonsterType]:
+	var out: Array[MonsterType] = []
+	if world == null or world.arena == null:
+		return out
+	if world.mode == Game.Mode.MEGAYEET:
+		return world.arena.heart.monster_types if world.arena.heart else out
+	for n in world.arena.puzzle:
+		if n is Encounter:
+			for t in (n as Encounter).own_types():
+				if not out.has(t):
+					out.append(t)
+	return out
+
+
+## The kind name of one of the map's own monsters.
+func kind_of_type(t: MonsterType) -> String:
+	for k in types:
+		if types[k] == t:
+			return k
+	return "shambler"
+
+
+## An Encounter starts: the monsters use this map of the ground, heading for this point, and go
+## for any Yeet in sight within reach. Reaching the point doesn't use them up.
+func begin_fight(f: FlowField, at: Vector3, chase_range: float) -> void:
+	if field:
+		field.finish()
+	field = f
+	_heart = at
+	_heart_r = 1.5
+	_chase_range = chase_range
+	fight = true
+
+
+## No Goal: the way leads to wherever the Yeets are (FlowField.aim_at); ghosts and climbers,
+## going straight, head for the first.
+func aim_at(points: Array[Vector3]) -> void:
+	if field == null or points.is_empty():
+		return
+	_heart = points[0]
+	field.aim_at(points)
 
 
 ## A kind's mesh: its model of your own, else the built-in look (of the kind it behaves like).
@@ -541,7 +591,12 @@ func _physics_process(delta: float) -> void:
 	_bot_field_t -= delta
 	if _bot_field_t <= 0.0:
 		_bot_field_t = 1.0
-		_update_bot_field()
+		if fight:
+			_clear_the_lost()
+		else:
+			_update_bot_field()
+	if fight and not monsters.is_empty() and field.rescan(RESCAN_CELLS):
+		field.solve_async()
 	if not _deaths.is_empty():
 		world.server_horde_deaths(_deaths)
 		_deaths = PackedFloat32Array()
@@ -551,20 +606,45 @@ func _physics_process(delta: float) -> void:
 		_send_snapshot()
 
 
+## An Encounter's monster with no way to go for half a minute (shut in, flung onto a roof) goes:
+## it can't be left holding up the fight for good.
+func _clear_the_lost() -> void:
+	for m: Monster in monsters.duplicate():
+		if m.def.has("ghost") or m.state == State.FLY or m.state == State.HELD:
+			continue
+		if field.distance(m.pos) >= FlowField.INF_COST:
+			m.lost += 1.0
+			if m.lost >= LOST_AFTER:
+				m.attacker = 0
+				m.burn = 0.0
+				_kill(m, "")
+		else:
+			m.lost = 0.0
+
+
 func _think_chase(m: Monster, delta: float, reach: float) -> void:
 	m.think -= delta
 	if m.think > 0.0:
 		return
 	m.think = 0.5
 	m.chase = null
-	var best := reach
+	var best := maxf(reach, _chase_range)
 	for pl: Player in world.players.values():
 		if not pl.is_alive():
 			continue
 		var d := pl.global_position.distance_to(m.pos)
-		if d < best and absf(pl.global_position.y - m.pos.y) < 2.0:
+		if d < best and absf(pl.global_position.y - m.pos.y) < 2.0 and _can_see(m, pl):
 			best = d
 			m.chase = pl
+
+
+## In a fight, a monster only goes straight for a Yeet it can see (the way round is the map's);
+## MegaYeet's never needed to ask.
+func _can_see(m: Monster, pl: Player) -> bool:
+	if not fight or m.def.has("ghost"):
+		return true
+	var q := PhysicsRayQueryParameters3D.create(m.pos + Vector3.UP * 1.0, pl.body_center(), Game.L_WORLD)
+	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
 func _walk(m: Monster, delta: float, _now: float) -> void:
@@ -656,6 +736,8 @@ func _apart(m: Monster) -> Vector3:
 
 
 func _reached(m: Monster) -> void:
+	if fight:
+		return # (it's there: it waits, for a Yeet to come near)
 	if world.mode_logic and world.mode_logic.has_method("on_monster_reached"):
 		world.mode_logic.on_monster_reached(m)
 	m.attacker = 0
@@ -785,7 +867,7 @@ func _charge(m: Monster, delta: float) -> void:
 	m.walk = 1.0
 	m.charge_left -= delta
 	m.smash_cd -= delta
-	if Vector2(_heart.x - m.pos.x, _heart.z - m.pos.z).length() < _heart_r + reach * 0.5:
+	if not fight and Vector2(_heart.x - m.pos.x, _heart.z - m.pos.z).length() < _heart_r + reach * 0.5:
 		_reached(m)
 		return
 	var ahead := field.cell_of(m.pos + dir * (CHARGE_SPEED * delta + reach * 0.7))

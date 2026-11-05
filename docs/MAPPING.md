@@ -709,6 +709,27 @@ times in a chapter's MapSettings don't count here. Example: `adventures/two_smal
 - The map itself changing is ordinary wiring: an **AnimatedModel** with Inputs, a **PuzzleDoor**, a
   **Fixture** switching on.
 
+**Fights** (the Adventure and Puzzle modes):
+- **Encounter**: a set-piece fight. When its **Inputs** come on (a StoryZone walked into, usually;
+  with none, as the level starts) its rifts open and its **Waves** come through, each once the one
+  before is dead. It's on once they're all dead, so wire the door on to it. Example:
+  `adventures/the_cellar/cellar.tscn`.
+- **Waves**: New EncounterWave for each: how many **Shamblers**, **Runners**, **Brutes**, **Ghosts**,
+  **Climbers**, **Bombers**, a **Boss** and its **Boss Health**, **Own Monsters** (MonsterType files)
+  and **Own Count**.
+- **Rifts**: the **MonsterSpawn**s they come through (empty: all of them on the map). They stay out
+  of sight until the fight starts. Put them somewhere a monster can walk from: if one has no way to
+  go for half a minute, it goes, so a fight can't get stuck.
+- **Goal**: leave it empty and they hunt the Yeets wherever they go. Set it to a Marker3D and they
+  head there and wait, going for any Yeet they can see within **Chase Range**.
+- **If everyone's down at once**, they're all back at the last **Checkpoint**, the monsters go and
+  it starts again: a StoryZone that set it off can be walked into again, and a door it slammed
+  opens again. If its Inputs are still on (the zone's where they land, a button), it starts by
+  itself after **Restart After**. Put a Checkpoint outside the room, or at its door, so nobody
+  walks far. While it's on, a fallen Yeet is out for **Respawn After** seconds.
+- Doors can open and shut during a fight: the monsters notice within a few seconds. Mind the Steam
+  Deck: **Max At Once** holds back the rest of a wave.
+
 ### Custom maps (map packs)
 Maps don't have to live in the game: make them in `custom/<your_map>/` (with their own
 textures, materials, models, sounds and even scripts), export them with

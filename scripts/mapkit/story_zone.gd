@@ -16,6 +16,7 @@ extends PuzzleNode
 @export_enum("anyone", "everyone") var who := "anyone"
 
 var _outline: MeshInstance3D
+var _rearmed := false
 
 
 func _ready() -> void:
@@ -24,6 +25,10 @@ func _ready() -> void:
 
 
 func evaluate() -> bool:
+	if _rearmed: # (off for a tick first, so what's wired to it sees it go off and come on again)
+		_rearmed = false
+		return false
+	latch = stays == "once"
 	if not inputs.is_empty() and not inputs_on():
 		return false
 	var inside := players_in(Vector3(0, size.y * 0.5, 0), size).size()
@@ -32,6 +37,12 @@ func evaluate() -> bool:
 	if who == "anyone":
 		return true
 	return inside >= world.players.values().filter(func(p): return p.is_alive()).size()
+
+
+## Server: a fight it set off starts over (Encounter): it can be walked into again.
+func rearm() -> void:
+	latch = false
+	_rearmed = true
 
 
 ## In the editor only: where it is.

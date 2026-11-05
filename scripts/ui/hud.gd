@@ -1003,6 +1003,9 @@ func on_players_changed() -> void:
 		var clock := ModePuzzle.clock_text(end - world.puzzle_start) if world.puzzle_start >= 0.0 else "0:00"
 		_score_label.text = "%s     %s" % [world.mode_name(), clock]
 		_objective.text = world.puzzle_objective()
+		var fight := _fight_hud()
+		if fight != "":
+			_objective.text += ("\n" if _objective.text != "" else "") + fight
 		_objective_plate.visible = _objective.text != ""
 		var ow := _objective.get_minimum_size().x + 40.0
 		_objective_plate.offset_left = -ow * 0.5
@@ -1037,6 +1040,28 @@ func on_players_changed() -> void:
 		var pl: Player = world.local_player
 		_score_label.text = "%s     Frags: %d" % [world.mode_name(), pl.frags if pl else 0]
 	_fit_score_plate.call_deferred()
+
+
+## An Encounter (the Adventure and Puzzle modes): the boss's health, and the line for the
+## objective's plate (the wave, what's left; "" with no fight on).
+func _fight_hud() -> String:
+	var s: Dictionary = world.mode_state
+	if int(s.get("fight", -1)) < 0:
+		_boss_bar.visible = false
+		return ""
+	var text := "%d left" % int(s.get("left", 0))
+	if int(s.get("waves", 1)) > 1:
+		text = "Wave %d of %d  ·  %s" % [maxi(int(s.get("wave", 1)), 1), int(s.get("waves", 1)), text]
+	var pl: Player = world.local_player
+	if pl and not pl.is_alive():
+		text += "\nYou're down: back soon. If everyone falls, it starts over"
+	var b: Array = s.get("boss", [])
+	_boss_bar.visible = not b.is_empty()
+	if not b.is_empty():
+		_boss_bar.value = float(b[1])
+		_boss_bar.queue_redraw()
+		_boss_label.text = "%s  %d%%" % [b[0], ceili(float(b[1]) * 100.0)]
+	return text
 
 
 ## MegaYeet: the wave, the Fortress meter (green to red as it drains), and what's coming

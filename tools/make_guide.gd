@@ -59,6 +59,8 @@ const PIECES := [
 	["StoryZone", "res://scripts/mapkit/story_zone.gd", "Adventure"],
 	["StoryFlag", "res://scripts/mapkit/story_flag.gd", "Adventure"],
 	["TalkingYeet", "res://scripts/mapkit/talking_yeet.gd", "Adventure"],
+	["Encounter", "res://scripts/mapkit/encounter.gd", "Adventure"],
+	["EncounterWave", "res://scripts/mapkit/encounter_wave.gd", "Adventure"],
 	["MonsterSpawn", "res://scripts/mapkit/monster_spawn.gd", "MegaYeet"],
 	["MonsterType", "res://scripts/horde/monster_type.gd", "MegaYeet"],
 	["DefenseZone", "res://scripts/mapkit/defense_zone.gd", "MegaYeet"],
@@ -94,7 +96,7 @@ const GROUPS := {
 	"Water and ships": "Water that floods and drains, and ships riding the sea.",
 	"Modes": "What Capture the Flag and the sports need.",
 	"MegaYeet": "The fortress, the monsters' rifts, its zones and traps.",
-	"Adventure": "The Adventure mode: a few maps linked by a story (files, no code), and the pieces that tell it (they work on any map).",
+	"Adventure": "The Adventure mode: a few maps linked by a story (files, no code), the pieces that tell it (they work on any map), and its fights.",
 	"Puzzles": "Pieces that switch on and off and wire up (every one has PuzzleNode's settings).",
 }
 
@@ -137,6 +139,8 @@ const STARTERS := {
 	"Vessel": [["custom/make_your_own/boat.tscn", "Make Your Own Boat: a boat beside an island"]],
 	"Adventure": [["adventures/two_small_rooms.adventure.tres", "the smallest adventure there is: two chapters"]],
 	"AdventureChapter": [["adventures/two_small_rooms/room1.tscn", "a chapter's map: Puzzle on, and a PuzzleExit"]],
+	"Encounter": [["adventures/the_cellar/cellar.tscn", "two fights: one hunting you through two waves, then a boss let out of a cage, heading for a Goal"]],
+	"EncounterWave": [["adventures/the_cellar/cellar.tscn", "the waves are in the Encounters' Waves: built-in kinds, a boss, monsters of your own"]],
 	"MonsterType": [["custom/make_your_own/scarecrow.tres", "a scarecrow come alive (behaves like a shambler; straw burns)"], ["custom/make_your_own/models/scarecrow.glb", "its model, its parts named, each origin at its joint"]],
 	"FortressHeart": [["custom/make_your_own/scarecrow.tres", "a monster of your own for Monster Types (see MonsterType)"]],
 	"AnimatedModel": [["custom/make_your_own/models/windmill.glb", "a windmill, its sails turning (loop)"], ["custom/make_your_own/models/sign.glb", "an inn sign swinging (ping pong)"], ["custom/make_your_own/models/platform.glb", "a platform sliding 6 m and back, carrying riders (ping pong)"], ["custom/make_your_own/models/drawbridge.glb", "a drawbridge lowering (once: wire it to a button)"]],

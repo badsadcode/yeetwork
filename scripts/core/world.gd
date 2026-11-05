@@ -211,10 +211,18 @@ func _build_arena(key: String) -> void:
 	if mode == Game.Mode.MEGAYEET:
 		# (every peer: the Heart and zones if the map has none, and the monsters' node)
 		ModeMegaYeet.prepare_arena(arena)
-		horde = Horde.new()
-		horde.name = "Horde"
-		horde.world = self
-		add_child(horde)
+		_add_horde()
+	elif Game.is_level_mode(mode) and arena.puzzle.any(func(n): return n is Encounter):
+		# (the Adventure and Puzzle modes: a level with fights in it)
+		arena.all_flashlights = true # (light burns ghosts)
+		_add_horde()
+
+
+func _add_horde() -> void:
+	horde = Horde.new()
+	horde.name = "Horde"
+	horde.world = self
+	add_child(horde)
 
 
 func _build_arena_now(key: String) -> void:

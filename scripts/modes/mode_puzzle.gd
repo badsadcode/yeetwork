@@ -16,6 +16,8 @@ const AWARDS := {
 	"engineer": ["Certified Yeet Engineer", "Reached the exit with a gate still shut: over, around or through"],
 }
 
+const WIPE_TIME := 2.5 # (seconds from everyone falling to everyone back at the checkpoint)
+
 var _finished := false
 # Run statistics (server).
 var _destroyed := 0
@@ -28,6 +30,12 @@ var _longest_by := ""
 var _ever_on := {} # puzzle piece -> true once it switched on
 var _explosions: Array = [] # [time, position]
 var _flags := {} # award key -> true
+var _monsters := 0
+# Fights (Encounter, server).
+var _fight: Encounter
+var _frames := 0
+var _state_t := 0.0
+var _wiped_at := -1.0
 
 
 func mode_name() -> String:
@@ -95,6 +103,93 @@ func on_puzzle_changed(n: PuzzleNode) -> void:
 	elif n is PuzzleExit and n.active and not _finished:
 		_finished = true
 		_level_done(n)
+
+
+# --- Fights ---------------------------------------------------------------------------
+
+func tick(delta: float) -> void:
+	if world.horde == null:
+		return
+	_frames += 1
+	if _frames < 3: # (once the map's collision is in the physics world)
+		return
+	var now: float = world.now()
+	if _fight == null:
+		for n in world.arena.puzzle:
+			if n is Encounter and (n as Encounter).wants_to_start(now):
+				_fight = n
+				_fight.server_begin()
+				_wiped_at = -1.0
+				_send_fight()
+				break
+		return
+	if _wiped_at >= 0.0:
+		if now >= _wiped_at + WIPE_TIME:
+			_back_to_the_checkpoint()
+		return
+	if _fight.server_tick(delta):
+		_fight_won()
+		return
+	if _everyone_down():
+		_wiped_at = now
+		world.server_message("Everyone's down!\nBack to the checkpoint...", Color(1.0, 0.45, 0.35), true)
+		return
+	_state_t -= delta
+	if _state_t <= 0.0:
+		_send_fight()
+
+
+func _everyone_down() -> bool:
+	if world.players.is_empty():
+		return false
+	for pl: Player in world.players.values():
+		if pl.is_alive():
+			return false
+	return true
+
+
+func _back_to_the_checkpoint() -> void:
+	_fight.server_reset()
+	_fight = null
+	_wiped_at = -1.0
+	_send_fight()
+	for pl: Player in world.players.values():
+		world.server_place_player(pl)
+
+
+## Won: anyone still down is back at once.
+func _fight_won() -> void:
+	var e := _fight
+	_fight = null
+	_send_fight()
+	world.server_fx("score", e.global_position, Vector3.UP, 1.0)
+	world.server_message("All clear!", Color(0.45, 1.0, 0.55), true)
+	for pl: Player in world.players.values():
+		if not pl.is_alive():
+			world.server_place_player(pl)
+
+
+## What the HUD shows, and which rifts are open (every peer).
+func _send_fight() -> void:
+	_state_t = 0.25
+	if _fight == null:
+		world.server_mode_state({})
+		return
+	var left: int = world.horde.count() + _fight._to_spawn.size()
+	var b = _fight.boss
+	world.server_mode_state({
+		"fight": _fight.puzzle_index, "wave": _fight.wave, "waves": _fight.waves.size(), "left": left,
+		"boss": [Horde.BOSSES[b.kind].name, b.hp / b.max_hp] if b != null and b.hp > 0.0 else [],
+	})
+
+
+## While a fight's on, a fallen Yeet is out of it for longer (the Encounter's Respawn After).
+func respawn_scale() -> float:
+	return _fight.respawn_after / World.RESPAWN_TIME if _fight else 1.0
+
+
+func on_monster_killed(_m: Variant, _cause: String, _attacker: int) -> void:
+	_monsters += 1
 
 
 ## Everyone's at the exit: the clock stops, the end screen.
@@ -170,6 +265,8 @@ func results(t: float) -> Dictionary:
 		deaths += _deaths[id]
 	stats.append(["Deaths", str(deaths)])
 	stats.append(["Longest throw", "%.1f m  (%s)" % [_longest, _longest_by] if _longest > 0.0 else "-"])
+	if _monsters > 0:
+		stats.append(["Monsters beaten", str(_monsters)])
 	# Awards.
 	var switches: Array = world.arena.puzzle.filter(func(n: PuzzleNode) -> bool: return n is PressurePlate or n is PuzzleTarget or n is PuzzleButton)
 	if not switches.is_empty() and switches.all(func(n: PuzzleNode) -> bool: return _ever_on.has(n)):

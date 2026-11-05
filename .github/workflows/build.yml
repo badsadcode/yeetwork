@@ -24,7 +24,7 @@ jobs:
         run: godot --headless -- --host --map prime --mode ctf --bots 0 --spooky off --test
       - name: Validate maps
         run: |
-          for m in prime facing courtyard lagoon highseas moving_day test_chambers warehouse pump_house scrapyard yeetball_stadium res://maps/fortress.tscn res://maps/foundry.tscn res://adventures/two_small_rooms/room1.tscn res://adventures/two_small_rooms/room2.tscn res://custom/example_garden/example_garden.tscn res://custom/make_your_own/workshop.tscn res://custom/make_your_own/boat.tscn res://custom/lighthouse_point/lighthouse_point.tscn; do
+          for m in prime facing courtyard lagoon highseas moving_day test_chambers warehouse pump_house scrapyard yeetball_stadium res://maps/fortress.tscn res://maps/foundry.tscn res://adventures/two_small_rooms/room1.tscn res://adventures/two_small_rooms/room2.tscn res://adventures/the_cellar/cellar.tscn res://custom/example_garden/example_garden.tscn res://custom/make_your_own/workshop.tscn res://custom/make_your_own/boat.tscn res://custom/lighthouse_point/lighthouse_point.tscn; do
             godot --headless -- --map "$m" --validate
           done
       - name: Piece pages up to date (docs/pieces/, every setting described; the walkthroughs' tables match their maps)
@@ -92,6 +92,15 @@ jobs:
           timeout 60 godot --headless -- --join 127.0.0.1 --port 24795 --tour x --tour-mode adventureclient
           sleep 2
           timeout 60 godot --headless -- --join 127.0.0.1 --port 24795 --tour x --tour-mode adventureclient
+      - name: Encounter check (fights outside MegaYeet, hunting and a Goal, a boss, waves, everyone down and back to the checkpoint; two clients, one joining mid-fight)
+        timeout-minutes: 6
+        run: |
+          timeout 150 godot --headless -- --host --map res://adventures/the_cellar.adventure.tres --mode adventure --spooky off --tour x --tour-mode encounter
+          (timeout 150 godot --headless -- --host --map res://adventures/the_cellar.adventure.tres --mode adventure --port 24796 --spooky off --tour x --tour-mode encounter --with-client > /dev/null 2>&1 &)
+          sleep 5
+          timeout 90 godot --headless -- --join 127.0.0.1 --port 24796 --tour x --tour-mode encounterclient
+          sleep 2
+          timeout 90 godot --headless -- --join 127.0.0.1 --port 24796 --tour x --tour-mode encounterclient
       - name: Foundry check (from every rift a way to the Heart, the way the map means it; the canal, the bridge, the control room, the Ram down the hall, a bot dodging it)
         timeout-minutes: 3
         run: timeout 130 godot --headless -- --host --map res://maps/foundry.tscn --mode megayeet --bots 1 --spooky off --tour x --tour-mode foundry

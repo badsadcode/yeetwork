@@ -80,14 +80,14 @@ The fortress, the monsters' rifts, its zones and traps.
 | Piece | What it is |
 |---|---|
 | [FortressHeart](FortressHeart.md) | MegaYeet: what the players defend (put one at the fortress's centre). |
-| [MonsterSpawn](MonsterSpawn.md) | MegaYeet: where monsters come from (a rift in the ground, Radius across). |
+| [MonsterSpawn](MonsterSpawn.md) | Where monsters come from (a rift in the ground, Radius across). |
 | [MonsterType](MonsterType.md) | MegaYeet: your own monster, joining the waves beside the built-in ones. |
 | [DefenseZone](DefenseZone.md) | MegaYeet: a zone of the fortress (a box, Size, its bottom on the node). |
 | [TrapSpot](TrapSpot.md) | MegaYeet: a place for a trap (a box, Size, its bottom on the node). |
 
 ## Adventure
 
-The Adventure mode: a few maps linked by a story (files, no code), and the pieces that tell it (they work on any map).
+The Adventure mode: a few maps linked by a story (files, no code), the pieces that tell it (they work on any map), and its fights.
 
 | Piece | What it is |
 |---|---|
@@ -98,6 +98,8 @@ The Adventure mode: a few maps linked by a story (files, no code), and the piece
 | [StoryZone](StoryZone.md) | A place that notices you: on when a Yeet walks into its box (its bottom on the node). |
 | [StoryFlag](StoryFlag.md) | A story's memory, across an Adventure's chapters: "found the diary", "met Bob". |
 | [TalkingYeet](TalkingYeet.md) | A Yeet who stands there and talks: walk up and press Use, and they say their next line as a subtitle for everyone, with Yeetish babble as the voice; at the last one they keep repeating it. |
+| [Encounter](Encounter.md) | A set-piece fight, for the Adventure and Puzzle modes. |
+| [EncounterWave](EncounterWave.md) | One wave of an Encounter: how many of what come through its rifts. |
 
 ## Puzzles
 

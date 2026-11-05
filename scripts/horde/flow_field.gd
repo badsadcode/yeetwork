@@ -28,6 +28,9 @@ var _task := -1
 var _again := false
 var _solver: Solver
 var _probe: PhysicsShapeQueryParameters3D
+var _y_low := 0.0
+var _y_high := 0.0
+var _scan_i := 0
 
 
 ## Builds the grid over `bounds` (world XZ) between y_low and y_high, the Heart at `heart`.
@@ -46,35 +49,10 @@ func build(space: PhysicsDirectSpaceState3D, bounds: Rect2, y_low: float, y_high
 	box.size = Vector3(0.6, 1.1, 0.6)
 	_probe.shape = box
 	_probe.collision_mask = Game.L_WORLD
+	_y_low = y_low
+	_y_high = y_high
 	for i in n:
-		var c := center(i)
-		# Every floor down this column (a ray from inside a wall goes on through it): the
-		# lowest one a monster fits on is theirs (under a gate's lintel, the gate's own floor,
-		# not the wall top over it), else the highest (a wall: blocked).
-		var floors := []
-		var from := y_high
-		for k in 5:
-			var ray := PhysicsRayQueryParameters3D.create(Vector3(c.x, from, c.y), Vector3(c.x, y_low, c.y), Game.L_WORLD)
-			var hit := space.intersect_ray(ray)
-			if hit.is_empty():
-				break
-			if hit.normal.y >= 0.6:
-				floors.append(hit.position.y)
-			from = hit.position.y - 0.05
-		height[i] = INF
-		walk[i] = 0
-		for k in range(floors.size() - 1, -1, -1):
-			height[i] = floors[k]
-			walk[i] = _fits(i)
-			if walk[i] != 0:
-				break
-		if walk[i] == 0 and not floors.is_empty():
-			height[i] = floors[0]
-		if walk[i] == 0:
-			continue
-		var liq := Liquid.at(Vector3(c.x, height[i] + 0.1, c.y), 0.0)
-		if liq and liq.kind in ["lava", "acid"]:
-			walk[i] = 0 # (they don't walk into it: they can be thrown in)
+		_scan(i)
 	targets = PackedInt32Array()
 	for i in n:
 		if walk[i] == 1 and Vector2(heart.x, heart.z).distance_to(center(i)) <= heart_radius + 0.5 and absf(height[i] - heart.y) < 3.0:
@@ -92,6 +70,93 @@ func build(space: PhysicsDirectSpaceState3D, bounds: Rect2, y_low: float, y_high
 			if dist[i] < INF_COST:
 				reached += 1
 		print("FLOW cells blocked/open/gate %s, targets %d, reached %d, heart %s" % [c, targets.size(), reached, heart])
+
+
+## What's on this cell of the map now.
+func _scan(i: int) -> void:
+	var c := center(i)
+	# Every floor down this column (a ray from inside a wall goes on through it): the
+	# lowest one a monster fits on is theirs (under a gate's lintel, the gate's own floor,
+	# not the wall top over it), else the highest (a wall: blocked).
+	var floors := []
+	var from := _y_high
+	for k in 5:
+		var ray := PhysicsRayQueryParameters3D.create(Vector3(c.x, from, c.y), Vector3(c.x, _y_low, c.y), Game.L_WORLD)
+		var hit := _space.intersect_ray(ray)
+		if hit.is_empty():
+			break
+		if hit.normal.y >= 0.6:
+			floors.append(hit.position.y)
+		from = hit.position.y - 0.05
+	height[i] = INF
+	walk[i] = 0
+	for k in range(floors.size() - 1, -1, -1):
+		height[i] = floors[k]
+		walk[i] = _fits(i)
+		if walk[i] != 0:
+			break
+	if walk[i] == 0 and not floors.is_empty():
+		height[i] = floors[0]
+	if walk[i] == 0:
+		return
+	var liq := Liquid.at(Vector3(c.x, height[i] + 0.1, c.y), 0.0)
+	if liq and liq.kind in ["lava", "acid"]:
+		walk[i] = 0 # (they don't walk into it: they can be thrown in)
+
+
+## The next few cells looked at again (an Encounter's: doors open and shut during a fight, things
+## move); true when any changed (solve them). Round the whole map in a few seconds.
+func rescan(cells: int) -> bool:
+	var n := nx * nz
+	if n == 0:
+		return false
+	var changed := false
+	for k in cells:
+		_scan_i = (_scan_i + 1) % n
+		var was_walk := walk[_scan_i]
+		var was_height := height[_scan_i]
+		_scan(_scan_i)
+		if walk[_scan_i] != was_walk or (walk[_scan_i] == 1 and absf(height[_scan_i] - was_height) > 0.05):
+			changed = true
+	return changed
+
+
+## The way leads to the ground under these points now, solved on a worker thread (if none of them
+## is over ground a monster can stand on, it stays as it was). True when it changed.
+func aim_at(points: Array[Vector3]) -> bool:
+	var out := {}
+	for p in points:
+		var best := -1
+		var best_d := INF
+		var c := cell_of(p)
+		if c < 0:
+			continue
+		var cx := c % nx
+		var cz := c / nx
+		for dz in range(-2, 3):
+			for dx in range(-2, 3):
+				var x := cx + dx
+				var z := cz + dz
+				if x < 0 or z < 0 or x >= nx or z >= nz:
+					continue
+				var q := z * nx + x
+				if walk[q] != 1 or absf(height[q] - p.y) > 2.5:
+					continue
+				var d := float(dx * dx + dz * dz)
+				if d < best_d:
+					best_d = d
+					best = q
+		if best >= 0:
+			out[best] = true
+	if out.is_empty():
+		return false
+	var next := PackedInt32Array(out.keys())
+	next.sort()
+	if next == targets:
+		return false
+	targets = next
+	solve_async()
+	return true
 
 
 ## 1 when a monster fits on cell i (nothing solid from knee to head height), 2 when what's in

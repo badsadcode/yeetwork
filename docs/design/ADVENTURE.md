@@ -11,7 +11,15 @@ chapter cards, the save and Continue (AdventureRun), the test adventure *Two Sma
 
 **A2 done** (2026-11-05): StoryNote, StoryLine, StoryZone, StoryFlag, TalkingYeet: their piece
 pages, MapTheme's `story_note` slot, the subtitle and the reading panel on the HUD; all five in
-Two Small Rooms; checks. Next: A3, the fights.
+Two Small Rooms; checks.
+
+**A3 done** (2026-11-05): Encounter and EncounterWave: the Horde runs on any level with a fight in
+it, on a map of the ground made as the fight starts and kept up to date as doors move. With no Goal
+they hunt the Yeets (the way's worked out again each second); with one they head there and wait,
+going for a Yeet they can see. Everyone down: back to the checkpoint, the monsters gone, the zone
+that set it off ready again. It works in Puzzle mode too. The test adventure *The Cellar*
+(`tools/make_adventure_test.py`), checks (solo, two clients, one joining mid-fight). Next: A4, the
+first real adventure.
 
 ## Decided
 
