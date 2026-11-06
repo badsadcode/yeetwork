@@ -20,6 +20,9 @@ func _ready() -> void:
 	await _wait(2.5)
 	var compiles0 := int(Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_DRAW))
 	print("DECK compiles so far (the map, the warm-up): %d" % compiles0)
+	if world.mode_logic is ModePuzzle:
+		await _level()
+		return
 	var mode := world.mode_logic as ModeMegaYeet
 	var horde: Horde = world.horde
 	var pl: Player = world.local_player
@@ -76,6 +79,39 @@ func _ready() -> void:
 	_systems(horde)
 	await _measure("and a boss", vp)
 	print("DECK compiles during the fight: %d" % (int(Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_DRAW)) - compiles0))
+	get_tree().quit(0)
+
+
+## A level (Adventure, Puzzle): from the spots to look from a map names (Marker3Ds called "View..."),
+## else where the Yeet starts; then its fights, one after another, at their Max At Once.
+func _level() -> void:
+	var pl: Player = world.local_player
+	pl.is_bot = true
+	pl.bot_brain = null
+	var vp := get_viewport().get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(vp, true)
+	var views: Array = world.arena.find_children("View*", "Marker3D", true, false)
+	for v: Marker3D in views:
+		pl.respawn(v.global_position, v.global_rotation.y)
+		await _wait(1.0)
+		await _measure(String(v.name), vp)
+	if views.is_empty():
+		await _measure("the start", vp)
+	var horde: Horde = world.horde
+	for n in world.arena.puzzle:
+		if not n is Encounter:
+			continue
+		var e: Encounter = n
+		pl.respawn(e.global_position + Vector3.UP * 0.2, 0.0)
+		e.inputs.clear() # (off it goes, now)
+		await _wait(0.5)
+		for s in e._rift_nodes():
+			for k in e.max_at_once / maxi(e._rift_nodes().size(), 1):
+				horde.server_spawn((s as MonsterSpawn).spot(world.rng), "shambler")
+		await _wait(1.0)
+		await _measure("%s, %d monsters" % [e.name, horde.count()], vp)
+		break
+	print("DECK compiles during the fight: %d" % int(Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_DRAW)))
 	get_tree().quit(0)
 
 

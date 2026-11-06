@@ -139,7 +139,7 @@ const STARTERS := {
 	"Vessel": [["custom/make_your_own/boat.tscn", "Make Your Own Boat: a boat beside an island"]],
 	"Adventure": [["adventures/two_small_rooms.adventure.tres", "the smallest adventure there is: two chapters"]],
 	"AdventureChapter": [["adventures/two_small_rooms/room1.tscn", "a chapter's map: Puzzle on, and a PuzzleExit"]],
-	"Encounter": [["adventures/the_cellar/cellar.tscn", "two fights: one hunting you through two waves, then a boss let out of a cage, heading for a Goal"]],
+	"Encounter": [["adventures/the_cellar/cellar.tscn", "two fights: one hunting you through two waves, then a boss let out of a cage, heading for a Goal"], ["adventures/grandmas_glasses/study.tscn", "a fight up on a bookshelf: punt them off the edge"]],
 	"EncounterWave": [["adventures/the_cellar/cellar.tscn", "the waves are in the Encounters' Waves: built-in kinds, a boss, monsters of your own"]],
 	"MonsterType": [["custom/make_your_own/scarecrow.tres", "a scarecrow come alive (behaves like a shambler; straw burns)"], ["custom/make_your_own/models/scarecrow.glb", "its model, its parts named, each origin at its joint"]],
 	"FortressHeart": [["custom/make_your_own/scarecrow.tres", "a monster of your own for Monster Types (see MonsterType)"]],

@@ -135,7 +135,8 @@ static func _take(n: Node, xf: Transform3D, part: int, glow: bool, joints: Dicti
 	var mi := n as MeshInstance3D
 	if mi and mi.mesh and mi.visible:
 		for s in mi.mesh.get_surface_count():
-			if mi.mesh.surface_get_primitive_type(s) != Mesh.PRIMITIVE_TRIANGLES:
+			# (only an ArrayMesh can be asked; Godot's own box and sphere are triangles)
+			if mi.mesh is ArrayMesh and (mi.mesh as ArrayMesh).surface_get_primitive_type(s) != Mesh.PRIMITIVE_TRIANGLES:
 				continue
 			var mat := mi.get_active_material(s) as BaseMaterial3D
 			var tex: Texture2D = mat.albedo_texture if mat else null

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MonsterType" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/horde/monster_type.gd" id="type"]
+[ext_resource type="PackedScene" path="res://adventures/grandmas_glasses/models/dust_bunny.tscn" id="model"]
+
+[resource]
+script = ExtResource("type")
+display_name = "Dust Bunny"
+behaves_like = "runner"
+model = ExtResource("model")
+hit_points = 14
+speed = 3.2
+size = 0.75
+remains = "dust"
+announce = "DUST BUNNIES!  Mind the edge"

@@ -21,6 +21,7 @@ MegaYeet: your own monster, joining the waves beside the built-in ones. It behav
 | **Bash** | `0` | What a hit takes off a gate (0: the built-in kind's: a shambler 22, a brute 110). *(0 to 1000)* |
 | **Size** | `0` | How big it's drawn and how big it is (1: a Yeet's height; 0: the built-in kind's). *(0 to 4)* |
 | **Burns** | `0` | How hard fire hurts it (1 as a shambler; 0: the built-in kind's). *(0 to 5)* |
+| **Remains** | `a body` | What it leaves when it dies: a body (and blood, by the gore setting), or a puff of dust and nothing else. Choices: `a body`, `dust`. |
 | **Grabbable** | `as it` | Whether the gravity gun can grab it ("as it": like the kind it behaves like). Choices: `as it`, `yes`, `no`. |
 
 ### In the waves

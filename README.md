@@ -184,8 +184,10 @@ the impact direction. The intensity setting has three levels: *Off* (confetti in
   (**Continue** in the match setup). The story's told with notes to read, subtitled lines with
   Yeetish babble as the voice, Yeets you can talk to, and flags that let a later chapter remember
   what you did. Fights too: an Encounter sends monsters through rifts in waves, with a boss if you
-  like, and if everyone falls it's back to the checkpoint and it starts again. Only tiny test
-  adventures so far, *Two Small Rooms* and *The Cellar*: the plan's in
+  like, and if everyone falls it's back to the checkpoint and it starts again. The first real one
+  is under way: *Grandma's Glasses*, a cosy comedy in a house 20 times too big; so far its study
+  ([the plan](docs/design/GIANT_HOUSE.md)). And two tiny test adventures, *Two Small Rooms* and *The
+  Cellar*. The mode's plan is in
   [docs/design/ADVENTURE.md](docs/design/ADVENTURE.md). Adventures are files and maps, no code:
   [docs/pieces/Adventure.md](docs/pieces/Adventure.md).
 - **Puzzle (co-op)** (first step, see [the proposal](docs/design/PUZZLE_COOP.md)): no
@@ -636,6 +638,8 @@ godot --path . -- --host --map res://adventures/two_small_rooms.adventure.tres -
 # then one joining late
 godot --headless --path . -- --host --map res://adventures/two_small_rooms.adventure.tres --mode adventure --port 24795 --tour x --tour-mode adventure --with-client
 godot --headless --path . -- --join 127.0.0.1 --port 24795 --tour x --tour-mode adventureclient
+# Grandma's Glasses' study: a real Yeet walks the whole route, with real jumps, and through the fight
+godot --path . -- --host --map res://adventures/grandmas_glasses.adventure.tres --mode adventure --tour /tmp/shots --tour-mode study
 # Encounter (fights): hunting, a boss, a Goal, everyone down and back to the checkpoint, waves, the door
 godot --path . -- --host --map res://adventures/the_cellar.adventure.tres --mode adventure --tour /tmp/shots --tour-mode encounter
 # ... and over the network: two clients, the second joining mid-fight (host first)

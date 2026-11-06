@@ -85,6 +85,12 @@ extends StaticBody3D
 ## Ricochet surfaces: how much bounce things keep off it (0 = like any wall; 0.8 = a lot).
 ## A bouncy block is also frictionless, so things leave it at the angle they came in.
 @export_range(0.0, 1.0, 0.05) var bounciness := 0.0
+## Whether it throws a shadow. Off for the walls and ceiling of a room you want lit by the day: the
+## sun comes straight through them, and only what's in the room throws a shadow.
+@export var casts_shadow := true:
+	set(v):
+		casts_shadow = v
+		_rebuild()
 
 var _mesh: MeshInstance3D
 var _shape: CollisionShape3D
@@ -128,6 +134,7 @@ func _rebuild() -> void:
 		add_child(_mesh, false, Node.INTERNAL_MODE_FRONT)
 		_shape = CollisionShape3D.new()
 		add_child(_shape, false, Node.INTERNAL_MODE_FRONT)
+	_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if casts_shadow else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var bm := BoxMesh.new()
 	bm.size = size
 	_mesh.mesh = bm

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Adventure" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/mapkit/adventure.gd" id="adventure"]
+[ext_resource type="Script" path="res://scripts/mapkit/adventure_chapter.gd" id="chapter"]
+
+[sub_resource type="Resource" id="study"]
+script = ExtResource("chapter")
+map = "res://adventures/grandmas_glasses/study.tscn"
+title = "The Study"
+intro = "She's lost her glasses. She's also mistaken the lamp for her husband. You'd better find them."
+
+[resource]
+script = ExtResource("adventure")
+display_name = "Grandma's Glasses"
+description = "A very large old lady has lost her glasses in a very large house. So far: the study."
+chapters = Array[ExtResource("chapter")]([SubResource("study")])

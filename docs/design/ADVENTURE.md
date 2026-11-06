@@ -18,8 +18,11 @@ it, on a map of the ground made as the fight starts and kept up to date as doors
 they hunt the Yeets (the way's worked out again each second); with one they head there and wait,
 going for a Yeet they can see. Everyone down: back to the checkpoint, the monsters gone, the zone
 that set it off ready again. It works in Puzzle mode too. The test adventure *The Cellar*
-(`tools/make_adventure_test.py`), checks (solo, two clients, one joining mid-fight). Next: A4, the
-first real adventure.
+(`tools/make_adventure_test.py`), checks (solo, two clients, one joining mid-fight).
+
+**A4 under way: the first real adventure,** the giant house, *Grandma's Glasses*. Its study is built
+(2026-11-06), for Tomek to play before the other chapters. The plan's in
+[GIANT_HOUSE.md](GIANT_HOUSE.md).
 
 ## Decided
 
@@ -108,7 +111,5 @@ adventure; only A4 needs real art and writing, and placeholders do until Tomek's
 
 ## To decide
 
-- **Which adventure comes first** (A4). The giant house needs fewer new pieces and shows off
-  quickly; the mansion uses all of them, so it proves the whole mode.
 - **Can a client's progress count?** The plan saves on the host only: if you play on with
   someone else hosting, the story's in their save.

@@ -14,7 +14,7 @@ It has every [PuzzleNode](PuzzleNode.md) setting too (they're listed there).
 | Setting | Default | What it does |
 |---|---|---|
 | **Waves** | (none) | What comes, in order (New EncounterWave for each). |
-| **Rifts** | (none) | The MonsterSpawns they come through. Empty: every rift on the map. |
+| **Rifts** | (none) | The MonsterSpawns they come through. Empty: every rift on the map. They only walk on ground from about the height of these and the Goal upward, so a fight can be up on a shelf or a balcony: one knocked off falls (hard), and doesn't climb back. |
 | **Goal** | (none) | Where they head for until a Yeet's near: any node (a Marker3D). Empty: they hunt the Yeets, wherever they go. |
 | **Start Delay** | `1` | Seconds from its Inputs coming on to the first monster. *(0 to 60)* |
 | **Wave Gap** | `3` | Seconds between one wave dying and the next coming. *(0 to 60)* |
@@ -26,3 +26,4 @@ It has every [PuzzleNode](PuzzleNode.md) setting too (they're listed there).
 ## Start from
 
 - [`adventures/the_cellar/cellar.tscn`](../../adventures/the_cellar/cellar.tscn): two fights: one hunting you through two waves, then a boss let out of a cage, heading for a Goal
+- [`adventures/grandmas_glasses/study.tscn`](../../adventures/grandmas_glasses/study.tscn): a fight up on a bookshelf: punt them off the edge

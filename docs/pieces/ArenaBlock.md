@@ -27,6 +27,7 @@ A solid box with the arena's look (soft panels, a warm to cool gradient): floors
 | **Texture Size** | `2` | With a Custom Material: metres per repeat of its texture (laid out in the map's own metres, so neighbouring blocks line up). *(0.1 to 20)* |
 | **Solid** | on | Off: nothing bumps into it, it's only seen (a painted stripe, window bands, a trim). |
 | **Bounciness** | `0` | Ricochet surfaces: how much bounce things keep off it (0 = like any wall; 0.8 = a lot). A bouncy block is also frictionless, so things leave it at the angle they came in. *(0 to 1)* |
+| **Casts Shadow** | on | Whether it throws a shadow. Off for the walls and ceiling of a room you want lit by the day: the sun comes straight through them, and only what's in the room throws a shadow. |
 
 ## Used in
 

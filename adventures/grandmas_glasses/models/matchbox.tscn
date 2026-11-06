@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="m0"]
+albedo_color = Color(0.15, 0.3, 0.6, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="s0"]
+size = Vector3(1.1, 0.45, 0.75)
+material = SubResource("m0")
+
+[sub_resource type="StandardMaterial3D" id="m1"]
+albedo_color = Color(0.9, 0.75, 0.2, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="s1"]
+size = Vector3(0.6, 0.02, 0.45)
+material = SubResource("m1")
+
+[sub_resource type="StandardMaterial3D" id="m2"]
+albedo_color = Color(0.82, 0.74, 0.55, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="s2"]
+size = Vector3(0.3, 0.38, 0.68)
+material = SubResource("m2")
+
+[node name="Model" type="Node3D"]
+
+[node name="Box" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("s0")
+
+[node name="Label" type="MeshInstance3D" parent="Box"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.23, 0)
+mesh = SubResource("s1")
+
+[node name="Tray" type="MeshInstance3D" parent="Box"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.62, 0, 0)
+mesh = SubResource("s2")

@@ -1091,6 +1091,12 @@ func _land(m: Monster, impact: float) -> void:
 		_damage(m, (impact - 11.0) * 7.0, "fall")
 	if m.hp <= 0.0:
 		return
+	if fight:
+		var g := field.ground(m.pos)
+		if g == INF or g > m.pos.y + 2.0: # (knocked off the fight's ground: out of it)
+			m.attacker_t = world.now()
+			_kill(m, "fall")
+			return
 	m.state = State.STUN
 	m.stun = 0.5
 	m.vel = Vector3.ZERO
@@ -1492,6 +1498,10 @@ func _death_fx(pos: Vector3, vel: Vector3, yaw: float, cause: int, kind: String)
 		world.fx.puffs(pos + Vector3.UP, Vector3.UP, 10, [Color(1.0, 0.3, 0.2, 0.8), Color(0.6, 0.1, 0.1, 0.0)], 0.3, 0.7, 1.0, 3.0, 1.0)
 		return
 	var like: String = defs[kind].like
+	if defs[kind].has("dust"):
+		world.fx.dust(pos + Vector3.UP * float(defs[kind].size) * 0.5, Color(0.6, 0.58, 0.56), float(defs[kind].size))
+		Sfx.play3d("whoosh", pos + Vector3.UP, -6.0, randf_range(1.3, 1.7))
+		return
 	if like == "ghost":
 		world.fx.puffs(pos + Vector3.UP * 1.2, Vector3.UP, 14, [Color(0.8, 0.95, 1.0, 0.7), Color(0.5, 0.8, 1.0, 0.0)], 0.3, 0.8, 1.0, 3.0, 1.2)
 		Sfx.play3d("whoosh", pos + Vector3.UP, -2.0, 1.6)

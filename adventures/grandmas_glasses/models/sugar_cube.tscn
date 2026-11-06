@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="m0"]
+albedo_color = Color(0.96, 0.95, 0.92, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="s0"]
+size = Vector3(0.34, 0.34, 0.34)
+material = SubResource("m0")
+
+[node name="Model" type="Node3D"]
+
+[node name="Sugar" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("s0")

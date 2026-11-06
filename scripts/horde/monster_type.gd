@@ -33,6 +33,9 @@ extends Resource
 @export_range(0.0, 4.0, 0.05) var size := 0.0
 ## How hard fire hurts it (1 as a shambler; 0: the built-in kind's).
 @export_range(0.0, 5.0, 0.05) var burns := 0.0
+## What it leaves when it dies: a body (and blood, by the gore setting), or a puff of dust and
+## nothing else.
+@export_enum("a body", "dust") var remains := "a body"
 ## Whether the gravity gun can grab it ("as it": like the kind it behaves like).
 @export_enum("as it", "yes", "no") var grabbable := "as it"
 @export_group("In the waves")
@@ -61,6 +64,8 @@ func def() -> Dictionary:
 		d.size = size
 	if burns > 0.0:
 		d.burn = burns
+	if remains == "dust":
+		d.dust = true
 	if grabbable != "as it":
 		d.grab = grabbable == "yes"
 	d.name = display_name if display_name != "" else resource_path.get_file().get_basename().capitalize()

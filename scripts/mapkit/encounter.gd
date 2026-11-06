@@ -13,7 +13,9 @@ extends PuzzleNode
 
 ## What comes, in order (New EncounterWave for each).
 @export var waves: Array[EncounterWave] = []
-## The MonsterSpawns they come through. Empty: every rift on the map.
+## The MonsterSpawns they come through. Empty: every rift on the map. They only walk on ground from
+## about the height of these and the Goal upward, so a fight can be up on a shelf or a balcony:
+## one knocked off falls (hard), and doesn't climb back.
 @export var rifts: Array[NodePath] = []
 ## Where they head for until a Yeet's near: any node (a Marker3D). Empty: they hunt the Yeets,
 ## wherever they go.
@@ -33,6 +35,7 @@ extends PuzzleNode
 
 const HUNT_EVERY := 1.0 # (how often the monsters' way is worked out again as the Yeets move)
 const MARGIN := 25.0 # (metres of ground round the rifts, the goal and the Yeets that they can use)
+const BELOW_RIFTS := 2.0 # (how far below its rifts or its Goal the fight's ground goes)
 
 var wave := 0 # (server: which one's on, from 1)
 var boss # (server: Horde.Monster, while it lives)
@@ -95,12 +98,16 @@ func server_begin() -> void:
 	var f := FlowField.new()
 	var t0 := Time.get_ticks_msec()
 	var bounds := _ground_rect(at)
-	var low := at.y
+	# (only ground from the rifts' height upward: on a shelf, the room's floor below isn't theirs,
+	# and one knocked off falls)
+	var low := at.y if target else INF
 	var high := at.y
 	for s in _spots:
 		low = minf(low, s.global_position.y)
 		high = maxf(high, s.global_position.y)
-	f.build(world.get_world_3d().direct_space_state, bounds, low - 30.0, high + 40.0, at, 1.5)
+	if low == INF:
+		low = at.y
+	f.build(world.get_world_3d().direct_space_state, bounds, low - BELOW_RIFTS, high + 40.0, at, 1.5)
 	print("Encounter %s: the ground over %d x %d cells in %d ms" % [name, f.nx, f.nz, Time.get_ticks_msec() - t0])
 	h.begin_fight(f, at, chase_range)
 	_running = true

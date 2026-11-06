@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="m0"]
+albedo_color = Color(0.75, 0.75, 0.78, 1)
+roughness = 0.8
+
+[sub_resource type="CylinderMesh" id="s0"]
+top_radius = 0.17
+bottom_radius = 0.21
+height = 0.45
+radial_segments = 12
+material = SubResource("m0")
+
+[node name="Model" type="Node3D"]
+
+[node name="Thimble" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("s0")

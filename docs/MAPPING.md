@@ -729,6 +729,15 @@ times in a chapter's MapSettings don't count here. Example: `adventures/two_smal
   walks far. While it's on, a fallen Yeet is out for **Respawn After** seconds.
 - Doors can open and shut during a fight: the monsters notice within a few seconds. Mind the Steam
   Deck: **Max At Once** holds back the rest of a wave.
+- **A fight can be up high** (a shelf, a balcony): they only walk on ground from about their rifts'
+  height upward. One knocked off falls and is out of the fight. If a Yeet can reach the ground
+  below, they'll wait up there.
+- A monster's **Remains** (MonsterType): a body, or a puff of **dust**, for a monster that shouldn't
+  bleed. Example of all of it: `adventures/grandmas_glasses/study.tscn`.
+
+**A room with a ceiling** shuts the sun out, and the shade's a deep blue. For daylight indoors, turn
+**Casts Shadow** off on the ArenaBlocks of its walls and ceiling: the sun comes through them, and only
+the furniture throws shadows.
 
 ### Custom maps (map packs)
 Maps don't have to live in the game: make them in `custom/<your_map>/` (with their own

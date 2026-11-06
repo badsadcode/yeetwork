@@ -1,0 +1,1291 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/mapkit/map_settings.gd" id="settings"]
+[ext_resource type="Script" path="res://scripts/mapkit/arena_block.gd" id="block"]
+[ext_resource type="Script" path="res://scripts/mapkit/spawn_point.gd" id="spawn"]
+[ext_resource type="Script" path="res://scripts/mapkit/prop_spawn.gd" id="prop"]
+[ext_resource type="Script" path="res://scripts/mapkit/pressure_plate.gd" id="plate"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_door.gd" id="door"]
+[ext_resource type="Script" path="res://scripts/mapkit/puzzle_exit.gd" id="exit"]
+[ext_resource type="Script" path="res://scripts/mapkit/story_note.gd" id="note"]
+[ext_resource type="Script" path="res://scripts/mapkit/story_line.gd" id="line"]
+[ext_resource type="Script" path="res://scripts/mapkit/story_zone.gd" id="zone"]
+[ext_resource type="Script" path="res://scripts/mapkit/story_flag.gd" id="flag"]
+[ext_resource type="Script" path="res://scripts/mapkit/talking_yeet.gd" id="talker"]
+[ext_resource type="Script" path="res://scripts/mapkit/encounter.gd" id="encounter"]
+[ext_resource type="Script" path="res://scripts/mapkit/checkpoint.gd" id="checkpoint"]
+[ext_resource type="Script" path="res://scripts/mapkit/monster_spawn.gd" id="rift"]
+[ext_resource type="Script" path="res://scripts/mapkit/ladder.gd" id="ladder"]
+[ext_resource type="Script" path="res://scripts/mapkit/animated_model.gd" id="animated"]
+[ext_resource type="Script" path="res://scripts/mapkit/map_light.gd" id="light"]
+[ext_resource type="Script" path="res://scripts/mapkit/encounter_wave.gd" id="wave"]
+[ext_resource type="Script" path="res://scripts/horde/monster_type.gd" id="monster"]
+[ext_resource type="Resource" path="res://adventures/grandmas_glasses/types/sugar_cube.tres" id="sugar_cube"]
+[ext_resource type="Resource" path="res://adventures/grandmas_glasses/types/thimble.tres" id="thimble"]
+[ext_resource type="Resource" path="res://adventures/grandmas_glasses/types/domino.tres" id="domino"]
+[ext_resource type="Resource" path="res://adventures/grandmas_glasses/types/matchbox.tres" id="matchbox"]
+[ext_resource type="Resource" path="res://adventures/grandmas_glasses/types/dust_bunny.tres" id="dust_bunny_type"]
+[ext_resource type="Resource" path="res://adventures/grandmas_glasses/types/big_dust_bunny.tres" id="big_dust_bunny_type"]
+[ext_resource type="PackedScene" path="res://adventures/grandmas_glasses/models/ribbon.tscn" id="ribbon"]
+[ext_resource type="PackedScene" path="res://adventures/grandmas_glasses/models/falling_book.tscn" id="falling_book"]
+[ext_resource type="PackedScene" path="res://adventures/grandmas_glasses/models/diary.tscn" id="diary"]
+
+[sub_resource type="Resource" id="waveOne"]
+script = ExtResource("wave")
+own_monsters = Array[ExtResource("monster")]([ExtResource("dust_bunny_type")])
+own_count = 8
+spawn_gap = 0.4
+
+[sub_resource type="Resource" id="waveTwo"]
+script = ExtResource("wave")
+own_monsters = Array[ExtResource("monster")]([ExtResource("dust_bunny_type"), ExtResource("big_dust_bunny_type")])
+own_count = 3
+spawn_gap = 0.5
+
+[node name="TheStudy" type="Node3D"]
+
+[node name="MapSettings" type="Node" parent="."]
+script = ExtResource("settings")
+map_name = "The Study"
+author = "Yeetwork"
+description = "Grandma's Glasses: up the bookcase, across to the desk."
+sky = "day"
+puzzle = true
+kill_height = -20.0
+ambient_scale = 1.3
+
+[node name="Floor" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 5)
+script = ExtResource("block")
+size = Vector3(84, 1, 74)
+color = Color(0.48, 0.33, 0.21, 1)
+
+[node name="Ceiling" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 51, 0)
+script = ExtResource("block")
+size = Vector3(84, 2, 64)
+color = Color(0.88, 0.86, 0.8, 1)
+casts_shadow = false
+
+[node name="WallNorth" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 25, -31)
+script = ExtResource("block")
+size = Vector3(84, 50, 2)
+color = Color(0.72, 0.66, 0.55, 1)
+casts_shadow = false
+
+[node name="WallEast" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 25, 0)
+script = ExtResource("block")
+size = Vector3(2, 50, 60)
+color = Color(0.72, 0.66, 0.55, 1)
+casts_shadow = false
+
+[node name="WallWest" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41, 7, 0)
+script = ExtResource("block")
+size = Vector3(2, 14, 60)
+color = Color(0.72, 0.66, 0.55, 1)
+casts_shadow = false
+
+[node name="WallWest2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41, 45, 0)
+script = ExtResource("block")
+size = Vector3(2, 10, 60)
+color = Color(0.72, 0.66, 0.55, 1)
+casts_shadow = false
+
+[node name="WallWest3" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41, 27, -22)
+script = ExtResource("block")
+size = Vector3(2, 26, 16)
+color = Color(0.72, 0.66, 0.55, 1)
+casts_shadow = false
+
+[node name="WallWest4" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41, 27, 22)
+script = ExtResource("block")
+size = Vector3(2, 26, 16)
+color = Color(0.72, 0.66, 0.55, 1)
+casts_shadow = false
+
+[node name="WindowSill" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.25, 13.7, 0)
+script = ExtResource("block")
+size = Vector3(3.5, 0.6, 30)
+color = Color(0.93, 0.91, 0.86, 1)
+casts_shadow = false
+
+[node name="WindowBar" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41, 27, 0)
+script = ExtResource("block")
+size = Vector3(0.4, 26, 0.8)
+color = Color(0.93, 0.91, 0.86, 1)
+casts_shadow = false
+
+[node name="WindowBar2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41, 27, 0)
+script = ExtResource("block")
+size = Vector3(0.4, 0.8, 28)
+color = Color(0.93, 0.91, 0.86, 1)
+casts_shadow = false
+
+[node name="Curtain" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.25, 28, -16.5)
+script = ExtResource("block")
+size = Vector3(1.5, 32, 7)
+color = Color(0.5, 0.2, 0.22, 1)
+casts_shadow = false
+
+[node name="Curtain2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.25, 28, 16.5)
+script = ExtResource("block")
+size = Vector3(1.5, 32, 7)
+color = Color(0.5, 0.2, 0.22, 1)
+casts_shadow = false
+
+[node name="WallSouth" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 25, 31)
+script = ExtResource("block")
+size = Vector3(12, 50, 2)
+color = Color(0.72, 0.66, 0.55, 1)
+casts_shadow = false
+
+[node name="WallSouth2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 25, 31)
+script = ExtResource("block")
+size = Vector3(36, 50, 2)
+color = Color(0.72, 0.66, 0.55, 1)
+casts_shadow = false
+
+[node name="WallSouth3" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 25, 31)
+script = ExtResource("block")
+size = Vector3(14, 50, 2)
+color = Color(0.72, 0.66, 0.55, 1)
+casts_shadow = false
+
+[node name="WallSouth4" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 45, 31)
+script = ExtResource("block")
+size = Vector3(16, 10, 2)
+color = Color(0.72, 0.66, 0.55, 1)
+casts_shadow = false
+
+[node name="WallSouth5" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 27, 31)
+script = ExtResource("block")
+size = Vector3(6, 46, 2)
+color = Color(0.72, 0.66, 0.55, 1)
+casts_shadow = false
+
+[node name="TheDoor" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 21.5, 30.8)
+script = ExtResource("block")
+size = Vector3(16, 37, 2.4)
+color = Color(0.56, 0.38, 0.24, 1)
+casts_shadow = false
+
+[node name="DoorHandle" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.75, 19.5, 29)
+script = ExtResource("block")
+size = Vector3(1.5, 1, 1.2)
+color = Color(0.8, 0.65, 0.25, 1)
+
+[node name="UnderDoorWest" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31, 1.5, 37)
+script = ExtResource("block")
+size = Vector3(2, 3, 10)
+color = Color(0.42, 0.26, 0.15, 1)
+casts_shadow = false
+
+[node name="UnderDoorEast" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 1.5, 37)
+script = ExtResource("block")
+size = Vector3(2, 3, 10)
+color = Color(0.42, 0.26, 0.15, 1)
+casts_shadow = false
+
+[node name="UnderDoorBack" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 1.5, 41)
+script = ExtResource("block")
+size = Vector3(20, 3, 2)
+color = Color(0.42, 0.26, 0.15, 1)
+casts_shadow = false
+
+[node name="UnderDoorTop" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 3.5, 37)
+script = ExtResource("block")
+size = Vector3(20, 1, 10)
+color = Color(0.42, 0.26, 0.15, 1)
+casts_shadow = false
+
+[node name="MouseWayWest" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21, 2, 36)
+script = ExtResource("block")
+size = Vector3(2, 4, 8)
+color = Color(0.2, 0.15, 0.12, 1)
+casts_shadow = false
+
+[node name="MouseWayEast" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 2, 36)
+script = ExtResource("block")
+size = Vector3(2, 4, 8)
+color = Color(0.2, 0.15, 0.12, 1)
+casts_shadow = false
+
+[node name="MouseWayBack" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 2, 39)
+script = ExtResource("block")
+size = Vector3(10, 4, 2)
+color = Color(0.2, 0.15, 0.12, 1)
+casts_shadow = false
+
+[node name="MouseWayTop" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 4.5, 36)
+script = ExtResource("block")
+size = Vector3(10, 1, 8)
+color = Color(0.2, 0.15, 0.12, 1)
+casts_shadow = false
+
+[node name="Skirting" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -29.75)
+script = ExtResource("block")
+size = Vector3(80, 2, 0.5)
+color = Color(0.93, 0.91, 0.86, 1)
+
+[node name="Skirting2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.75, 1, 0)
+script = ExtResource("block")
+size = Vector3(0.5, 2, 60)
+color = Color(0.93, 0.91, 0.86, 1)
+
+[node name="Skirting3" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.75, 1, 0)
+script = ExtResource("block")
+size = Vector3(0.5, 2, 60)
+color = Color(0.93, 0.91, 0.86, 1)
+
+[node name="Skirting4" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 1, 29.75)
+script = ExtResource("block")
+size = Vector3(10, 2, 0.5)
+color = Color(0.93, 0.91, 0.86, 1)
+
+[node name="Skirting5" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 1, 29.75)
+script = ExtResource("block")
+size = Vector3(36, 2, 0.5)
+color = Color(0.93, 0.91, 0.86, 1)
+
+[node name="Skirting6" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 1, 29.75)
+script = ExtResource("block")
+size = Vector3(12, 2, 0.5)
+color = Color(0.93, 0.91, 0.86, 1)
+
+[node name="WallSocket" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 9, 29.65)
+script = ExtResource("block")
+size = Vector3(4, 6, 0.7)
+color = Color(0.93, 0.91, 0.86, 1)
+
+[node name="WallClock" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 40, 29.65)
+script = ExtResource("block")
+size = Vector3(12, 12, 0.7)
+color = Color(0.25, 0.2, 0.15, 1)
+
+[node name="WallClockFace" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 40, 29.1)
+script = ExtResource("block")
+size = Vector3(10, 10, 0.4)
+color = Color(0.92, 0.9, 0.84, 1)
+
+[node name="Rug" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0.125, 15)
+script = ExtResource("block")
+size = Vector3(34, 0.25, 22)
+color = Color(0.55, 0.13, 0.16, 1)
+
+[node name="RugPattern" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0.275, 15)
+script = ExtResource("block")
+size = Vector3(26, 0.05, 14)
+color = Color(0.72, 0.56, 0.3, 1)
+
+[node name="Slipper" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.825, 13.5)
+script = ExtResource("block")
+size = Vector3(6, 1.15, 3)
+color = Color(0.5, 0.25, 0.45, 1)
+
+[node name="ChairSeat" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33, 10.5, 12)
+script = ExtResource("block")
+size = Vector3(14, 3, 20)
+color = Color(0.3, 0.42, 0.34, 1)
+
+[node name="ChairBack" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.5, 19, 12)
+script = ExtResource("block")
+size = Vector3(3, 14, 20)
+color = Color(0.3, 0.42, 0.34, 1)
+
+[node name="ChairLeg" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 4.5, 3)
+script = ExtResource("block")
+size = Vector3(2, 9, 2)
+color = Color(0.42, 0.26, 0.15, 1)
+
+[node name="ChairLeg2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 4.5, 21)
+script = ExtResource("block")
+size = Vector3(2, 9, 2)
+color = Color(0.42, 0.26, 0.15, 1)
+
+[node name="ChairLeg3" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39, 4.5, 3)
+script = ExtResource("block")
+size = Vector3(2, 9, 2)
+color = Color(0.42, 0.26, 0.15, 1)
+
+[node name="ChairLeg4" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39, 4.5, 21)
+script = ExtResource("block")
+size = Vector3(2, 9, 2)
+color = Color(0.42, 0.26, 0.15, 1)
+
+[node name="WastepaperBin" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 3.5, 12)
+script = ExtResource("block")
+size = Vector3(8, 7, 8)
+color = Color(0.25, 0.27, 0.3, 1)
+
+[node name="CaseBase" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 4, -26)
+script = ExtResource("block")
+size = Vector3(42, 8, 8)
+color = Color(0.42, 0.26, 0.15, 1)
+
+[node name="CaseSideWest" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.5, 19, -27)
+script = ExtResource("block")
+size = Vector3(1, 22, 6)
+color = Color(0.42, 0.26, 0.15, 1)
+
+[node name="CaseSideEast" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.5, 19, -27)
+script = ExtResource("block")
+size = Vector3(1, 22, 6)
+color = Color(0.42, 0.26, 0.15, 1)
+
+[node name="CaseShelfTwo" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 14.7, -27)
+script = ExtResource("block")
+size = Vector3(40, 0.6, 6)
+color = Color(0.42, 0.26, 0.15, 1)
+
+[node name="CaseShelfThree" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 24.7, -27)
+script = ExtResource("block")
+size = Vector3(40, 0.6, 6)
+color = Color(0.42, 0.26, 0.15, 1)
+
+[node name="CaseTop" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 29.7, -27)
+script = ExtResource("block")
+size = Vector3(42, 0.6, 6)
+color = Color(0.42, 0.26, 0.15, 1)
+
+[node name="Book" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.1557, 10.5811, -28.2355)
+script = ExtResource("block")
+size = Vector3(1.6886, 5.16224, 3.47103)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Book2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.6049, 10.8916, -28.2071)
+script = ExtResource("block")
+size = Vector3(1.41296, 5.78329, 3.41412)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Book3" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.3736, 10.7922, -28.2252)
+script = ExtResource("block")
+size = Vector3(1.40886, 5.58445, 3.45048)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Book4" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.6408, 9.87423, -28.1329)
+script = ExtResource("block")
+size = Vector3(2.05675, 3.74847, 3.26578)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Book5" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.9759, 9.97311, -28.2264)
+script = ExtResource("block")
+size = Vector3(2.33016, 3.94621, 3.45288)
+color = Color(0.15, 0.38, 0.24, 1)
+
+[node name="Book6" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.8246, 9.92367, -28.1358)
+script = ExtResource("block")
+size = Vector3(1.97231, 3.84733, 3.27152)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Book7" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.965, 9.87535, -28.2381)
+script = ExtResource("block")
+size = Vector3(1.74688, 3.75069, 3.47616)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Book8" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.1438, 10.7327, -28.1569)
+script = ExtResource("block")
+size = Vector3(1.8957, 5.46535, 3.31376)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book9" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.329, 10.0157, -28.094)
+script = ExtResource("block")
+size = Vector3(1.7339, 4.03144, 3.18807)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Book10" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.46736, 10.8502, -28.1041)
+script = ExtResource("block")
+size = Vector3(1.98931, 5.70033, 3.20822)
+color = Color(0.15, 0.38, 0.24, 1)
+
+[node name="Book11" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.48479, 10.2105, -28.0633)
+script = ExtResource("block")
+size = Vector3(1.91432, 4.42093, 3.12669)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book12" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.85411, 10.7175, -28.1354)
+script = ExtResource("block")
+size = Vector3(1.34705, 5.43497, 3.27079)
+color = Color(0.2, 0.2, 0.22, 1)
+
+[node name="Book13" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.34234, 10.5132, -28.134)
+script = ExtResource("block")
+size = Vector3(1.6765, 5.02649, 3.26804)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book14" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.187169, 10.1239, -28.1106)
+script = ExtResource("block")
+size = Vector3(1.38252, 4.24785, 3.22118)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Book15" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.56483, 10.5766, -28.0514)
+script = ExtResource("block")
+size = Vector3(1.3728, 5.15311, 3.10276)
+color = Color(0.2, 0.2, 0.22, 1)
+
+[node name="Book16" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.16861, 10.8644, -28.1806)
+script = ExtResource("block")
+size = Vector3(1.83477, 5.7289, 3.3612)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book17" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.94928, 10.3924, -28.2064)
+script = ExtResource("block")
+size = Vector3(1.72656, 4.78486, 3.41272)
+color = Color(0.15, 0.38, 0.24, 1)
+
+[node name="Book18" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.54016, 10.2691, -28.0757)
+script = ExtResource("block")
+size = Vector3(1.45521, 4.53828, 3.15143)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Book19" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.01758, 10.1334, -28.2226)
+script = ExtResource("block")
+size = Vector3(1.49964, 4.26681, 3.44523)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book20" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.3837, 10.2984, -28.1782)
+script = ExtResource("block")
+size = Vector3(1.2326, 4.59671, 3.35649)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book21" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.7754, 18.0172, -28.9536)
+script = ExtResource("block")
+size = Vector3(2.44928, 6.03438, 1.90722)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Book22" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.8935, 18.0282, -28.9436)
+script = ExtResource("block")
+size = Vector3(1.31448, 6.05643, 1.88723)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Book23" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.3349, 18.7194, -28.8094)
+script = ExtResource("block")
+size = Vector3(1.80274, 7.43883, 1.61876)
+color = Color(0.72, 0.68, 0.58, 1)
+
+[node name="Book24" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.268, 18.8789, -28.852)
+script = ExtResource("block")
+size = Vector3(2.33104, 7.75788, 1.70409)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book25" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.9127, 19.2741, -28.8404)
+script = ExtResource("block")
+size = Vector3(2.37944, 8.54825, 1.68085)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book26" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.8342, 18.5667, -28.9199)
+script = ExtResource("block")
+size = Vector3(1.77768, 7.13348, 1.83982)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Book27" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.2549, 17.9921, -28.932)
+script = ExtResource("block")
+size = Vector3(1.38082, 5.98429, 1.86398)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Book28" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.8531, 18.6659, -28.8102)
+script = ExtResource("block")
+size = Vector3(1.42286, 7.33183, 1.62042)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Book29" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.4764, 18.8053, -28.9703)
+script = ExtResource("block")
+size = Vector3(1.3306, 7.61065, 1.94058)
+color = Color(0.15, 0.38, 0.24, 1)
+
+[node name="Book30" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5878, 18.5535, -28.9769)
+script = ExtResource("block")
+size = Vector3(2.44656, 7.10695, 1.95386)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book31" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.1186, 18.5709, -28.9828)
+script = ExtResource("block")
+size = Vector3(2.49172, 7.1418, 1.96565)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Book32" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.77298, 18.5615, -28.8616)
+script = ExtResource("block")
+size = Vector3(2.19961, 7.12304, 1.72318)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Book33" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.00932, 18.6509, -28.9707)
+script = ExtResource("block")
+size = Vector3(1.32771, 7.30173, 1.94136)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Book34" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.14698, 18.2366, -28.8714)
+script = ExtResource("block")
+size = Vector3(2.39697, 6.47312, 1.74283)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Book35" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.88077, 18.3601, -28.9666)
+script = ExtResource("block")
+size = Vector3(2.13544, 6.72012, 1.93318)
+color = Color(0.2, 0.2, 0.22, 1)
+
+[node name="Book36" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0293767, 18.6049, -28.8727)
+script = ExtResource("block")
+size = Vector3(1.56735, 7.20971, 1.74542)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Book37" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.89121, 19.2347, -28.8388)
+script = ExtResource("block")
+size = Vector3(2.27381, 8.46946, 1.67757)
+color = Color(0.2, 0.2, 0.22, 1)
+
+[node name="Book38" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.91852, 18.0599, -28.9014)
+script = ExtResource("block")
+size = Vector3(1.78082, 6.1197, 1.80289)
+color = Color(0.72, 0.68, 0.58, 1)
+
+[node name="Book39" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.96136, 18.9465, -28.8087)
+script = ExtResource("block")
+size = Vector3(1.6353, 7.89308, 1.61739)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book40" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.88951, 18.3291, -28.8051)
+script = ExtResource("block")
+size = Vector3(2.22099, 6.65827, 1.61019)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Book41" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.2177, 26.8188, -27.2091)
+script = ExtResource("block")
+size = Vector3(1.56455, 3.63769, 5.41825)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Book42" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.1943, 26.7507, -27.0682)
+script = ExtResource("block")
+size = Vector3(2.4823, 3.50134, 5.13632)
+color = Color(0.15, 0.38, 0.24, 1)
+
+[node name="Book43" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.8234, 26.9812, -27.068)
+script = ExtResource("block")
+size = Vector3(2.25957, 3.96241, 5.13609)
+color = Color(0.2, 0.2, 0.22, 1)
+
+[node name="Book44" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.6167, 27.0612, -27.1632)
+script = ExtResource("block")
+size = Vector3(2.15379, 4.12231, 5.32643)
+color = Color(0.72, 0.68, 0.58, 1)
+
+[node name="Book45" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.6903, 27.0901, -27.1708)
+script = ExtResource("block")
+size = Vector3(1.69902, 4.18016, 5.34166)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book46" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.7448, 26.8056, -27.0514)
+script = ExtResource("block")
+size = Vector3(2.19202, 3.6112, 5.10276)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Book47" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.908, 27.0323, -27.2208)
+script = ExtResource("block")
+size = Vector3(1.48138, 4.06455, 5.44153)
+color = Color(0.2, 0.2, 0.22, 1)
+
+[node name="Book48" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.1598, 27.0781, -27.2188)
+script = ExtResource("block")
+size = Vector3(2.01504, 4.15623, 5.43764)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Book49" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.4626, 26.9343, -27.0633)
+script = ExtResource("block")
+size = Vector3(2.46507, 3.86861, 5.12655)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book50" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.98813, 27.0559, -27.2444)
+script = ExtResource("block")
+size = Vector3(2.48386, 4.11173, 5.4888)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Book51" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.92043, 26.9553, -27.1981)
+script = ExtResource("block")
+size = Vector3(1.65156, 3.91051, 5.39625)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Book52" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.69966, 26.9819, -27.087)
+script = ExtResource("block")
+size = Vector3(2.18791, 3.96373, 5.17398)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Book53" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.703328, 26.9256, -27.1436)
+script = ExtResource("block")
+size = Vector3(1.80475, 3.85115, 5.28727)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Book54" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.15538, 27.0218, -27.1283)
+script = ExtResource("block")
+size = Vector3(1.91266, 4.04355, 5.25658)
+color = Color(0.2, 0.2, 0.22, 1)
+
+[node name="Book55" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.24121, 26.9157, -27.105)
+script = ExtResource("block")
+size = Vector3(2.259, 3.83145, 5.20992)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Book56" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.05776, 26.9358, -27.1535)
+script = ExtResource("block")
+size = Vector3(1.37411, 3.87151, 5.30701)
+color = Color(0.2, 0.2, 0.22, 1)
+
+[node name="Book57" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.45848, 26.837, -27.1946)
+script = ExtResource("block")
+size = Vector3(1.42733, 3.67395, 5.38923)
+color = Color(0.2, 0.2, 0.22, 1)
+
+[node name="Book58" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.88079, 26.7598, -27.0712)
+script = ExtResource("block")
+size = Vector3(1.41729, 3.51951, 5.1424)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Book59" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.29472, 26.9269, -27.1476)
+script = ExtResource("block")
+size = Vector3(1.41056, 3.85389, 5.29514)
+color = Color(0.72, 0.68, 0.58, 1)
+
+[node name="Stairs" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.9792, 0.55, -19.0208)
+script = ExtResource("block")
+size = Vector3(2.95842, 1.1, 5.95842)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Stairs2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.96, 0.55, -19.04)
+script = ExtResource("block")
+size = Vector3(2.92001, 1.1, 5.92001)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Stairs3" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.9619, 1.65, -19.0381)
+script = ExtResource("block")
+size = Vector3(2.92384, 1.1, 5.92384)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Stairs4" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.9476, 0.55, -19.0524)
+script = ExtResource("block")
+size = Vector3(2.89512, 1.1, 5.89512)
+color = Color(0.15, 0.38, 0.24, 1)
+
+[node name="Stairs5" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.9308, 1.65, -19.0692)
+script = ExtResource("block")
+size = Vector3(2.86158, 1.1, 5.86158)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Stairs6" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.937, 2.75, -19.063)
+script = ExtResource("block")
+size = Vector3(2.874, 1.1, 5.874)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Stairs7" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.9688, 0.55, -19.0312)
+script = ExtResource("block")
+size = Vector3(2.9375, 1.1, 5.9375)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Stairs8" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.9668, 1.65, -19.0332)
+script = ExtResource("block")
+size = Vector3(2.93368, 1.1, 5.93368)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Stairs9" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.9497, 2.75, -19.0503)
+script = ExtResource("block")
+size = Vector3(2.89933, 1.1, 5.89933)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Stairs10" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.9945, 3.85, -19.0055)
+script = ExtResource("block")
+size = Vector3(2.98903, 1.1, 5.98903)
+color = Color(0.72, 0.68, 0.58, 1)
+
+[node name="Stairs11" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.9773, 0.55, -19.0227)
+script = ExtResource("block")
+size = Vector3(2.95458, 1.1, 5.95458)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Stairs12" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.9327, 1.65, -19.0673)
+script = ExtResource("block")
+size = Vector3(2.86545, 1.1, 5.86545)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Stairs13" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.9295, 2.75, -19.0705)
+script = ExtResource("block")
+size = Vector3(2.85907, 1.1, 5.85907)
+color = Color(0.72, 0.68, 0.58, 1)
+
+[node name="Stairs14" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.9505, 3.85, -19.0495)
+script = ExtResource("block")
+size = Vector3(2.90096, 1.1, 5.90096)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Stairs15" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.981, 4.95, -19.019)
+script = ExtResource("block")
+size = Vector3(2.96203, 1.1, 5.96203)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Stairs16" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.9274, 0.55, -19.0726)
+script = ExtResource("block")
+size = Vector3(2.85487, 1.1, 5.85487)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Stairs17" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.944, 1.65, -19.056)
+script = ExtResource("block")
+size = Vector3(2.888, 1.1, 5.888)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Stairs18" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.9701, 2.75, -19.0299)
+script = ExtResource("block")
+size = Vector3(2.94026, 1.1, 5.94026)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Stairs19" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.9878, 3.85, -19.0122)
+script = ExtResource("block")
+size = Vector3(2.97558, 1.1, 5.97558)
+color = Color(0.72, 0.68, 0.58, 1)
+
+[node name="Stairs20" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.9376, 4.95, -19.0624)
+script = ExtResource("block")
+size = Vector3(2.87513, 1.1, 5.87513)
+color = Color(0.13, 0.27, 0.45, 1)
+
+[node name="Stairs21" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.947, 6.05, -19.053)
+script = ExtResource("block")
+size = Vector3(2.89405, 1.1, 5.89405)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Stairs22" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.9697, 0.55, -19.0303)
+script = ExtResource("block")
+size = Vector3(2.93943, 1.1, 5.93943)
+color = Color(0.62, 0.47, 0.16, 1)
+
+[node name="Stairs23" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.9853, 1.65, -19.0147)
+script = ExtResource("block")
+size = Vector3(2.97064, 1.1, 5.97064)
+color = Color(0.15, 0.38, 0.24, 1)
+
+[node name="Stairs24" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.9931, 2.75, -19.0069)
+script = ExtResource("block")
+size = Vector3(2.98617, 1.1, 5.98617)
+color = Color(0.15, 0.38, 0.24, 1)
+
+[node name="Stairs25" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.9985, 3.85, -19.0015)
+script = ExtResource("block")
+size = Vector3(2.99708, 1.1, 5.99708)
+color = Color(0.33, 0.16, 0.38, 1)
+
+[node name="Stairs26" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.9656, 4.95, -19.0344)
+script = ExtResource("block")
+size = Vector3(2.9312, 1.1, 5.9312)
+color = Color(0.72, 0.68, 0.58, 1)
+
+[node name="Stairs27" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.9986, 6.05, -19.0014)
+script = ExtResource("block")
+size = Vector3(2.99729, 1.1, 5.99729)
+color = Color(0.15, 0.38, 0.24, 1)
+
+[node name="Stairs28" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.9612, 7.15, -19.0388)
+script = ExtResource("block")
+size = Vector3(2.92238, 1.1, 5.92238)
+color = Color(0.15, 0.38, 0.24, 1)
+
+[node name="DeskTop" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 14.5, -7)
+script = ExtResource("block")
+size = Vector3(30, 1, 20)
+color = Color(0.33, 0.19, 0.11, 1)
+
+[node name="DeskLeg" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 7, -16)
+script = ExtResource("block")
+size = Vector3(2, 14, 2)
+color = Color(0.33, 0.19, 0.11, 1)
+
+[node name="DeskLeg2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 7, 2)
+script = ExtResource("block")
+size = Vector3(2, 14, 2)
+color = Color(0.33, 0.19, 0.11, 1)
+
+[node name="DeskDrawers" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 7, -7)
+script = ExtResource("block")
+size = Vector3(8, 14, 20)
+color = Color(0.33, 0.19, 0.11, 1)
+
+[node name="LampBase" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.5, 15.25, -11.5)
+script = ExtResource("block")
+size = Vector3(5, 0.5, 5)
+color = Color(0.2, 0.35, 0.25, 1)
+
+[node name="LampStem" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.5, 18.75, -11.5)
+script = ExtResource("block")
+size = Vector3(0.6, 6.5, 0.6)
+color = Color(0.75, 0.65, 0.3, 1)
+
+[node name="LampShade" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.5, 23.5, -11.5)
+script = ExtResource("block")
+size = Vector3(6, 3, 6)
+color = Color(0.2, 0.4, 0.28, 1)
+
+[node name="LampLight" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.5, 21.5, -11.5)
+script = ExtResource("light")
+kind = "bulb"
+color = Color(1, 0.86, 0.6, 1)
+energy = 2.0
+reach = 26.0
+breakable = false
+
+
+[node name="Pencil" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 15.2, -9.8)
+script = ExtResource("block")
+size = Vector3(3.6, 0.4, 0.4)
+color = Color(0.9, 0.7, 0.15, 1)
+
+[node name="Paper" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 15.025, -0.9)
+script = ExtResource("block")
+size = Vector3(6, 0.05, 4.2)
+color = Color(0.93, 0.92, 0.88, 1)
+
+[node name="Mug" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.9, 16, -4.1)
+script = ExtResource("block")
+size = Vector3(1.8, 2, 1.8)
+color = Color(0.82, 0.35, 0.25, 1)
+
+[node name="CeilingLight" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 46, 2)
+script = ExtResource("light")
+kind = "bulb"
+color = Color(1, 0.93, 0.82, 1)
+energy = 2.5
+reach = 70.0
+breakable = false
+
+
+[node name="Spawn0" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, 0, 36)
+script = ExtResource("spawn")
+
+
+[node name="Spawn1" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, 36)
+script = ExtResource("spawn")
+
+
+[node name="Spawn2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, 36)
+script = ExtResource("spawn")
+
+
+[node name="Spawn3" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0, 36)
+script = ExtResource("spawn")
+
+
+[node name="ViewFloor" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -22, 0.3, 24)
+
+[node name="ViewShelf" type="Marker3D" parent="."]
+transform = Transform3D(0.000796327, 0, -1, 0, 1, 0, 1, 0, 0.000796327, -14, 15.3, -26)
+
+[node name="ViewDesk" type="Marker3D" parent="."]
+transform = Transform3D(0.825336, 0, 0.564642, 0, 1, 0, -0.564642, 0, 0.825336, 10, 15.3, 0)
+
+[node name="Mabel" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0, 22)
+script = ExtResource("talker")
+display_name = "Mabel"
+lines = PackedStringArray("Oh good, the Yeets. I'm Mabel. I do odd jobs round here. They're all odd.", "She's lost her glasses again, and she can't see a thing without them. She wrote to you herself. Well, she wrote to the toaster, but it got passed on.", "Her diary's on the desk. Up there. No, higher. Higher. There.", "You'll want the bookcase. The books at the far end make a good stair. And mind the dust. It bites.")
+shirt = Color(0.75, 0.3, 0.45, 1)
+
+
+[node name="TheLetter" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, 20)
+script = ExtResource("note")
+title = "A Letter"
+text = "To the small people, or the toaster,\n\nI seem to have put my glasses down somewhere. Could you find them? I would look myself, but I can't see where to start.\n\nThere's a biscuit in it for you.\n\nYours, Grandma\n\nP.S. Is that you, Harold?"
+
+
+[node name="FloorSugar" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0.5, 21)
+script = ExtResource("prop")
+kind = "crate"
+type = ExtResource("sugar_cube")
+
+
+[node name="FloorSugar2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0.5, 19)
+script = ExtResource("prop")
+kind = "crate"
+type = ExtResource("sugar_cube")
+
+
+[node name="FloorThimble" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.5, 16)
+script = ExtResource("prop")
+kind = "crate"
+type = ExtResource("thimble")
+
+
+[node name="IntoTheRoom" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0, 25)
+script = ExtResource("zone")
+size = Vector3(20, 4, 8)
+
+
+[node name="VoiceOne" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("line")
+speaker = "A VOICE"
+text = "Is somebody there? Speak up, dear."
+voice = "tired"
+delay = 1
+inputs = Array[NodePath]([NodePath("../IntoTheRoom")])
+
+
+[node name="VoiceTwo" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("line")
+speaker = "A VOICE"
+text = "Oh, it's only you, Harold. You've got very thin."
+voice = "tired"
+delay = 0.5
+inputs = Array[NodePath]([NodePath("../VoiceOne")])
+
+
+[node name="MabelOne" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("line")
+speaker = "Mabel"
+text = "She's talking to the lamp."
+voice = "talk"
+inputs = Array[NodePath]([NodePath("../VoiceTwo")])
+
+
+[node name="VoiceThree" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("line")
+speaker = "A VOICE"
+text = "And you never did fix that shade."
+voice = "tired"
+delay = 0.3
+inputs = Array[NodePath]([NodePath("../MabelOne")])
+
+
+[node name="RibbonBook" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 11.2, -24.7)
+script = ExtResource("block")
+size = Vector3(4, 6.4, 1)
+color = Color(0.55, 0.14, 0.13, 1)
+
+[node name="Ribbon" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 8, -24.1)
+script = ExtResource("ladder")
+height = 7.6
+over_the_top = 5.0
+model = ExtResource("ribbon")
+
+[node name="UpTheShelf" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.5, 15, -26)
+script = ExtResource("checkpoint")
+radius = 1.9
+objective = "Climb the bookcase"
+
+
+[node name="Matchbox" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.5, 15.6, -26)
+script = ExtResource("prop")
+kind = "crate"
+type = ExtResource("matchbox")
+key_prop = true
+
+
+[node name="TheyWake" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 15, -26)
+script = ExtResource("zone")
+size = Vector3(4, 4, 6)
+
+
+[node name="VoiceDust" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("line")
+speaker = "A VOICE"
+text = "I do keep meaning to dust those shelves."
+voice = "tired"
+inputs = Array[NodePath]([NodePath("../TheyWake")])
+
+
+[node name="RiftWest" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 15, -26)
+script = ExtResource("rift")
+radius = 1.2
+
+
+[node name="RiftEast" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 15, -26.5)
+script = ExtResource("rift")
+radius = 1.0
+
+
+[node name="TheDust" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 15, -26)
+script = ExtResource("encounter")
+waves = Array[ExtResource("wave")]([SubResource("waveOne"), SubResource("waveTwo")])
+rifts = Array[NodePath]([NodePath("../RiftWest"), NodePath("../RiftEast")])
+inputs = Array[NodePath]([NodePath("../TheyWake")])
+max_at_once = 20
+respawn_after = 10.0
+restart_after = 4.0
+objective = "Clear out the dust bunnies"
+
+
+[node name="VoiceSneeze" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("line")
+speaker = "A VOICE"
+text = "Bless you. Was that you, Harold?"
+voice = "tired"
+delay = 1
+inputs = Array[NodePath]([NodePath("../TheDust")])
+
+
+[node name="ShelfDomino" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 15.5, -25.5)
+script = ExtResource("prop")
+kind = "crate"
+type = ExtResource("domino")
+
+
+[node name="ShelfDomino2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 15.5, -25.5)
+script = ExtResource("prop")
+kind = "crate"
+type = ExtResource("domino")
+
+
+[node name="ShelfThimble" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 15.5, -27)
+script = ExtResource("prop")
+kind = "crate"
+type = ExtResource("thimble")
+
+
+[node name="ShelfThimble2" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 15.5, -27.2)
+script = ExtResource("prop")
+kind = "crate"
+type = ExtResource("thimble")
+
+
+[node name="ShelfSugar" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 15.4, -27.3)
+script = ExtResource("prop")
+kind = "crate"
+type = ExtResource("sugar_cube")
+
+
+[node name="LoosePlate" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 15, -26)
+script = ExtResource("plate")
+required_mass = 20.0
+latch = true
+objective = "Weigh down the plate with something heavy"
+
+
+[node name="BigBook" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 15, -24)
+script = ExtResource("animated")
+model = ExtResource("falling_book")
+play = "once"
+latch = true
+inputs = Array[NodePath]([NodePath("../TheDust"), NodePath("../LoosePlate")])
+
+
+[node name="VoiceBook" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("line")
+speaker = "A VOICE"
+text = "Harold! Stop throwing my books about."
+voice = "excited"
+delay = 1.4
+inputs = Array[NodePath]([NodePath("../BigBook")])
+
+
+[node name="HerDiary" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 15, -9)
+script = ExtResource("note")
+title = "Her Diary"
+text = "Tuesday. Lost my glasses. Looked everywhere I could see, which wasn't far.\n\nWednesday. Buttered something at breakfast. It may have been the cat.\n\nThursday. I'm sure I had them on in the KITCHEN. Or the kitchen had them on. Someone should go and look."
+model = ExtResource("diary")
+objective = "Read her diary, on the desk"
+
+
+[node name="KnowsTheKitchen" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 15, -9)
+script = ExtResource("flag")
+flag = "read_the_diary"
+inputs = Array[NodePath]([NodePath("../HerDiary")])
+
+
+[node name="MabelKitchen" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("line")
+speaker = "Mabel (from very far below)"
+text = "The kitchen! Jump down, you'll be fine, and out by the mouse hole! I've opened it!"
+voice = "excited"
+delay = 0.5
+inputs = Array[NodePath]([NodePath("../HerDiary")])
+
+
+[node name="MouseDoor" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, 30.5)
+script = ExtResource("door")
+size = Vector3(6, 4, 1)
+open_offset = Vector3(0, 3.9, 0)
+color = Color(0.35, 0.27, 0.2, 1)
+inputs = Array[NodePath]([NodePath("../HerDiary")])
+
+
+[node name="Exit" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, 35)
+script = ExtResource("exit")
+objective = "Out through the mouse hole"
+

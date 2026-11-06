@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PropType" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/props/prop_type.gd" id="type"]
+[ext_resource type="PackedScene" path="res://adventures/grandmas_glasses/models/thimble.tscn" id="model"]
+
+[resource]
+script = ExtResource("type")
+display_name = "Thimble"
+behaves_like = "crate"
+model = ExtResource("model")
+size = Vector3(0.42, 0.45, 0.42)
+shape = "cylinder"
+mass = 8
+unbreakable = true
